@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-a11y-devtools",
-  "revision": 139,
+  "revision": 144,
   "planRevision": 18,
   "specHashes": {
     "requirements": "4a6c683aa102b8f1030e274bee5dff3347e540bfc919978760a9eff0017628d4",
@@ -166,10 +166,16 @@
       ]
     },
     "t27-remove-devtools": {
-      "status": "pending"
+      "status": "implemented",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t28-cleanup-docs": {
-      "status": "pending"
+      "status": "implemented",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t29-after-measurements": {
       "status": "pending"
@@ -376,6 +382,16 @@
         }
       },
       "recordedAt": "2026-10-16T21:56:25Z"
+    },
+    "1837b1342395edb45f0ceb6895b29076196b82e60588601483b7f98d50fa0665": {
+      "snapshot": {
+        "specHash": "9b066d1d0d47eee86d6bf8dc03f6fb6e26cdb35840b4c81d68634b393d82784f",
+        "repositories": {
+          "gpux": "6cceb5ee56d98d1fe378a7cac839f4049e80ef02e54b32b64dc43f8f475d7dfb",
+          "rayx": "8cfb3352ceb22853b42bd54b9eddbe1ec1b13e7425417a72efe39dcedc88bc2e"
+        }
+      },
+      "recordedAt": "2026-10-16T22:14:35Z"
     }
   },
   "checkResults": {
@@ -1474,6 +1490,57 @@
       "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s08-rayx-final-fabcc16d8418.log",
       "logSha256": "d4602edbe0b8e1631a21414ab4bc965ce196f114aecad6cf27c7b22cc7117f64",
       "inputsHash": "3177fe5d0fa804c3cf8e9b787d1512797f5a01a40fe570fcbbf7cbc8c6f6c926"
+    },
+    "s09-removal/check-devtools-guard/final": {
+      "checkId": "check-devtools-guard",
+      "boundaryId": "s09-removal",
+      "phase": "final",
+      "batchId": "1837b1342395edb45f0ceb6895b29076196b82e60588601483b7f98d50fa0665",
+      "definitionHash": "744998c0ae5411690cae351f4f9bc554244948a8547cba61f0d97b7094f7c15c",
+      "basisHash": "f8916f6e4c32dd91529acca5109c09ebba2eb385a5816f927c3dc1eb1558edf9",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 0.7318,
+      "recordedAt": "2026-10-16T22:14:34Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s09-removal-final-a41caa253aa9.log",
+      "logSha256": "ca5086e4bda215f6ab0b51298c2d0a7ed7ca7fb25ced86e238166efd3e513c90",
+      "inputsHash": "f6c686bd9d7367c9568725373612d94057185b13942ea335101ac825e51cb1d5"
+    },
+    "s09-removal/check-effect-diagnostics/final": {
+      "checkId": "check-effect-diagnostics",
+      "boundaryId": "s09-removal",
+      "phase": "final",
+      "batchId": "1837b1342395edb45f0ceb6895b29076196b82e60588601483b7f98d50fa0665",
+      "definitionHash": "73c112ffa3812706ccb18ddb3ac41075813b6f74f1ab560eaf043b362524b94f",
+      "basisHash": "3adda725a5e0e8087b7dd4868947cd7e0e2a23863164403808ec637e3adc4b16",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 0.2944,
+      "recordedAt": "2026-10-16T22:14:34Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s09-removal-final-c0dd4582f6ce.log",
+      "logSha256": "b1238a865bed947384ab361df694157ff561ed4fec77284a1070335fd254d628",
+      "inputsHash": "4aa726ca0b01501ec0d56563b737e9f4a7a45980c8c7c461957fd7a5bd725a29"
+    },
+    "s09-removal/check-rx-navigation-paint/final": {
+      "checkId": "check-rx-navigation-paint",
+      "boundaryId": "s09-removal",
+      "phase": "final",
+      "batchId": "1837b1342395edb45f0ceb6895b29076196b82e60588601483b7f98d50fa0665",
+      "definitionHash": "091463f357f2c1da1f11b17199129ec2b3e1fc6105016017549481df13d5e756",
+      "basisHash": "0ae67b44ace37c5392fa5a3bf1ab8352fc51134355c7f54b0a2ca4d14ce50ed0",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 0.4618,
+      "recordedAt": "2026-10-16T22:14:35Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s09-removal-final-a67d1b708bf9.log",
+      "logSha256": "d913d6323d47920417b98abe39e65734afe9e3128b5e965858ecc902f5c55d03",
+      "inputsHash": "2a8c576f72bbe12b29f78d923c148098e1ad1608c4152b01191d45a56ad0944b"
     }
   },
   "reviews": {
@@ -3390,6 +3457,137 @@
         "gpux:docs/measurements/a11y-devtools.md": "406c3678b07a71e25202104191caf50da6b0607e4acec9c01ec1ff77949d2e90",
         "gpux:docs/measurements/screen-reader-walkthrough.md": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
       }
+    },
+    "s09-removal": {
+      "reviewerId": "independent-reviewer-s08-rayx-opus-091c999e",
+      "snapshotId": "1837b1342395edb45f0ceb6895b29076196b82e60588601483b7f98d50fa0665",
+      "criterionIds": [
+        "REM-1",
+        "REM-2",
+        "REM-3"
+      ],
+      "verdict": "failed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "REM-1",
+            "REM-2"
+          ],
+          "sha256": "00d8a1055123c42dc54159e19eec8fe6cf1877383cf7fe99732e672fd911e833"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/splice.rs",
+          "kind": "source",
+          "criterionIds": [
+            "REM-1"
+          ],
+          "sha256": "82944068cb89e4b4f304427890adcd27b21567eef984f11982902dd2472cacfe"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "REM-1"
+          ],
+          "sha256": "a7c0c58a19f061c95f4c468e9041895c8dd06e5016e648f17ba7583007674e8e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/verify.rs",
+          "kind": "source",
+          "criterionIds": [
+            "REM-1"
+          ],
+          "sha256": "ac538f9816e20081eb82d1a47e41ec2cf7b0058c8caaca2bfc05da36fc10de7d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "REM-1",
+            "REM-3"
+          ],
+          "sha256": "ce946f6ef1028da639b28478212169e6338b3b3f3e3982b964dc72289f3cb56b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/devtools_removed_guard.rs",
+          "kind": "test",
+          "criterionIds": [
+            "REM-1"
+          ],
+          "sha256": "f070853ef223de278ae3ff57e9a37f3456af7f827e7208199c5dbbeccb7aab47"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/effect_diagnostics.rs",
+          "kind": "test",
+          "criterionIds": [
+            "REM-2"
+          ],
+          "sha256": "a9587f8687467f3db86e38f185a59e1fb79647f8c5f5887982829c75fe3772a0"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_runtime/src/services/navigation/tests.rs",
+          "kind": "test",
+          "criterionIds": [
+            "REM-2"
+          ],
+          "sha256": "be882074c2fad3c48c1c0ef65769f3e47921e4c7f3980227936ad1fe11b3e667"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/references/update-from-zed-gpui-closure.md",
+          "kind": "source",
+          "criterionIds": [
+            "REM-3"
+          ],
+          "sha256": "ba9a6cc1362b3ca06af57bfd87c44b033f94c24b6c8a3a01aa8a8b126b6abf28"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md",
+          "kind": "source",
+          "criterionIds": [
+            "REM-3"
+          ],
+          "sha256": "1cddc0db815ab20245260fc97acc944a82513fe943a20ea52ae7e764494ca112"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/upstream/gpui-fast.md",
+          "kind": "source",
+          "criterionIds": [
+            "REM-3"
+          ],
+          "sha256": "3f3ad5f3039d97187badc3be7fb8d9c99c64ce272f89566b01d6aa6b70cf8e37"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/gpui/frame-pipeline/rules.md",
+          "kind": "source",
+          "criterionIds": [
+            "REM-3"
+          ],
+          "sha256": "170d3b170609a498f1c3b15309b89e1d6a1d7ca586cc969bf2b6d51820554cfe"
+        }
+      ],
+      "summaryMarkdown": "The removal itself is sound. Every retired symbol, the `devtools` feature, the `DEVTOOLS` gate, the per-element records and paint-time text semantics, the DevKit-node handling in fast mode and the pointer-semantics scope are gone. Nothing outside the DevKit read the deleted data: `hidden_hitboxes` and `NodeRow` only fed DevKit hitbox counts and snapshot order, and the verifier still compares the accessibility tree and now the effect counts. The guard covers types, methods, frame records, the gate and the Cargo feature, and both its scans can fail. `Window::effect_diagnostics()` is the old effect snapshot's computation field for field, and `effect_diagnostics.rs` exercises each count. RayX 3716df72 restores `navigation_region_view_paints_configured_screen_effect_region` exactly as it was before the epic, plus the region count in `inherits_default_transition`. No RayX feature enabled gpui's dropped `rayx_diagnostics` alias. The upstream checklist, `docs/fast-mode.md` (the `devtools` section), README, LINUX-WSL and the gpux memory sync are accurate. Checks passed 3/3, and lane A passed 119/0 (`s09-lane-a.log`). Failing only on stale DevKit wording left in `docs/upstream/gpui-fast.md`, one `fast-mode.md` clause and one gpui memory rule.",
+      "findingIds": [
+        "s09-rem3-stale-fast-docs"
+      ],
+      "recordedAt": "2026-10-16T22:17:26Z",
+      "recordHashes": {
+        "gpux:docs/measurements/a11y-devtools.md": "406c3678b07a71e25202104191caf50da6b0607e4acec9c01ec1ff77949d2e90",
+        "gpux:docs/measurements/screen-reader-walkthrough.md": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
     }
   },
   "checkpoints": {
@@ -4500,9 +4698,19 @@
           "path": "crates/rayx_runtime/src/component_state.rs"
         }
       ]
+    },
+    {
+      "id": "s09-rem3-stale-fast-docs",
+      "boundaryId": "s09-removal",
+      "criterionIds": [
+        "REM-3"
+      ],
+      "severity": "minor",
+      "status": "open",
+      "descriptionMarkdown": "Some docs still describe the removed DevKit layer as current. `docs/upstream/gpui-fast.md`, the provenance map upstream imports follow, says in five places that gpux's fast mode handles DevKit data. Line 37: `verify.rs` describes \"accessed element state and the DevKit tree\". Line 59: lists answer for \"DevKit elements\", keep row order \"among the DevKit elements\", and move \"DevKit bounds\" on composited frames. Line 61: a frame shown from a layer tells \"DevKit elements\". Commit 50c5960 deleted all of that (`shown_nodes`, `NodeRow`, `hidden_hitboxes`, the devtools listing in verify and the bounds stepping in `layers/reuse.rs`), and f6a4743 changed only one line of this file. `docs/fast-mode.md:344` still says hidden list rows \"are not counted among the hitboxes of the elements around them\". That is the per-element DevKit `hitbox_count` that `hidden_hitboxes` kept; it no longer exists. `.agentx/memory/knowledge/gpui/rules.md:20` still calls `rayx_diagnostics` a compatibility alias in the gpui domain, which no longer has one. Expected (REM-3, and the gpux skill's provenance rules): these docs describe the accessibility records and the verifier's tree comparison. Repair: rewrite those `gpui-fast.md` cells (verify: the effect diagnostics and the accessibility tree; lists and reuse: accessibility nodes and debug bounds), drop or rephrase the `fast-mode.md:344` hitbox clause, and scope the alias note to the web crates (`gpui_web`, `gpui_wgpu`)."
     }
   ],
-  "handoffMarkdown": "secondary-a select-all in code, rich text, canvas, node editor and both apps' maps; guard test in rayx_test_suite (RayX 98446d40, docs 1b358b67).",
+  "handoffMarkdown": "Checklist Accessibility section, fast-mode/README/LINUX-WSL/SKILL/gpui-fast docs (gpux f6a4743), gpui rayx_diagnostics alias dropped with diagnostics_names updated (50c5960), gpux memory synced for frame-pipeline, positioning-scroll, gpui, frame-effects, input, validation (bef1e9e).",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",

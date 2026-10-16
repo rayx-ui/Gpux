@@ -341,8 +341,8 @@ A frame shown from a list's layer tells what the frame drawn without it tells. T
 layer holds off screen give it their pixels and nothing else, as a list without a layer does
 not draw them: their hitboxes are clipped away, their mouse listeners hear nothing (one that
 listens for a press outside its element would hear every press), they are no stops for the tab
-key, hold no focus, have no nodes in the accessibility tree, are not counted among the hitboxes
-of the elements around them, have no bounds for tests to find them by, and handle no text input.
+key, hold no focus, have no nodes in the accessibility tree, have no bounds for tests to find
+them by, and handle no text input.
 The rows the list shows are told row after row, in the tab order and in the accessibility tree,
 whichever of them the frame carried and whichever it rendered.
 
