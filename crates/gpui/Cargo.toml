@@ -108,7 +108,7 @@ smallvec.workspace = true
 stacksafe = { workspace = true, optional = true }
 strum.workspace = true
 sum_tree.workspace = true
-taffy = { version = "=0.14.0", default-features = false, features = ["std", "taffy_tree", "flexbox", "grid", "block_layout"] }
+taffy = { version = "=0.14.0", default-features = false, features = ["alloc", "taffy_tree", "flexbox", "grid", "block_layout"] }
 thiserror.workspace = true
 unicode-segmentation.workspace = true
 gpui_util.workspace = true

@@ -628,7 +628,11 @@ impl TaffyLayoutEngine {
     fn count_all_children(&self, parent: LayoutId) -> anyhow::Result<u32> {
         let mut count = 0;
 
-        for child in self.taffy.children(parent.0)? {
+        for child in self
+            .taffy
+            .children(parent.0)
+            .map_err(|error| anyhow::anyhow!("{error:?}"))?
+        {
             // Count this child.
             count += 1;
 
@@ -649,7 +653,11 @@ impl TaffyLayoutEngine {
 
         let mut max_child_depth = 0;
 
-        for child in self.taffy.children(parent.0)? {
+        for child in self
+            .taffy
+            .children(parent.0)
+            .map_err(|error| anyhow::anyhow!("{error:?}"))?
+        {
             max_child_depth = std::cmp::max(max_child_depth, self.max_depth(0, LayoutId(child))?);
         }
 
@@ -661,7 +669,11 @@ impl TaffyLayoutEngine {
     fn get_edges(&self, parent: LayoutId) -> anyhow::Result<Vec<(LayoutId, LayoutId)>> {
         let mut edges = Vec::new();
 
-        for child in self.taffy.children(parent.0)? {
+        for child in self
+            .taffy
+            .children(parent.0)
+            .map_err(|error| anyhow::anyhow!("{error:?}"))?
+        {
             edges.push((parent, LayoutId(child)));
 
             edges.extend(self.get_edges(LayoutId(child))?);
