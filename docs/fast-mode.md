@@ -126,6 +126,17 @@ AccessKit is active, or for a view whose id is drawn twice in a frame; each reas
 A view whose content has a sticky element pinned by a scroll container outside it is built rather
 than laid out from its record, so the container pins it from what this frame registered.
 
+A view holding a measured leaf other than text is built on every frame rather than reused unless
+the leaf's style fixes its size in every parent: a frame takes every measurement closure when it is
+cleared and gives one back only to text, so a kept leaf sized by its measurement would be sized
+empty. A leaf is fixed when its width and height are absolute and so is its minimum size, or its
+overflow is hidden or scrolling on both axes, which makes a flex or grid parent's automatic minimum
+zero. A `uniform_list` with `ListSizingBehavior::Infer`, a custom element on
+`Window::request_measured_layout` without such a size, or one sized as a percentage of its parent
+is not fixed. A fixed leaf whose last layout still measured it to size it builds its view on the
+next frame too. Each such build is counted in `FastStats::views_built_for_measured_leaves`. Fixed
+leaves and text keep their view reusable.
+
 ### Splice
 
 With `splice` on (it needs view retention), a view that is dirty only because views nested in

@@ -28,6 +28,7 @@ mod list_layers;
 mod oracle;
 mod oracle_layers;
 mod oracle_layout;
+mod oracle_measured_leaves;
 mod oracle_splice;
 mod oracle_support;
 mod oracle_views;

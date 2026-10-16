@@ -225,6 +225,7 @@ impl TaffyLayoutEngine {
     }
 
     pub fn clear(&mut self) {
+        self.retention.measured_leaves.clear();
         for id in self.measured_layouts.drain(..) {
             let context = self.taffy.get_node_context_mut(id.0).expect(EXPECT_MESSAGE);
             context.measure = None;
@@ -755,6 +756,21 @@ impl TaffyLayoutEngine {
                 id.into(),
                 available_space.into(),
                 |inputs, node_id, node_context, style| {
+                    // Whether the measurement can set this leaf's size: an
+                    // axis neither known nor given by the style takes it. The
+                    // last layout pass measures every leaf for its overflow
+                    // alone, which leaves its size as it is.
+                    let sized_by_measurement = retention.active && {
+                        use taffy::{CoreStyle as _, MaybeResolve as _};
+                        let node_size = match inputs.sizing_mode {
+                            taffy::SizingMode::ContentSize => inputs.known_dimensions,
+                            taffy::SizingMode::InherentSize => inputs.known_dimensions.or(style
+                                .size()
+                                .maybe_resolve(inputs.parent_size, |_, _| 0.0)
+                                .maybe_apply_aspect_ratio(style.aspect_ratio())),
+                        };
+                        node_size.width.is_none() || node_size.height.is_none()
+                    };
                     taffy::compute::compute_leaf_layout(
                         inputs,
                         style,
@@ -788,6 +804,11 @@ impl TaffyLayoutEngine {
                                 untransform(available_space.height),
                             );
 
+                            if sized_by_measurement
+                                && !crate::fast::layout::is_text_leaf(retention, node_id.into())
+                            {
+                                retention.measured_leaves.insert(node_id.into());
+                            }
                             if retention.active {
                                 crate::fast::layout::note_measured(
                                     retention,

@@ -2429,6 +2429,15 @@ pub struct Window {
     pub(crate) fast_verify: crate::fast::verify::retention::RetentionVerify,
     pub(crate) fast_glyph_bounds: crate::fast::glyphs::GlyphBoundsCache,
     pub(crate) fast_layers: crate::fast::layers::WindowLayers,
+    /// The measured leaves requested this frame under view retention, with
+    /// the view each was requested in and whether its style fixes its size
+    /// in every parent (see `fast::layout::measured_size_is_fixed`).
+    pub(crate) fast_measured_owners: Vec<(LayoutId, EntityId, bool)>,
+    /// The views whose layout last frame held a measured leaf other than text
+    /// whose size came, or could come, from its measurement: built on the
+    /// next frame, not reused, since the leaf keeps no measurement closure
+    /// across frames.
+    pub(crate) fast_measuring_views: FxHashSet<EntityId>,
     #[cfg(any(
         test,
         feature = "test-support",
@@ -3412,6 +3421,8 @@ impl Window {
             fast_verify: Default::default(),
             fast_glyph_bounds: crate::fast::glyphs::GlyphBoundsCache::default(),
             fast_layers: crate::fast::layers::WindowLayers::default(),
+            fast_measured_owners: Vec::new(),
+            fast_measuring_views: FxHashSet::default(),
             #[cfg(any(
                 test,
                 feature = "test-support",
@@ -5257,6 +5268,20 @@ impl Window {
         }
         self.refresh_for_text_policy();
         self.invalidate_entities();
+        // A view whose layout held a measured leaf other than text whose size
+        // came from its measurement is built, as if notified: kept, the leaf
+        // would have no measurement closure and be sized empty.
+        let mut built_for_measured_leaves = 0;
+        if self.fast_mode.view_retention() {
+            for view in mem::take(&mut self.fast_measuring_views) {
+                if !self.dirty_views.contains(&view) {
+                    self.mark_view_dirty(view);
+                    built_for_measured_leaves += 1;
+                }
+            }
+        } else {
+            self.fast_measuring_views.clear();
+        }
         cx.entities.clear_accessed();
         debug_assert!(self.rendered_entity_stack.is_empty());
         self.invalidator.set_dirty(false);
@@ -5288,6 +5313,12 @@ impl Window {
             feature = "diagnostics"
         ))]
         crate::fast::stats::begin_frame(self);
+        crate::fast::fast_stat!(
+            self.fast_stats.frame,
+            views_built_for_measured_leaves += built_for_measured_leaves
+        );
+        // Counted only where fast-mode counters are compiled.
+        let _ = built_for_measured_leaves;
         crate::fast::layout::begin_frame(self);
         crate::fast::composition::begin_frame(self);
         crate::fast::retained::begin_frame(self, cx);
@@ -5375,6 +5406,21 @@ impl Window {
                 });
         }
 
+        {
+            // The views holding a measured leaf other than text whose size
+            // came from its measurement, or whose style leaves its size to a
+            // parent that may change while the view is kept, are built on the
+            // next frame (see `draw`).
+            let retention = &self.layout_engine.as_ref().unwrap().retention;
+            self.fast_measuring_views = mem::take(&mut self.fast_measured_owners)
+                .into_iter()
+                .filter(|(id, _, fixed)| {
+                    !crate::fast::layout::is_text_leaf(retention, *id)
+                        && (!fixed || retention.measured_leaves.contains(id))
+                })
+                .map(|(_, view, _)| view)
+                .collect();
+        }
         self.layout_engine.as_mut().unwrap().clear();
         #[cfg(any(
             test,
@@ -8251,10 +8297,25 @@ impl Window {
         let rem_size = self.rem_size();
         let scale_factor = self.scale_factor();
         let key = crate::fast::layout_key::layout_key(self);
-        self.layout_engine
+        let id = self
+            .layout_engine
             .as_mut()
             .unwrap()
-            .request_measured_layout_ref(key, &style, rem_size, scale_factor, kind, measure)
+            .request_measured_layout_ref(key, &style, rem_size, scale_factor, kind, measure);
+        self.note_measured_owner(id, &style);
+        id
+    }
+
+    /// Notes the view a measured leaf is requested in, for that view to be
+    /// built on the next frame unless the leaf is text or sized without its
+    /// measurement.
+    fn note_measured_owner(&mut self, id: LayoutId, style: &Style) {
+        if self.fast_mode.view_retention()
+            && let Some(view) = self.rendered_entity_stack.last().copied()
+        {
+            let fixed = crate::fast::layout::measured_size_is_fixed(style);
+            self.fast_measured_owners.push((id, view, fixed));
+        }
     }
 
     #[cfg_attr(feature = "diagnostics", track_caller)]
@@ -8274,10 +8335,13 @@ impl Window {
         let rem_size = self.rem_size();
         let scale_factor = self.scale_factor();
         let key = crate::fast::layout_key::layout_key(self);
-        self.layout_engine
+        let id = self
+            .layout_engine
             .as_mut()
             .unwrap()
-            .request_measured_layout_ref(key, style, rem_size, scale_factor, kind, measure)
+            .request_measured_layout_ref(key, style, rem_size, scale_factor, kind, measure);
+        self.note_measured_owner(id, style);
+        id
     }
 
     /// Compute the layout for the given id within the given available space.
