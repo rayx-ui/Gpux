@@ -71,7 +71,7 @@ fn quads_equal_those_drawn_without_layers_at_scale_1_25(cx: &mut TestAppContext)
 }
 
 #[derive(Clone, Copy, Debug)]
-enum Input {
+pub(super) enum Input {
     Wheel(f32),
     Move(f32),
     Click(f32),
@@ -79,7 +79,7 @@ enum Input {
 
 /// A random history from `seed`: mostly wheel turns, with pointer moves and
 /// clicks over the rows.
-fn history(seed: u32, count: usize) -> Vec<Input> {
+pub(super) fn history(seed: u32, count: usize) -> Vec<Input> {
     const WHEELS: [f32; 6] = [-15., -15., -37.5, 20., -0.5, -90.];
     let mut state: u32 = 0x9e37_79b9 ^ seed.wrapping_mul(0x2545_f491);
     let mut next = move || {
@@ -97,13 +97,14 @@ fn history(seed: u32, count: usize) -> Vec<Input> {
 
 /// Each frame's description after each input of `script`, drawn in an
 /// application of its own, with layers or as the reference without.
-fn described(script: &[Input], layered: bool) -> (Vec<Vec<String>>, u64) {
+pub(super) fn described(
+    page: impl FnOnce() -> Page,
+    script: &[Input],
+    layered: bool,
+) -> (Vec<Vec<String>>, u64) {
     let mut cx = crate::fast::tests::oracle_support::oracle_app(3);
     let cx = &mut cx;
-    let mut page = Page::new(Kind::Virtual, super::varied_heights());
-    page.interactive = true;
-    page.gap = 2.;
-    let window = open(cx, page, !layered);
+    let window = open(cx, page(), !layered);
     with_window(cx, window, |window, _| window.reset_fast_stats());
     let at = |y: f32| point(px(40.), px(y));
     let mut frames = Vec::new();
@@ -161,8 +162,14 @@ fn whole_frames_shown_from_the_layer_describe_themselves_as_drawn_without() {
     }
     for seed in 1..=4 {
         let script = history(seed, 50);
-        let (layered, shown) = described(&script, true);
-        let (reference, none) = described(&script, false);
+        let page = || {
+            let mut page = Page::new(Kind::Virtual, super::varied_heights());
+            page.interactive = true;
+            page.gap = 2.;
+            page
+        };
+        let (layered, shown) = described(page, &script, true);
+        let (reference, none) = described(page, &script, false);
         assert_eq!(none, 0, "the reference has no layer");
         assert!(shown > 0, "seed {seed}: the list was shown from its layer");
         for (step, (layered, reference)) in layered.iter().zip(&reference).enumerate() {

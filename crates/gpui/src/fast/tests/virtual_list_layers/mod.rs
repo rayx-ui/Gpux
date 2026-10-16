@@ -9,13 +9,14 @@
 mod changes;
 mod ineligible;
 mod oracle;
+mod parent_viewport;
 mod range;
 mod rows;
 
 use crate::fast::tests::layer_support::{add_window, draw, with_window};
 use crate::{
     AnyWindowHandle, AppContext as _, Axis, Context, FastStats, Hsla, InteractiveElement as _,
-    IntoElement, ParentElement as _, Render, ScrollDelta, ScrollHandle, ScrollWheelEvent,
+    IntoElement, ParentElement as _, Pixels, Render, ScrollDelta, ScrollHandle, ScrollWheelEvent,
     StatefulInteractiveElement as _, Styled as _, TestAppContext, TouchPhase,
     VirtualListExternalScrollBehavior, VirtualListScrollHandle, VirtualStickyRow, Window, div,
     point, px, size,
@@ -77,6 +78,8 @@ pub(super) struct Page {
     pub(super) tint: bool,
     pub(super) handle: VirtualListScrollHandle,
     pub(super) parent: ScrollHandle,
+    /// The list's handle over `parent`, for a list scrolled by it.
+    pub(super) parent_list: VirtualListScrollHandle,
     pub(super) log: SharedLog,
     /// A view beside the list, notified alone to draw the page from last
     /// frame.
@@ -99,7 +102,9 @@ impl Render for Beside {
 
 impl Page {
     pub(super) fn new(kind: Kind, extents: Vec<f32>) -> Self {
+        let parent = ScrollHandle::new();
         Page {
+            parent_list: VirtualListScrollHandle::from(parent.clone()),
             kind,
             extents: Rc::new(extents),
             gap: 0.,
@@ -108,7 +113,7 @@ impl Page {
             interactive: false,
             tint: false,
             handle: VirtualListScrollHandle::new(),
-            parent: ScrollHandle::new(),
+            parent,
             log: SharedLog::default(),
             beside: None,
         }
@@ -218,7 +223,7 @@ impl Render for Page {
                 .child(
                     virtual_list(cx, Axis::Vertical)
                         .track_external_scroll(
-                            &VirtualListScrollHandle::from(self.parent.clone()),
+                            &self.parent_list,
                             VirtualListExternalScrollBehavior::ParentViewport,
                         )
                         .w(px(W)),
@@ -242,7 +247,7 @@ impl Render for Page {
                     .child(
                         virtual_list(cx, Axis::Vertical)
                             .track_external_scroll(
-                                &VirtualListScrollHandle::from(self.parent.clone()),
+                                &self.parent_list,
                                 VirtualListExternalScrollBehavior::SynchronizedOffset,
                             )
                             .w(px(W / 2.))
@@ -390,6 +395,9 @@ pub(super) fn varied_heights() -> Vec<f32> {
 pub(super) struct Shown {
     pub(super) primitives: Vec<String>,
     pub(super) ranges: Vec<Range<usize>>,
+    /// What a list in its parent's flow published of the parent's viewport:
+    /// its size, the list-local offset and the largest one.
+    pub(super) metrics: (Option<Pixels>, Option<Pixels>, Option<Pixels>),
 }
 
 /// Opens two windows showing `page()`, one with layers and the reference
@@ -508,9 +516,25 @@ pub(super) fn compare_steps(
     let reference = open_at(cx, reference_page, true, scale_factor);
     let before = stats(cx, layered);
     let mut published_frames = 0;
-    let shown = |cx: &mut TestAppContext, window: AnyWindowHandle, log: &SharedLog| Shown {
-        primitives: with_window(cx, window, |window, _| window.painted_primitives()),
-        ranges: std::mem::take(&mut log.borrow_mut().ranges),
+    let shown = |cx: &mut TestAppContext, window: AnyWindowHandle, log: &SharedLog| {
+        let handle = cx
+            .update_window(window, |root, _, cx| {
+                root.downcast::<Page>()
+                    .unwrap()
+                    .read(cx)
+                    .parent_list
+                    .clone()
+            })
+            .unwrap();
+        Shown {
+            primitives: with_window(cx, window, |window, _| window.painted_primitives()),
+            ranges: std::mem::take(&mut log.borrow_mut().ranges),
+            metrics: (
+                handle.parent_viewport_primary_size(),
+                handle.parent_viewport_scroll_offset(),
+                handle.parent_viewport_max_scroll_offset(),
+            ),
+        }
     };
     // A frame that keeps the view holding the list does not draw the list,
     // and its listener does not run: what it published last stands. The
@@ -562,6 +586,10 @@ pub(super) fn compare_steps(
             published.is_some(),
             expected.ranges.last().is_some(),
             "{label}: frame {frame}, after {step:?}: the range last published"
+        );
+        assert_eq!(
+            actual.metrics, expected.metrics,
+            "{label}: frame {frame}, after {step:?}: the parent viewport's metrics"
         );
         if actual.primitives != expected.primitives {
             let difference =

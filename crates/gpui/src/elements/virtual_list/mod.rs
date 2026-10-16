@@ -1288,7 +1288,12 @@ impl Element for VirtualList {
         layout.scroll_context = None;
         layout.size_layout.last_layout_bounds = bounds;
         let parent_viewport_scroll = self.uses_parent_viewport_scroll();
-        let parent_viewport_bounds = window.content_mask().bounds;
+        // A list in its parent's flow takes the parent's viewport from the content mask. While
+        // the parent's scroll layer paints its content the mask is the region the layer paints,
+        // the viewport and its overscan; the viewport is what the list's metrics and range
+        // describe, and the rows it shows, as without a layer.
+        let parent_viewport_bounds =
+            crate::fast::layers::paint::unlayered_content_mask(window).bounds;
 
         let style = self
             .base
