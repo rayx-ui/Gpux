@@ -29,7 +29,7 @@
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
   "currentExperimentId": null,
-  "nextExperimentIndex": 11,
+  "nextExperimentIndex": 12,
   "experiments": [
     {
       "id": "ddc0da9b-11bf-491e-a966-4a6997d6aca0",
@@ -148,6 +148,17 @@
       "state": "done",
       "status": "success",
       "resultCommit": "73f34bedd621658c61d28244e1180a11ba62a751"
+    },
+    {
+      "id": "d1778c48-76d2-4dfb-85d4-9869c237935d",
+      "index": 11,
+      "type": "hypothesis",
+      "name": "Decide emoji once per glyph run, not per glyph",
+      "path": "2026-10-16-11-decide-emoji-once-per-glyph-run-not-per-glyph.json",
+      "startedAt": "2026-10-16T09:24:45Z",
+      "finishedAt": "2026-10-16T09:26:57Z",
+      "state": "done",
+      "status": "failure"
     }
   ]
 }

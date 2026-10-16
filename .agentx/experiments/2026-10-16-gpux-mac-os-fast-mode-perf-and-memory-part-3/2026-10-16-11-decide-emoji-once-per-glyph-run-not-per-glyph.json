@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "id": "d1778c48-76d2-4dfb-85d4-9869c237935d",
+  "loopId": "5454c93e-ead4-4322-b9fc-ad37cad8bca7",
+  "index": 11,
+  "type": "hypothesis",
+  "name": "Decide emoji once per glyph run, not per glyph",
+  "slug": "decide-emoji-once-per-glyph-run-not-per-glyph",
+  "path": "2026-10-16-11-decide-emoji-once-per-glyph-run-not-per-glyph.json",
+  "createdAt": "2026-10-16T09:24:45Z",
+  "startedAt": "2026-10-16T09:24:45Z",
+  "finishedAt": "2026-10-16T09:26:57Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "e6d29cbaf442f9ebbd646fd1984feb30141f2cc4",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard e6d29cbaf442f9ebbd646fd1984feb30141f2cc4",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "e6d29cbaf442f9ebbd646fd1984feb30141f2cc4",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard e6d29cbaf442f9ebbd646fd1984feb30141f2cc4",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "layout_line calls is_emoji (a hash lookup and two string compares) for every glyph; deciding it once per glyph run should cut main-thread work in text-heavy scenes.",
+  "measurementPlanMarkdown": "Hoist is_emoji out of the glyph loop; alternate previous and new binaries four times on text-relabel and dashboard-all-panels.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "text-relabel CPU / draw p50",
+      "before": "6.12 / 5.91",
+      "after": "6.14 / 5.92",
+      "delta": "0%",
+      "source": "alt2.sh x4"
+    },
+    {
+      "metric": "dashboard-all-panels CPU / draw p50",
+      "before": "4.62 / 4.44",
+      "after": "4.65 / 4.49",
+      "delta": "+0.6%",
+      "source": "alt2.sh x4"
+    }
+  ],
+  "reportMarkdown": "No measurable change: text-relabel's frames shape few glyph runs per line, so the per-glyph lookup is a rounding error next to Core Text's own work.",
+  "decisionMarkdown": "Revert.",
+  "notes": ""
+}
