@@ -22,6 +22,30 @@
       ]
     },
     {
+      "id": "HP",
+      "title": "Half-pixel edges land alike with and without layers",
+      "descriptionMarkdown": "The owner asked (2026-10-16), relayed by the coordinating session: \"yes, add it and fix them\" — the two gaps gpux-virtual-list documented. An edge on exactly half a device pixel rounds one pixel apart in a frame shown from a scroll layer and one drawn from scratch once the layer moves it across the window's origin.",
+      "criteria": [
+        {
+          "id": "HP-1",
+          "verification": "automated",
+          "descriptionMarkdown": "**Requirement.** Frames shown from any scroll layer (a `div`'s layer, `uniform_list`, `list`, `VirtualList`) equal frames drawn from scratch, including edges that fall exactly on half a device pixel and that a layer moves across the window's origin.\n\n**Cases.** Scale factors 1, 1.25, 1.5 and 2, with paddings, row sizes and offsets that produce exact ties.\n\n**Existing tests.** The `virtual_list_layers` groups that avoided exact ties (`changes`' whole-pixel size change, `oracle`'s scale and padding) stop avoiding them.\n\n**Test.** A new group, `fast::tests::half_pixel_edges`, which fails on the code before the fix with a message containing `half-pixel edge`.\n\n**Runtime proof.** Lane C's scroll-layer suites (`lane_c_scroll_layers`, `lane_c_layer_scales`) pass in full mode (`GPUX_LANE_C_FULL=1`), narrowed to those groups."
+        }
+      ]
+    },
+    {
+      "id": "UM",
+      "title": "uniform_list keeps its measured item",
+      "descriptionMarkdown": "The owner asked (2026-10-16), relayed by the coordinating session: \"yes, add it and fix them\" — the two gaps gpux-virtual-list documented. `uniform_list` renders its first row to measure it in `request_layout` on every frame, outside `lists::measure_item`: its row closure runs once more a frame than the rows its layer renders (1.87 against 0.87 rows a frame; planning measured 1.75 against 0.75).",
+      "criteria": [
+        {
+          "id": "UM-1",
+          "verification": "automated",
+          "descriptionMarkdown": "**Requirement.** `uniform_list` keeps its measured item size while nothing the measured row read has changed.\n\n**Scroll-only frames.** With scroll layers on, and also with view retention alone, the item closure runs only for the rows the frame renders: with layers, row closures equal `list_rows_rendered`; without layers, the rows the list shows. No frame renders the measured item again.\n\n**Changes.** When the measured row's content or size changes, it is measured again, and frames still equal frames drawn from scratch.\n\n**Test.** A new group, `fast::tests::uniform_measured_item`, which fails on the code before the fix with a message containing `measured again`."
+        }
+      ]
+    },
+    {
       "id": "HZ",
       "title": "Horizontal virtual lists composite",
       "descriptionMarkdown": "`VirtualList` with `Axis::Horizontal` gets a list layer.",

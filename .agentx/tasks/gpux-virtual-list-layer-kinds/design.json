@@ -163,6 +163,10 @@
         {
           "repositoryId": "rayx",
           "path": ".agentx/memory/decisions/ui/virtualization/2026-07-03-ui-virtualization-parent-viewport-mutation-scroll-preservation.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-16-gpui-frame-pipeline-range-listener-lease.md"
         }
       ],
       "supersedesMemoryDecisions": [
@@ -259,6 +263,62 @@
           "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-test-lanes.md"
         }
       ]
+    },
+    {
+      "id": "d-half-pixel-edges",
+      "requirementIds": [
+        "HP"
+      ],
+      "descriptionMarkdown": "**Rounding.** While scroll layers snap (`WindowFastMode::snapping()`, the layered window and the reference that forces snapping alike), the device-pixel rounding of edges (quad and clip bounds, shadow and border edges, sprite origins) rounds halves up, `floor(x + 0.5)`: the same rounding at every position, so a whole-device-pixel move of a layer's content preserves it, as `fast::glyphs` already does for glyph origins. Find each rounding site the oracle exposes and route it through one snapped helper.\n\n**Unchanged.** With snapping off, rounding is today's (`round_half_toward_zero`).",
+      "invariantsMarkdown": "- Frames shown from a layer equal frames drawn from scratch at every offset and scale factor.\n- With scroll layers off and snapping not forced, output is today's.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/util.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/glyphs.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-scroll-layers.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-oracle.md"
+        }
+      ]
+    },
+    {
+      "id": "d-uniform-measured-item",
+      "requirementIds": [
+        "UM"
+      ],
+      "descriptionMarkdown": "**One measurement.** `uniform_list` measures its item through `fast::layers::lists::measure_item` once a frame, in `request_layout`, and prepaint uses that size.\n\n**Kept size.** `measure_item` keeps the measured size, with the element states measuring reached, while nothing the measuring render read changed (its recorded dependencies) and the rem size and text style are the same, whether or not the list has a layer. Any other frame measures again.\n\n**Unchanged.** With fast mode off it measures as today.",
+      "invariantsMarkdown": "- Frames equal frames drawn from scratch.\n- A changed measured row is measured again on the frame it changes.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/uniform_list.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-oracle.md"
+        }
+      ]
     }
   ],
   "memoryDecisionsConsidered": [
@@ -349,6 +409,10 @@
     {
       "repositoryId": "gpux",
       "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-text-measurement-scope.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/input/2026-10-05-gpui-input-upstream-input-model.md"
     }
   ]
 }

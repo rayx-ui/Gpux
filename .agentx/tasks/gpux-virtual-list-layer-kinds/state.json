@@ -1,12 +1,12 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list-layer-kinds",
-  "revision": 2,
-  "planRevision": 3,
+  "revision": 15,
+  "planRevision": 6,
   "specHashes": {
-    "requirements": "5e22085f49fc802e171a5e32ab08a29a6a3a6f5efbbd35ea10699fec78427313",
-    "design": "d0ad3491ac1e1d630ceafbeb584a13a777f56d4ae85f93dbe982f8b5701eaa79",
-    "plan": "c7351ae36ede9829ba6e6e6f20dfacfa8bdc3dc6020d8de1fb96112ebac0c6aa"
+    "requirements": "6624ffc34f924fe7c0c2363d3e6013bf10669885d6b44b6f000d06f239120c33",
+    "design": "993fcbbc512f27670ad5aaf10388d15aa5cbb1231bdb9c5c2be0d27d669539dc",
+    "plan": "79ed482fafab6770f1b1359ea8fcc90c3ba35a87c566e9e80f518b2700646ea9"
   },
   "tasks": {
     "t01-axis-slots": {
@@ -43,14 +43,258 @@
       "status": "pending"
     },
     "t00-measured-leaves": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t00b-half-pixel": {
+      "status": "pending"
+    },
+    "t00c-uniform-measure": {
       "status": "pending"
     }
   },
-  "validationBatches": {},
-  "checkResults": {},
-  "reviews": {},
-  "checkpoints": {},
-  "findings": [],
+  "validationBatches": {
+    "45eecf6aa229f8a2890655f7519b5ae557f095e3f1222a1cfb0a56471e93e6ca": {
+      "snapshot": {
+        "specHash": "2345dc8bf866d403f69a60cac6f9c0462f63bca01a509a232107d7fe11d67c38",
+        "repositories": {
+          "gpux": "a73976b5f39ccf520a59ac527ff710d8da05ccf7ac9b20d5296c1d3e2706d09d",
+          "rayx": "6760fd3c6087a69623a43744e89e30e142b974ccc4b14b30ccb46f50b02077d1"
+        }
+      },
+      "recordedAt": "2026-10-16T20:48:37Z"
+    },
+    "dd1439f1a1e744024a14618168bd66a161edf82baad2fef122496d27bb09a2ca": {
+      "snapshot": {
+        "specHash": "ebe43eb4df55aabd31f8b7a8811f28366756aa345fa5c31c99786ebb92c5d743",
+        "repositories": {
+          "gpux": "f27262f64aff8c2f637f1b0550eb13a240e9c954fc2e5b0ad9afa1865770a558",
+          "rayx": "6760fd3c6087a69623a43744e89e30e142b974ccc4b14b30ccb46f50b02077d1"
+        }
+      },
+      "recordedAt": "2026-10-16T21:27:57Z"
+    }
+  },
+  "checkResults": {
+    "s00-measured-leaves/c-measured-leaves/baseline": {
+      "checkId": "c-measured-leaves",
+      "boundaryId": "s00-measured-leaves",
+      "phase": "baseline",
+      "batchId": "45eecf6aa229f8a2890655f7519b5ae557f095e3f1222a1cfb0a56471e93e6ca",
+      "definitionHash": "5f45c7fb4cf56e6b40236853d6dc29cda27b11aadf875291006dc1fd70de53c6",
+      "basisHash": "90d64b46e1c5de65f1335cde8bb4dbfd24983d1f5e611925843596ea09182fd6",
+      "status": "passed",
+      "exitCode": 101,
+      "testCount": 4,
+      "durationSeconds": 0.6721,
+      "recordedAt": "2026-10-16T20:48:36Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s00-measured-leaves-baseline-7d8b5dee0cb8.log",
+      "logSha256": "d90022ab3cc1ba9a54db28ac92f2209bd5bdf727ba4ee7076a62e796939553d0",
+      "inputsHash": "e3418c751846cbd2c62de21fc9f86a67d9c1c49d60a91abaab77968bbc11ee81"
+    },
+    "s00-measured-leaves/c-measured-leaves/final": {
+      "checkId": "c-measured-leaves",
+      "boundaryId": "s00-measured-leaves",
+      "phase": "final",
+      "batchId": "dd1439f1a1e744024a14618168bd66a161edf82baad2fef122496d27bb09a2ca",
+      "definitionHash": "7510d152ee146dbc911a60022d55aa00860f40569464c4c0dab83d4157c1fb42",
+      "basisHash": "cd7a2f7d3f86146c3c0e95bae15092bc5a440001d66ff86d91eb2a3104bead43",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 9,
+      "durationSeconds": 1.8021,
+      "recordedAt": "2026-10-16T21:27:56Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s00-measured-leaves-final-6540eec97100.log",
+      "logSha256": "57adbf34192c3890b46fc3a603fe8e8118e4c4cda0160ecb08f9929d36662bcc",
+      "inputsHash": "c1bec714566663335940292a3ecd56007233fb42f96fc75397b5e38aa44c2d10"
+    },
+    "s00-measured-leaves/c-measured-oracle/final": {
+      "checkId": "c-measured-oracle",
+      "boundaryId": "s00-measured-leaves",
+      "phase": "final",
+      "batchId": "dd1439f1a1e744024a14618168bd66a161edf82baad2fef122496d27bb09a2ca",
+      "definitionHash": "a64b814d4d616b9c17ad690960cdd1e8bca1c501a446e39219b77b44a0360332",
+      "basisHash": "437f92b47bd8501a84979c702a76f70fff4fd4e566548476e8fd83302d22a39c",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 0.7772,
+      "recordedAt": "2026-10-16T21:27:57Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s00-measured-leaves-final-b0fe39001542.log",
+      "logSha256": "3d61ff8a3219c664b4fcc1eb83591b52fa06cf3baffb8f941e58f88208483942",
+      "inputsHash": "c1bec714566663335940292a3ecd56007233fb42f96fc75397b5e38aa44c2d10"
+    }
+  },
+  "reviews": {
+    "s00-measured-leaves": {
+      "reviewerId": "reviewer-lk-s00",
+      "snapshotId": "dd1439f1a1e744024a14618168bd66a161edf82baad2fef122496d27bb09a2ca",
+      "criterionIds": [
+        "ML-1",
+        "ML-2"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/taffy.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ML-1",
+            "ML-2"
+          ],
+          "sha256": "94d2a0af5e9d2e5b6a90a390fc139c3aeaa7a991858cda4cea529841440d6b84"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ML-1",
+            "ML-2"
+          ],
+          "sha256": "4a8899694a296bc30b631fe799279d92e6ac928c39b274066df4655ed2613869"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layout.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ML-1",
+            "ML-2"
+          ],
+          "sha256": "dc37f2e3109b1747cdf9aef5c45d097bb6b2e0a17b6e20de8b10212d5b49b99e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/stats.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ML-2"
+          ],
+          "sha256": "ed42a01a6441bbd05c898115adb4c136f7e8f5151204c7f47377bd2746623737"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/splice.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ML-2"
+          ],
+          "sha256": "c5ba8cf4b42df2295e33ab5b66914868074b60eeda1a4c8a6d6017b4b989797d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/retained_measured_leaves.rs",
+          "kind": "test",
+          "criterionIds": [
+            "ML-1",
+            "ML-2"
+          ],
+          "sha256": "eb0aa391516f5f2f219da5d3fff503d10eb389936f4635f10f600f7ed233bec5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/oracle_measured_leaves.rs",
+          "kind": "test",
+          "criterionIds": [
+            "ML-2"
+          ],
+          "sha256": "b35e262097f0fa972f1e05139cc0a251b661437440aff2597c7c0194c8649847"
+        }
+      ],
+      "summaryMarkdown": "Passed. The final s00 mechanism records each measured leaf requested under view retention with its owning view and whether its style fixes its size in every parent. On the next frame it builds (`mark_view_dirty`, counted once) every view holding a non-text leaf that is not fixed or that Taffy measured to size it. Splice takes those views as gaps from `dirty_views`, so their ancestors are spliced, not built, and the layer and list-row checks honour the dirtiness. Text keeps its carry and replay paths, and fixed measured leaves keep their view reusable (`views_reused > 0`, 0 builds). With view retention off nothing is counted or changed. No frame-local closure crosses frames.\n\n**Accepted cost:** every view holding a non-fixed measured leaf is built on each drawn frame. This covers `uniform_list`/`list`/`VirtualList` with `Infer` and RayX's markup `inline_flow`, and matches d-retained-measured-leaves, which defers measurement replay to a later optimization driven by `views_built_for_measured_leaves`. Defaults (`ListSizingBehavior::Auto`, img, svg, text) are unaffected. The ML-1 group (9 tests) and the ML-2 oracle cover the cases. The sprint checks are fresh at revision 13.",
+      "findingIds": [
+        "lk-s00-F1",
+        "lk-s00-F2",
+        "lk-s00-F3",
+        "lk-s00-F4"
+      ],
+      "recordedAt": "2026-10-16T21:29:21Z"
+    }
+  },
+  "checkpoints": {
+    "s00-measured-leaves": {
+      "snapshotId": "dd1439f1a1e744024a14618168bd66a161edf82baad2fef122496d27bb09a2ca",
+      "commits": {
+        "gpux": "dc1bb3cf15c499f0338731739e890fb201403e0d",
+        "rayx": "77733880057de4e79fe963cd1cce7e51d9b622d0"
+      },
+      "reviewHash": "bcdf3f46e4b1c78cec4d586fe5f0ec52fc634a8ad3f86849de7580b454e34336",
+      "recordedAt": "2026-10-16T21:29:53Z"
+    }
+  },
+  "findings": [
+    {
+      "id": "lk-s00-F1",
+      "criterionIds": [
+        "ML-1"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/retained_measured_leaves.rs"
+        }
+      ],
+      "descriptionMarkdown": "Resolved. The style flag is replaced by recording, in the Taffy measure callback, every non-text leaf whose measurement can set its size. That is an axis of `known_dimensions.or(style size resolved against parent_size, with the aspect ratio applied)` left `None`; ContentSize mode uses `known_dimensions` alone, mirroring taffy 0.14 `compute_leaf_layout`. This catches percentages of an indefinite parent and the flex automatic-minimum probe, and keeps leaves of definite size reusable. New cases `PercentOfAutoParent` and `DefiniteFlexChild`. The transition case the new mechanism cannot see is filed as lk-s00-F4.",
+      "boundaryId": "s00-measured-leaves"
+    },
+    {
+      "id": "lk-s00-F2",
+      "criterionIds": [
+        "ML-2"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/retained_measured_leaves.rs"
+        }
+      ],
+      "descriptionMarkdown": "Resolved. The counter now counts once per view, at draw start, when `Window::draw` marks a measuring view dirty that was not already dirty. It no longer counts refusals inside `keep_retained_nodes`, so the double count through `reuse_kept_layout` and the layer-content count are gone. The tests bound the count exactly per mode (0 without view retention, 0 in the definite case with `views_reused > 0`), with stats reset after `set_fast_mode`.",
+      "boundaryId": "s00-measured-leaves"
+    },
+    {
+      "id": "lk-s00-F3",
+      "criterionIds": [
+        "ML-2"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/retained_measured_leaves.rs"
+        }
+      ],
+      "descriptionMarkdown": "Resolved. The measuring view is `mark_view_dirty`'d, which dirties its ancestors exactly as a notify does. With splice on, `splice_layout` takes dirty nested views from `dirty_views` as gaps (splice.rs:399), and the view is not in `notified`, so its ancestors are spliced, not built. Without splice, they cost what a notify of that view costs. The dirtying happens before `invalidator.set_dirty(false)`, so it schedules no extra frames.",
+      "boundaryId": "s00-measured-leaves"
+    },
+    {
+      "id": "lk-s00-F4",
+      "criterionIds": [
+        "ML-1"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved. `Window::note_measured_owner` records every measured leaf requested under view retention with `fast::layout::measured_size_is_fixed(style)`. That means an absolute width and height, plus an absolute `min_size` on both axes or overflow Hidden/Scroll on both axes. Before clear, the owners of every non-text leaf that is not fixed, or that Taffy measured to size it, are built on the next frame, so a leaf that can become indefinite is never kept. Checked against taffy 0.14: a fixed leaf's size never comes from its measurement. Its InherentSize probes resolve the style size (leaf.rs:61, 147). The flex base size takes the definite main size. The automatic minimum is skipped by an absolute min size or a non-visible overflow (flexbox.rs:1037). The intrinsic-main path (flexbox.rs:1405) and the hypothetical cross size (flexbox.rs:1819) use the preferred size, and the baseline and absolute-child ContentSize calls pass both dimensions. The stated residual (a fixed leaf probed while kept) therefore has no reachable size effect. Regression: `a_kept_leaf_keeps_its_size_when_its_parent_becomes_flex` (red on the previous source) and `a_kept_leaf_keeps_its_size_when_its_parent_loses_its_height`.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/retained_measured_leaves.rs"
+        }
+      ],
+      "boundaryId": "s00-measured-leaves"
+    }
+  ],
   "handoffMarkdown": "",
   "protectedPaths": {
     "gpux": {
@@ -69,7 +313,7 @@
       "gpux:.agentx/tasks/keyed-sticky-stacking/**": "7f924a57495dfb6d3a2ca3be75e5fdb04cb012ecfc41554bdb278a84987e82ef",
       "gpux:.agentx/tasks/macos-only-metal-port-and-ci-repair/**": "64ecc143e24a8468c3b4e5d28bbc0f65d4fbbddab867d46a44823b1725ff1e5d",
       "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**": "f3f66695ebf53686a0437e18bf587955317994e21eac47d7908641e0281996ce",
-      "gpux:.agentx/tasks/gpux-virtual-list/**": "a320dd448e1930c6d2a012c3ab1987de82ba8e31e529d881869752f0a232422b",
+      "gpux:.agentx/tasks/gpux-virtual-list/*.json": "0ba06cd6a00ff5bcb0256bcf5e9854652538c5bc5f339afa58cb67fab2052c79",
       "gpux:vendor/wgpu/**": "a4c4ab1992f6a0aeeca032fedb82b953741f6d547ac517ef15467c67dffa69e5",
       "gpux:ToFix/**": "e72e6c15df92515c9a96c1ef2a6db675ce345e0eb600212658582f156b1beb64",
       "gpux:benchmark/results/**": "fda69a574a3d60d835127b7455d8db6d7a300a8ce3e3752a3e30a48f2dc96756"

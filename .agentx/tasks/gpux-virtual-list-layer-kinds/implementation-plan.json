@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list-layer-kinds",
-  "revision": 3,
+  "revision": 6,
   "title": "Measured leaves kept under view retention, and every VirtualList kind on scroll layers: horizontal, sticky, SynchronizedOffset and ParentViewport lists composite, RayX's parent-viewport invalidation narrowed, timings measured",
   "validationMode": "sprint",
   "repositories": [
@@ -52,7 +52,7 @@
       "gpux:.agentx/tasks/keyed-sticky-stacking/**",
       "gpux:.agentx/tasks/macos-only-metal-port-and-ci-repair/**",
       "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**",
-      "gpux:.agentx/tasks/gpux-virtual-list/**",
+      "gpux:.agentx/tasks/gpux-virtual-list/*.json",
       "gpux:vendor/wgpu/**",
       "gpux:ToFix/**",
       "gpux:benchmark/results/**",
@@ -621,6 +621,111 @@
         "testCountPattern": "gpux-testkit: (\\d+) passed"
       },
       "reuse": false
+    },
+    {
+      "id": "c-half-pixel",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "HP-1"
+      ],
+      "descriptionMarkdown": "New group: frames from every kind of scroll layer equal frames drawn from scratch at exact half-pixel edges, scales 1, 1.25, 1.5 and 2.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::half_pixel_edges"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ],
+      "baselineRequired": true,
+      "baselineExpected": {
+        "exitCode": "nonzero",
+        "failurePattern": "half-pixel edge"
+      }
+    },
+    {
+      "id": "c-uniform-measure",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "UM-1"
+      ],
+      "descriptionMarkdown": "New group: uniform_list's measured item is kept on scroll-only frames, with layers and with view retention alone, and measured again when it changes.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::uniform_measured_item"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ],
+      "baselineRequired": true,
+      "baselineExpected": {
+        "exitCode": "nonzero",
+        "failurePattern": "measured again"
+      }
+    },
+    {
+      "id": "c-lane-c-layers-full",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "HP-1"
+      ],
+      "descriptionMarkdown": "Lane C's scroll-layer suites in full mode, narrowed to those groups (the validation rules: a change to snapping runs --full before it is called proved).",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-conformance",
+        "--test",
+        "lane_c_scroll_layers",
+        "--test",
+        "lane_c_layer_scales"
+      ],
+      "environment": {
+        "GPUX_LANE_C_FULL": "1"
+      },
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 10
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpux_conformance/**",
+        "crates/gpui_wgpu/**",
+        "crates/gpui_apple/**",
+        "crates/gpui_macos/**",
+        "crates/gpui_platform/**"
+      ]
     }
   ],
   "finalCheckIds": [
@@ -678,10 +783,78 @@
       ]
     },
     {
+      "id": "s00b-layer-gaps",
+      "title": "Half-pixel edges and uniform_list's measured item",
+      "dependsOn": [
+        "s00-measured-leaves"
+      ],
+      "memoryScopes": [
+        "gpux:gpui/frame-pipeline"
+      ],
+      "checkIds": [
+        "c-half-pixel",
+        "c-uniform-measure",
+        "c-lane-c-layers-full"
+      ],
+      "tasks": [
+        {
+          "id": "t00b-half-pixel",
+          "title": "Round half-pixel edges alike with and without layers",
+          "descriptionMarkdown": "Write `fast::tests::half_pixel_edges` first (red baseline): a div layer, a uniform_list, a list and a VirtualList, padded and offset to exact half-pixel edges at scales 1, 1.25, 1.5 and 2, frames compared with a window drawn without layers. Implement d-half-pixel-edges. Make the `virtual_list_layers` groups stop avoiding ties. Run lane C's scroll-layer suites in full (`c-lane-c-layers-full`). Update the limitation in `docs/fast-mode.md`.",
+          "criterionIds": [
+            "HP-1"
+          ],
+          "designIds": [
+            "d-half-pixel-edges"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "c-half-pixel",
+            "c-lane-c-layers-full"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/util.rs"
+            }
+          ]
+        },
+        {
+          "id": "t00c-uniform-measure",
+          "title": "Keep uniform_list's measured item",
+          "descriptionMarkdown": "Write `fast::tests::uniform_measured_item` first (red baseline). Implement d-uniform-measured-item. Update `docs/fast-mode.md`.",
+          "criterionIds": [
+            "UM-1"
+          ],
+          "designIds": [
+            "d-uniform-measured-item"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "c-uniform-measure"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/uniform_list.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/layers/lists.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "s01-horizontal",
       "title": "Horizontal virtual lists composite",
       "dependsOn": [
-        "s00-measured-leaves"
+        "s00b-layer-gaps"
       ],
       "memoryScopes": [
         "gpux:gpui/frame-pipeline"
