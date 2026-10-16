@@ -3325,6 +3325,8 @@ dependencies = [
 name = "gpux-web"
 version = "0.3.0"
 dependencies = [
+ "accesskit",
+ "accesskit_consumer",
  "anyhow",
  "console_error_panic_hook",
  "futures",

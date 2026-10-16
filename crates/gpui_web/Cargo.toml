@@ -16,7 +16,7 @@ workspace = true
 default = ["multithreaded", "accessibility"]
 # The screen-reader DOM mirror. Without it the window never turns the platform accessibility
 # source on; inspection and `AccessibilityMode::Always` still build the tree.
-accessibility = []
+accessibility = ["dep:accesskit", "dep:accesskit_consumer"]
 multithreaded = ["dep:wasm_thread", "scheduler/wasm-threads"]
 diagnostics = ["gpui_wgpu/diagnostics"]
 # The former name of `diagnostics`; it also publishes the legacy `__rayx*` browser globals.
@@ -34,6 +34,8 @@ unicode-segmentation.workspace = true
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 gpux.workspace = true
+accesskit = { workspace = true, optional = true }
+accesskit_consumer = { workspace = true, optional = true }
 scheduler.workspace = true
 parking_lot = { workspace = true, features = ["nightly"] }
 gpui_wgpu.workspace = true

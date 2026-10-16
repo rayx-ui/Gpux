@@ -1527,6 +1527,13 @@ pub trait StatefulInteractiveElement: InteractiveElement {
         self
     }
 
+    /// Make this element a live region: screen readers announce changes to its content
+    /// politely (when they are idle) or assertively (at once).
+    fn aria_live(mut self, live: accesskit::Live) -> Self {
+        self.interactivity().aria.live = Some(live);
+        self
+    }
+
     /// Name an element that labels this one, by its [`accessibility_id`](Self::accessibility_id).
     /// Call it again to add more labels, in order. A name no element in the frame carries is
     /// dropped (and logged once in debug builds).
@@ -2586,6 +2593,7 @@ pub(crate) struct AriaProperties {
     pub(crate) disabled: Option<bool>,
     pub(crate) required: Option<bool>,
     pub(crate) read_only: Option<bool>,
+    pub(crate) live: Option<accesskit::Live>,
     pub(crate) labelled_by: SmallVec<[SharedString; 1]>,
     pub(crate) described_by: SmallVec<[SharedString; 1]>,
     pub(crate) controls: SmallVec<[SharedString; 1]>,
@@ -4546,6 +4554,9 @@ impl Interactivity {
             } else {
                 node.clear_disabled();
             }
+        }
+        if let Some(live) = self.aria.live {
+            node.set_live(live);
         }
         if let Some(required) = self.aria.required {
             if required {

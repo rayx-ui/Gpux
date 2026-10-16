@@ -169,6 +169,9 @@ pub(crate) struct WebWindowInner {
     pub(crate) html_island_registry: Rc<RefCell<WebHtmlIslandRegistry>>,
     pub(crate) state: RefCell<WebWindowMutableState>,
     pub(crate) callbacks: RefCell<WebWindowCallbacks>,
+    /// The screen-reader adapter, from `a11y_init`.
+    #[cfg(feature = "accessibility")]
+    pub(crate) accessibility: RefCell<Option<Rc<crate::accessibility::WebAccessibility>>>,
     pub(crate) click_state: RefCell<ClickState>,
     pub(crate) touch_ids: RefCell<TouchIds>,
     pub(crate) pressed_button: Cell<Option<MouseButton>>,
@@ -375,6 +378,8 @@ impl WebWindow {
             renderer: RefCell::new(renderer),
             state: RefCell::new(mutable_state),
             callbacks: RefCell::new(WebWindowCallbacks::default()),
+            #[cfg(feature = "accessibility")]
+            accessibility: RefCell::new(None),
             click_state: RefCell::new(ClickState::default()),
             touch_ids: RefCell::new(TouchIds::default()),
             pressed_button: Cell::new(None),
@@ -892,6 +897,10 @@ impl Drop for WebWindow {
         // out so the inner can actually be freed.
         self.inner.mql_handle.borrow_mut().take();
 
+        #[cfg(feature = "accessibility")]
+        if let Some(accessibility) = self.inner.accessibility.borrow_mut().take() {
+            accessibility.remove();
+        }
         self.inner.canvas.remove();
         self.inner.ime_mirror.remove();
     }
@@ -1040,6 +1049,19 @@ impl raw_window_handle::HasDisplayHandle for WebWindow {
 }
 
 impl PlatformWindow for WebWindow {
+    #[cfg(feature = "accessibility")]
+    fn a11y_init(&self, callbacks: gpux::A11yCallbacks) {
+        crate::accessibility::WebAccessibility::init(&self.inner, callbacks);
+    }
+
+    #[cfg(feature = "accessibility")]
+    fn a11y_tree_update(&self, tree_update: accesskit::TreeUpdate) {
+        let accessibility = self.inner.accessibility.borrow().clone();
+        if let Some(accessibility) = accessibility {
+            accessibility.update(tree_update);
+        }
+    }
+
     fn bounds(&self) -> Bounds<Pixels> {
         self.inner.state.borrow().bounds
     }
@@ -1345,6 +1367,13 @@ impl PlatformWindow for WebWindow {
         write_html_element_diagnostics_to_global(
             &self.inner.html_element_registry.borrow().diagnostics(),
         );
+        #[cfg(feature = "accessibility")]
+        {
+            let accessibility = self.inner.accessibility.borrow().clone();
+            if let Some(accessibility) = accessibility {
+                accessibility.refresh_html_owners();
+            }
+        }
 
         if !scene.html_islands.is_empty()
             && !self.layout_subtree_enabled.get()

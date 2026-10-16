@@ -183,6 +183,16 @@ impl ImeMirror {
         };
     }
 
+    /// Names the textarea for screen readers while it stands for a focused text field of the
+    /// accessibility tree, or clears the name.
+    #[cfg(feature = "accessibility")]
+    pub(crate) fn set_accessible_name(&self, name: Option<&str>) {
+        match name {
+            Some(name) => self.element.set_attribute("aria-label", name).ok(),
+            None => self.element.remove_attribute("aria-label").ok(),
+        };
+    }
+
     pub(crate) fn event_target(&self) -> &web_sys::EventTarget {
         self.element.as_ref()
     }
