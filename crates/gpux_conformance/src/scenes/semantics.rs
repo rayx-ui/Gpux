@@ -70,6 +70,9 @@ struct Controls {
     subscribed: bool,
     volume: f64,
     title: gpux::Entity<gpux::EditableTextState>,
+    /// The check box and the slider take keyboard focus, so screen readers and keys reach them.
+    subscribe_focus: gpux::FocusHandle,
+    volume_focus: gpux::FocusHandle,
 }
 
 impl gpux::Render for Controls {
@@ -131,6 +134,8 @@ impl gpux::Render for Controls {
                             .w(px(28.))
                             .h(px(28.))
                             .bg(rgb(if subscribed { GREEN_HEX } else { GRAY_HEX }))
+                            .track_focus(&self.subscribe_focus)
+                            // A click, or Space while it has focus, toggles it.
                             .on_click(cx.listener(|this, _, _, cx| {
                                 this.subscribed = !this.subscribed;
                                 cx.notify();
@@ -145,6 +150,7 @@ impl gpux::Render for Controls {
                             .aria_min_numeric_value(0.)
                             .aria_max_numeric_value(10.)
                             .aria_numeric_value_step(1.)
+                            .track_focus(&self.volume_focus)
                             .w(px(120.))
                             .h(px(28.))
                             .bg(rgb(GRAY_HEX))
@@ -232,6 +238,8 @@ fn controls(_: &mut gpux::Window, cx: &mut gpux::App) -> gpux::AnyView {
             subscribed: false,
             volume: 5.,
             title,
+            subscribe_focus: cx.focus_handle(),
+            volume_focus: cx.focus_handle(),
         }
     })
     .into()

@@ -71,6 +71,11 @@ impl Render for DomOverlay {
                 this.child(
                     div()
                         .id("dom-host")
+                        // Its `accessibility_id` names the overlay, so the screen-reader mirror
+                        // reads the overlay's DOM here (`aria-owns`).
+                        .role(gpux::Role::Group)
+                        .aria_label("DOM content")
+                        .accessibility_id("gpux-dom-button")
                         .absolute()
                         .top(px(70.))
                         .left(px(20.))

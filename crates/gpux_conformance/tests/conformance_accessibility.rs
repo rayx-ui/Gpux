@@ -2,7 +2,8 @@
 //! window's accessibility tree, read while it inspects the window (`evaluate::inspect`,
 //! `evaluate::keep_inspecting`, `evaluate::snapshot`, the functions the app, desktop, web, iOS
 //! and Android hosts share); the test host runs the scenes on it; `Area::Accessibility` names
-//! the scenes about it; and the status helper publishes a status node with its value.
+//! the scenes about it; and the status helper publishes a status node with its value, a polite
+//! live region.
 //!
 //! `cargo test -p gpux-conformance --test conformance_accessibility`
 
@@ -141,6 +142,15 @@ fn the_status_helper_publishes_a_status_node_with_its_value() {
             Query::text("ready 3").resolve(&snapshot).is_ok(),
             "its text shows too"
         );
+        // A polite live region, so screen readers announce its changes.
+        let tree = window.a11y_tree().unwrap();
+        let status = tree
+            .nodes
+            .iter()
+            .find(|(id, _)| *id == node.node_id)
+            .map(|(_, node)| node)
+            .unwrap();
+        assert_eq!(status.live(), Some(gpux::accesskit::Live::Polite));
     })
     .unwrap();
 }

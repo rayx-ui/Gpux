@@ -13,6 +13,9 @@
 //!   them) or all off. Without it the window keeps its default.
 //! - `?inspect=0` shows the scene without inspecting its accessibility tree, which the host
 //!   otherwise starts with the scene, since its queries read that tree.
+//! - `?screen-reader=always` builds the window's screen-reader mirror from its first frame
+//!   (`WebScreenReader::Always`) instead of offering the "Enable accessibility" button, and
+//!   `?screen-reader-label=<text>` labels that button.
 //!
 //! It publishes `globalThis.__gpuxConformance`: `ready`, `backend`, `scene`, `results`, `done`,
 //! `lastError`, `probes` (the scene's pixel expectations for its first frame, as
@@ -71,6 +74,8 @@ mod web {
         backend: Option<String>,
         layers: Option<String>,
         inspect: Option<String>,
+        screen_reader: Option<String>,
+        screen_reader_label: Option<String>,
     }
 
     impl Params {
@@ -86,6 +91,8 @@ mod web {
                 backend: get("backend"),
                 layers: get("layers"),
                 inspect: get("inspect"),
+                screen_reader: get("screen-reader"),
+                screen_reader_label: get("screen-reader-label"),
             }
         }
     }
@@ -433,6 +440,12 @@ mod web {
         set("focusPoint", focus_point.as_ref().clone());
         focus_point.forget();
 
+        if params.screen_reader.as_deref() == Some("always") {
+            gpui_platform::set_web_screen_reader(gpui_platform::WebScreenReader::Always);
+        }
+        if let Some(label) = params.screen_reader_label.clone() {
+            gpui_platform::set_web_screen_reader_label(label);
+        }
         let preference = match params.backend.as_deref() {
             Some("webgl") => gpui_platform::WebBackendPreference::WebGl,
             Some("webgpu") => gpui_platform::WebBackendPreference::WebGpu,

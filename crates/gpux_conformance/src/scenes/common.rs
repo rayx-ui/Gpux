@@ -54,6 +54,7 @@ pub fn status(text: impl Into<SharedString>) -> AnyElement {
     div()
         .id("status")
         .role(Role::Status)
+        .aria_live(gpux::accesskit::Live::Polite)
         .aria_value(text.clone())
         .child(text)
         .into_any_element()
