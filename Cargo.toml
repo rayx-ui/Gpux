@@ -80,7 +80,9 @@ util_macros = { package = "gpux-zed-util-macros", path = "crates/util_macros", v
 # AccessKit 0.25: gpux is ahead of Zed here (an upstream import keeps these pins unless Zed's
 # are newer; see docs/upstream/accesskit-0.25.md). Every adapter moves with `accesskit`.
 accesskit = { version = "0.25.1", features = ["enumn"] }
+accesskit_android = { version = "0.9.0", features = ["embedded-dex"] }
 accesskit_consumer = "0.39.1"
+accesskit_ios = "0.2.1"
 accesskit_macos = "0.27.1"
 accesskit_unix = "0.24.0"
 accesskit_windows = "0.35.1"

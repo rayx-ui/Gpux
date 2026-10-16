@@ -71,6 +71,8 @@ pub use gpui;
 
 // ── shared modules ───────────────────────────────────────────────────────────
 
+#[cfg(all(feature = "accessibility", target_os = "ios"))]
+mod accessibility;
 mod android_backend;
 pub mod components;
 pub mod packages;
