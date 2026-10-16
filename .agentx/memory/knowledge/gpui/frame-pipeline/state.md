@@ -67,6 +67,11 @@ Fast mode (`crates/gpui/src/fast/`, adapted from gpui-fast) holds a per-window `
 
 Scroll layers core (`fast/layers/`, see `gpui/positioning-scroll` for the scroll side): `Scene::layers` holds the `LayerFrame`s a frame composites (key, generation, baked background, content, dirty tiles); tile sprites are polychrome sprites with texture ids from `LAYER_TILE_TEXTURE_BASE`, inserted inside the viewport's layer, and `Scene::replay` copies the frames with them. A layer's content is painted into its own scene with the painted region as content mask and both mask stacks pushed, then translated into content space (every position and each primitive's transformation, `t + (I - R)·delta`); tile hashes take each primitive in tile space, transformation included. Paths nothing draws over are lifted and drawn over the tiles; content drawing over a path demotes the layer. Views inside a layer keep no retained record (the layer is their retention) and are laid out from kept layouts on composited frames (`ViewLayout::Kept`). Content painted onto another composition surface records its switches and is drawn into the frame with them; `paints_over_native_content` answers for the container's surface and band while a layer's scene is swapped in. The randomized layers oracle (`fast::tests::oracle_layers`) compares against a window with every mechanism off and layer snapping forced (`Window::force_layer_snapping`), runs each seed with the real policy and with layers kept (`WindowLayers::never_demote`), since the policy demotes under its constant content changes, draws the reference's pending frame before an input event exactly when the layered window drew one, and gives content masks to 1/1024 px (`layers::verify::settle_masks`). `describe_rendered_frame` describes a layered frame through `layers::paint::expanded_scene` and rounds nothing.
 
+## Open Follow-Ups (gpux-virtual-list, 2026-10-16)
+
+- An edge on exactly half a device pixel rounds one pixel apart in a frame shown from any scroll layer and one drawn from scratch once the layer moves it across the window's origin: `round_half_toward_zero` is not preserved by a whole-pixel move across zero (a padded `uniform_list` at 4.25 px and scale 2 shows it). Recorded in `docs/fast-mode.md`.
+- `uniform_list` renders its first row to measure it in `request_layout` on every frame, outside `lists::measure_item`, so its row closure runs once more a frame than the rows its layer renders (1.87 against 0.87 rows); `VirtualList` measures only through the hook.
+
 ## Backlinks
 
 - [Fast mode](../../../../../crates/gpui/src/fast/mod.rs)
@@ -84,3 +89,4 @@ Scroll layers core (`fast/layers/`, see `gpui/positioning-scroll` for the scroll
 - 2026-06-29 current [Unclipped deferred overlays](../../../decisions/gpui/frame-pipeline/2026-06-29-gpui-frame-pipeline-unclipped-deferred-overlays.md)
 - 2026-07-24 current [Cached thermal-state frame throttling](../../../decisions/gpui/frame-pipeline/2026-07-24-gpui-frame-pipeline-cached-thermal-frame-throttling.md)
 - 2026-10-05 current [Frame-demand follow-up](../../../decisions/gpui/frame-pipeline/2026-10-05-gpui-frame-pipeline-frame-demand-follow-up.md)
+- 2026-10-16 current [VirtualList's range listener is part of drawing its view](../../../decisions/gpui/frame-pipeline/2026-10-16-gpui-frame-pipeline-range-listener-lease.md)

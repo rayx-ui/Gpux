@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list",
-  "revision": 83,
+  "revision": 86,
   "planRevision": 6,
   "specHashes": {
     "requirements": "9084aebf4ffae7ee7c8ab434f1a2926f10a92fe3d9c8af4ff6df6e7dd4e37b9b",
@@ -187,7 +187,17 @@
           "rayx": "6760fd3c6087a69623a43744e89e30e142b974ccc4b14b30ccb46f50b02077d1"
         }
       },
-      "recordedAt": "2026-10-16T20:22:23Z"
+      "recordedAt": "2026-10-16T20:29:41Z"
+    },
+    "5753fbfefce79c375c61184ce682646aa651cab9ea6c9dce4411a463ec89d552": {
+      "snapshot": {
+        "specHash": "d404e47cabb0031c3d7b96ad83b5f8adbf57ee9e1f3555886d3ca70f5314753b",
+        "repositories": {
+          "gpux": "6f2d480e24397f679a30041dc24434bc9a0d5812670133b75a7ddc30dd83667b",
+          "rayx": "6760fd3c6087a69623a43744e89e30e142b974ccc4b14b30ccb46f50b02077d1"
+        }
+      },
+      "recordedAt": "2026-10-16T20:32:52Z"
     }
   },
   "checkResults": {
@@ -564,6 +574,425 @@
       "logPath": "artifacts-temp/agentx/gpux-virtual-list/s07-rayx-layers-final-bc6dee8c1dea.log",
       "logSha256": "760afad58a4453def30322ef95d635c1d20ef34b3278af28845ea4414f6f0082",
       "inputsHash": "9b744ea040c0e715e1386c2217eebfe79293137830ec4d069295c6349c410807"
+    },
+    "final/c-vl-unit/final": {
+      "checkId": "c-vl-unit",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "5753fbfefce79c375c61184ce682646aa651cab9ea6c9dce4411a463ec89d552",
+      "definitionHash": "cb7f82152562b3106a4e089f45efcaae2c79585416c504fcaa9a2f39ce3a8649",
+      "basisHash": "82b382fe522d62699c13e77fdf526f59ae514b9194c4a7bceffcc5a1b19c033e",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 26,
+      "durationSeconds": 0.7423,
+      "recordedAt": "2026-10-16T20:32:30Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/final-final-a0975a267fa2.log",
+      "logSha256": "21347d6edf13dc6e1806b814d3418a18903cd7b9e5c7052ae169ac2882029f0a",
+      "inputsHash": "74dade5a1ad7eb051ac9e8f730dd519253b15ba53d6c68a68c881dcc59d39028"
+    },
+    "final/c-vl-element/final": {
+      "checkId": "c-vl-element",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "5753fbfefce79c375c61184ce682646aa651cab9ea6c9dce4411a463ec89d552",
+      "definitionHash": "cc00ed32d55ab545709136e1232509fa1c0a735aeeeebefabcf48eba8bab8bfa",
+      "basisHash": "88e3110d85b631959abc58e412d0410023a3d8d95b24eb01ca293e9880858da1",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 12,
+      "durationSeconds": 0.3364,
+      "recordedAt": "2026-10-16T20:32:31Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/final-final-388cd18441f6.log",
+      "logSha256": "8f9c9f3ca6ffae0d0db6f9a747683d3d4dd81f2f1dbfa30cdeba840d2949a9ea",
+      "inputsHash": "74dade5a1ad7eb051ac9e8f730dd519253b15ba53d6c68a68c881dcc59d39028"
+    },
+    "final/c-vl-scene/final": {
+      "checkId": "c-vl-scene",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "5753fbfefce79c375c61184ce682646aa651cab9ea6c9dce4411a463ec89d552",
+      "definitionHash": "f73ae4a8eefd3c4fa92fca4f2cb06d65f3cb981a4c3bc8c19a05169b50a0c65d",
+      "basisHash": "785d54fd3cdcbbb65cdead319a8a110abae7d83f7d83b34f700fe211119a05fe",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 2.0485,
+      "recordedAt": "2026-10-16T20:32:33Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/final-final-baa6c9a929f1.log",
+      "logSha256": "aeef043599add33b75923f1d73f4d63ca60bf606eb094642188b5a65f5cad25e",
+      "inputsHash": "9ef9fee2de4ccd9dfe61417624881d3ba272d3cbc96007de1d0af7cb4552f6c2"
+    },
+    "final/c-vl-parity/final": {
+      "checkId": "c-vl-parity",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "5753fbfefce79c375c61184ce682646aa651cab9ea6c9dce4411a463ec89d552",
+      "definitionHash": "bc8e885b2c3c941b6ff6490a5a7a2d3b4042c82bb046caa29a6514913f992b03",
+      "basisHash": "1f3f779f78dc6d66d5d0a50362a53898ae068d7e675cbc506ccf6e991a06730c",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 0.3348,
+      "recordedAt": "2026-10-16T20:32:33Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/final-final-d6d5401e42cb.log",
+      "logSha256": "51d8378af324f4e63a0145818965071d1547c39af1e09ac99ec539649cccc60b",
+      "inputsHash": "9ef9fee2de4ccd9dfe61417624881d3ba272d3cbc96007de1d0af7cb4552f6c2"
+    },
+    "final/c-fix-default-handle/final": {
+      "checkId": "c-fix-default-handle",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "5753fbfefce79c375c61184ce682646aa651cab9ea6c9dce4411a463ec89d552",
+      "definitionHash": "585126c3885c5a9c87722dd844f0c4e78a4891013a78a1876274133d30990cfc",
+      "basisHash": "a142a9758087ec9fab9a7610b3cd503135a1861e389d7345916fe7704185969d",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 0.33,
+      "recordedAt": "2026-10-16T20:32:33Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/final-final-927fc6403884.log",
+      "logSha256": "fefee5d4f26a0b8a6227a55a798b6cc0ee5e49d1e1c723f22badf91f1cef844b",
+      "inputsHash": "74dade5a1ad7eb051ac9e8f730dd519253b15ba53d6c68a68c881dcc59d39028"
+    },
+    "final/c-fix-parent-retention/final": {
+      "checkId": "c-fix-parent-retention",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "5753fbfefce79c375c61184ce682646aa651cab9ea6c9dce4411a463ec89d552",
+      "definitionHash": "ac83e696b4da9ba7fdfcae7dcb04e672d7fcea8b72082681e9a1f3202f898e8e",
+      "basisHash": "aecbe6cc3b7de16f1800e029b0e5aa281e8e1a415c2b4a3ec594656755ab733f",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 7,
+      "durationSeconds": 0.326,
+      "recordedAt": "2026-10-16T20:32:34Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/final-final-5415a1cd4f45.log",
+      "logSha256": "763a76457421c6e139535fe739d136efe8e92cad21a7838c036a9724b8418180",
+      "inputsHash": "74dade5a1ad7eb051ac9e8f730dd519253b15ba53d6c68a68c881dcc59d39028"
+    },
+    "final/c-ll-rows/final": {
+      "checkId": "c-ll-rows",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "5753fbfefce79c375c61184ce682646aa651cab9ea6c9dce4411a463ec89d552",
+      "definitionHash": "f7ce5ecb0c1c152a25dca4919c58e38f657c8c5d88e8b80f182e0d1c72cb9258",
+      "basisHash": "9dc41914fbd8fe4cdb6f895e2daf77188876a29d2f24a81011a0312e6c9047cf",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 0.377,
+      "recordedAt": "2026-10-16T20:32:34Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/final-final-51de76fc85db.log",
+      "logSha256": "bb9f32ab6d75d5913bc1ed97340ddaa0791c7f5f4510579852acc19a67b48e7b",
+      "inputsHash": "74dade5a1ad7eb051ac9e8f730dd519253b15ba53d6c68a68c881dcc59d39028"
+    },
+    "final/c-ll-range/final": {
+      "checkId": "c-ll-range",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "5753fbfefce79c375c61184ce682646aa651cab9ea6c9dce4411a463ec89d552",
+      "definitionHash": "edd40989a5a53229c76ebaf2defbac455f5e6e7f41187d3e7437a8764eeef441",
+      "basisHash": "a0534bd07c40ea5b251ad2bbd6c436ec87303babefa10e726cea79576a6d8e19",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 0.3731,
+      "recordedAt": "2026-10-16T20:32:35Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/final-final-82410fffaa5a.log",
+      "logSha256": "08796246a872d9412dea568122268b85089ffbc90cec4dc31a4e9a3259db457b",
+      "inputsHash": "74dade5a1ad7eb051ac9e8f730dd519253b15ba53d6c68a68c881dcc59d39028"
+    },
+    "final/c-ll-ineligible/final": {
+      "checkId": "c-ll-ineligible",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "5753fbfefce79c375c61184ce682646aa651cab9ea6c9dce4411a463ec89d552",
+      "definitionHash": "0aabf981b1ad505fea5e1fffb0030eb766f52d384fdb07c2b8edbaac701ecb1d",
+      "basisHash": "4d6c083870065f46250e57c45457a2d9cf737a08c48d1a17fffd5421cc76ab07",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 0.337,
+      "recordedAt": "2026-10-16T20:32:35Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/final-final-0d0eccb22197.log",
+      "logSha256": "9917e5ad066c0900a2cc8c0b745c38ad6c5f5660bcdcbe0644d039519a841216",
+      "inputsHash": "74dade5a1ad7eb051ac9e8f730dd519253b15ba53d6c68a68c881dcc59d39028"
+    },
+    "final/c-ll-oracle/final": {
+      "checkId": "c-ll-oracle",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "5753fbfefce79c375c61184ce682646aa651cab9ea6c9dce4411a463ec89d552",
+      "definitionHash": "d3819c1466d112174d7a9ee3ad27487003aee34519789b1c658056e43233912d",
+      "basisHash": "2330b56b8b8619dd76023cc819d7f235b1e1facf840a62d300a0df1c36885517",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 0.3361,
+      "recordedAt": "2026-10-16T20:32:35Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/final-final-80ee9a967058.log",
+      "logSha256": "aef9777a312af2432c3a0a983e5a8d2b7341e94598b26df1ba14ec82dbdc96fc",
+      "inputsHash": "74dade5a1ad7eb051ac9e8f730dd519253b15ba53d6c68a68c881dcc59d39028"
+    },
+    "final/c-ll-changes/final": {
+      "checkId": "c-ll-changes",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "5753fbfefce79c375c61184ce682646aa651cab9ea6c9dce4411a463ec89d552",
+      "definitionHash": "80f3becb8837c10c3bc7a4aa14540e60214cb0adaed035c9ec549573a5e8b0f5",
+      "basisHash": "c67200ae7116924b235900fd5c4d7c95b726657f49df14845e94d7e9e81984cd",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 0.2853,
+      "recordedAt": "2026-10-16T20:32:36Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/final-final-b33fd42a5bf1.log",
+      "logSha256": "b55bf214cf5a8010387cd8b35b4ef8d6e1f2ccb69ae1dedd1bf665078a14e530",
+      "inputsHash": "74dade5a1ad7eb051ac9e8f730dd519253b15ba53d6c68a68c881dcc59d39028"
+    },
+    "final/c-fix-parent-layer/final": {
+      "checkId": "c-fix-parent-layer",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "5753fbfefce79c375c61184ce682646aa651cab9ea6c9dce4411a463ec89d552",
+      "definitionHash": "72a8366f645703b8aa0807406cf77092dfd46402f3f8708f3ad2e2b4668f7988",
+      "basisHash": "a81c5cf5fcf0d02750d5a8d73f73a6032bde5f3d14d5b13c9c8eb64eca273157",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 0.321,
+      "recordedAt": "2026-10-16T20:32:36Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/final-final-1325a9f6f768.log",
+      "logSha256": "e830ba88e7b7dfe8ac10edbba2b045d6f53102bb5855012d560aaf5405587769",
+      "inputsHash": "74dade5a1ad7eb051ac9e8f730dd519253b15ba53d6c68a68c881dcc59d39028"
+    },
+    "final/c-rx-list-view/final": {
+      "checkId": "c-rx-list-view",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "5753fbfefce79c375c61184ce682646aa651cab9ea6c9dce4411a463ec89d552",
+      "definitionHash": "4a726377d518a708ca99efbd45cb463c10991bad5e4d5c0104cd94b5ae111094",
+      "basisHash": "940fbee859d338d8365c267ef715af29fc08e32e668ab37b14518b3b204b589c",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 33,
+      "durationSeconds": 0.6315,
+      "recordedAt": "2026-10-16T20:32:37Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/final-final-447268c9ce1e.log",
+      "logSha256": "db082d0e9b5368b6582e298edc84554ba6cf949d30abfe8e8120727946f8f37a",
+      "inputsHash": "69a4cd3f57313d664f015686bc3e0d9027c7d3817851a7f1fbfe0e758b85bbee"
+    },
+    "final/c-rx-sliver/final": {
+      "checkId": "c-rx-sliver",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "5753fbfefce79c375c61184ce682646aa651cab9ea6c9dce4411a463ec89d552",
+      "definitionHash": "aebd72b8ae7ae6ab2afd22ee3cc0e17e09d514d674840d610997bf7e13a18add",
+      "basisHash": "a09c7284e73acb4813695fcfa1343d52e3dfb3e5ab8a1ce39fcc95c88d05df05",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 34,
+      "durationSeconds": 0.2786,
+      "recordedAt": "2026-10-16T20:32:37Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/final-final-11bb052f57b5.log",
+      "logSha256": "4f7a77e00770bd0c866e157daeb7f542fb254f801866ce9c6743c75dd3fbab97",
+      "inputsHash": "69a4cd3f57313d664f015686bc3e0d9027c7d3817851a7f1fbfe0e758b85bbee"
+    },
+    "final/c-rx-tree/final": {
+      "checkId": "c-rx-tree",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "5753fbfefce79c375c61184ce682646aa651cab9ea6c9dce4411a463ec89d552",
+      "definitionHash": "32b59539b7f1dcdc6de8ec94815ae4d6fe8ffd61afc5a7061bc7751b22803d20",
+      "basisHash": "40bea280b2e7e6376b0b21d41ab609be8e11f713720c9c1ea9194e60b833219a",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 42,
+      "durationSeconds": 0.3775,
+      "recordedAt": "2026-10-16T20:32:37Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/final-final-8230f93dfddd.log",
+      "logSha256": "c060a3f6bad3620b0f8eea89a21f4f58f40161956dbd4e8698a328230f52764a",
+      "inputsHash": "69a4cd3f57313d664f015686bc3e0d9027c7d3817851a7f1fbfe0e758b85bbee"
+    },
+    "final/c-rx-scroll/final": {
+      "checkId": "c-rx-scroll",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "5753fbfefce79c375c61184ce682646aa651cab9ea6c9dce4411a463ec89d552",
+      "definitionHash": "9431c4fd5f7c415b5a785e5d9245709644102ea2c8189344766c9bf124f1b6c6",
+      "basisHash": "d392f1b75e79fac1f45f5315a9362826adf69c7db925e820ddc35e54658b56ab",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 9,
+      "durationSeconds": 0.6876,
+      "recordedAt": "2026-10-16T20:32:38Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/final-final-a0c516fd1389.log",
+      "logSha256": "b9a583334773cbcd7d655a0b7caade6de622dfcfbee1150b4e89bbf73f207675",
+      "inputsHash": "69a4cd3f57313d664f015686bc3e0d9027c7d3817851a7f1fbfe0e758b85bbee"
+    },
+    "final/c-rx-layers/final": {
+      "checkId": "c-rx-layers",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "5753fbfefce79c375c61184ce682646aa651cab9ea6c9dce4411a463ec89d552",
+      "definitionHash": "dfbe254aff512d142522d28206126c811be7265d30b992bd86fd4bf9e5a3dff6",
+      "basisHash": "7160a94556b0e1647b9b8309d6e8a0ab29f9debedde20dc06f4a12e7c967fd80",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 0.6948,
+      "recordedAt": "2026-10-16T20:32:39Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/final-final-5bb9cac77f10.log",
+      "logSha256": "2568779268a835ba1b029bc47586d10a2f0d1016ee510dd2206a7d7b66d5be7a",
+      "inputsHash": "69a4cd3f57313d664f015686bc3e0d9027c7d3817851a7f1fbfe0e758b85bbee"
+    },
+    "final/c-rx-rebuilds/final": {
+      "checkId": "c-rx-rebuilds",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "5753fbfefce79c375c61184ce682646aa651cab9ea6c9dce4411a463ec89d552",
+      "definitionHash": "6564b389cdce9db26008c4ee57ac0e3d51bee6a6b59392ff1ffba38752b238e8",
+      "basisHash": "e1add4750f8bf1b877880e1ab868f30474ae4cbcf6c099b5136e083eb1b47f61",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 0.6931,
+      "recordedAt": "2026-10-16T20:32:39Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/final-final-556f0a6193ef.log",
+      "logSha256": "ea441e3ca618a236825ad3fdddd943d2b9ba4968f63b31b2d149d824d43ff37a",
+      "inputsHash": "69a4cd3f57313d664f015686bc3e0d9027c7d3817851a7f1fbfe0e758b85bbee"
+    },
+    "final/c-gpux-range-lease/final": {
+      "checkId": "c-gpux-range-lease",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "5753fbfefce79c375c61184ce682646aa651cab9ea6c9dce4411a463ec89d552",
+      "definitionHash": "80a14c7efd8e99b05ef54282108e2e24f3be7ef935c07e0e13cfda28067f83c4",
+      "basisHash": "fe951dbfa16e5a2a2cfcb79e8aa038bd33c0e2c4854551dd204b3fb7456ca878",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 0.3319,
+      "recordedAt": "2026-10-16T20:32:40Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/final-final-152134efd731.log",
+      "logSha256": "91c063ef0023eed54ef6e352e71e5973146a8cb451f62db604ed49c4d27c5805",
+      "inputsHash": "74dade5a1ad7eb051ac9e8f730dd519253b15ba53d6c68a68c881dcc59d39028"
+    },
+    "final/final-fmt/final": {
+      "checkId": "final-fmt",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "5753fbfefce79c375c61184ce682646aa651cab9ea6c9dce4411a463ec89d552",
+      "definitionHash": "19da1ae80da8cc245b20a99fab71ec288a5b44477b5250120a9792f7c71479ea",
+      "basisHash": "ea8a85a7d7ee56adaad6697e1cd4980f372b486dc37bf91f6f4b19952a3f93e4",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 2.8489,
+      "recordedAt": "2026-10-16T20:32:43Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/final-final-5b901cd26c22.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "final/final-clippy/final": {
+      "checkId": "final-clippy",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "5753fbfefce79c375c61184ce682646aa651cab9ea6c9dce4411a463ec89d552",
+      "definitionHash": "b11d6b16d780eef5a39ae0c1a8af13ba6b87bd4e37deed87290068b4d53881ab",
+      "basisHash": "e54249f912d584295cf544a8f90563f1ab7e293f5a76f8fb6fa26c07a650a0c1",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.6369,
+      "recordedAt": "2026-10-16T20:32:43Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/final-final-10577c8c2e75.log",
+      "logSha256": "9c73735a1033f44f00ea48e15c38d73843ff5a391557aac653bd81d564a34b5f"
+    },
+    "final/final-wasm/final": {
+      "checkId": "final-wasm",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "5753fbfefce79c375c61184ce682646aa651cab9ea6c9dce4411a463ec89d552",
+      "definitionHash": "7d37ae0bb159937bc5dc5086f6fd662c7cc7bb21851019dd778cdfe3b3b6658b",
+      "basisHash": "5e611dc86abb321b555fa241ef1f0aa62191826b037ea85234d2d33ac7a3c7fb",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.3703,
+      "recordedAt": "2026-10-16T20:32:44Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/final-final-a58c2e0227e3.log",
+      "logSha256": "8b1fd2394f7b6f177ede882431154a419bd9f404f00add314c912e91a7fc0ec0"
+    },
+    "final/final-rx-fmt/final": {
+      "checkId": "final-rx-fmt",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "5753fbfefce79c375c61184ce682646aa651cab9ea6c9dce4411a463ec89d552",
+      "definitionHash": "4392a0fd362482719c153b20b54d0b767507963632184ae93b45433065dce10e",
+      "basisHash": "92d0f2459c8f2b39d416b92916fd6c41baa4114a4472e5930cd412094c014b5d",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 4.9286,
+      "recordedAt": "2026-10-16T20:32:49Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/final-final-ba8e6d4f3111.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "final/final-rx-clippy/final": {
+      "checkId": "final-rx-clippy",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "5753fbfefce79c375c61184ce682646aa651cab9ea6c9dce4411a463ec89d552",
+      "definitionHash": "075e5f139577c4121a22e18b2710e1dad393f9801722f4f847a6f8270ab389a0",
+      "basisHash": "abf5bc1551376151334cbdf9e4b7ba79d7da783a679d69a8eb52e60686e5373c",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.6057,
+      "recordedAt": "2026-10-16T20:32:49Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/final-final-6fd86da32f21.log",
+      "logSha256": "29162d76fb109d9c6005d8544d63a4a438d15235d4f9b8e73d51adc9ba6e95d7"
+    },
+    "final/final-rx-check/final": {
+      "checkId": "final-rx-check",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "5753fbfefce79c375c61184ce682646aa651cab9ea6c9dce4411a463ec89d552",
+      "definitionHash": "bec24f0829b533a72695041d782081800c26a7d64ffd85b5d5a00a69a8d1cce8",
+      "basisHash": "33131debaace47483e3e29ec1e688e4bcc00c7018ae7dc960c92c37ab62f858f",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 1.6804,
+      "recordedAt": "2026-10-16T20:32:51Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/final-final-2360e735252f.log",
+      "logSha256": "1ce30166979e15305dd43a647527db29b4152e251074ee1db4d5b7a3f9a3c743"
     }
   },
   "reviews": {
@@ -1190,6 +1619,317 @@
         "s07-F2"
       ],
       "recordedAt": "2026-10-16T20:23:02Z"
+    },
+    "final": {
+      "reviewerId": "reviewer-final-independent",
+      "snapshotId": "5753fbfefce79c375c61184ce682646aa651cab9ea6c9dce4411a463ec89d552",
+      "criterionIds": [
+        "VL-1",
+        "VL-2",
+        "VL-3",
+        "VL-4",
+        "VL-5",
+        "LL-1",
+        "LL-2",
+        "LL-3",
+        "LL-4",
+        "LL-5",
+        "LL-6",
+        "RX-1",
+        "RX-2",
+        "RX-3"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/virtual_list/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "VL-1",
+            "VL-3",
+            "VL-4",
+            "VL-5",
+            "LL-1",
+            "LL-2",
+            "LL-3",
+            "LL-4",
+            "LL-5",
+            "LL-6",
+            "RX-3"
+          ],
+          "sha256": "3c2ee1f6df1adee68748a503ba3bdfc4b18efae838bbcc045d286420ed55971a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/virtual_list/geometry.rs",
+          "kind": "source",
+          "criterionIds": [
+            "VL-1",
+            "LL-1"
+          ],
+          "sha256": "2af955ca01abf295b04bafa1add3b143b7dd56c5508859ba645e7a7526e205fb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "VL-1"
+          ],
+          "sha256": "260dbdb478412ab66f0d251b0c6ee08ba100db92430e066ec401d8bf414f7b0d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LL-1",
+            "LL-2",
+            "LL-3",
+            "LL-4",
+            "LL-5",
+            "LL-6",
+            "RX-3"
+          ],
+          "sha256": "f3bd0b8d4a95101f3ed19001cd83ec9014096c4e7b07249b88be130c42d893bf"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/paint.rs",
+          "kind": "source",
+          "criterionIds": [
+            "VL-5",
+            "LL-6"
+          ],
+          "sha256": "73f232890e0a69d1411cbef6624ac63d98b6be4a465d3a392bdec6fc04a7b279"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scenes/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "VL-2"
+          ],
+          "sha256": "0501817a140dec52a35412710533becdbc13970f960743326886a772588a364a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md",
+          "kind": "source",
+          "criterionIds": [
+            "LL-6"
+          ],
+          "sha256": "03d4bdb6b40e3b21f7227dbb27f95c449de3471268ff0c78634c45888ec25abe"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/virtual_list.rs",
+          "kind": "test",
+          "criterionIds": [
+            "VL-1"
+          ],
+          "sha256": "1a2f76a5d0e9a089658fc6c4aa72d194816b533541be9daca7a6a877a6f56339"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/catalog/lane_a_scenes.rs",
+          "kind": "test",
+          "criterionIds": [
+            "VL-2"
+          ],
+          "sha256": "8b6f7c00d67c609108c76bae66fab9f6bb4950fab3cbcebc9b292d6b9827b0cb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/virtual_list_default_handle.rs",
+          "kind": "test",
+          "criterionIds": [
+            "VL-3"
+          ],
+          "sha256": "d4a1f9d1c44629a50855fa03b5a90ce9be48c441c7bbc74d624d237a62afa695"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/virtual_list_parent_viewport.rs",
+          "kind": "test",
+          "criterionIds": [
+            "VL-4"
+          ],
+          "sha256": "a5c149e5e2a3b6712a24a4e0cf3cd14ca3b8d0031872824c1dfe314444b175e8"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/parent_viewport.rs",
+          "kind": "test",
+          "criterionIds": [
+            "VL-5"
+          ],
+          "sha256": "09658fa1e7dd7bc3970c6d3722d2e28972d68d1fa1c9902bf31ac0389d3159b3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/rows.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LL-1"
+          ],
+          "sha256": "a2e3ccb3ed57ed2f4e2f14542c0a74f573fd75f474ff26f1650caaccec810ea3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/oracle.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LL-2"
+          ],
+          "sha256": "59b1d02d9cdd6703446f4c993919ff1282f7177b4cc517bb9932314d66846e25"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/changes.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LL-3"
+          ],
+          "sha256": "9ee584fa3622641f8b941ba9d3ef89fa50f3ca74f82cd4b74dc86fb5044a15b8"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/range.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LL-4",
+            "RX-3"
+          ],
+          "sha256": "88167be0adabe3f951192a304739525de2c707612e65c495d2237a32a2d6c8d2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/ineligible.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LL-5"
+          ],
+          "sha256": "92829eeab3556dc548940f8cdcb3f197fd9838ff3d10d712460a0d14d858a486"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/scroll_base.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-1"
+          ],
+          "sha256": "45d537aacd3722d2bff698fccef3d2a3f0adf52cccfeea7aeb93b4f3a832363c"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/lib.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-1"
+          ],
+          "sha256": "0ec9895dd41f706424614e53c5d6a7845c2f93c2e075a666c7b10b2f8a8d9650"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/tree/state.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-1",
+            "RX-2",
+            "RX-3"
+          ],
+          "sha256": "20d304992346b106d9d875669cdab1561962add764e7b70faba1f80534d54335"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/state.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-1",
+            "RX-2",
+            "RX-3"
+          ],
+          "sha256": "e4cf83a4e0693c6007a40864cdac9cd453976d3f2225d3b8dca0bf6ff177b581"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/element.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-1",
+            "RX-3"
+          ],
+          "sha256": "3da77962c54a25fc9d7c4e1005a7e16b74709c50455e38e60987df3bdc8438c8"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/layout/scroll/scrollbar.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-3"
+          ],
+          "sha256": "eed50ecc09ec025b979c9bfe21be43d0167a3a9eb5d4c90d29a3505dc5bd70dd"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/_core/sticky.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-1"
+          ],
+          "sha256": "45837c103c34c8d68a6d19a7f801505b9e8a5b627c56f75cb472bd5780240a41"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_datatable/src/state/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-1"
+          ],
+          "sha256": "f7a5a750b495dcaee05b5746621059e214345f38c76e5c9dfb6536a60bcc9ddb"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/application_configuration_programmatic_scroll_parent_viewport.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-1"
+          ],
+          "sha256": "5cd17874c5459c3a683f58e19cdcf7039acf603620b8fd852f0d9e2a0683227f"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/scroll_activity_owners.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-1"
+          ],
+          "sha256": "443e65eebfbcc39240917b397cd1bad74fd0fe9aaa9af446558de411855049eb"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/virtual_list_layers.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-2"
+          ],
+          "sha256": "ff9c28950750f66dab4872ce8f687f837718bbc6049b0442ae90c0e8c5f45546"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/virtual_list_rebuilds.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-3"
+          ],
+          "sha256": "abadf9281054fedb8bf0ee1d0aa2b55897219d9a748c082648344d90ac4a5452"
+        }
+      ],
+      "summaryMarkdown": "**Passed: integrated epic.** The move (812cc13) is the RayX `4ee806e9` element with only renames, docs and the `diagnostics` gate. A diff after normalising the `Base` suffix shows no behaviour change. The later fixes each have their own commit: the default handle in element state (VL-3), the `ParentViewport` spacer in place of the measured leaf (VL-4), `unlayered_content_mask` (VL-5, reproduced pre-fix as 302 px vs 100 px), the list-layer hooks at uniform_list's call points (LL-1..5), and the range-listener lease (RX-3).\n\n**Shared code.** The `begin_rows` refactor keeps uniform_list's order: the height check, then `layered`, then `decide`. The `measure_item` additions (`take_offsets_set`, carrying measured states and lines) also apply to uniform_list. I reran the existing `fast::tests::list_layers` group: all 64 tests pass at HEAD. The hooks stay inert while the switch is off: `render_items` checks `scroll_layers()`, `layout_as_list_item` checks `fast_layout.active`, and `snap_item_offset` is gated on snapping.\n\n**Lease against the oracle.** The lease applies only to the view holding the list (`rendered_entity_stack.last()`), and only with scroll layers on. The narrowed contract (readers take the range from an event) is recorded in d-range-listener-lease, in docs/fast-mode.md and in frame-pipeline rule 64. `range` proves both sides of it.\n\n**RayX.** The migration is complete: no `*Base` virtual-list name is left in crates/, apps/ or the skill docs, only in historical .agentx records. The `ScrollbarHandleBase` impl matches the removed one. ListViewState now draws the scrollbar. The paint-time idle timer plus the existing prepaint timer still fade the thumb: a timer that fires mid-scroll reschedules for the time remaining.\n\n**LL-6.** The \"Scroll layers\" and \"Virtual lists\" sections match the source: 0.15 shipped overscan (paint.rs), which kinds are eligible and which are ineligible, the range listener on composited frames, and the `ParentViewport` behaviour inside the parent's div layer. The rows-group figures stand beside uniform_list's.\n\n**Non-blocking notes.** The docs' \"before any row is rendered\" ignores that active sticky rows render before the listener, as in RayX's original; sticky lists have no layer. The fade test proves only that a frame follows the idle delay: the scrollbar uses wall-clock `Instant`. The half-device-pixel rounding gap is documented as pre-existing for every layer.",
+      "findingIds": [],
+      "recordedAt": "2026-10-16T20:43:29Z"
     }
   },
   "checkpoints": {
