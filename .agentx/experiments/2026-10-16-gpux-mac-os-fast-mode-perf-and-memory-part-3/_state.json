@@ -28,8 +28,8 @@
     "successfulAttemptRequiresCommitBeforeNextExperiment": true,
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
-  "currentExperimentId": null,
-  "nextExperimentIndex": 3,
+  "currentExperimentId": "8439cf4f-24bc-404b-892d-0b6e483f7322",
+  "nextExperimentIndex": 4,
   "experiments": [
     {
       "id": "ddc0da9b-11bf-491e-a966-4a6997d6aca0",
@@ -54,6 +54,17 @@
       "state": "done",
       "status": "success",
       "resultCommit": "b83d0b2e412fe3d6dee0fb3ffb3cf27f71822f27"
+    },
+    {
+      "id": "8439cf4f-24bc-404b-892d-0b6e483f7322",
+      "index": 3,
+      "type": "hypothesis",
+      "name": "Aria properties allocated on first use",
+      "path": "2026-10-16-03-aria-properties-allocated-on-first-use.json",
+      "startedAt": "2026-10-16T02:05:17Z",
+      "finishedAt": null,
+      "state": "running",
+      "status": ""
     }
   ]
 }

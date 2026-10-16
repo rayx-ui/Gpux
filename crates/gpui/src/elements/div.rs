@@ -2566,6 +2566,28 @@ impl<'a, T> IntoIterator for &'a LazyVec<T> {
     }
 }
 
+/// The ARIA properties of an element, allocated when one is set: most elements set none, and the
+/// properties are a third of a kilobyte.
+#[derive(Default)]
+pub(crate) struct LazyAria(Option<Box<AriaProperties>>);
+
+impl std::ops::Deref for LazyAria {
+    type Target = AriaProperties;
+
+    fn deref(&self) -> &AriaProperties {
+        static NONE: std::sync::OnceLock<AriaProperties> = std::sync::OnceLock::new();
+        self.0
+            .as_deref()
+            .unwrap_or_else(|| NONE.get_or_init(AriaProperties::default))
+    }
+}
+
+impl std::ops::DerefMut for LazyAria {
+    fn deref_mut(&mut self) -> &mut AriaProperties {
+        self.0.get_or_insert_with(Default::default)
+    }
+}
+
 /// The interactivity struct. Powers all of the general-purpose
 /// interactivity in the `Div` element.
 #[derive(Default)]
@@ -2642,7 +2664,7 @@ pub struct Interactivity {
     pub(crate) a11y_synthetic_children: Option<Box<dyn FnOnce(&mut crate::A11ySubtreeBuilder)>>,
     pub(crate) report_active_descendant_focus: bool,
     pub(crate) override_role: Option<accesskit::Role>,
-    pub(crate) aria: AriaProperties,
+    pub(crate) aria: LazyAria,
 
     #[cfg(any(feature = "inspector", debug_assertions))]
     pub(crate) source_location: Option<&'static core::panic::Location<'static>>,
