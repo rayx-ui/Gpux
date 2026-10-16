@@ -425,3 +425,82 @@ pub(crate) fn reuse_kept_layout(
     cx.replay_dependencies(&dependencies);
     Some((layout.root, layout, carried))
 }
+
+/// How a scroll container's content was laid out when it was painted into
+/// its layer, for frames that composite the layer to lay it out again
+/// without requesting the layout of its children: the nodes they claimed,
+/// the element states they used, the ids of the children's nodes, and what
+/// laying them out read.
+pub(crate) struct KeptContent {
+    pub(crate) layout: Rc<RetainedLayout>,
+    pub(crate) child_layout_ids: Vec<LayoutId>,
+    pub(crate) dependencies: RenderDependencies,
+}
+
+/// Lays out the content of the scroll container `id`, which has `children`
+/// children, as its layer kept it, if the
+/// frame is expected to composite the layer and nothing the content read
+/// changed: the children's layout is then not requested. Returns what the
+/// container needs to request its own layout, and to request the children's
+/// afterwards if its prepaint paints the content after all.
+pub(crate) fn reuse_kept_content(
+    window: &mut Window,
+    cx: &mut App,
+    id: &GlobalElementId,
+    children: usize,
+) -> Option<(Rc<KeptContent>, CarriedStates)> {
+    if window.fast_layers.layers.is_empty()
+        || !crate::fast::layout_key::keyed(window)
+        || !crate::fast::layers::policy::expects_composite(window, cx, id)
+    {
+        return None;
+    }
+    let kept = window
+        .fast_layers
+        .layers
+        .get(id)?
+        .record
+        .as_ref()?
+        .content_layout
+        .clone()?;
+    if kept.child_layout_ids.len() != children
+        || kept.layout.rem_size != window.rem_size()
+        || kept.layout.text_style != window.text_style()
+        || cx.dependencies_changed(&kept.dependencies, true)
+        || crate::fast::layers::invalidate::offset_read_changed(window, &kept.dependencies)
+    {
+        return None;
+    }
+    if !crate::fast::layout::keep_retained_nodes(
+        window.layout_engine.as_mut().unwrap(),
+        &kept.layout.keys,
+        true,
+    ) {
+        return None;
+    }
+    let carried = crate::fast::retained::carry_element_states(window, &kept.layout.element_states);
+    cx.replay_dependencies(&kept.dependencies);
+    // Kept for the layer, if its container paints it afresh after all: nothing about how the
+    // content was laid out has changed.
+    window
+        .fast_layers
+        .pending_content
+        .insert(id.clone(), kept.clone());
+    Some((kept, carried))
+}
+
+/// Gives back what [`reuse_kept_content`] kept, for the children to request
+/// their layout themselves after all.
+pub(crate) fn release_kept_content(
+    window: &mut Window,
+    kept: &KeptContent,
+    carried: CarriedStates,
+) {
+    crate::fast::retained::release_carried_states(window, &kept.layout, carried);
+    window
+        .layout_engine
+        .as_mut()
+        .unwrap()
+        .retention
+        .release_kept(&kept.layout.keys);
+}

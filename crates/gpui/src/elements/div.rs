@@ -1995,6 +1995,14 @@ pub struct DivFrameState {
     child_layout_ids: SmallVec<[LayoutId; 2]>,
     sticky_layout_context_id: Option<usize>,
     paint_order: SmallVec<[usize; 8]>,
+    /// The children's layout was not requested: it is as the scroll layer kept it, for a frame
+    /// expected to composite the layer. The children request it after all, in prepaint, if the
+    /// layer is not composited.
+    kept_content: Option<(
+        Rc<crate::fast::layers::reuse::KeptContent>,
+        crate::fast::retained::CarriedStates,
+        LayoutId,
+    )>,
 }
 
 /// A frame's prepaint result for a `Div` element.
@@ -2083,6 +2091,7 @@ impl Element for Div {
         cx: &mut App,
     ) -> (LayoutId, Self::RequestLayoutState) {
         let mut child_layout_ids = SmallVec::new();
+        let mut kept_content = None;
         let mut sticky_layout_context_id = None;
         let mut sticky_occurrence = None;
         let image_cache = self
@@ -2099,8 +2108,48 @@ impl Element for Div {
                 |style, window, cx| {
                     sticky_occurrence = window.reserve_sticky_candidate(style);
                     sticky_layout_context_id = window.reserve_sticky_layout_context(style.overflow);
+                    let scrolls = crate::fast::layers::COMPILED
+                        && global_id.is_some()
+                        && (style.overflow.x == Overflow::Scroll
+                            || style.overflow.y == Overflow::Scroll)
+                        && window.fast_mode.scroll_layers();
                     let layout_id = window.with_text_style(style.text_style().cloned(), |window| {
                         let mut request_children = |window: &mut Window| {
+                            if scrolls {
+                                let id = global_id.expect("a layered container has an id");
+                                if let Some((content, carried)) =
+                                    crate::fast::layers::reuse::reuse_kept_content(
+                                        window,
+                                        cx,
+                                        id,
+                                        self.children.len(),
+                                    )
+                                {
+                                    child_layout_ids =
+                                        content.child_layout_ids.iter().copied().collect();
+                                    kept_content = Some((content, carried));
+                                    return;
+                                }
+                                let recording =
+                                    crate::fast::retained::begin_content_layout(window, cx);
+                                child_layout_ids = self
+                                    .children
+                                    .iter_mut()
+                                    .map(|child| child.request_layout(window, cx))
+                                    .collect::<SmallVec<_>>();
+                                if let Some(content) = crate::fast::retained::finish_content_layout(
+                                    window,
+                                    recording,
+                                    &child_layout_ids,
+                                    cx,
+                                ) {
+                                    window
+                                        .fast_layers
+                                        .pending_content
+                                        .insert(id.clone(), Rc::new(content));
+                                }
+                                return;
+                            }
                             child_layout_ids = self
                                 .children
                                 .iter_mut()
@@ -2131,6 +2180,7 @@ impl Element for Div {
                 paint_order: (0..child_layout_ids.len()).collect(),
                 child_layout_ids,
                 sticky_layout_context_id,
+                kept_content: kept_content.map(|(content, carried)| (content, carried, layout_id)),
             },
         )
     }
@@ -2244,6 +2294,38 @@ impl Element for Div {
                         });
 
                     let mut prepaint_children = |window: &mut Window, cx: &mut App| {
+                        if let Some((content, carried, layout_id)) =
+                            request_layout.kept_content.take()
+                        {
+                            // The layer is not composited after all: the children request the
+                            // layout they were spared, claiming the nodes they had.
+                            crate::fast::layers::reuse::release_kept_content(
+                                window, &content, carried,
+                            );
+                            let before = crate::fast::layout::change_counts(window);
+                            request_layout.child_layout_ids =
+                                crate::fast::layout_key::with_layout_key_of_prepainting_element(
+                                    window,
+                                    |window| {
+                                        self.children
+                                            .iter_mut()
+                                            .map(|child| child.request_layout(window, cx))
+                                            .collect::<SmallVec<_>>()
+                                    },
+                                );
+                            if crate::fast::layout::changed_since(window, before) {
+                                let mut engine = window.layout_engine.take().unwrap();
+                                crate::fast::layout::relayout_in_place(
+                                    &mut engine,
+                                    layout_id,
+                                    bounds.size.into(),
+                                    window,
+                                    cx,
+                                );
+                                window.layout_engine = Some(engine);
+                                window.request_animation_frame();
+                            }
+                        }
                         request_layout.paint_order.clear();
                         request_layout.paint_order.extend(0..self.children.len());
                         window.reorder_sticky_children(

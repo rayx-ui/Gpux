@@ -76,4 +76,7 @@ pub(crate) struct LayerRecord {
     /// painted, by the views' ids: a frame that composites the layer lays
     /// them out again from these instead of rendering them (spec §6.3).
     pub(crate) view_layouts: Rc<FxHashMap<GlobalElementId, KeptLayout>>,
+    /// How the container laid out its children when the content was painted, if it can be
+    /// laid out again without requesting them.
+    pub(crate) content_layout: Option<Rc<crate::fast::layers::reuse::KeptContent>>,
 }

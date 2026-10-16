@@ -828,6 +828,17 @@ fn release_kept_layout(window: &mut Window, layout: &RetainedLayout, carried: Ca
     release_carried(window, Some(layout), carried);
 }
 
+/// Gives back the element states of `layout` that [`carry_element_states`] carried, as
+/// [`release_layout`] does for a view, without its nodes.
+pub(crate) fn release_carried_states(
+    window: &mut Window,
+    layout: &RetainedLayout,
+    carried: CarriedStates,
+) {
+    release_carried(window, None, carried);
+    let _ = layout;
+}
+
 fn release_carried(window: &mut Window, layout: Option<&RetainedLayout>, carried: CarriedStates) {
     if let Some(layout) = layout {
         window
@@ -849,6 +860,31 @@ fn release_carried(window: &mut Window, layout: Option<&RetainedLayout>, carried
     {
         *type_id = released;
     }
+}
+
+/// A scroll container's request for its children's layout being recorded as a
+/// [`KeptContent`](crate::fast::layers::reuse::KeptContent).
+pub(crate) struct ContentLayoutRecording(RetainedLayoutRecording);
+
+pub(crate) fn begin_content_layout(window: &mut Window, cx: &mut App) -> ContentLayoutRecording {
+    ContentLayoutRecording(begin_layout(window, cx))
+}
+
+/// Ends `recording` of the request for the layout of children whose nodes are
+/// `child_layout_ids`, returning how they were laid out if that can be reused.
+pub(crate) fn finish_content_layout(
+    window: &mut Window,
+    recording: ContentLayoutRecording,
+    child_layout_ids: &[LayoutId],
+    cx: &mut App,
+) -> Option<crate::fast::layers::reuse::KeptContent> {
+    let root = child_layout_ids.first().copied()?;
+    let (layout, dependencies) = finish_layout(window, recording.0, root, cx);
+    Some(crate::fast::layers::reuse::KeptContent {
+        layout: layout?,
+        child_layout_ids: child_layout_ids.to_vec(),
+        dependencies: dependencies.all,
+    })
 }
 
 fn begin_layout(window: &mut Window, cx: &mut App) -> RetainedLayoutRecording {

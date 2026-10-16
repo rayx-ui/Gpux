@@ -724,10 +724,19 @@ fn without_scroll_state(
     })
 }
 
-/// The view whose element is being prepainted: the one holding the scroll
-/// container asking.
-fn owner(window: &Window) -> Option<&GlobalElementId> {
-    crate::fast::retained::prepainting_view(window)
+/// The view whose element is being prepainted, or whose elements are being
+/// laid out: the one holding the scroll container asking.
+fn owner(window: &Window) -> Option<GlobalElementId> {
+    if let Some(view) = crate::fast::retained::prepainting_view(window) {
+        return Some(view.clone());
+    }
+    // While layout is requested the view is the innermost on the path of the
+    // element asking.
+    let path: &[crate::ElementId] = &window.element_id_stack;
+    let index = path
+        .iter()
+        .rposition(|id| matches!(id, crate::ElementId::View(_)))?;
+    Some(GlobalElementId::new(&path[..=index]))
 }
 
 /// Whether `dependencies`, the scroll state at `source` aside, changed since
@@ -1096,7 +1105,7 @@ fn owner_change(
     let Some(owner) = owner(window) else {
         return OwnerChange::Changed;
     };
-    let Some(index) = window.rendered_frame.fast_retained.find(owner) else {
+    let Some(index) = window.rendered_frame.fast_retained.find(&owner) else {
         // Not drawn last frame as a retained view: nothing tells what it read.
         return OwnerChange::Changed;
     };
@@ -1192,7 +1201,7 @@ pub(crate) fn owner_rerendered_only(
 /// retained view nested in the view holding it, is one `f` picks.
 fn any_content_view(window: &Window, id: &GlobalElementId, f: impl Fn(EntityId) -> bool) -> bool {
     let Some(index) =
-        owner(window).and_then(|owner| window.rendered_frame.fast_retained.find(owner))
+        owner(window).and_then(|owner| window.rendered_frame.fast_retained.find(&owner))
     else {
         return false;
     };

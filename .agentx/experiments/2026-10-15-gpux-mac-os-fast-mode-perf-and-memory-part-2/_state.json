@@ -28,8 +28,8 @@
     "successfulAttemptRequiresCommitBeforeNextExperiment": true,
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
-  "currentExperimentId": null,
-  "nextExperimentIndex": 2,
+  "currentExperimentId": "bb88f052-9393-4c22-a9df-b42b2f5afbdf",
+  "nextExperimentIndex": 3,
   "experiments": [
     {
       "id": "fc7ccdb3-19de-436f-bf0b-77ff3a23d552",
@@ -42,6 +42,17 @@
       "state": "done",
       "status": "success",
       "resultCommit": "88c1c59b22ee2ded1135830598f35a706dabde0a"
+    },
+    {
+      "id": "bb88f052-9393-4c22-a9df-b42b2f5afbdf",
+      "index": 2,
+      "type": "hypothesis",
+      "name": "Scroll container skips laying out kept content",
+      "path": "2026-10-15-02-scroll-container-skips-laying-out-kept-content.json",
+      "startedAt": "2026-10-15T23:59:22Z",
+      "finishedAt": null,
+      "state": "running",
+      "status": ""
     }
   ]
 }

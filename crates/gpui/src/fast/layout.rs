@@ -1182,6 +1182,19 @@ pub(crate) fn relayout_in_place(
     engine.absolute_layout_bounds.insert(id, bounds);
 }
 
+/// How many writes and remeasures the layout engine has counted this frame, to tell later whether
+/// a layout requested since changed anything ([`changed_since`]).
+pub(crate) fn change_counts(window: &Window) -> (u64, u64) {
+    let retention = &window.layout_engine.as_ref().unwrap().retention;
+    (retention.layout_changes, retention.remeasures)
+}
+
+/// Whether the layout requested since [`change_counts`] returned `before` wrote a node or measured
+/// one again.
+pub(crate) fn changed_since(window: &Window, before: (u64, u64)) -> bool {
+    change_counts(window) != before
+}
+
 /// Begins a frame for `window`'s layout: it keys its layout while layout
 /// retention is on. A frame that switches retention on or off starts from a
 /// fresh layout engine, so kept and pooled nodes never meet.

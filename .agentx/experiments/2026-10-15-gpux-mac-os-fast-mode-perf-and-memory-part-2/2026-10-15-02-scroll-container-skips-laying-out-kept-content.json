@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "id": "bb88f052-9393-4c22-a9df-b42b2f5afbdf",
+  "loopId": "ac3f425c-d667-4761-8769-5cceb3812807",
+  "index": 2,
+  "type": "hypothesis",
+  "name": "Scroll container skips laying out kept content",
+  "slug": "scroll-container-skips-laying-out-kept-content",
+  "path": "2026-10-15-02-scroll-container-skips-laying-out-kept-content.json",
+  "createdAt": "2026-10-15T23:59:22Z",
+  "startedAt": "2026-10-15T23:59:22Z",
+  "finishedAt": null,
+  "state": "running",
+  "status": "",
+  "checkpointCommit": "a4e549a1c4da6abf173e31e5f7a51101d82aaf63",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard a4e549a1c4da6abf173e31e5f7a51101d82aaf63",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "a4e549a1c4da6abf173e31e5f7a51101d82aaf63",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard a4e549a1c4da6abf173e31e5f7a51101d82aaf63",
+      "status": ""
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "## Scroll container skips laying out kept content\n\nMechanism: a scroll container whose layer is expected to composite (the layer holds composable content and the frame only scrolled it) does not request the layout of its children: it keeps the nodes, element states and dependencies its layer recorded when it last painted (`KeptContent`), and gives the children's layout back to them in prepaint if the layer is painted after all. Allowed: div.rs, fast/layers (reuse, policy, record, paint), fast/retained.rs recording wrappers, fast/layout.rs counters. Forbidden: list layers, views.",
+  "measurementPlanMarkdown": "ab.sh over eight scenarios, 3 reps; a new test group (`fast::tests::layer_content_layout`); the oracle tests (frames through layers equal frames from scratch). Pass: scroll-div-cards draw down at least 20%, nothing else slower.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "scroll-div-cards on draw p50 / CPU",
+      "before": "3.20 / 3.84",
+      "after": "2.21 / 3.24",
+      "delta": "-31% / -16%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "scroll-div-cards on allocations per frame",
+      "before": "15,055",
+      "after": "6,017",
+      "delta": "-60%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "scroll-div-cards on draw p95",
+      "before": "3.87",
+      "after": "2.90",
+      "delta": "-25%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "other seven scenarios, fast on",
+      "before": "",
+      "after": "",
+      "delta": "within +-3% (variable-list -12% draw p50)",
+      "source": "run.py macos"
+    }
+  ],
+  "reportMarkdown": "## Scroll container skips laying out kept content Finished\n\nPassed: true. On composited scroll frames the owner view still renders (user code) but the 400 cards' layout is not requested: no node claim per element, no style compare, no text measure; the nodes are kept by key. Two things had to hold for it to apply: the prediction needed the holding view while layout is requested (`invalidate::owner` knew it only in prepaint), and a repaint that was expected to composite must keep the layout for the next frames (the kept content is handed to the new record). New group `layer_content_layout` (2 tests, both fail without the skip); the 435 fast tests including the layer oracles and the 1,166 tests of the crate pass; clippy clean.\n\nAttempt Count: 1.",
+  "decisionMarkdown": "### Decision\n\nCommitted success. What is left of a composited div-cards frame is the application's own render of 4,000 elements (memmove, Interactivity::new, drops).",
+  "notes": ""
+}

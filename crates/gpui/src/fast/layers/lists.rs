@@ -1374,6 +1374,7 @@ fn marker(id: &GlobalElementId, frame: &RowsFrame) -> Painting {
         dependencies: RenderDependencies::default(),
         input: Default::default(),
         view_layouts: FxHashMap::default(),
+        content_layout: None,
         // A list's layer is not tested for covering its content: it is
         // extended by the rows a scroll uncovers.
         content_bounds: frame.painted_region,
@@ -3809,6 +3810,7 @@ pub(crate) fn end_paint_rows(window: &mut Window, cx: &mut App, id: Option<&Glob
         has_paths,
         paths: Rc::from([]),
         view_layouts: Rc::default(),
+        content_layout: None,
         content_bounds: painted_region,
         uncompositable: false,
         painted_with: Some(paint.painted_with),

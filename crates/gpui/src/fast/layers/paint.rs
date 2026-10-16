@@ -73,6 +73,8 @@ pub(crate) struct Painting {
     pub(crate) input: crate::fast::layers::input::PaintingInput,
     /// How the views prepainted inside the content were laid out.
     pub(crate) view_layouts: FxHashMap<GlobalElementId, crate::fast::layers::reuse::KeptLayout>,
+    /// How the container laid out its children, if it can be laid out again without them.
+    pub(crate) content_layout: Option<Rc<crate::fast::layers::reuse::KeptContent>>,
     /// The composition surfaces the content switched to while it painted
     /// into the layer's scene, each with the length that scene had: content
     /// on another surface is no tile's, so the content is drawn into the
@@ -351,6 +353,7 @@ fn begin_scrolling_children(
                 dependencies: RenderDependencies::default(),
                 input: Default::default(),
                 view_layouts: FxHashMap::default(),
+                content_layout: window.fast_layers.pending_content.remove(id),
                 surface_switches: Vec::new(),
                 onto: None,
             });
@@ -1330,6 +1333,7 @@ fn repaint(
         painted_with: Some(painted_with),
         paths,
         view_layouts: Rc::new(mem::take(&mut painting.view_layouts)),
+        content_layout: painting.content_layout.take(),
     });
     let dirtied = layer
         .record
