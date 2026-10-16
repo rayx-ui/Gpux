@@ -29,7 +29,7 @@
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
   "currentExperimentId": null,
-  "nextExperimentIndex": 7,
+  "nextExperimentIndex": 8,
   "experiments": [
     {
       "id": "ddc0da9b-11bf-491e-a966-4a6997d6aca0",
@@ -101,6 +101,17 @@
       "state": "done",
       "status": "success",
       "resultCommit": "04ee65eee8ce5fa733536d4f23b5268ae820bdff"
+    },
+    {
+      "id": "8deb1a86-c841-4131-97ba-fe826a4a8c22",
+      "index": 7,
+      "type": "hypothesis",
+      "name": "Keep retained nodes and collect their text leaves in one pass",
+      "path": "2026-10-16-07-keep-retained-nodes-and-collect-their-text-leaves-in-one-pass.json",
+      "startedAt": "2026-10-16T08:56:35Z",
+      "finishedAt": "2026-10-16T09:02:32Z",
+      "state": "done",
+      "status": "failure"
     }
   ]
 }
