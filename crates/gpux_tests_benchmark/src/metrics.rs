@@ -299,7 +299,7 @@ pub fn gpu_times_take() -> Vec<f64> {
     #[cfg(target_os = "macos")]
     {
         gpui_apple::metal_renderer::record_gpu_frame_times(false);
-        return gpui_apple::metal_renderer::take_gpu_frame_times();
+        gpui_apple::metal_renderer::take_gpu_frame_times()
     }
     #[cfg(not(target_os = "macos"))]
     Vec::new()
