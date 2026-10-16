@@ -64,3 +64,22 @@ fn transparent_black_is_one_color_per_thread() {
     .join()
     .unwrap();
 }
+
+#[test]
+fn a_color_faded_to_nothing_is_one_value_worked_out_once() {
+    let color = Color::from_encoded_srgb(0.2, 0.4, 0.6, 0.8).unwrap();
+    let invisible = color.opacity(0.0);
+    assert_eq!(invisible, color.with_alpha(0.0).unwrap());
+    assert!(invisible.is_transparent());
+    // The same value comes back, with its prepared form, not a new one.
+    let again = color.opacity(0.0);
+    assert_eq!(again.paint_color(), invisible.paint_color());
+    assert_eq!(invisible.paint_color_initialization_count(), 1);
+    assert_eq!(again.paint_color_initialization_count(), 1);
+    // A factor below zero clamps to the same thing; other factors are unchanged.
+    assert_eq!(color.opacity(-1.0), invisible);
+    assert_eq!(
+        color.opacity(0.5),
+        color.with_alpha(color.alpha() * 0.5).unwrap()
+    );
+}

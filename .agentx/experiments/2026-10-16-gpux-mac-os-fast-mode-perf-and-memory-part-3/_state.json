@@ -28,8 +28,8 @@
     "successfulAttemptRequiresCommitBeforeNextExperiment": true,
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
-  "currentExperimentId": null,
-  "nextExperimentIndex": 8,
+  "currentExperimentId": "af4dae79-e5db-4722-b2fa-01f370faa9bd",
+  "nextExperimentIndex": 9,
   "experiments": [
     {
       "id": "ddc0da9b-11bf-491e-a966-4a6997d6aca0",
@@ -112,6 +112,17 @@
       "finishedAt": "2026-10-16T09:02:32Z",
       "state": "done",
       "status": "failure"
+    },
+    {
+      "id": "af4dae79-e5db-4722-b2fa-01f370faa9bd",
+      "index": 8,
+      "type": "hypothesis",
+      "name": "Keep the invisible variant of each color",
+      "path": "2026-10-16-08-keep-the-invisible-variant-of-each-color.json",
+      "startedAt": "2026-10-16T09:06:53Z",
+      "finishedAt": null,
+      "state": "running",
+      "status": ""
     }
   ]
 }

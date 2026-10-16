@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "id": "af4dae79-e5db-4722-b2fa-01f370faa9bd",
+  "loopId": "5454c93e-ead4-4322-b9fc-ad37cad8bca7",
+  "index": 8,
+  "type": "hypothesis",
+  "name": "Keep the invisible variant of each color",
+  "slug": "keep-the-invisible-variant-of-each-color",
+  "path": "2026-10-16-08-keep-the-invisible-variant-of-each-color.json",
+  "createdAt": "2026-10-16T09:06:53Z",
+  "startedAt": "2026-10-16T09:06:53Z",
+  "finishedAt": null,
+  "state": "running",
+  "status": "",
+  "checkpointCommit": "85c7316c496acc1160450375aa595a7d32ebe951",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 85c7316c496acc1160450375aa595a7d32ebe951",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "85c7316c496acc1160450375aa595a7d32ebe951",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 85c7316c496acc1160450375aa595a7d32ebe951",
+      "status": ""
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "Style::paint pairs every filled quad and every border quad with the fill color at alpha 0 (`opacity(0.)`), and Color::opacity rebuilds a whole Color from XYZ (encoded conversion, a new Arc of a large ColorInner) each time. A profile of hover-grid showed 103 main-thread samples under Background::opacity and 53 memmove samples moving the new ColorInner. Keeping the alpha-0 twin in the color makes every later request a handle clone.",
+  "measurementPlanMarkdown": "Add a OnceLock<Color> to ColorInner, return it from Color::opacity for a factor of zero or less, test that it equals with_alpha(0), is one value with one prepared paint color, and that other factors are unchanged. Alternate the previous and new binaries three times on hover-grid, dashboard-all-panels and scroll-div-cards with fast mode on.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "hover-grid CPU / draw p50 / allocations per frame",
+      "before": "4.90 / 4.59 / 21,210",
+      "after": "4.60 / 4.29 / 18,015",
+      "delta": "-6% / -6.5% / -15%",
+      "source": "alt2.sh x3"
+    },
+    {
+      "metric": "dashboard-all-panels CPU / allocations",
+      "before": "4.72 / 24,620",
+      "after": "4.60 / 23,707",
+      "delta": "-2.5% / -3.7%",
+      "source": "alt2.sh x3"
+    },
+    {
+      "metric": "scroll-div-cards CPU / draw p50",
+      "before": "3.14 / 2.11",
+      "after": "3.15 / 2.12",
+      "delta": "0%",
+      "source": "alt2.sh x3"
+    }
+  ],
+  "reportMarkdown": "Fewer allocations everywhere a filled or bordered element is painted; footprint unchanged. gpux-color tests (4 paint color tests including the new one) and the gpux lib color tests pass, clippy and fmt are clean.",
+  "decisionMarkdown": "Keep: a small cache in a leaf crate, -6% on the hover-grid, no cost elsewhere.",
+  "notes": ""
+}
