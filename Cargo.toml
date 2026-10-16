@@ -7,6 +7,7 @@ members = [
     "crates/gpui_apple",
     "crates/gpux_color",
     "crates/gpux_conformance",
+    "crates/gpux_devtools",
     "crates/gpux_fonts",
     "crates/gpui_linux",
     "crates/gpui_macos",
@@ -55,6 +56,7 @@ derive_refineable = { package = "gpux-derive-refineable", path = "crates/refinea
 gpux = { path = "crates/gpui", version = "0.3.0", default-features = false }
 gpux_color = { package = "gpux-color", path = "crates/gpux_color", version = "0.3.0" }
 gpux_conformance = { package = "gpux-conformance", path = "crates/gpux_conformance", version = "0.3.0", default-features = false }
+gpux_devtools = { package = "gpux-devtools", path = "crates/gpux_devtools", version = "0.3.0" }
 gpux_fonts = { package = "gpux-fonts", path = "crates/gpux_fonts", version = "0.3.0" }
 gpui_shared_string = { package = "gpux-shared-string", path = "crates/gpui_shared_string", version = "0.3.0" }
 gpui_apple = { package = "gpux-apple", path = "crates/gpui_apple", version = "0.3.0" }
@@ -89,6 +91,7 @@ accesskit_windows = "0.35.1"
 anyhow = "1.0.86"
 ashpd = { version = "0.13", default-features = false, features = ["async-io", "inhibit", "open_uri", "file_chooser", "settings"] }
 async-channel = { version = "2.5", default-features = false }
+base64 = "0.22"
 async-compression = { version = "0.4", features = ["bzip2", "gzip", "futures-io"] }
 async-fs = "2.1"
 async-tar = "0.6"
@@ -196,6 +199,7 @@ thiserror = "2.0.12"
 tokio = "1"
 tracing = "0.1.40"
 unicase = "2.6"
+tungstenite = "0.30"
 unicode-bidi = { version = "0.3.18", default-features = false, features = ["hardcoded-data"] }
 unicode-script = "0.5.7"
 unicode-segmentation = "1.10"

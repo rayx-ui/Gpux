@@ -60,6 +60,7 @@ fn main() {
 | `crates/gpux_color` | `gpux-color` | `gpux_color` | Standards color engine behind `gpux::Color` |
 | `crates/gpux_fonts` | `gpux-fonts` | `gpux_fonts` | Bundled IBM Plex Sans and Lilex fonts |
 | `crates/gpux_conformance` | `gpux-conformance` | `gpux_conformance` | Conformance scenes, test hosts and image comparison |
+| `crates/gpux_devtools` | `gpux-devtools` | `gpux_devtools` | Agent inspection: connects an app to the `gpux-devtools-mcp` sidecar |
 | `crates/gpui_shared_string` | `gpux-shared-string` | `gpui_shared_string` | `SharedString` |
 | `crates/gpui_util` | `gpux-util` | `gpui_util` | GPUI utilities |
 | `crates/collections` | `gpux-collections` | `collections` | Hash maps and sets |

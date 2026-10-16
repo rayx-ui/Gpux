@@ -1,0 +1,54 @@
+[package]
+name = "gpux-devtools"
+description = "Agent inspection for gpux apps: connects an app to the gpux-devtools-mcp sidecar and answers it from the AccessKit tree."
+version.workspace = true
+edition.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+license.workspace = true
+keywords = ["gpux", "devtools", "accessibility", "mcp"]
+categories = ["gui", "development-tools::debugging"]
+
+[lints]
+workspace = true
+
+[features]
+# `stats` reports fast mode's counters, which gpux keeps with its `diagnostics` feature.
+diagnostics = ["gpux/diagnostics"]
+
+[lib]
+name = "gpux_devtools"
+path = "src/gpux_devtools.rs"
+
+[dependencies]
+anyhow.workspace = true
+async-channel = { workspace = true, features = ["std"] }
+base64.workspace = true
+futures.workspace = true
+gpux = { workspace = true, features = ["semantic-query"] }
+image = { version = "0.25.1", default-features = false, features = ["png"] }
+log.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+tungstenite.workspace = true
+
+[target.'cfg(target_family = "wasm")'.dependencies]
+js-sys.workspace = true
+wasm-bindgen.workspace = true
+web-sys = { workspace = true, features = [
+    "BinaryType",
+    "CloseEvent",
+    "Location",
+    "MessageEvent",
+    "UrlSearchParams",
+    "WebSocket",
+    "Window",
+] }
+
+[dev-dependencies]
+gpux = { workspace = true, features = ["test-support", "semantic-query", "diagnostics"] }
+gpui_platform = { workspace = true, features = ["font-kit", "test-support"] }
+tungstenite.workspace = true
