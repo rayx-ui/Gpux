@@ -389,6 +389,9 @@ fn report(state: &Run, window: &mut Window) -> Value {
         "target": state.config.target,
         "fast_mode": fast_mode(window),
         "fast_stats": fast_stats(window),
+        // The accessibility tree the last frame built, when a source asked for one
+        // (`GPUX_ACCESSIBILITY=always`, or `?accessibility=always` in the browser).
+        "a11y_nodes": window.a11y_tree().map(|tree| tree.nodes.len()),
         "viewport": [f32::from(viewport.width), f32::from(viewport.height)],
         "scale_factor": window.scale_factor(),
         "frames": frames,

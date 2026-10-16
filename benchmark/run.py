@@ -213,8 +213,9 @@ def run_desktop_jobs(target, jobs, exe, options):
         if platform.system() == "Darwin":
             # Keep the display awake: a sleeping display stops delivering frames.
             command = ["caffeinate", "-d", "-i", "-u", *command]
+        accessibility = {"GPUX_ACCESSIBILITY": options.accessibility} if options.accessibility else None
         try:
-            sh(command, timeout=300)
+            sh(command, timeout=300, env=accessibility)
         except subprocess.SubprocessError as error:
             log(f"FAILED {job['scenario']} {job['config']}: {error}")
 
@@ -287,6 +288,7 @@ def run_web(target, jobs, dist, options):
                 "query": (
                     f"scenario={job['scenario']}&fast={fast_arg(job['config'])}&frames={options.frames}"
                     f"&warmup={options.warmup}&label={job['config']}&target={target}&backend={backend}"
+                    + (f"&accessibility={options.accessibility}" if options.accessibility else "")
                 ),
                 "out": job["out"],
             }
@@ -351,6 +353,13 @@ def main():
     parser.add_argument("--name", default=None, help="results directory name")
     parser.add_argument("--skip-build", action="store_true", help="reuse the last build")
     parser.add_argument(
+        "--accessibility",
+        choices=["auto", "always", "off"],
+        default=None,
+        help="gpux's accessibility mode for every run: GPUX_ACCESSIBILITY on the desktop, "
+        "?accessibility= in the browser (always builds the tree every frame); unset keeps the default",
+    )
+    parser.add_argument(
         "--hold-clocks", type=int, default=0, metavar="N",
         help="run N busy processes beside the desktop runs so the CPU clocks stay up and builds are "
         "compared by their work, not by the clock a lighter frame idles at (3 is enough on an M-series Mac)",
@@ -409,6 +418,7 @@ def main():
             "warmup": options.warmup,
             "reps": options.reps,
             "hold_clocks": options.hold_clocks,
+            "accessibility": options.accessibility,
             "configs": configs,
         }
     )

@@ -65,8 +65,20 @@ pub fn run() {
         _ => gpui_platform::WebBackendPreference::Auto,
     };
 
+    // The browser has no environment for `GPUX_ACCESSIBILITY`: the page names the mode.
+    let accessibility = match param("accessibility").as_deref() {
+        Some("always") => Some(gpux::AccessibilityMode::Always),
+        Some("off") => Some(gpux::AccessibilityMode::Off),
+        Some("auto") => Some(gpux::AccessibilityMode::Auto),
+        None => None,
+        Some(other) => return fail(format!("?accessibility= takes auto, always or off, not {other}")),
+    };
+
     gpui_platform::application_with_web_backend(backend).run(move |cx| async move {
         cx.update(|cx: &mut App| {
+            if let Some(mode) = accessibility {
+                cx.set_accessibility_mode(mode);
+            }
             crate::register_fonts(cx);
             driver::open(
                 cx,
