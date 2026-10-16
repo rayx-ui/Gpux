@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list-layer-kinds",
-  "revision": 15,
+  "revision": 24,
   "planRevision": 6,
   "specHashes": {
     "requirements": "6624ffc34f924fe7c0c2363d3e6013bf10669885d6b44b6f000d06f239120c33",
@@ -49,10 +49,16 @@
       ]
     },
     "t00b-half-pixel": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
     },
     "t00c-uniform-measure": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
     }
   },
   "validationBatches": {
@@ -75,6 +81,26 @@
         }
       },
       "recordedAt": "2026-10-16T21:27:57Z"
+    },
+    "c768cd7cd2f12380423bc8e7b389585f7b2989975c2fd9ced0b0bb0de9a3c87a": {
+      "snapshot": {
+        "specHash": "ebe43eb4df55aabd31f8b7a8811f28366756aa345fa5c31c99786ebb92c5d743",
+        "repositories": {
+          "gpux": "24e6d17198b3a0af6aee7bf5814103025f1afd09ac5f605066fab3b882a620aa",
+          "rayx": "6760fd3c6087a69623a43744e89e30e142b974ccc4b14b30ccb46f50b02077d1"
+        }
+      },
+      "recordedAt": "2026-10-16T21:37:43Z"
+    },
+    "508d5e554ec9dc72b26c34a5909ed5d711ad9db1d19d7a0bb68c2066b49de8c6": {
+      "snapshot": {
+        "specHash": "ebe43eb4df55aabd31f8b7a8811f28366756aa345fa5c31c99786ebb92c5d743",
+        "repositories": {
+          "gpux": "672a13a659151c2215e7303b6b7f00d772ed61e53b3cc113a10bd07010523be3",
+          "rayx": "6760fd3c6087a69623a43744e89e30e142b974ccc4b14b30ccb46f50b02077d1"
+        }
+      },
+      "recordedAt": "2026-10-16T22:58:17Z"
     }
   },
   "checkResults": {
@@ -128,6 +154,91 @@
       "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s00-measured-leaves-final-b0fe39001542.log",
       "logSha256": "3d61ff8a3219c664b4fcc1eb83591b52fa06cf3baffb8f941e58f88208483942",
       "inputsHash": "c1bec714566663335940292a3ecd56007233fb42f96fc75397b5e38aa44c2d10"
+    },
+    "s00b-layer-gaps/c-half-pixel/baseline": {
+      "checkId": "c-half-pixel",
+      "boundaryId": "s00b-layer-gaps",
+      "phase": "baseline",
+      "batchId": "c768cd7cd2f12380423bc8e7b389585f7b2989975c2fd9ced0b0bb0de9a3c87a",
+      "definitionHash": "b2a29a4f4d0c952533a496545d561ba640c8239973e4aad61a6266390698c067",
+      "basisHash": "8edf9e11043262834ca142180092907ddfaaf4de126b7e58f8d7f60a289d2f70",
+      "status": "passed",
+      "exitCode": 101,
+      "testCount": 4,
+      "durationSeconds": 0.8388,
+      "recordedAt": "2026-10-16T21:37:43Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s00b-layer-gaps-baseline-c78a918d581d.log",
+      "logSha256": "c9f28cd7576c4c25791953e22a49315fddc6d791bf3d7da93b31358b088a55da",
+      "inputsHash": "7035b3e9c7060b229dcc05de5a0384aeb482235a689d46619eb3fc1843de8d92"
+    },
+    "s00b-layer-gaps/c-uniform-measure/baseline": {
+      "checkId": "c-uniform-measure",
+      "boundaryId": "s00b-layer-gaps",
+      "phase": "baseline",
+      "batchId": "c768cd7cd2f12380423bc8e7b389585f7b2989975c2fd9ced0b0bb0de9a3c87a",
+      "definitionHash": "c9b2c5e8f2491475b5bf2f88d93ec85d66a93283eb127f828aebcd9c2b8e0bf6",
+      "basisHash": "af7e2b164159e3456b672cc6b5517fb0fa1fb708b47a6c5672f7a0efbfbb3552",
+      "status": "passed",
+      "exitCode": 101,
+      "testCount": 3,
+      "durationSeconds": 0.2388,
+      "recordedAt": "2026-10-16T21:37:43Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s00b-layer-gaps-baseline-f8ed4c8872ca.log",
+      "logSha256": "28d2c805d991abc87961ed49a0572d4f984f95fd5cc13eb1f9bc63fd6a705418",
+      "inputsHash": "7035b3e9c7060b229dcc05de5a0384aeb482235a689d46619eb3fc1843de8d92"
+    },
+    "s00b-layer-gaps/c-half-pixel/final": {
+      "checkId": "c-half-pixel",
+      "boundaryId": "s00b-layer-gaps",
+      "phase": "final",
+      "batchId": "508d5e554ec9dc72b26c34a5909ed5d711ad9db1d19d7a0bb68c2066b49de8c6",
+      "definitionHash": "1501330c546db8d3b7151c75d1ec126d9ddbe62a0e380fb0b58cf1861c9f8f7f",
+      "basisHash": "0adad0b63065d262270239ee5c83ce21ff7ff94c6d6610f9b8a3a759aacb6f61",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 0.9883,
+      "recordedAt": "2026-10-16T22:57:17Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s00b-layer-gaps-final-880a4e9a53ff.log",
+      "logSha256": "41c99560612d6589e8e9554367e7129eb0573c24d4a1e2b45765be1a418784b4",
+      "inputsHash": "c4073209863721fe2d494a93b5941d1d7bf14a5e66852a9ec20949209241a1bd"
+    },
+    "s00b-layer-gaps/c-uniform-measure/final": {
+      "checkId": "c-uniform-measure",
+      "boundaryId": "s00b-layer-gaps",
+      "phase": "final",
+      "batchId": "508d5e554ec9dc72b26c34a5909ed5d711ad9db1d19d7a0bb68c2066b49de8c6",
+      "definitionHash": "c62b74d2115482c064784bc68f26a040ce89cb0d4d363f7ef27db53a82b74349",
+      "basisHash": "ee671e16291ffd25aa656dcd553b957efda046ba529fe472738f73073feb841e",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 8,
+      "durationSeconds": 0.338,
+      "recordedAt": "2026-10-16T22:57:18Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s00b-layer-gaps-final-3db010938a02.log",
+      "logSha256": "837e9c3d54c77470a6d656dc3a3717c5c53c4d987ab514be169bf3e7036267ce",
+      "inputsHash": "c4073209863721fe2d494a93b5941d1d7bf14a5e66852a9ec20949209241a1bd"
+    },
+    "s00b-layer-gaps/c-lane-c-layers-full/final": {
+      "checkId": "c-lane-c-layers-full",
+      "boundaryId": "s00b-layer-gaps",
+      "phase": "final",
+      "batchId": "508d5e554ec9dc72b26c34a5909ed5d711ad9db1d19d7a0bb68c2066b49de8c6",
+      "definitionHash": "96758c1d3bd42fc28d4d84c2e017c0cc6cb4902105873a32f602bd03307590a8",
+      "basisHash": "47e2a776e33856c61053851354dc95b792f66c7e0ebd722d259beabbd3866c63",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 30,
+      "durationSeconds": 58.4708,
+      "recordedAt": "2026-10-16T22:58:16Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s00b-layer-gaps-final-ff138bdbbc72.log",
+      "logSha256": "7f73d7ac03e4a23b2583b24010dc7b22639db9fa617bd80b6eca866599ef8df2",
+      "inputsHash": "b62c4acd86815fe286595a103b1b42d4c10dcdfdb2d6784cee10d5d260a478b6"
     }
   },
   "reviews": {
@@ -216,6 +327,150 @@
         "lk-s00-F4"
       ],
       "recordedAt": "2026-10-16T21:29:21Z"
+    },
+    "s00b-layer-gaps": {
+      "reviewerId": "reviewer-lk-s00b",
+      "snapshotId": "508d5e554ec9dc72b26c34a5909ed5d711ad9db1d19d7a0bb68c2066b49de8c6",
+      "criterionIds": [
+        "HP-1",
+        "UM-1"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/util.rs",
+          "kind": "source",
+          "criterionIds": [
+            "HP-1"
+          ],
+          "sha256": "07160911e7863e78d32f55e756b6312db33612221c735eac4c6d11f91f22698e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "HP-1"
+          ],
+          "sha256": "69506541c4a80735cf5f26aaa5c12ec1339ce7eed9fc224b8a602c76d51d409d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/taffy.rs",
+          "kind": "source",
+          "criterionIds": [
+            "HP-1"
+          ],
+          "sha256": "463dfe322c6b1cff2c119730d9bc0fb2aba4b37d1c5a981c9172f2ce058e8c3b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layout.rs",
+          "kind": "source",
+          "criterionIds": [
+            "HP-1"
+          ],
+          "sha256": "d08be09f719fa7e35d0d9124baf3aec0099ca417f404741275f946363da4d621"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/half_pixel_edges.rs",
+          "kind": "test",
+          "criterionIds": [
+            "HP-1"
+          ],
+          "sha256": "0c7534bf2290c0185309f041c9ed5edccfe450c473e8c2deeb7fd01a08179f33"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/changes.rs",
+          "kind": "test",
+          "criterionIds": [
+            "HP-1"
+          ],
+          "sha256": "8c6ec9b09c81802334a40c4b0a6b5fdb703c4ab9bd83119b9c7952b3ebdd7f11"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_scroll_layers.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "HP-1"
+          ],
+          "sha256": "b541f7a4623b0c34f2495fe9227d619913df853b2ca1fdb4f15f9762977219e2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/uniform_list.rs",
+          "kind": "source",
+          "criterionIds": [
+            "UM-1"
+          ],
+          "sha256": "97bc976d2f0595e0222b065cb7929b96861220624156ba9a1aa40220bd07c71c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "UM-1"
+          ],
+          "sha256": "956ee65cf7475891e79e54c0c23be7f640f5327fd86258d7811ca04b40a38e0f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/invalidate.rs",
+          "kind": "source",
+          "criterionIds": [
+            "UM-1"
+          ],
+          "sha256": "6fb1888a322d33d82f5be1fe729ccfa168e8c440e2f5545c4adf80bd030c032b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "UM-1"
+          ],
+          "sha256": "92fb63d55b756ca751751970e82e66b0c0b3d7b1d8ac1225fa661b09269de741"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/uniform_measured_item.rs",
+          "kind": "test",
+          "criterionIds": [
+            "UM-1"
+          ],
+          "sha256": "02e1827aa1e1fed89a30f6ad933e6abf24a705b51ab63e7887b3dede38b3c659"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/dependencies.rs",
+          "kind": "source",
+          "criterionIds": [
+            "UM-1"
+          ],
+          "sha256": "b2d25c6ef4451d1ef4ec158d3836befb82d992942a1b96815b3d0fca7772d17c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs",
+          "kind": "source",
+          "criterionIds": [
+            "UM-1"
+          ],
+          "sha256": "cd7d30a6778c31ceeea4f6489847996801308e85122e7e663ee5007b1a388523"
+        }
+      ],
+      "summaryMarkdown": "Passed.\n\n**HP-1:** every edge-rounding site (Taffy layout bounds, `snap_bounds`, `pixel_snap`/`_f64`, underline and strikethrough origins, svg origins) goes through `round_edge`, which rounds ties down while snapping, set per frame from `snapping()`. Layered windows and their forced-snapping references round alike, and rounding with snapping off is today's. `half_pixel_edges` and the tie-including `virtual_list_layers` changes and oracle cover it, and lane C ran in full.\n\n**UM-1:** `uniform_list` measures once a frame in `request_layout`. The size is kept through the layer, or without a layer under view retention only while:\n- the frame is the next one;\n- scale, rem size and text style are the same;\n- nothing the measured row read changed, its reads staying the owning view's own and being replayed on kept frames;\n- the owner is unchanged, and was not notified beyond its scroll notifications.\n\n`uniform_measured_item` covers scroll-only frames in three modes, changed rows, scale changes, un-notified updates read only by the measured row, and bare notifications. The sprint checks are fresh at revision 22.",
+      "findingIds": [
+        "lk-s00b-F1",
+        "lk-s00b-F2",
+        "lk-s00b-F3"
+      ],
+      "recordedAt": "2026-10-16T22:59:42Z"
     }
   },
   "checkpoints": {
@@ -227,6 +482,15 @@
       },
       "reviewHash": "bcdf3f46e4b1c78cec4d586fe5f0ec52fc634a8ad3f86849de7580b454e34336",
       "recordedAt": "2026-10-16T21:29:53Z"
+    },
+    "s00b-layer-gaps": {
+      "snapshotId": "508d5e554ec9dc72b26c34a5909ed5d711ad9db1d19d7a0bb68c2066b49de8c6",
+      "commits": {
+        "gpux": "6db88af323fd935acdac9adf40e19d80cc11ce3a",
+        "rayx": "77733880057de4e79fe963cd1cce7e51d9b622d0"
+      },
+      "reviewHash": "8231b1687eeb79c2bb9b2e943d81b2d3eba7acdf566c730159f914f3e9ed2643",
+      "recordedAt": "2026-10-16T23:00:06Z"
     }
   },
   "findings": [
@@ -293,9 +557,57 @@
         }
       ],
       "boundaryId": "s00-measured-leaves"
+    },
+    {
+      "id": "lk-s00b-F1",
+      "criterionIds": [
+        "UM-1"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved. `measure_item` records with `finish_recording_dependencies_as_own`, which does not push its ranges into the parent's `nested`, so the measured row's reads stay among the owning view's own dependencies, which splice decides on. A kept no-layer frame replays them with `replay_dependencies_as_own` before carrying states and lines, so the view's record keeps them for `retained::reusable`. Regression: `an_update_only_the_measured_row_read_measures_it_again` (an entity only the measured row reads, updated without a notification, and with the Beside view notified), under view retention and splice.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/uniform_measured_item.rs"
+        }
+      ],
+      "boundaryId": "s00b-layer-gaps"
+    },
+    {
+      "id": "lk-s00b-F2",
+      "criterionIds": [
+        "UM-1"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved. `note_notify` counts every `App::notify` (at entry, before deduplication) of a watched view whenever a watch exists. `note_scroll_notify` counts the scroll-sent notifications: div's handle-less wheel branch and both `ScrollHandle::publish_offset_inner` blocks. The no-layer keep refuses when notifications since the measurement exceed scroll notifications, or when the owner is another view, and carry refreshes the baselines. Scroll notifications that are not marked (RayX's scrollbar `cx.notify(view_id)`) count as changes, which is conservative. Regression: `a_notification_of_the_lists_view_measures_it_again` (`Rc<Cell>` state plus a bare notify) under view retention and splice. The scroll-only tests still keep the size.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/uniform_measured_item.rs"
+        }
+      ],
+      "boundaryId": "s00b-layer-gaps"
+    },
+    {
+      "id": "lk-s00b-F3",
+      "criterionIds": [
+        "HP-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved. Edges round ties down while snapping (`round_half_down` = `ceil(x - 0.5) + 0.0`, with negative zero normalized). The rule is invariant under whole-pixel moves, equals `round_half_toward_zero` on non-negative values, and matches `fast::glyphs`. Default-mode output therefore changes only for negative ties. The `snap_offset` doc and docs/fast-mode.md are corrected, and the underline test expects the new rounding. Regression: `fast::tests::half_pixel_edges`.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/half_pixel_edges.rs"
+        }
+      ],
+      "boundaryId": "s00b-layer-gaps"
     }
   ],
-  "handoffMarkdown": "",
+  "handoffMarkdown": "uniform_list measures once in request_layout through lists::measure_item; kept without a layer under view retention by WindowLayers::measured_items (dependencies, scale factor, rem, text style, frame before by measured_items_frame; owner changes ignoring bare notifications via invalidate::measured_item_changed_without_layer). fast::tests::uniform_measured_item (6); list_layers measure test updated.",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",
