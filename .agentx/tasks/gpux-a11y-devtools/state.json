@@ -1,12 +1,12 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-a11y-devtools",
-  "revision": 112,
-  "planRevision": 13,
+  "revision": 139,
+  "planRevision": 18,
   "specHashes": {
-    "requirements": "75c003f6b5b8ba6b6dda4cb5e0419778781e291e68ce5498786c7161618e76f7",
+    "requirements": "4a6c683aa102b8f1030e274bee5dff3347e540bfc919978760a9eff0017628d4",
     "design": "8fac3da2bc816a9bf6df4fb9326d95ba71cbd30363d6ce20f8af9da98a56bec8",
-    "plan": "3d0809b9ece388c18a13731423ddc2ac2b487c22edd0de526eb8a7218fe76d76"
+    "plan": "411fd08ed90ce433ab80239442d7722d47d54ea5ac027668da536aee5dc43b3f"
   },
   "tasks": {
     "t01-baseline": {
@@ -136,19 +136,34 @@
       ]
     },
     "t22-rx-annotations": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t23-rx-actions": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t24-rx-devkit-extension": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t25-rx-apps-and-probes": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t26-rx-guard-docs": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t27-remove-devtools": {
       "status": "pending"
@@ -211,7 +226,34 @@
       ]
     },
     "t22a-gpux-shared-focus": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
+    },
+    "t22b-one-text-field-node": {
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
+    },
+    "t25a-select-all-shortcut": {
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
+    },
+    "t25b-readable-values": {
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
+    },
+    "t25c-editor-select-all": {
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     }
   },
   "validationBatches": {
@@ -313,7 +355,27 @@
           "rayx": "584ace30ffdb2e88b8f30adaac91c961fbb2ebc5deb3096695d5693ed1c4868c"
         }
       },
-      "recordedAt": "2026-10-16T20:03:41Z"
+      "recordedAt": "2026-10-16T20:10:48Z"
+    },
+    "a556a33b0fbaaac40666da3d7fdb7a2d3f17119c1f4714c6996e147fe4d49977": {
+      "snapshot": {
+        "specHash": "9b066d1d0d47eee86d6bf8dc03f6fb6e26cdb35840b4c81d68634b393d82784f",
+        "repositories": {
+          "gpux": "e7650daca7662f424397c8017612c8b2dd1435742350e904e456eed45357ce66",
+          "rayx": "23db93d4e1a4a0863128c8764292b7e77a79736181f6e24fde0c22f7b289eaa6"
+        }
+      },
+      "recordedAt": "2026-10-16T21:47:58Z"
+    },
+    "3c9c43de2a41ce6377a1025ffabe04e292f68df17a31e76c973a649ea7d862c2": {
+      "snapshot": {
+        "specHash": "9b066d1d0d47eee86d6bf8dc03f6fb6e26cdb35840b4c81d68634b393d82784f",
+        "repositories": {
+          "gpux": "e7650daca7662f424397c8017612c8b2dd1435742350e904e456eed45357ce66",
+          "rayx": "fb1d97a31604f39798656f89489320411fbf5743115cc3f01e4d902174730741"
+        }
+      },
+      "recordedAt": "2026-10-16T21:56:25Z"
     }
   },
   "checkResults": {
@@ -1058,6 +1120,360 @@
       "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s07-mcp-final-9821eac0b8d4.log",
       "logSha256": "96665819717df79c5ff1b8f219ad08e1b1ccd5c4a09c24e353006d505d0262a9",
       "inputsHash": "469840cbe40c29454ea806b6e1704e6f0d4f4e7163aa82f0a6f4d07eaa9df76a"
+    },
+    "s08-rayx/check-rx-core-accesskit/final": {
+      "checkId": "check-rx-core-accesskit",
+      "boundaryId": "s08-rayx",
+      "phase": "final",
+      "batchId": "3c9c43de2a41ce6377a1025ffabe04e292f68df17a31e76c973a649ea7d862c2",
+      "definitionHash": "2092383c10ba15299415ebb3ccc70b8da2d19ae7890919ec8cb8cb7df3522685",
+      "basisHash": "25d086f0eb58827c6f852c7757f2943fff43b9757a6e5a04136f71da8ec9e6dc",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 16,
+      "durationSeconds": 8.5675,
+      "recordedAt": "2026-10-16T21:52:59Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s08-rayx-final-1e6874a042cb.log",
+      "logSha256": "f6be6db47920f97cea0e142bcd8f56c496d4d92c6295f8ee247f7b7d3e8144b7",
+      "inputsHash": "b073b1c1666721f74524fb8af6ea52d21a8acafe6dac8be3ce8f46c7cc86119b"
+    },
+    "s08-rayx/check-rx-base-accesskit/final": {
+      "checkId": "check-rx-base-accesskit",
+      "boundaryId": "s08-rayx",
+      "phase": "final",
+      "batchId": "3c9c43de2a41ce6377a1025ffabe04e292f68df17a31e76c973a649ea7d862c2",
+      "definitionHash": "9e56fad219364241b976bf940855eb3de7098580217cf9a1316c1426c67e8836",
+      "basisHash": "d9d5098b4a82b98af82cac6bf01ffd63bc9a3cf2a75314ec75640d2b2ca96070",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 0.2913,
+      "recordedAt": "2026-10-16T21:53:00Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s08-rayx-final-b01df41f1c5e.log",
+      "logSha256": "d9c348ee3a8f76d082c99660463332338b7ee5e6b9df288e59a5b73a051368f9",
+      "inputsHash": "ae5fe85ee4e66cb0daf8d4538cd5a29af8f5ca791e7f3742535c0b9e361a80fe"
+    },
+    "s08-rayx/check-rx-blocks-accesskit/final": {
+      "checkId": "check-rx-blocks-accesskit",
+      "boundaryId": "s08-rayx",
+      "phase": "final",
+      "batchId": "3c9c43de2a41ce6377a1025ffabe04e292f68df17a31e76c973a649ea7d862c2",
+      "definitionHash": "daf5c6f15899cf9d13cad4638d1428eefc76b7dcd637f0a546ec480db03455ad",
+      "basisHash": "709f505eb422b4adc7373de6453c4003c2705a28735df22ef2eeb08bd79aad77",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 9.5555,
+      "recordedAt": "2026-10-16T21:53:09Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s08-rayx-final-48c5eb6772d0.log",
+      "logSha256": "73023409f5c4026aadb74dcc29d7596fe191026188f40e702f504d8eb326b90a",
+      "inputsHash": "51c7cb37481affc9a443cdb7c88960a70bf40e435fea8d5125bebd4ce2eea925"
+    },
+    "s08-rayx/check-rx-migrated-tests/final": {
+      "checkId": "check-rx-migrated-tests",
+      "boundaryId": "s08-rayx",
+      "phase": "final",
+      "batchId": "3c9c43de2a41ce6377a1025ffabe04e292f68df17a31e76c973a649ea7d862c2",
+      "definitionHash": "3aea1005734f5a3bac628c512cca45e288f5b62fbbe6907e9e3338bb36e4f62f",
+      "basisHash": "279444a31cadbc375bb1c0f9acb1a3f460a1ae194279a5976c5c973c44534232",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 36,
+      "durationSeconds": 9.082,
+      "recordedAt": "2026-10-16T21:53:18Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s08-rayx-final-eee95812ebc7.log",
+      "logSha256": "aa1957d1e4d67a65121bdc938918c2b3a6de68feb765136e878ac50ff62dd61c",
+      "inputsHash": "b073b1c1666721f74524fb8af6ea52d21a8acafe6dac8be3ce8f46c7cc86119b"
+    },
+    "s08-rayx/check-rx-property-actions/final": {
+      "checkId": "check-rx-property-actions",
+      "boundaryId": "s08-rayx",
+      "phase": "final",
+      "batchId": "3c9c43de2a41ce6377a1025ffabe04e292f68df17a31e76c973a649ea7d862c2",
+      "definitionHash": "81f2b6ca2ddf0cc30a5d57c724bee31a128589ff417e6c1348471adb8d76cff2",
+      "basisHash": "fcd58c2d83b4878bde0970dcb40ee76a1d0fe8a32e7fefab244ab62aef09775e",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 13,
+      "durationSeconds": 1.0899,
+      "recordedAt": "2026-10-16T21:53:20Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s08-rayx-final-c5bfc955fc8a.log",
+      "logSha256": "1ada2d4609c523a66651371e1eb458126be2f2c2575aa99e08deebb30de48cd5",
+      "inputsHash": "5d39eadda19a7e7916eb336393ee2aa730c832642206277a94f195810746bb35"
+    },
+    "s08-rayx/check-rx-node-editor-actions/final": {
+      "checkId": "check-rx-node-editor-actions",
+      "boundaryId": "s08-rayx",
+      "phase": "final",
+      "batchId": "3c9c43de2a41ce6377a1025ffabe04e292f68df17a31e76c973a649ea7d862c2",
+      "definitionHash": "66b5a4331fd0e7b9c8be9acef35d153d30abc53da72d18970a9c9312efceeb4a",
+      "basisHash": "8ed9821bc39cec3413ccda7fdc516c3e7a96690d8db0348667f87db14934fcb1",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 7,
+      "durationSeconds": 18.6539,
+      "recordedAt": "2026-10-16T21:53:38Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s08-rayx-final-3623b1e72505.log",
+      "logSha256": "262f8af07dc1502e875f7893450d7001196f8539f6a35a6e517c5303e66617e9",
+      "inputsHash": "9a2f483ec268e08e76d2def393b1922d72c6e6698801f6e0196a731dc3fe21a9"
+    },
+    "s08-rayx/check-rx-canvas-actions/final": {
+      "checkId": "check-rx-canvas-actions",
+      "boundaryId": "s08-rayx",
+      "phase": "final",
+      "batchId": "3c9c43de2a41ce6377a1025ffabe04e292f68df17a31e76c973a649ea7d862c2",
+      "definitionHash": "001988f911de34d6392b127d9745d92a38aa9882abb0e9c0872af87f69b8b848",
+      "basisHash": "a2216cf1f938bb0f0d35d9a222a79e5da1c50ff258fb7f76e06cdfe955ba22a9",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 6,
+      "durationSeconds": 6.8021,
+      "recordedAt": "2026-10-16T21:53:45Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s08-rayx-final-03f0cd90ce18.log",
+      "logSha256": "a0afe7fb559455b04c92dacdc901df5890b996aa1a37e5b138d5d2329c9ebff0",
+      "inputsHash": "3f0238ae53f91e59e2940857802188d2cc3fc525faf151a2bd5ec10c346fd5a0"
+    },
+    "s08-rayx/check-rx-devkit-extension/final": {
+      "checkId": "check-rx-devkit-extension",
+      "boundaryId": "s08-rayx",
+      "phase": "final",
+      "batchId": "3c9c43de2a41ce6377a1025ffabe04e292f68df17a31e76c973a649ea7d862c2",
+      "definitionHash": "40a57fa66934b0fb5a8d50609298e3fabbd31582dfcd23d0530af5028911c8db",
+      "basisHash": "95f7cf1368be23b904e577399b40d1d2b81095102a4681a35a782fba50873f9a",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 8,
+      "durationSeconds": 0.8341,
+      "recordedAt": "2026-10-16T21:53:46Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s08-rayx-final-833949f462e5.log",
+      "logSha256": "fc95773e8f25e2622092a37bed59cd086db15dbf455a2db8610c60b20fd9d9e3",
+      "inputsHash": "477586840bed31a25ef060903e570946d5b402cab4f6f1580796102af74a6838"
+    },
+    "s08-rayx/check-rx-test-suite-spec/final": {
+      "checkId": "check-rx-test-suite-spec",
+      "boundaryId": "s08-rayx",
+      "phase": "final",
+      "batchId": "3c9c43de2a41ce6377a1025ffabe04e292f68df17a31e76c973a649ea7d862c2",
+      "definitionHash": "6c34ca246487684cadcf2c71bda039ddc55fe593dd320a25f038fe9fa1e1122c",
+      "basisHash": "f08b45103510402a6673e92d35e0cc8a63f96febb0b2a9b7fe4d62473256510f",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 80.983,
+      "recordedAt": "2026-10-16T21:55:07Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s08-rayx-final-73d74bf2daf7.log",
+      "logSha256": "8b8a1540f15c93cb4d88ed90ea763f7fe0bdc36de1b46a1b8358006af70922ee"
+    },
+    "s08-rayx/check-rx-desktop-smoke/final": {
+      "checkId": "check-rx-desktop-smoke",
+      "boundaryId": "s08-rayx",
+      "phase": "final",
+      "batchId": "3c9c43de2a41ce6377a1025ffabe04e292f68df17a31e76c973a649ea7d862c2",
+      "definitionHash": "cb37c597443ceb570f850c84b832972d91d3ac2afab38e7d438f538953a338e2",
+      "basisHash": "6b7aac50e076b3e90fa88a9f5581cc452ccc2d1ccd9b4b4fd5b4c886c3482823",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 22.181,
+      "recordedAt": "2026-10-16T21:55:29Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s08-rayx-final-a571e3075f19.log",
+      "logSha256": "f5bbfb418284552665fb50bfe3ebe0cea8293f102a68f9761dcbf7da6467c7a0"
+    },
+    "s08-rayx/check-rx-guard/final": {
+      "checkId": "check-rx-guard",
+      "boundaryId": "s08-rayx",
+      "phase": "final",
+      "batchId": "3c9c43de2a41ce6377a1025ffabe04e292f68df17a31e76c973a649ea7d862c2",
+      "definitionHash": "4af4c54fa05859838f25ffc71b8d704dc04d625fd60743b27927c598b13d15fd",
+      "basisHash": "bf120a01a259cc8dcbfb468c472f7cac36ccd5666d6f101423ae0d5995f2ea5f",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 2.2224,
+      "recordedAt": "2026-10-16T21:55:32Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s08-rayx-final-42dbcb6100ae.log",
+      "logSha256": "f3d61541615ceeadd32425613b48d4f9ce1cf1c6cd0c2b53c381d2fd0150763e",
+      "inputsHash": "5acd00f4477a4bf10b2f909fc1d25a68bb006061d984fd11fdfa3a585f7d1c93"
+    },
+    "s08-rayx/check-rx-screen-reader-spec/final": {
+      "checkId": "check-rx-screen-reader-spec",
+      "boundaryId": "s08-rayx",
+      "phase": "final",
+      "batchId": "3c9c43de2a41ce6377a1025ffabe04e292f68df17a31e76c973a649ea7d862c2",
+      "definitionHash": "f20ba000fbb4516d46f91c6ac3c615379de52429dcd06698ff47985ee487a5b5",
+      "basisHash": "b18c00af68e104f6489bcbc644bc87a56e588cd58afefbb5d56ae0c7ff294d43",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 6,
+      "durationSeconds": 26.8956,
+      "recordedAt": "2026-10-16T21:55:59Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s08-rayx-final-37e067c86302.log",
+      "logSha256": "1f21b8e938ce0985849dc7176060e8d28d4ba8e5e2d76d8e965cb95442354f82"
+    },
+    "s08-rayx/check-a11y-shared-focus/final": {
+      "checkId": "check-a11y-shared-focus",
+      "boundaryId": "s08-rayx",
+      "phase": "final",
+      "batchId": "a556a33b0fbaaac40666da3d7fdb7a2d3f17119c1f4714c6996e147fe4d49977",
+      "definitionHash": "4de72d63b43d67fb14b8468c04e0478dde1c835c33cc18b5f03e4fa8f071c3d0",
+      "basisHash": "da7dbdd20410f776ca3c23ad2decb043e5f1a4095061f7662aea2e4f6e945c21",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 0.7142,
+      "recordedAt": "2026-10-16T21:47:39Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s08-rayx-final-4931c9720fea.log",
+      "logSha256": "2dbedc2c772fe80fe21a2e6c5c6a8b6209dddcb1a1f95564a83f9f31286b0222",
+      "inputsHash": "fab2611af8d09ee0367cf190da501b7856b7177b0d5b6c28715d04d55940dd19"
+    },
+    "s08-rayx/check-a11y-editable-text-host/final": {
+      "checkId": "check-a11y-editable-text-host",
+      "boundaryId": "s08-rayx",
+      "phase": "final",
+      "batchId": "a556a33b0fbaaac40666da3d7fdb7a2d3f17119c1f4714c6996e147fe4d49977",
+      "definitionHash": "75178ac2725b439b37d550aeca480bccf21cd11b21134293a39d6ca69281d5ff",
+      "basisHash": "144976e4b80d0e26409d6f6f951f435e56d28e73b735edf3e3a4a50828564140",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 0.3348,
+      "recordedAt": "2026-10-16T21:47:40Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s08-rayx-final-927e211b0a57.log",
+      "logSha256": "062db85488e10a99642050ad23afc158d123956b65f0814a9e75bfc83cc225ec",
+      "inputsHash": "fab2611af8d09ee0367cf190da501b7856b7177b0d5b6c28715d04d55940dd19"
+    },
+    "s08-rayx/check-rx-select-all/final": {
+      "checkId": "check-rx-select-all",
+      "boundaryId": "s08-rayx",
+      "phase": "final",
+      "batchId": "3c9c43de2a41ce6377a1025ffabe04e292f68df17a31e76c973a649ea7d862c2",
+      "definitionHash": "13c81ec5312cbac1d37faff1b1dff5026146b5e0b1c904898ad33fff847fd2fd",
+      "basisHash": "5af54bc4b17888321bf1ef6ba8db1ef3f620dd41e3a25b3dd5b6b67c5edf29e4",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 2.1799,
+      "recordedAt": "2026-10-16T21:56:01Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s08-rayx-final-b6ab5a1b1882.log",
+      "logSha256": "e241f221e7790a2bf7321da0bff2d775131735e8fd123a7f57a4765e1d6e8732",
+      "inputsHash": "b073b1c1666721f74524fb8af6ea52d21a8acafe6dac8be3ce8f46c7cc86119b"
+    },
+    "s08-rayx/check-rx-viewer-actions/final": {
+      "checkId": "check-rx-viewer-actions",
+      "boundaryId": "s08-rayx",
+      "phase": "final",
+      "batchId": "3c9c43de2a41ce6377a1025ffabe04e292f68df17a31e76c973a649ea7d862c2",
+      "definitionHash": "23edfd417473a161223d4e5378109b87d3d484d3590920c3ac3c67dcf5370260",
+      "basisHash": "9168201bd1b4585d56f1f5b42fec8b0c84e187f66881156f397b2c6865868ece",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 1.6302,
+      "recordedAt": "2026-10-16T21:56:02Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s08-rayx-final-5ec49c1632e5.log",
+      "logSha256": "4e999bcb72cec682df8e3ef635f940efb040f1a4429e820f4ad18391cb5fe73c",
+      "inputsHash": "b073b1c1666721f74524fb8af6ea52d21a8acafe6dac8be3ce8f46c7cc86119b"
+    },
+    "s08-rayx/check-rx-announced-values/final": {
+      "checkId": "check-rx-announced-values",
+      "boundaryId": "s08-rayx",
+      "phase": "final",
+      "batchId": "3c9c43de2a41ce6377a1025ffabe04e292f68df17a31e76c973a649ea7d862c2",
+      "definitionHash": "6557fa0cccd876ce1ac83b64e1dc1f8123ecee12b73d9877a61bd4fb9a68bf0f",
+      "basisHash": "cc6edaa9767cedcbb67de36fc9b9f799644de66a8586b3b4fe2451eb92de3ca5",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 6,
+      "durationSeconds": 4.8146,
+      "recordedAt": "2026-10-16T21:56:07Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s08-rayx-final-deb681bc7616.log",
+      "logSha256": "ac9fdcd5cab17889e97d59465475d25a0d1961f1e411c4fd4c803960fcfb061e",
+      "inputsHash": "a23d971d456fd1c0dc3fe27101f20320d29bc5f116319bd9cb0f0a9f48ff8669"
+    },
+    "s08-rayx/check-rx-component-state/final": {
+      "checkId": "check-rx-component-state",
+      "boundaryId": "s08-rayx",
+      "phase": "final",
+      "batchId": "3c9c43de2a41ce6377a1025ffabe04e292f68df17a31e76c973a649ea7d862c2",
+      "definitionHash": "9ec778304621756bd9f90333ea5a35f7b25f718e904be5ca10cc6e956e6b9308",
+      "basisHash": "67516b3f2618810f36d050ba627ff235afa1d917969399362b4fcb03cce57492",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 0.2862,
+      "recordedAt": "2026-10-16T21:56:08Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s08-rayx-final-7583012444f3.log",
+      "logSha256": "11be3ed15c910ec9b3176aa63d0f77e0d443151951f780484cfbcf5d475ca796",
+      "inputsHash": "a23d971d456fd1c0dc3fe27101f20320d29bc5f116319bd9cb0f0a9f48ff8669"
+    },
+    "s08-rayx/check-rx-component-state-readers/final": {
+      "checkId": "check-rx-component-state-readers",
+      "boundaryId": "s08-rayx",
+      "phase": "final",
+      "batchId": "3c9c43de2a41ce6377a1025ffabe04e292f68df17a31e76c973a649ea7d862c2",
+      "definitionHash": "2eb9d4f0faaab8d63ce5799d3b1ebdffeb194c827985edf32da3ffc78a07dc43",
+      "basisHash": "b243da89a6457e16f09c9d9d450d2e49d8b3aea7f4e64cb441ce467f4297b73a",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 2.6604,
+      "recordedAt": "2026-10-16T21:56:10Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s08-rayx-final-284db82712aa.log",
+      "logSha256": "783aa4fa131e927176ad2e5267e13529ea35c5c4a4b37678c9a851ff86b5ce15",
+      "inputsHash": "a23d971d456fd1c0dc3fe27101f20320d29bc5f116319bd9cb0f0a9f48ff8669"
+    },
+    "s08-rayx/check-rx-node-editor-state-readers/final": {
+      "checkId": "check-rx-node-editor-state-readers",
+      "boundaryId": "s08-rayx",
+      "phase": "final",
+      "batchId": "3c9c43de2a41ce6377a1025ffabe04e292f68df17a31e76c973a649ea7d862c2",
+      "definitionHash": "2323d1ab94f18024bf4b2bc662652080364112362b0d92e6ba442f03d36a7a1e",
+      "basisHash": "91e780eec6a61dd5f3ea4f1158ef196eb910c200079607acedac2fc6561ef438",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 9,
+      "durationSeconds": 2.6241,
+      "recordedAt": "2026-10-16T21:56:13Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s08-rayx-final-6f0fee6dcb8c.log",
+      "logSha256": "b2d50bdf309945471a7dce4e3d5dde410ed062f1e943cfbe8c78875847e5b846",
+      "inputsHash": "a23d971d456fd1c0dc3fe27101f20320d29bc5f116319bd9cb0f0a9f48ff8669"
+    },
+    "s08-rayx/check-rx-editor-select-all/final": {
+      "checkId": "check-rx-editor-select-all",
+      "boundaryId": "s08-rayx",
+      "phase": "final",
+      "batchId": "3c9c43de2a41ce6377a1025ffabe04e292f68df17a31e76c973a649ea7d862c2",
+      "definitionHash": "b0ed7f118110e4207b6aa43725cdc49304ee2343f92a7c10161679e1021a57d0",
+      "basisHash": "d35e633730a9a5aff8c9c00033e8c897ce599fff7a00eb1bb0ffa149454dfda5",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 11.6685,
+      "recordedAt": "2026-10-16T21:56:25Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s08-rayx-final-fabcc16d8418.log",
+      "logSha256": "d4602edbe0b8e1631a21414ab4bc965ce196f114aecad6cf27c7b22cc7117f64",
+      "inputsHash": "3177fe5d0fa804c3cf8e9b787d1512797f5a01a40fe570fcbbf7cbc8c6f6c926"
     }
   },
   "reviews": {
@@ -2551,6 +2967,429 @@
         "gpux:docs/measurements/a11y-devtools.md": "406c3678b07a71e25202104191caf50da6b0607e4acec9c01ec1ff77949d2e90",
         "gpux:docs/measurements/screen-reader-walkthrough.md": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
       }
+    },
+    "s08-rayx": {
+      "reviewerId": "independent-reviewer-s08-rayx-opus-091c999e",
+      "snapshotId": "3c9c43de2a41ce6377a1025ffabe04e292f68df17a31e76c973a649ea7d862c2",
+      "criterionIds": [
+        "TREE-2",
+        "SR-2",
+        "RX-1",
+        "RX-2",
+        "RX-3",
+        "RX-4",
+        "RX-5",
+        "RX-6",
+        "RX-7",
+        "RX-8",
+        "RX-9"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window/a11y.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TREE-2",
+            "SR-2"
+          ],
+          "sha256": "25ba42a7ede9d1d60c3ce78816570d38f42727de4106e2324ecffeecb99328b3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/element.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SR-2",
+            "RX-2"
+          ],
+          "sha256": "5aba7c355b5ca1a8577009639cfa932626693dfec47826e71aeadb4904bc7cff"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/a11y_shared_focus.rs",
+          "kind": "test",
+          "criterionIds": [
+            "TREE-2"
+          ],
+          "sha256": "221d504324fcbc3edce0e28cba0981a5ff2f1d029145608593f5b757b11e1012"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/a11y_editable_text_host.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SR-2"
+          ],
+          "sha256": "1c42438c77339a9824353cf8c87c5dd95b72af43d267c7ef0521de1db93f7bbd"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_devkit/tests/retired_devtools_api.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-1"
+          ],
+          "sha256": "2008bdb8b9a01c56f05d046e33cd6c0914164c4e845c18f0c6e0a6b1e63ad851"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/primitives/separator/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-1",
+            "RX-2"
+          ],
+          "sha256": "60f6a94a5c118d2e102122678348c6e009bb97ff4610b46f8add4ec44e5ed1e5"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/forms/form/text_field/text_field.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-2",
+            "SR-2"
+          ],
+          "sha256": "49402bc1f3f21b616ff963e274bc36f1d49ca4e4d83702cad64ae3ecb3ae6b0e"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/accesskit_from_devtools.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-2"
+          ],
+          "sha256": "74082b7b908a9bbbe70b39dab02258f32ca8d7456354a7265629f5ef5d729dfe"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/tests/accesskit_from_devtools.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-2"
+          ],
+          "sha256": "89ec2bd8c6180fa714dc261f04d7e3415c6d9ffc34d0ebc3961fbf04e2d913d8"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_blocks/tests/accesskit_from_devtools.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-2"
+          ],
+          "sha256": "adb9d3f29c3e972f73be320e8c36d8ec8a149a4ffcb6abf0d87f7f506dd88469"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_propertygrid/src/grid/element.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-3"
+          ],
+          "sha256": "d398920351fbb98ecc6a0635140289fe279a1e4e17fc079730fba01aa8732ffb"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/_interactive/interactive_viewer.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-3"
+          ],
+          "sha256": "b3e85958d3838cf0a67f2acb04f4309f885c5a067b719ebad7ef6ddefb8eb957"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_propertygrid/tests/accesskit_actions.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-3"
+          ],
+          "sha256": "40a7a02ff8764223d6ee0e2005cf38e6468d1e0b34e96e97e8fbbf03810ff4db"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_node_editor/tests/accesskit_actions.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-3"
+          ],
+          "sha256": "0f7eae824f5d5630dd4c8a15cf18d0e4b5c3ba68eee1df1025723b2e6cc01fb1"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_canvas_infinite/tests/accesskit_actions.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-3"
+          ],
+          "sha256": "a288cae5929c67646318ae2d555e3801a5a90fd5ed490980de1311c29b7c3dfe"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_devkit/src/app_ext.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-4"
+          ],
+          "sha256": "2c0248892d393fa0a5c8fb92c987450500a514f036b58ab65918277452209f2a"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_devkit/src/extensions.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-4",
+            "RX-8"
+          ],
+          "sha256": "4c887fed2444b62a90513904e9a65dcc2e211577ea573aa2651f68d9fbda7d09"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_runtime/src/services/application_configuration/service.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-4"
+          ],
+          "sha256": "0c3217178760faef44438bd68b82b92bf1714ba08bd099511739a06a9150b927"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_devkit/tests/gpux_devtools_extension.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-4",
+            "RX-8"
+          ],
+          "sha256": "2c447fd63fee28916ff5be3d76e1c1772b290d08274a2a10e9c0896ae1975b18"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "apps/test_suite/src/pages/data_table_selection.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-5"
+          ],
+          "sha256": "a98d06d851c4443d1321883498dd7ff38428e8cec0103578bd2b3dce87484d5a"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "tools-node/test_suite/rayx-data-table-selection.spec.ts",
+          "kind": "runtime",
+          "criterionIds": [
+            "RX-5",
+            "RX-7"
+          ],
+          "sha256": "a24a834ef33656f36a94dbd4de7de3afae0f192851ca2bc0c6a1b31900b6718a"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "tools-node/test_suite/rayx-screen-reader.spec.ts",
+          "kind": "runtime",
+          "criterionIds": [
+            "RX-5",
+            "RX-7"
+          ],
+          "sha256": "f7780355a8d4ec97c2fdfe418504ac26fa4105ba5293ce08a84fd72fcdad4b4b"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "tools-node/test_suite/devtools-desktop-smoke.mjs",
+          "kind": "runtime",
+          "criterionIds": [
+            "RX-5"
+          ],
+          "sha256": "2b5b9a31675067923ab602a9ed71f47dbcf13877bbe81b902039a3bf481ffdcd"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": ".claude/skills/rayx/references/devkit.md",
+          "kind": "source",
+          "criterionIds": [
+            "RX-6"
+          ],
+          "sha256": "4dd428b62f53fb2bdd2e12b350ed9c81018e658f7518222cffaa346c724531dd"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": ".claude/skills/rayx/references/diagnostics.md",
+          "kind": "source",
+          "criterionIds": [
+            "RX-6"
+          ],
+          "sha256": "3890a4999d96b7c44dec07522804d08653095f7034c819b9f348544feee07c3c"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/forms/form/actions.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-7"
+          ],
+          "sha256": "2c1ce65ae528b40d71d66a8451ee1678cb89d39cc45800ce2b056873d2d0d769"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/default_input_map.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-7"
+          ],
+          "sha256": "1d26c6094f713935449b080c3457c61f39440b4c26a893b3392ca60bcec63147"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/select_all_shortcut.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-7"
+          ],
+          "sha256": "a233f7e26aeb2d557246de26c9f63635fd8e4797dfb18ed87cddda357c578b3d"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/interactive_viewer_accesskit_actions.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-3"
+          ],
+          "sha256": "c928de69b37f8c122c15abb40e045810f157126ceecfb9d3ea699ff07e316328"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_runtime/src/component_state.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-8"
+          ],
+          "sha256": "1de186ab9c0a660148c0e44d60509b4fc30af3dba65f1d1cb578e06a9e962750"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_canvas_infinite/src/integration/accessibility.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-8"
+          ],
+          "sha256": "ab273a015433db02afbf98c0f9e352a98daf1ad7f578956ba168657a76f938a3"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_node_editor/src/integration/accessibility.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-8"
+          ],
+          "sha256": "8e70d2118a0e7fce19e60ff05b2f266f62f71c6add9f73511f723da304f5f133"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_propertygrid/src/integration/accessibility.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-8"
+          ],
+          "sha256": "b004e292e0ab7f636f165a57bd99d54d7288873db8ca5480e20f09bec405c37a"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_runtime/tests/component_state.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-8"
+          ],
+          "sha256": "0f3b1489f1c3d8e7100867da8872a246de0dce32c694b5abfa651f095933b755"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_canvas_infinite/tests/announced_values.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-8"
+          ],
+          "sha256": "e65ac24c15c9c96124a6514027f0f73e0cbc7846815703c8f103679968117b45"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_node_editor/tests/announced_values.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-8"
+          ],
+          "sha256": "14ed2c3a46b60f5a27a6b8d28a52ced397dd5de091e49629baabbbdabf871275"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_propertygrid/tests/announced_values.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-8"
+          ],
+          "sha256": "2250599cd26d4a1be5224a4493437fd35a7ec78898e282f708116e625fe94e6a"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_code/src/editor_actions.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-9"
+          ],
+          "sha256": "8ffb3fc39e2e63b29153ef256cd83e906819dee4ecee2e8e1fc1398bebee3967"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_rich_text_editor/src/actions.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-9"
+          ],
+          "sha256": "ff31c2ff26d1a29868d80b289813708a8f5a57061cc559ab910ce4fcf804aa7b"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "apps/test_suite/src/lib.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-9"
+          ],
+          "sha256": "b98b46cc0396c53c0a52111881f8da68d8f6ea967ee9286ad9bee936d9b15d84"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/knowledge/ui/accessibility/rules.md",
+          "kind": "source",
+          "criterionIds": [
+            "RX-6"
+          ],
+          "sha256": "749d5c442c17aa2fea0a463cfdc78ef2b90ba5fafadad9c1bdf75cee2d99e32a"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/knowledge/tooling/devkit-diagnostics/rules.md",
+          "kind": "source",
+          "criterionIds": [
+            "RX-6"
+          ],
+          "sha256": "8416e30b8a35452b206291358d6169d489358bbb12c1263991874d023cb8c0f7"
+        }
+      ],
+      "deltaSummaryMarkdown": "Inspected RayX 24cf0b96 (only commit since 1b358b67; Gpux unchanged). `rayx_devkit/src/extensions.rs` `component_state` now takes an inspection guard per open window, refreshes and draws, reads `SemanticSnapshot::of` inside the guard, and prunes the window's states with the new `ComponentStates::retain_elements` using `is_element` (the whole id or the key after a '.', matching `GlobalElementId`'s '.'-joined Display, so dotted row ids such as property paths still match). The removed entries are deleted, not filtered. The `gpux_devtools_extension` test now drops a key that is only the end of an id (\"canvas\" on \"probe-canvas\") and verifies that an element leaving a still-open window disappears from the next call. Both would fail against the previous code. The property grid computes `editor_state` and `operation_state` inside the `component_state` closures. Checks passed 21/21 at revision 137.",
+      "reattestedFrom": "a556a33b0fbaaac40666da3d7fdb7a2d3f17119c1f4714c6996e147fe4d49977",
+      "summaryMarkdown": "Full review at revision 135. All six earlier findings are repaired and verified: the interactive viewer's new group performs each pan/zoom and checks the callbacks and the disabled cases; the popover content is expanded and asserted; RayX memory is synced (rules, state and the new superseding decision); t27 now owns restoring the navigation paint assertion through check-rx-navigation-paint; readable announced values with machine state moved to rayx_runtime::component_state and the rayx_component_state tool (RX-8); secondary-a in the code, rich-text, canvas and node editors, with the apps' maps guarded (RX-9). The gpux commits and the earlier-reviewed RayX work are unchanged and still hold, and checks passed 21/21. One new minor finding: rayx_component_state reports components that are no longer rendered when no accessibility tree is active.",
+      "findingIds": [
+        "s08-rx6-memory-sync",
+        "s08-rx3-interactive-viewer-untested",
+        "s08-rx2-popover-expanded",
+        "s08-rx2-diagnostic-values-announced",
+        "s08-navigation-paint-assertion-followup",
+        "s08-rx7-other-editors-ctrl-a",
+        "s08-rx8-component-state-stale"
+      ],
+      "recordedAt": "2026-10-16T21:57:10Z",
+      "recordHashes": {
+        "gpux:docs/measurements/a11y-devtools.md": "406c3678b07a71e25202104191caf50da6b0607e4acec9c01ec1ff77949d2e90",
+        "gpux:docs/measurements/screen-reader-walkthrough.md": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
     }
   },
   "checkpoints": {
@@ -2643,6 +3482,15 @@
       },
       "reviewHash": "7e5bb6314a5572377d8f42d2fa317b2bea580c81b8e75e6b499f5e2a3d3c2991",
       "recordedAt": "2026-10-16T20:05:21Z"
+    },
+    "s08-rayx": {
+      "snapshotId": "3c9c43de2a41ce6377a1025ffabe04e292f68df17a31e76c973a649ea7d862c2",
+      "commits": {
+        "gpux": "1430c693908de74ed15d53b2376a47d4ebbbdbc9",
+        "rayx": "24cf0b96ab970026e90e5f3c8b6de5dba1b243b1"
+      },
+      "reviewHash": "098322a423a43d4e92630693549adf08a1fd561d330845bcf55d7a0e83601f2c",
+      "recordedAt": "2026-10-16T21:57:25Z"
     }
   },
   "findings": [
@@ -3511,9 +4359,150 @@
           "path": "docs/testing.md"
         }
       ]
+    },
+    {
+      "id": "s08-rx6-memory-sync",
+      "boundaryId": "s08-rayx",
+      "criterionIds": [
+        "RX-6"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "RX-6 requires that \"the memory sync rewrites RayX's accessibility and DevKit rules\"; no RayX commit in the range touches `.agentx/memory`. Observed: `.agentx/memory/knowledge/ui/accessibility/rules.md:25` still says \"Treat WASM accessibility as unsupported. Do not construct or maintain a hidden DOM mirror\" and `state.md:27` cites `gpux::InspectableElement`; `.agentx/memory/knowledge/tooling/devkit-diagnostics/rules.md:23,28,30,33,36` prescribe `rayx-devkit-mcp`, the rendered-frame snapshot, `Window::on_devtools_property` and `--print-manifest` of the deleted sidecar; `state.md:24,38` link the deleted `crates/rayx_devkit_mcp`; the superseded decision `2026-06-26-tooling-devkit-diagnostics-occurrence-semantics.md` is still `status: current`. These rules contradict the shipped behaviour and would steer agents back to the retired API. Expected: the narrowest affected RayX memory (ui/accessibility rules+state, tooling/devkit-diagnostics rules+state, the occurrence-semantics decision marked superseded) describes AccessKit-only annotations, gpux-devtools with RayX extensions, and screen readers on web/mobile. Repair: run the AgentX memory sync for those records (supported helpers) and re-request review of RX-6.",
+      "regressionRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/knowledge/ui/accessibility/rules.md"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/knowledge/tooling/devkit-diagnostics/rules.md"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/tooling/devkit-diagnostics/2026-10-16-tooling-devkit-diagnostics-gpux-devtools-extension.md"
+        }
+      ]
+    },
+    {
+      "id": "s08-rx3-interactive-viewer-untested",
+      "boundaryId": "s08-rayx",
+      "criterionIds": [
+        "RX-3"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "The core interactive viewer's former Drag/Scale pointer actions became new AccessKit behaviour (`crates/rayx_components/rayx_components_core/src/_interactive/interactive_viewer.rs:233-269,724-768`: ScrollUp/Down/Left/Right pan by `ACCESSIBLE_PAN_STEP`, custom actions Zoom in/out scaling around the bounds centre, firing on_start/on_update/on_end), but no test performs them: `tests/interactive_viewer.rs` is unchanged and covers only the state model, and none of the three `accesskit_actions` groups touches the viewer. RX-3 says each of the 15 pointer actions of the canvas, node editor *and core interactive viewer* is performed through `Window::perform_a11y_action` with the component state asserted, and the epic constraint requires a new group per new behaviour. A sign error in a pan step or a wrong focal point would pass every check. Repair: add a group (e.g. `crates/rayx_components/rayx_components_core/tests/accesskit_actions.rs` with a check `check-rx-viewer-actions`) that draws an `InteractiveViewer` with pan and scale enabled, performs each Scroll* action and both custom actions, asserts the `TransformationState` translation/scale and that the interaction callbacks fired, and asserts the actions are absent when pan/scale are disabled.",
+      "regressionRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/interactive_viewer_accesskit_actions.rs"
+        }
+      ]
+    },
+    {
+      "id": "s08-rx2-popover-expanded",
+      "boundaryId": "s08-rayx",
+      "criterionIds": [
+        "RX-2"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Popover lost a state its devtools annotation carried. Pre-epic `crates/rayx_components/rayx_components_core/src/overlays/popover/mod.rs` (4ee806e9:318-324) annotated the content `role(\"dialog\").name(\"popover\").expanded(open)`; HEAD only keeps `PopoverBase::content_semantics(Role::Dialog, \"popover\")` (`popover/mod.rs:297`), and `PopoverBase` (`rayx_components_base/src/popup_base.rs:244-249`) sets no `aria_expanded`, while the analogous hover card (`hover_card/mod.rs:195`) and sheet (`sheet/mod.rs:319`) do. RX-2: files that set both keep only the AccessKit annotation \"losing nothing devtools carried\". Repair: expose the expanded state in AccessKit (on the popover content, as hover card does, and preferably `aria_expanded(open)` on the trigger) and assert it in `rayx_components_core/tests/accesskit_from_devtools.rs`.",
+      "regressionRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/popup_base.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/accesskit_from_devtools.rs"
+        }
+      ]
+    },
+    {
+      "id": "s08-rx2-diagnostic-values-announced",
+      "boundaryId": "s08-rayx",
+      "criterionIds": [
+        "RX-2",
+        "SR-2"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Converting devtools values one-to-one into `aria_value` moved machine diagnostics into what screen readers announce. Observed: the infinite canvas root's value is `items=..;decorators=..;selected=..;selected_ids=..;active_interaction=..;minimap_interaction=..;viewport=(..);grid=..;layers=..;actions=profile-bound;history=none` (`rayx_components_canvas_infinite/src/canvas/element.rs:205,914`, `integration/accessibility.rs:11-37`); the node editor root and its connections likewise (`rayx_components_node_editor/src/editor/element.rs:248,1755,1792`); property-grid rows and operation buttons carry `path=..; editor=..; read_only=..` / `reset=true; copy=true; clear=true` (`rayx_components_propertygrid/src/grid/element.rs:466,526`). Before the epic these strings were devtools-only; now VoiceOver/TalkBack/the web mirror read them to users, and only the crates' own contract tests consume them. The design maps value to `aria_value` mechanically, so this is a missing use case rather than a design violation; it needs a coordinator/owner decision. Repair options: keep a human-readable `aria_value` (e.g. \"3 items, 1 selected\") and serve the full machine state through a RayX gpux-devtools extension tool (or test-only accessors), updating `semantics_contracts`/`accesskit_actions` to read it there.",
+      "regressionRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_canvas_infinite/tests/announced_values.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_node_editor/tests/announced_values.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_propertygrid/tests/announced_values.rs"
+        }
+      ]
+    },
+    {
+      "id": "s08-navigation-paint-assertion-followup",
+      "boundaryId": "s08-rayx",
+      "criterionIds": [
+        "RX-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "To satisfy RX-1, `crates/rayx_runtime/src/services/navigation/tests.rs` replaced the painted-region assertion (`devtools_frame_snapshot().effects.screen_effect_region_count == 1`, renamed test `navigation_region_view_paints_configured_screen_effect_region` -> `..._targets_...`) with `active_screen_effects()` target checks (lines ~564, 635, 730), which pass even if the region is never painted. The coordinator plans to restore it through `Window::effect_diagnostics()` in s09, but the s09 plan (implementation-plan.json, s09 removal task: \"add `Window::effect_diagnostics()`... Commit paired with RayX's s08-rayx commits\") records only the gpux group `effect_diagnostics.rs`, not the RayX restoration, so the coverage loss has no tracked owner. Repair: add the RayX restoration to the s09 task's description and a RayX check (e.g. `cargo test -p rayx_runtime navigation_region_view`) asserting the painted region count via `effect_diagnostics()`, or record an explicit owner disposition.",
+      "regressionRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_runtime/src/services/navigation/tests.rs"
+        }
+      ]
+    },
+    {
+      "id": "s08-rx7-other-editors-ctrl-a",
+      "boundaryId": "s08-rayx",
+      "criterionIds": [
+        "RX-7"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "The select-all defect RX-7 fixes for text fields and selection areas remains in RayX's other text editors: `rayx_components_code/src/editor_actions.rs:28` and `rayx_components_rich_text_editor/src/actions.rs:33` (and the canvas/node-editor SelectAll at `rayx_components_canvas_infinite/src/actions.rs:52`, `rayx_components_node_editor/src/actions.rs:58`) still bind `ctrl-a`, and both apps' checked-in `application-input-map.json` (test_suite:199,541,721,2020; lab:37,379,559,1858) repeat it, so a Mac browser's Command-A in the code or rich-text editor still selects the hidden IME textarea. RX-7's wording scopes \"text fields and selection areas\", so this is a scope expansion for the owner to accept or defer. Repair if accepted: bind `secondary-a` in those default maps, regenerate the apps' input-map JSON, and extend `select_all_shortcut` (or per-crate groups) to cover each context; otherwise record a deferral disposition.",
+      "regressionRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": "apps/test_suite/src/lib.rs"
+        }
+      ]
+    },
+    {
+      "id": "s08-rx8-component-state-stale",
+      "boundaryId": "s08-rayx",
+      "criterionIds": [
+        "RX-8"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "`rayx_component_state` reported components no longer rendered when no accessibility tree was active, and matched keys by id suffix. Resolved by drawing an inspected frame per window, pruning with exact last-segment matching, and a test that covers an element leaving an open window.",
+      "regressionRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_devkit/src/extensions.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_devkit/tests/gpux_devtools_extension.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_runtime/src/component_state.rs"
+        }
+      ]
     }
   ],
-  "handoffMarkdown": "docs/devtools.md; docs/testing.md groups; README crate row for gpux-devtools-mcp.",
+  "handoffMarkdown": "secondary-a select-all in code, rich text, canvas, node editor and both apps' maps; guard test in rayx_test_suite (RayX 98446d40, docs 1b358b67).",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",
@@ -3531,8 +4520,8 @@
       "gpux:.agentx/tasks/keyed-sticky-stacking/**": "7f924a57495dfb6d3a2ca3be75e5fdb04cb012ecfc41554bdb278a84987e82ef",
       "gpux:.agentx/tasks/macos-only-metal-port-and-ci-repair/**": "64ecc143e24a8468c3b4e5d28bbc0f65d4fbbddab867d46a44823b1725ff1e5d",
       "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**": "f3f66695ebf53686a0437e18bf587955317994e21eac47d7908641e0281996ce",
+      "gpux:docs/changelog/2026-10-16-macos-fast-mode-improvement-loop.md": "ffbcef372c7571efd0468f0712f89f47af8f0b48e10e0b762f4375ffdb3238dd",
       "gpux:ToFix/**": "e72e6c15df92515c9a96c1ef2a6db675ce345e0eb600212658582f156b1beb64",
-      "gpux:benchmark/results/**": "fda69a574a3d60d835127b7455d8db6d7a300a8ce3e3752a3e30a48f2dc96756",
       "gpux:vendor/wgpu/**": "a4c4ab1992f6a0aeeca032fedb82b953741f6d547ac517ef15467c67dffa69e5"
     },
     "rayx": {

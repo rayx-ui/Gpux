@@ -286,6 +286,21 @@
           "id": "RX-6",
           "verification": "manual",
           "descriptionMarkdown": "RayX's docs and skills describe gpux-devtools and AccessKit annotations instead of DevKit semantics, and screen-reader support on the web and mobile instead of \"WASM accessibility unsupported\": `.claude/skills/rayx/references/devkit.md` and `diagnostics.md`, the rayx-components references that mention DevKit semantics (property grid, window controls, themes-icons-assets), `apps/test_suite/README.md`, `apps/examples_mobile/README.md`, `docs/src/rayx/android.md` and the property grid's `AVALONIA_PARITY.md`; the memory sync rewrites RayX's accessibility and DevKit rules. Verified by review."
+        },
+        {
+          "id": "RX-7",
+          "verification": "automated",
+          "descriptionMarkdown": "Pre-existing defect the owner brought into scope (2026-10-16; it also fails on RayX 66875570 with Gpux 58257fe, `artifacts-temp/agentx/gpux-a11y-devtools/dt-baseline.log`): select-all in RayX text fields and selection areas follows the keyboard in use (Command-A on an Apple keyboard, a Mac browser included; Control-A elsewhere, gpux's `secondary` modifier), so the old draft never survives select-all before typing. A Control-A-only binding left a Mac browser's Command-A to the browser, which selected the hidden input-method textarea instead. New group `crates/rayx_components/rayx_components_core/tests/select_all_shortcut.rs`; the runtime proof is `check-rx-test-suite-spec` (the data-table selection spec) and the RayX screen-reader spec selecting all before typing."
+        },
+        {
+          "id": "RX-8",
+          "verification": "automated",
+          "descriptionMarkdown": "Finding-driven scope the owner chose (2026-10-16, s08 review finding `s08-rx2-diagnostic-values-announced`, option A): what assistive technologies announce as the value of the infinite canvas, its minimap, the node editor and its nodes, ports, connections and connection labels, and the property grid's rows, editor hosts and operations buttons is human-readable (\"2 nodes, 1 connection, 1 selected, zoom 100%\"), never machine state. The machine state agents and tests need (ids, counts, interactions, viewports, paths, editors, operation flags) is published through `rayx_runtime::component_state` only while it is recorded, and DevKit serves it as the gpux-devtools extension tool `rayx_component_state`. New groups `announced_values` in the three component crates and `rayx_runtime/tests/component_state.rs`; the existing readers (`semantics_contracts` of the canvas and node editor, `node_component_contracts`, `node_variants_navigation_contracts`, the property grid's `accesskit_actions`) read the published state, and `gpux_devtools_extension` calls the tool."
+        },
+        {
+          "id": "RX-9",
+          "verification": "automated",
+          "descriptionMarkdown": "Finding-driven scope the owner chose (2026-10-16, s08 review finding `s08-rx7-other-editors-ctrl-a`, option A): select-all in the code editor, rich-text editor, infinite canvas and node editor is bound to `secondary-a` like RX-7, and the Test Suite's and Lab's `application-input-map.json` carry exactly the components' typed select-all entries. New test `select_all_bindings_use_the_secondary_modifier_and_match_component_defaults` in `apps/test_suite/src/lib.rs` fails if any of them goes back to a Control-A-only binding or the maps drift."
         }
       ]
     },

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-a11y-devtools",
-  "revision": 13,
+  "revision": 18,
   "title": "gpux accessibility-first: AccessKit as the one semantic tree for screen readers on every platform, gpux-devtools and its MCP, RayX on both",
   "validationMode": "sprint",
   "repositories": [
@@ -52,8 +52,8 @@
       "gpux:.agentx/tasks/keyed-sticky-stacking/**",
       "gpux:.agentx/tasks/macos-only-metal-port-and-ci-repair/**",
       "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**",
+      "gpux:docs/changelog/2026-10-16-macos-fast-mode-improvement-loop.md",
       "gpux:ToFix/**",
-      "gpux:benchmark/results/**",
       "gpux:vendor/wgpu/**",
       "rayx:.agentx/tasks/**",
       "rayx:.agentx/experiments/**",
@@ -1238,9 +1238,10 @@
       "repositoryId": "rayx",
       "kind": "test",
       "criterionIds": [
-        "RX-4"
+        "RX-4",
+        "RX-8"
       ],
-      "descriptionMarkdown": "New group `crates/rayx_devkit/tests/gpux_devtools_extension.rs`: `with_devkit` installs gpux-devtools, RayX's extension tools are advertised in `hello` and answer through a test sidecar. `with_devkit` honouring `enabled`, and the accessibility mode applied from `ApplicationConfiguration`.",
+      "descriptionMarkdown": "New group `crates/rayx_devkit/tests/gpux_devtools_extension.rs`: `with_devkit` installs gpux-devtools, RayX's extension tools are advertised in `hello` and answer through a test sidecar. `with_devkit` honouring `enabled`, and the accessibility mode applied from `ApplicationConfiguration`. `rayx_component_state` answers with the machine state components publish.",
       "argv": [
         "cargo",
         "test",
@@ -1251,7 +1252,7 @@
       ],
       "expected": {
         "exitCode": 0,
-        "minimumTests": 6
+        "minimumTests": 8
       },
       "inputs": [
         "Cargo.toml",
@@ -2211,6 +2212,310 @@
         "crates/util/**",
         "Cargo.toml",
         "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a11y-editable-text-host",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "SR-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/a11y_editable_text_host.rs`: a control built around an `EditableText` is exactly one named text input that holds the focus and handles SetValue, carrying the host's states and relations; SetValue reaches the field or the host's handler.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "a11y_editable_text_host"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-rx-select-all",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "RX-7"
+      ],
+      "descriptionMarkdown": "New group `crates/rayx_components/rayx_components_core/tests/select_all_shortcut.rs`: select-all is bound to the secondary modifier for every core context, and the platform's select-all replaces a text field's draft.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_components_core",
+        "--test",
+        "select_all_shortcut"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_runtime/**",
+        "crates/rayx_macros/**",
+        "crates/rayx_theme/**",
+        "gpux:crates/gpui/**",
+        "gpux:crates/gpux_devtools/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock",
+        "crates/rayx_components/rayx_components_core/**",
+        "crates/rayx_components/rayx_components_base/**"
+      ]
+    },
+    {
+      "id": "check-rx-viewer-actions",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "RX-3"
+      ],
+      "descriptionMarkdown": "New group `crates/rayx_components/rayx_components_core/tests/interactive_viewer_accesskit_actions.rs`: the interactive viewer's scroll actions pan one 40-pixel step and its Zoom in/Zoom out custom actions scale by 1.25, each reported through the interaction callbacks, and neither is offered while pan or scale is disabled.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_components_core",
+        "--test",
+        "interactive_viewer_accesskit_actions"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_runtime/**",
+        "crates/rayx_macros/**",
+        "crates/rayx_theme/**",
+        "gpux:crates/gpui/**",
+        "gpux:crates/gpux_devtools/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock",
+        "crates/rayx_components/rayx_components_core/**",
+        "crates/rayx_components/rayx_components_base/**"
+      ]
+    },
+    {
+      "id": "check-rx-navigation-paint",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "RX-1",
+        "REM-2"
+      ],
+      "descriptionMarkdown": "RayX's navigation region tests (`crates/rayx_runtime/src/services/navigation/tests.rs`, `navigation_region_view`) assert again that the configured screen-effect region is painted, through `Window::effect_diagnostics()` in place of the retired devtools frame snapshot.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_runtime",
+        "--lib",
+        "navigation_region_view"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_runtime/**",
+        "crates/rayx_macros/**",
+        "gpux:crates/gpui/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-rx-announced-values",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "RX-8"
+      ],
+      "descriptionMarkdown": "New groups `announced_values` in the infinite canvas, node editor and property grid: their announced values are human-readable and carry no machine state.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_components_canvas_infinite",
+        "-p",
+        "rayx_components_node_editor",
+        "-p",
+        "rayx_components_propertygrid",
+        "--test",
+        "announced_values"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 6
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_runtime/**",
+        "crates/rayx_macros/**",
+        "crates/rayx_theme/**",
+        "gpux:crates/gpui/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock",
+        "crates/rayx_components/**"
+      ]
+    },
+    {
+      "id": "check-rx-component-state",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "RX-8"
+      ],
+      "descriptionMarkdown": "New group `crates/rayx_runtime/tests/component_state.rs`: component state is computed and recorded only once enabled, keeps each element's latest state and drops a closed window's.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_runtime",
+        "--test",
+        "component_state"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_runtime/**",
+        "crates/rayx_macros/**",
+        "crates/rayx_theme/**",
+        "gpux:crates/gpui/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock",
+        "crates/rayx_components/**"
+      ]
+    },
+    {
+      "id": "check-rx-component-state-readers",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "RX-8"
+      ],
+      "descriptionMarkdown": "The canvas's and node editor's `semantics_contracts` read the machine state they publish instead of their announced values.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_components_canvas_infinite",
+        "-p",
+        "rayx_components_node_editor",
+        "--test",
+        "semantics_contracts"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_runtime/**",
+        "crates/rayx_macros/**",
+        "crates/rayx_theme/**",
+        "gpux:crates/gpui/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock",
+        "crates/rayx_components/**"
+      ]
+    },
+    {
+      "id": "check-rx-node-editor-state-readers",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "RX-8"
+      ],
+      "descriptionMarkdown": "The node editor's `node_component_contracts` and `node_variants_navigation_contracts` read the ports' and editor's published state.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_components_node_editor",
+        "--test",
+        "node_component_contracts",
+        "--test",
+        "node_variants_navigation_contracts"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_runtime/**",
+        "crates/rayx_macros/**",
+        "crates/rayx_theme/**",
+        "gpux:crates/gpui/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock",
+        "crates/rayx_components/**"
+      ]
+    },
+    {
+      "id": "check-rx-editor-select-all",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "RX-9"
+      ],
+      "descriptionMarkdown": "New test in `apps/test_suite/src/lib.rs`: select-all of the code editor, rich-text editor, canvas and node editor is `secondary-a`, and the Test Suite's and Lab's maps match the components' defaults.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_test_suite",
+        "--lib",
+        "select_all"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_runtime/**",
+        "crates/rayx_macros/**",
+        "crates/rayx_theme/**",
+        "gpux:crates/gpui/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock",
+        "crates/rayx_components/**",
+        "crates/rayx/**",
+        "apps/test_suite/**",
+        "apps/lab/application-input-map.json"
       ]
     }
   ],
@@ -3354,6 +3659,33 @@
           ]
         },
         {
+          "id": "t22b-one-text-field-node",
+          "title": "A text field is one named node",
+          "descriptionMarkdown": "Found by the s08 RayX screen-reader spec: each RayX text control was two text inputs, the host (name, states, SetValue) and gpux's `EditableText` inside it, which held the focus with no name, so screen readers announced an unnamed field (SR-2) and met each field twice (RX-2). gpux's `EditableText` takes what a host says of it (`aria_role`, description, required, invalid, `accessibility_id`, labelled-by, described-by, error message, `on_set_value`, else SetValue replaces the text), and a field that takes the focus over a host container tracking the same handle holds the inspection focus. RayX's TextField, SearchField, TextArea, OtpField and PasswordField annotate their `EditableText` and drop the host's role; NumberField stays a spin button around its named input. New group `crates/gpui/tests/a11y_editable_text_host.rs`.",
+          "criterionIds": [],
+          "supportingCriterionIds": [
+            "SR-2",
+            "RX-2"
+          ],
+          "designIds": [
+            "d-rayx-migration"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-a11y-editable-text-host"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/element.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_core/src/forms/form/text_field/text_field.rs"
+            }
+          ]
+        },
+        {
           "id": "t22-rx-annotations",
           "title": "AccessKit-only annotations across the component crates",
           "descriptionMarkdown": "Remove every `devtools_semantics` call in `crates/`; convert the core and blocks files that had only devtools semantics; rewrite the existing tests that read devtools snapshots. New groups `tests/accesskit_from_devtools.rs` in `rayx_components_core`, `rayx_components_base` and `rayx_blocks`.",
@@ -3388,7 +3720,7 @@
         {
           "id": "t23-rx-actions",
           "title": "Writable properties and pointer actions as AccessKit actions",
-          "descriptionMarkdown": "Property-grid editors handle SetValue or custom actions; the canvas, node editor and interactive viewer expose their operations as AccessKit actions. New groups `tests/accesskit_actions.rs` in `rayx_components_propertygrid`, `rayx_components_node_editor` and `rayx_components_canvas_infinite`.",
+          "descriptionMarkdown": "Property-grid editors handle SetValue or custom actions; the canvas, node editor and interactive viewer expose their operations as AccessKit actions. New groups `tests/accesskit_actions.rs` in `rayx_components_propertygrid`, `rayx_components_node_editor` and `rayx_components_canvas_infinite`. The core interactive viewer's actions get their own group, `rayx_components_core/tests/interactive_viewer_accesskit_actions.rs`.",
           "criterionIds": [
             "RX-3"
           ],
@@ -3401,7 +3733,8 @@
           "checkIds": [
             "check-rx-property-actions",
             "check-rx-node-editor-actions",
-            "check-rx-canvas-actions"
+            "check-rx-canvas-actions",
+            "check-rx-viewer-actions"
           ],
           "sourceRefs": [
             {
@@ -3510,6 +3843,33 @@
           ]
         },
         {
+          "id": "t25a-select-all-shortcut",
+          "title": "Select-all follows the keyboard",
+          "descriptionMarkdown": "Bind select-all for RayX's text fields and selection areas to `secondary-a` instead of `ctrl-a`, so a Mac browser's Command-A reaches them. New group `tests/select_all_shortcut.rs` in `rayx_components_core`.",
+          "criterionIds": [
+            "RX-7"
+          ],
+          "designIds": [
+            "d-rayx-migration"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-rx-select-all",
+            "check-rx-test-suite-spec",
+            "check-rx-screen-reader-spec"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_core/src/forms/form/actions.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_core/src/default_input_map.rs"
+            }
+          ]
+        },
+        {
           "id": "t26-rx-guard-docs",
           "title": "Guard test and RayX docs",
           "descriptionMarkdown": "Add the retired-API guard; update the DevKit and accessibility docs and skills listed in RX-6.",
@@ -3544,6 +3904,95 @@
               "path": "apps/examples_mobile/README.md"
             }
           ]
+        },
+        {
+          "id": "t25b-readable-values",
+          "title": "Readable accessibility values, machine state for agents",
+          "descriptionMarkdown": "Replace the diagnostic `aria_value` strings of the infinite canvas, minimap, node editor (root, nodes, ports, connections, labels) and property grid (rows, editor hosts, operations) with human-readable values; publish the machine state through a new `rayx_runtime::component_state` registry (`ComponentStateExt::component_state`), enabled by DevKit and served as the extension tool `rayx_component_state`. New groups `announced_values` and `rayx_runtime/tests/component_state.rs`; the existing readers move to the published state.",
+          "criterionIds": [
+            "RX-8"
+          ],
+          "designIds": [
+            "d-rayx-migration",
+            "d-rayx-devkit-extension"
+          ],
+          "dependsOn": [
+            "t22-rx-annotations",
+            "t24-rx-devkit-extension"
+          ],
+          "checkIds": [
+            "check-rx-announced-values",
+            "check-rx-component-state",
+            "check-rx-component-state-readers",
+            "check-rx-node-editor-state-readers",
+            "check-rx-property-actions",
+            "check-rx-devkit-extension"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_runtime/src/component_state.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_canvas_infinite/src/integration/accessibility.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_node_editor/src/integration/accessibility.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_propertygrid/src/integration/accessibility.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_devkit/src/extensions.rs"
+            }
+          ]
+        },
+        {
+          "id": "t25c-editor-select-all",
+          "title": "Select-all follows the keyboard in the editors, canvas and node editor",
+          "descriptionMarkdown": "Bind select-all of the code editor, rich-text editor, infinite canvas and node editor to `secondary-a` and update the Test Suite's and Lab's `application-input-map.json` to the components' typed defaults. New test `select_all_bindings_use_the_secondary_modifier_and_match_component_defaults` in `apps/test_suite/src/lib.rs`.",
+          "criterionIds": [
+            "RX-9"
+          ],
+          "designIds": [
+            "d-rayx-migration"
+          ],
+          "dependsOn": [
+            "t25a-select-all-shortcut"
+          ],
+          "checkIds": [
+            "check-rx-editor-select-all"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_code/src/editor_actions.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_rich_text_editor/src/actions.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_canvas_infinite/src/actions.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_node_editor/src/actions.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "apps/test_suite/application-input-map.json"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "apps/lab/application-input-map.json"
+            }
+          ]
         }
       ]
     },
@@ -3563,7 +4012,7 @@
         {
           "id": "t27-remove-devtools",
           "title": "Delete the devtools feature, types, records and carry",
-          "descriptionMarkdown": "Delete every retired symbol, the `devtools` feature and its `DEVTOOLS` gates, and the DevKit-node handling in `fast/`; add `Window::effect_diagnostics()`; add the guard. Commit paired with RayX's s08-rayx commits. New groups `crates/gpui/tests/devtools_removed_guard.rs` and `crates/gpui/tests/effect_diagnostics.rs`.",
+          "descriptionMarkdown": "Delete every retired symbol, the `devtools` feature and its `DEVTOOLS` gates, and the DevKit-node handling in `fast/`; add `Window::effect_diagnostics()`; add the guard. Commit paired with RayX's s08-rayx commits. New groups `crates/gpui/tests/devtools_removed_guard.rs` and `crates/gpui/tests/effect_diagnostics.rs`. The paired RayX commit restores the navigation region tests' painted-region assertion through `effect_diagnostics()` (RayX check `check-rx-navigation-paint`).",
           "criterionIds": [
             "REM-1",
             "REM-2"
@@ -3574,7 +4023,8 @@
           "dependsOn": [],
           "checkIds": [
             "check-devtools-guard",
-            "check-effect-diagnostics"
+            "check-effect-diagnostics",
+            "check-rx-navigation-paint"
           ],
           "sourceRefs": [
             {
@@ -3612,6 +4062,10 @@
             {
               "repositoryId": "gpux",
               "path": "crates/gpui/src/fast/verify.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_runtime/src/services/navigation/tests.rs"
             }
           ]
         },
