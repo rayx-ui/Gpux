@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "id": "9e5a9ebb-010a-4c2b-9ccb-680a63de1aa0",
+  "loopId": "5454c93e-ead4-4322-b9fc-ad37cad8bca7",
+  "index": 9,
+  "type": "hypothesis",
+  "name": "Share the empty font features",
+  "slug": "share-the-empty-font-features",
+  "path": "2026-10-16-09-share-the-empty-font-features.json",
+  "createdAt": "2026-10-16T09:12:42Z",
+  "startedAt": "2026-10-16T09:12:42Z",
+  "finishedAt": null,
+  "state": "running",
+  "status": "",
+  "checkpointCommit": "883dbad221dd10dad4545b1f3e08a58cc484001c",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 883dbad221dd10dad4545b1f3e08a58cc484001c",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "883dbad221dd10dad4545b1f3e08a58cc484001c",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 883dbad221dd10dad4545b1f3e08a58cc484001c",
+      "status": ""
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "Window::text_style() starts from TextStyle::default() for every call and a text element makes it twice a frame (layout, paint). FontFeatures::default() is Arc::new(Vec::new()), so each call allocates. A malloc profile of hover-grid put the largest share of main-thread malloc samples (17 of 90) under TextStyle::default.",
+  "measurementPlanMarkdown": "Make FontFeatures::default a handle to one empty list per thread. Test that defaults share the list. Alternate the previous and new binaries three times on hover-grid and text-relabel, five on scroll-div-cards.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "hover-grid allocations per frame / CPU",
+      "before": "18,015 / 4.60",
+      "after": "14,816 / 4.57",
+      "delta": "-18% / -0.7%",
+      "source": "alt2.sh x3"
+    },
+    {
+      "metric": "text-relabel allocations per frame / CPU",
+      "before": "28,052 / 6.32",
+      "after": "25,048 / 6.26",
+      "delta": "-11% / -1%",
+      "source": "alt2.sh x3"
+    },
+    {
+      "metric": "scroll-div-cards allocations per frame / CPU / draw p50",
+      "before": "5,973 / 3.11 / 2.01",
+      "after": "5,864 / 3.14 / 2.07",
+      "delta": "-2% / +1% / +3%",
+      "source": "alt2.sh x5"
+    }
+  ],
+  "reportMarkdown": "A clear drop in allocations on text-heavy scenes, CPU within noise (-1% on two, +1% on div-cards, which the allocation count does not explain). The new test, the gpux lib font_features test, clippy and fmt pass.",
+  "decisionMarkdown": "Keep: fewer allocations on every text element, no measurable cost.",
+  "notes": ""
+}

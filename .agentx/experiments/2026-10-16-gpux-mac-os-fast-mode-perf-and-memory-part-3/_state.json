@@ -28,8 +28,8 @@
     "successfulAttemptRequiresCommitBeforeNextExperiment": true,
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
-  "currentExperimentId": null,
-  "nextExperimentIndex": 9,
+  "currentExperimentId": "9e5a9ebb-010a-4c2b-9ccb-680a63de1aa0",
+  "nextExperimentIndex": 10,
   "experiments": [
     {
       "id": "ddc0da9b-11bf-491e-a966-4a6997d6aca0",
@@ -124,6 +124,17 @@
       "state": "done",
       "status": "success",
       "resultCommit": "0bc274dbf1bf0d241df75a55438db54a52dfc90b"
+    },
+    {
+      "id": "9e5a9ebb-010a-4c2b-9ccb-680a63de1aa0",
+      "index": 9,
+      "type": "hypothesis",
+      "name": "Share the empty font features",
+      "path": "2026-10-16-09-share-the-empty-font-features.json",
+      "startedAt": "2026-10-16T09:12:42Z",
+      "finishedAt": null,
+      "state": "running",
+      "status": ""
     }
   ]
 }

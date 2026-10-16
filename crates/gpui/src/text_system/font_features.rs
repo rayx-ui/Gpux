@@ -4,8 +4,19 @@ use std::sync::Arc;
 use schemars::{JsonSchema, json_schema};
 
 /// The OpenType features that can be configured for a given font.
-#[derive(Default, Clone, Eq, PartialEq, Hash)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 pub struct FontFeatures(pub Arc<Vec<(String, u32)>>);
+
+impl Default for FontFeatures {
+    /// No features: a handle to the one empty list each thread keeps, since every
+    /// default text style, built once for each text element drawn, asks for it.
+    fn default() -> Self {
+        thread_local! {
+            static NONE: FontFeatures = FontFeatures(Arc::new(Vec::new()));
+        }
+        NONE.with(FontFeatures::clone)
+    }
+}
 
 impl FontFeatures {
     /// Disables `calt`.
@@ -151,4 +162,24 @@ impl JsonSchema for FontFeatures {
 
 fn is_valid_feature_tag(tag: &str) -> bool {
     tag.len() == 4 && tag.chars().all(|c| c.is_ascii_alphanumeric())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::FontFeatures;
+    use std::sync::Arc;
+
+    #[test]
+    fn default_font_features_are_one_empty_list_per_thread() {
+        let first = FontFeatures::default();
+        let second = FontFeatures::default();
+        assert!(first.tag_value_list().is_empty());
+        assert!(Arc::ptr_eq(&first.0, &second.0));
+        assert_eq!(first, FontFeatures(Arc::new(Vec::new())));
+        assert_ne!(first, FontFeatures::disable_ligatures());
+        let other_thread = std::thread::spawn(|| FontFeatures::default().0.len())
+            .join()
+            .unwrap();
+        assert_eq!(other_thread, 0);
+    }
 }
