@@ -675,6 +675,11 @@ impl Rows {
     pub(crate) fn unlayered() -> Self {
         Rows(None)
     }
+
+    /// Whether the rows are drawn into a list layer this frame.
+    pub(crate) fn layered(&self) -> bool {
+        self.0.is_some()
+    }
 }
 
 /// The rows `visible` and `overscan` rows on each side, of `item_count`.
@@ -1167,6 +1172,7 @@ pub(crate) fn begin_uniform_list(
         scroll_offset,
         visible,
         carried,
+        &|_| false,
         |viewport| {
             let overscan = (viewport.size.height * paint::list_overscan_viewports() / item_height)
                 .ceil()
@@ -1205,7 +1211,7 @@ pub(crate) fn begin_virtual_list(
     sizes: &[Pixels],
     extents: &crate::OrderedExtentIndex,
     visible: &Range<usize>,
-    carried: bool,
+    sticky: &dyn Fn(usize) -> bool,
 ) -> Rows {
     let Some(id) = id else {
         return Rows(None);
@@ -1235,7 +1241,8 @@ pub(crate) fn begin_virtual_list(
         content_size,
         scroll_offset,
         visible,
-        carried,
+        true,
+        sticky,
         |viewport| {
             let (start, end) = along(axis, viewport);
             let reach = (end - start) * paint::list_overscan_viewports();
@@ -1292,7 +1299,9 @@ fn row_slot(axis: Axis, viewport: Bounds<Pixels>, start: Pixels, extent: Pixels)
 /// what the list `id` does with its rows this frame and sets up rendering
 /// and prepainting them. `needed` gives the rows the layer is to hold from
 /// the viewport, and `place` each row's start and extent along `axis` in
-/// window space.
+/// window space. The rows `outside` tells are neither held nor rendered,
+/// wherever they lie: the list draws them above the layer when it shows
+/// them (a `virtual_list`'s sticky candidates).
 #[allow(clippy::too_many_arguments)]
 fn begin_rows(
     window: &mut Window,
@@ -1304,6 +1313,7 @@ fn begin_rows(
     scroll_offset: Point<Pixels>,
     visible: &Range<usize>,
     carried: bool,
+    outside: &dyn Fn(usize) -> bool,
     needed: impl FnOnce(Bounds<Pixels>) -> Range<usize>,
     place: impl Fn(usize) -> (Pixels, Pixels),
 ) -> Rows {
@@ -1322,9 +1332,12 @@ fn begin_rows(
     }
     let needed = needed(viewport);
     let layer = paint::layer_mut(window, id);
+    // A row the layer holds that the list now draws above it is dropped
+    // with the rest: the rows are painted afresh.
     let extends = decision == Decision::Composite
         && layer.rows.list
         && !layer.rows.due_for_repaint(&needed)
+        && !layer.rows.rows.keys().any(|row| outside(*row))
         // The rows are moved along the list's axis alone.
         && layer.record.as_ref().is_some_and(|record| match axis {
             Axis::Vertical => record.scroll_offset.x == scroll_offset.x,
@@ -1373,7 +1386,8 @@ fn begin_rows(
         }
         Mode::Repaint => (needed.clone(), Vec::new()),
     };
-    let plan = plan(&(&unrendered | &spilling), needed.clone());
+    let outside: BTreeSet<usize> = needed.clone().filter(|row| outside(*row)).collect();
+    let plan = plan(&(&(&unrendered | &spilling) | &outside), needed.clone());
     let slots: BTreeMap<usize, Bounds<Pixels>> = plan
         .render
         .iter()

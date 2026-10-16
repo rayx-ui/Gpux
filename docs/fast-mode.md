@@ -381,12 +381,17 @@ Two things keep all that true where rows reach outside the room their list gives
   The frame that finds such a row draws the rows the list shows and no other.
 
 A list goes without a layer, counted `ineligible`, when it has rows that stick to its top
-(`ListState::with_sticky_items`, `UniformList::sticky_items`, `VirtualList::sticky_rows`), is a
-uniform list drawn bottom up (`y_flipped`), has rows holding what no tile can (see the reasons
+(`ListState::with_sticky_items`, `UniformList::sticky_items`), is a uniform list drawn bottom up (`y_flipped`), has rows holding what no tile can (see the reasons
 above), or lies over no opaque background. A horizontal `virtual_list` (`h_virtual_list`) has a
 layer as a vertical one does: its rows are columns, placed along x by the list's own origins, with
 the overscan to their left and right (`fast::tests::virtual_list_layers::horizontal`,
-`horizontal_oracle`).
+`horizontal_oracle`). A `virtual_list` with sticky rows (`VirtualList::sticky_rows`, on either edge,
+at levels or in keyed runs) composites its ordinary rows from its layer, which never holds a
+sticky candidate: every candidate it shows, the active stack and the incoming rows, is rendered,
+prepainted and painted every frame above the composited layer, in the list's clip, after the rows
+the layer holds, so its hitboxes are hit first and its stuck style, push-out and
+`on_sticky_state_changed` events are those of a frame drawn without a layer
+(`fast::tests::virtual_list_layers::sticky`, `sticky_oracle`).
 
 A `uniform_list` measures the item it sizes its rows by once a frame, as it requests its layout,
 and its prepaint takes that size. The size is kept, with the element states and lines measuring

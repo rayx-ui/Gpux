@@ -1,5 +1,4 @@
-//! The kinds of `virtual_list` without a list layer: a list with sticky
-//! rows is counted ineligible; a list scrolled by another
+//! The kinds of `virtual_list` without a list layer: a list scrolled by another
 //! element (`ParentViewport`, `SynchronizedOffset`) is no scroll container
 //! of its own and has no list layer. Each draws what it draws without
 //! layers.
@@ -16,22 +15,6 @@ fn list_layer_kept(cx: &mut TestAppContext, window: crate::AnyWindowHandle) -> b
             .keys()
             .any(|id: &GlobalElementId| id.last() == Some(&"list".into()))
     })
-}
-
-#[crate::test]
-fn a_list_with_sticky_rows_is_counted_ineligible(cx: &mut TestAppContext) {
-    if !crate::fast::layers::COMPILED {
-        return;
-    }
-    let counters = compare_with_layers_off(
-        cx,
-        || Page::new(Kind::Sticky, varied_heights()),
-        &wheel_history(5, 40),
-        "sticky rows",
-    );
-    assert!(counters["layer_bypasses.ineligible"] >= 30, "{counters:?}");
-    assert_eq!(counters["layers_composited"], 0);
-    assert_eq!(counters["layers_repainted"], 0);
 }
 
 #[crate::test]

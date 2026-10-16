@@ -1034,8 +1034,10 @@ struct DefaultScrollHandle(VirtualListScrollHandle);
 
 /// Frame state used by the [`VirtualList`].
 pub struct VirtualListFrameState {
-    /// Visible items to be painted.
+    /// Visible items to be painted: the ordinary rows, then the sticky rows
+    /// from `sticky_start`, drawn above the rows (and above a list layer).
     items: Vec<AnyElement>,
+    sticky_start: usize,
     size_layout: ItemSizeLayout,
     scroll_context: Option<ScrollContainerContext>,
 }
@@ -1269,6 +1271,7 @@ impl Element for VirtualList {
             layout_id,
             VirtualListFrameState {
                 items: Vec::new(),
+                sticky_start: 0,
                 size_layout,
                 scroll_context: None,
             },
@@ -1285,6 +1288,7 @@ impl Element for VirtualList {
         cx: &mut App,
     ) -> Self::PrepaintState {
         layout.items.clear();
+        layout.sticky_start = 0;
         layout.scroll_context = None;
         layout.size_layout.last_layout_bounds = bounds;
         let parent_viewport_scroll = self.uses_parent_viewport_scroll();
@@ -1567,9 +1571,17 @@ impl Element for VirtualList {
                         publish_rendered_range(listener, rendered_range.clone(), window, cx);
                     }
 
-                    // A list that is its own scroll container and has no sticky rows composites
-                    // from a list layer along its axis; one with sticky rows is counted
-                    // ineligible, and a list scrolled by another element calls no hook.
+                    // A list that is its own scroll container composites its ordinary rows from
+                    // a list layer along its axis, and draws its sticky candidates in view (the
+                    // active stack among them) above it every frame; a list scrolled by another
+                    // element calls no hook.
+                    // The layer holds no sticky candidate anywhere in its reach.
+                    let candidates = self.sticky_items.items();
+                    let is_candidate = |ix: usize| {
+                        candidates
+                            .binary_search_by_key(&ix, |item| item.visual_index)
+                            .is_ok()
+                    };
                     let fast_rows = if own_scroll {
                         crate::fast::layers::lists::begin_virtual_list(
                             window,
@@ -1582,7 +1594,7 @@ impl Element for VirtualList {
                             item_sizes,
                             extent_index,
                             &rendered_range,
-                            self.sticky_items.items().is_empty(),
+                            &is_candidate,
                         )
                     } else {
                         crate::fast::layers::lists::Rows::unlayered()
@@ -1599,6 +1611,32 @@ impl Element for VirtualList {
                     let sticky_items = self.sticky_items.items();
                     let first_sticky_item = sticky_items
                         .partition_point(|item| item.visual_index < rendered_range.start);
+                    if fast_rows.layered() {
+                        // The layer renders no sticky candidate: the incoming ones in view are
+                        // rendered here, as the rows rendered without a layer would bring them.
+                        for candidate in sticky_items[first_sticky_item..]
+                            .iter()
+                            .take_while(|item| item.visual_index < rendered_range.end)
+                        {
+                            let ix = candidate.visual_index;
+                            if active_sticky_items
+                                .iter()
+                                .any(|active| active.visual_index == ix)
+                            {
+                                continue;
+                            }
+                            if let Some(item) = (self.render_items)(ix..ix + 1, window, cx).pop() {
+                                sticky_render_items.push((
+                                    item,
+                                    ix,
+                                    StickyRenderLayer {
+                                        level: self.sticky_items.render_level(candidate),
+                                        incoming: true,
+                                    },
+                                ));
+                            }
+                        }
+                    }
                     let mut sticky_candidates = sticky_items[first_sticky_item..].iter().peekable();
                     let mut rendered_items = Vec::<(AnyElement, usize)>::new();
                     for (item, ix) in rendered_visible_items {
@@ -1625,6 +1663,7 @@ impl Element for VirtualList {
                     }
                     sticky_render_items
                         .sort_by(|lhs, rhs| compare_sticky_render_layers(lhs.2, rhs.2));
+                    let sticky_start = rendered_items.len();
                     rendered_items.extend(
                         sticky_render_items
                             .into_iter()
@@ -1658,9 +1697,18 @@ impl Element for VirtualList {
                     layout.scroll_context = Some(scroll_context);
 
                     let content_mask = ContentMask::rectangular(bounds);
+                    layout.sticky_start = sticky_start;
+                    let mut fast_rows = Some(fast_rows);
                     window.with_scroll_container_context(scroll_context, |window| {
                         window.with_content_mask(Some(content_mask), |window| {
-                            for (item, ix) in rendered_items {
+                            for (position, (item, ix)) in rendered_items.into_iter().enumerate() {
+                                // The sticky rows are prepainted after the ordinary rows are
+                                // done, outside a list layer, so their hitboxes are hit first.
+                                if position == sticky_start
+                                    && let Some(rows) = fast_rows.take()
+                                {
+                                    crate::fast::layers::lists::end_rows(window, cx, rows);
+                                }
                                 let item_origin = match self.axis {
                                     Axis::Horizontal => {
                                         if parent_viewport_scroll {
@@ -1747,7 +1795,9 @@ impl Element for VirtualList {
                                 }
                                 layout.items.push(item);
                             }
-                            crate::fast::layers::lists::end_rows(window, cx, fast_rows);
+                            if let Some(rows) = fast_rows.take() {
+                                crate::fast::layers::lists::end_rows(window, cx, rows);
+                            }
                         });
                     });
                 }
@@ -1783,13 +1833,18 @@ impl Element for VirtualList {
                         }
                         return;
                     }
+                    let (rows, sticky) = layout.items.split_at_mut(layout.sticky_start);
                     crate::fast::layers::lists::begin_paint_rows(window, cx, global_id);
-                    for item in &mut layout.items {
+                    for item in rows {
                         crate::fast::layers::lists::paint_row(window, cx, None, |window, cx| {
                             item.paint(window, cx)
                         });
                     }
                     crate::fast::layers::lists::end_paint_rows(window, cx, global_id);
+                    // Above the rows, and above the layer composited from them.
+                    for item in sticky {
+                        item.paint(window, cx);
+                    }
                 };
 
                 if let Some(scroll_context) = layout.scroll_context {

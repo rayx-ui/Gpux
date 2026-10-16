@@ -14,6 +14,8 @@ mod oracle;
 mod parent_viewport;
 mod range;
 mod rows;
+mod sticky;
+mod sticky_oracle;
 
 use crate::fast::tests::layer_support::{add_window, draw, with_window};
 use crate::{
@@ -54,6 +56,8 @@ pub(super) struct Log {
     pub(super) calls: Vec<Range<usize>>,
     /// The ranges `on_rendered_range` received.
     pub(super) ranges: Vec<Range<usize>>,
+    /// The rows clicked, for a page whose rows only record clicks.
+    pub(super) clicked: Vec<usize>,
 }
 
 impl Log {
@@ -78,6 +82,9 @@ pub(super) struct Page {
     pub(super) interactive: bool,
     /// Whether each row is tinted, which a test toggles to change the rows.
     pub(super) tint: bool,
+    /// Whether each row has an id and a click listener that records it in
+    /// [`Log::clicked`], and nothing else.
+    pub(super) clicks: bool,
     pub(super) handle: VirtualListScrollHandle,
     pub(super) parent: ScrollHandle,
     /// The list's handle over `parent`, for a list scrolled by it.
@@ -86,6 +93,32 @@ pub(super) struct Page {
     /// A view beside the list, notified alone to draw the page from last
     /// frame.
     pub(super) beside: Option<crate::Entity<Beside>>,
+    /// Which rows stick, for a list of kind [`Kind::Sticky`] or, along its
+    /// left edge, [`Kind::Horizontal`].
+    pub(super) sticky: Sticky,
+    /// The sticky state changes [`Sticky::Styled`]'s rows reported, by row.
+    pub(super) sticky_events: StickyEvents,
+}
+
+/// Sticky state changes, by row.
+pub(super) type StickyEvents = Rc<RefCell<Vec<(usize, String)>>>;
+
+/// Which rows of a page's list stick, and how.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum Sticky {
+    /// None, but for [`Kind::Sticky`]'s every 25th row at level 0.
+    Default,
+    /// Every 25th row at level 0.
+    Every25,
+    /// Every 4th row at level 0: candidates throughout the layer's reach.
+    Dense,
+    /// Every 50th row at level 0, and the 10th after it at level 1.
+    Levels,
+    /// Runs keyed by a stack id: every 25th row in the run of its hundred.
+    StackIds,
+    /// Every 25th row, inset by 4 px, styled while stuck, reporting its
+    /// state changes.
+    Styled,
 }
 
 /// A small block beside the list whose height a notification toggles.
@@ -114,12 +147,51 @@ impl Page {
             overscan: 0,
             interactive: false,
             tint: false,
+            clicks: false,
             handle: VirtualListScrollHandle::new(),
             parent,
             log: SharedLog::default(),
             beside: None,
+            sticky: Sticky::Default,
+            sticky_events: Rc::default(),
         }
     }
+}
+
+/// The sticky rows `sticky` makes of `count` rows, each made by `edge`.
+fn sticky_rows(
+    sticky: Sticky,
+    count: usize,
+    edge: fn() -> VirtualStickyRow,
+    events: &StickyEvents,
+) -> Vec<(usize, VirtualStickyRow)> {
+    (0..count)
+        .filter_map(|row| {
+            let sticky_row = match sticky {
+                Sticky::Default => None,
+                Sticky::Every25 => (row % 25 == 0).then(edge),
+                Sticky::Dense => (row % 4 == 0).then(edge),
+                Sticky::Levels => match row % 50 {
+                    0 => Some(edge().level(0)),
+                    10 => Some(edge().level(1)),
+                    _ => None,
+                },
+                Sticky::StackIds => (row % 25 == 0).then(|| edge().stack_id(("run", row / 100))),
+                Sticky::Styled => (row % 25 == 0).then(|| {
+                    let events = events.clone();
+                    edge()
+                        .inset(px(4.))
+                        .when_stuck(|style| style.opacity(0.75))
+                        .on_sticky_state_changed(move |event, _, _| {
+                            events
+                                .borrow_mut()
+                                .push((row, format!("{:?}", event.current)));
+                        })
+                }),
+            }?;
+            Some((row, sticky_row))
+        })
+        .collect()
 }
 
 /// A row's colour.
@@ -134,6 +206,7 @@ impl Render for Page {
         let tint = self.tint;
         let horizontal = self.kind == Kind::Horizontal;
         let interactive = self.interactive;
+        let clicks = self.clicks;
         let log = self.log.clone();
         let page = cx.entity().downgrade();
         let rows = move |range: Range<usize>| {
@@ -146,6 +219,13 @@ impl Render for Page {
                         div().w_full().h(px(extents[row]))
                     };
                     let block = block.flex_none().bg(row_color(row, tint));
+                    if clicks {
+                        let log = log.clone();
+                        return block
+                            .id(("row", row))
+                            .on_click(move |_, _, _| log.borrow_mut().clicked.push(row))
+                            .into_any_element();
+                    }
                     if !interactive {
                         return block.into_any_element();
                     }
@@ -203,16 +283,26 @@ impl Render for Page {
                 .into_any_element(),
             Kind::Horizontal => virtual_list(cx, Axis::Horizontal)
                 .track_scroll(&self.handle)
+                .sticky_rows(sticky_rows(
+                    self.sticky,
+                    self.extents.len(),
+                    VirtualStickyRow::left,
+                    &self.sticky_events,
+                ))
                 .w(px(W))
                 .h(px(H))
                 .into_any_element(),
             Kind::Sticky => virtual_list(cx, Axis::Vertical)
                 .track_scroll(&self.handle)
-                .sticky_rows(
-                    (0..self.extents.len())
-                        .step_by(25)
-                        .map(|row| (row, VirtualStickyRow::top())),
-                )
+                .sticky_rows(sticky_rows(
+                    match self.sticky {
+                        Sticky::Default => Sticky::Every25,
+                        sticky => sticky,
+                    },
+                    self.extents.len(),
+                    VirtualStickyRow::top,
+                    &self.sticky_events,
+                ))
                 .w(px(W))
                 .h(px(H))
                 .into_any_element(),
