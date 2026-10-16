@@ -39,7 +39,7 @@ use accesskit_consumer::{NodeRef, Tree, TreeChangeHandler as ChangeHandler};
 use gpux::A11yCallbacks;
 use wasm_bindgen::{JsCast, closure::Closure};
 
-use crate::{events::EventListenerHandle, window::WebWindowInner};
+use crate::{events::EventListenerHandle, ime_mirror::AccessibleField, window::WebWindowInner};
 
 /// How web windows offer the screen-reader mirror. Set it with [`set_web_screen_reader`] before
 /// opening a window.
@@ -123,6 +123,8 @@ struct Mirror {
     elements: HashMap<NodeId, web_sys::HtmlElement>,
     /// Nodes whose `accessibility_id` may name an `html_element` overlay, owned by `aria-owns`.
     owners: HashMap<NodeId, String>,
+    /// The registry keys of the `html_element` overlays the window shows.
+    overlays: HashSet<String>,
     /// The number of action requests the mirror sent, published on the root for tests.
     actions: u32,
 }
@@ -151,6 +153,23 @@ impl ChangeHandler for Changes {
     fn node_removed(&mut self, node: &NodeRef) {
         self.removed.push(node.locate().0);
     }
+}
+
+/// Whether a node of `role` is a field text is typed into, which the IME textarea stands for
+/// while it has focus (a spin button or slider is not, though AccessKit counts it as text input).
+fn is_text_field(role: Role) -> bool {
+    matches!(
+        role,
+        Role::TextInput
+            | Role::MultilineTextInput
+            | Role::SearchInput
+            | Role::PasswordInput
+            | Role::EmailInput
+            | Role::PhoneNumberInput
+            | Role::UrlInput
+            | Role::NumberInput
+            | Role::EditableComboBox
+    )
 }
 
 /// Whether `node` gets an element of its own.
@@ -274,10 +293,6 @@ impl WebAccessibility {
         style(&root, ROOT_STYLE);
         let canvas: &web_sys::Element = window.canvas.as_ref();
         canvas.after_with_node_1(&root).ok();
-        let had_focus =
-            self.button.borrow().as_ref().is_some_and(|button| {
-                self.document.active_element().as_ref() == Some(button.as_ref())
-            });
         if let Some(button) = self.button.borrow_mut().take() {
             let button: &web_sys::Element = button.as_ref();
             button.remove();
@@ -292,6 +307,7 @@ impl WebAccessibility {
             tree,
             elements,
             owners: HashMap::new(),
+            overlays: HashSet::new(),
             actions: 0,
         });
         let all = self.with_mirror(|mirror| {
@@ -303,12 +319,21 @@ impl WebAccessibility {
             }
             ids
         });
+        // DOM focus follows the tree's focus from the start (the enable button just went).
+        let focus = self
+            .with_mirror(|mirror| Some(mirror.tree.state().focus().map(|node| node.locate().0)));
         self.apply(Changes {
             written: all.unwrap_or_default(),
+            focus: focus.flatten(),
             ..Changes::default()
         });
-        if had_focus {
-            window.focus_ime_mirror();
+    }
+
+    /// Puts the mirror over the canvas where it is now: after a draw, and when the page
+    /// scrolls or resizes without the tree changing.
+    pub(crate) fn place(&self) {
+        if let Some(window) = self.window.upgrade() {
+            self.with_mirror(|mirror| mirror.place_root(&window));
         }
     }
 
@@ -364,6 +389,11 @@ impl WebAccessibility {
                     continue;
                 };
                 if *id == root_id {
+                    // The window: focusable for when no node of it has focus, named by its title.
+                    let root: &web_sys::Element = mirror.root.as_ref();
+                    root.set_attribute("role", "group").ok();
+                    root.set_attribute("tabindex", "-1").ok();
+                    attribute(root, "aria-label", node.label().as_deref());
                     touch(*id, &mut parents);
                     continue;
                 }
@@ -392,6 +422,7 @@ impl WebAccessibility {
                 match node.data().author_id() {
                     Some(author) => {
                         mirror.owners.insert(*id, author.to_string());
+                        mirror.own(*id);
                     }
                     None => {
                         mirror.owners.remove(id);
@@ -412,7 +443,6 @@ impl WebAccessibility {
             for parent in parents {
                 mirror.reorder(parent);
             }
-            mirror.refresh_owners(&self.document);
             changes.focus
         };
         if let Some(focus) = focus {
@@ -430,57 +460,88 @@ impl WebAccessibility {
         Some(element)
     }
 
-    /// Re-resolves `aria-owns` after the window's `html_element` overlays changed.
-    pub(crate) fn refresh_html_owners(&self) {
-        let document = self.document.clone();
-        self.with_mirror(|mirror| mirror.refresh_owners(&document));
+    /// Takes the registry keys of the `html_element` overlays the window shows after a draw,
+    /// resolving `aria-owns` again when they changed.
+    pub(crate) fn set_html_overlays<'a>(&self, keys: impl Iterator<Item = &'a String>) {
+        self.with_mirror(|mirror| {
+            let keys: HashSet<String> = keys.cloned().collect();
+            if keys != mirror.overlays {
+                mirror.overlays = keys;
+                let owners: Vec<NodeId> = mirror.owners.keys().copied().collect();
+                for id in owners {
+                    mirror.own(id);
+                }
+            }
+        });
     }
 
-    /// Moves DOM focus to the element of the node GPUI focused.
+    /// Moves DOM focus to the element of the node GPUI focused: a text field's is the IME
+    /// mirror's textarea, described as the field; with no node of the tree focused, the mirror's
+    /// root (the window) takes DOM focus, so keys still reach GPUI and screen readers name the
+    /// window rather than an unnamed edit field.
     fn move_focus(&self, window: &Rc<WebWindowInner>, focus: Option<NodeId>) {
-        let target = self.with_mirror(|mirror| {
+        enum Target {
+            Element(web_sys::HtmlElement),
+            Field(AccessibleField),
+            Window(web_sys::HtmlElement),
+        }
+        let Some(target) = self.with_mirror(|mirror| {
             let state = mirror.tree.state();
-            let node = focus.and_then(|id| state.node_by_tree_local_id(id, TreeId::ROOT))?;
-            if node.is_text_input() {
-                return Some(Err(node.label()));
+            let node = focus.and_then(|id| state.node_by_tree_local_id(id, TreeId::ROOT));
+            if let Some(node) = &node
+                && is_text_field(node.role())
+            {
+                let data = node.data();
+                return Target::Field(AccessibleField {
+                    name: node.label(),
+                    description: node.description(),
+                    placeholder: data.placeholder().map(str::to_string),
+                    required: data.is_required(),
+                    invalid: data.invalid().is_some(),
+                    multiline: node.role() == Role::MultilineTextInput,
+                });
             }
-            mirror
-                .elements
-                .get(&node.locate().0)
+            match node
+                .and_then(|node| mirror.elements.get(&node.locate().0))
                 .filter(|element| *element != &mirror.root)
-                .cloned()
-                .map(Ok)
-        });
-        match target.flatten() {
-            Some(Ok(element)) => {
-                self.moving_focus.set(true);
-                let options = web_sys::FocusOptions::new();
-                options.set_prevent_scroll(true);
-                element.focus_with_options(&options).ok();
-                self.moving_focus.set(false);
+            {
+                Some(element) => Target::Element(element.clone()),
+                None => Target::Window(mirror.root.clone()),
             }
-            Some(Err(name)) => {
+        }) else {
+            return;
+        };
+        let focus_element = |element: &web_sys::HtmlElement| {
+            self.moving_focus.set(true);
+            let options = web_sys::FocusOptions::new();
+            options.set_prevent_scroll(true);
+            element.focus_with_options(&options).ok();
+            self.moving_focus.set(false);
+        };
+        match target {
+            Target::Element(element) => {
+                window.ime_mirror.set_accessible_field(None);
+                focus_element(&element);
+            }
+            Target::Field(field) => {
                 // A text field is the IME mirror's textarea, which keeps text input on one path.
-                window.ime_mirror.set_accessible_name(name.as_deref());
+                window.ime_mirror.set_accessible_field(Some(&field));
                 if !window.ime_mirror.is_focused() {
                     self.moving_focus.set(true);
                     window.focus_ime_mirror();
                     self.moving_focus.set(false);
                 }
             }
-            None => {
-                // Focus left the tree's elements: keyboard input returns to the IME mirror.
-                window.ime_mirror.set_accessible_name(None);
-                let in_mirror = self.with_mirror(|mirror| {
-                    self.document.active_element().is_some_and(|active| {
-                        let root: &web_sys::Node = mirror.root.as_ref();
-                        root.contains(Some(active.as_ref()))
-                    })
-                });
-                if in_mirror == Some(true) {
-                    self.moving_focus.set(true);
-                    window.focus_ime_mirror();
-                    self.moving_focus.set(false);
+            Target::Window(root) => {
+                window.ime_mirror.set_accessible_field(None);
+                // Only DOM focus the window already holds moves: in the mirror, or on the IME
+                // textarea standing for no field.
+                let ours = self.document.active_element().is_some_and(|active| {
+                    let node: &web_sys::Node = root.as_ref();
+                    node.contains(Some(active.as_ref()))
+                }) || window.ime_mirror.is_focused();
+                if ours {
+                    focus_element(&root);
                 }
             }
         }
@@ -489,6 +550,17 @@ impl WebAccessibility {
     fn listen(self: &Rc<Self>, root: &web_sys::HtmlElement) {
         let target: &web_sys::EventTarget = root.as_ref();
         let mut listeners = self.listeners.borrow_mut();
+        if let Some(window) = self.window.upgrade() {
+            let page: &web_sys::EventTarget = window.browser_window.as_ref();
+            for event in ["scroll", "resize"] {
+                let weak = Rc::downgrade(self);
+                listeners.push(EventListenerHandle::add(page, event, move |_| {
+                    if let Some(this) = weak.upgrade() {
+                        this.place();
+                    }
+                }));
+            }
+        }
         let weak = Rc::downgrade(self);
         listeners.push(EventListenerHandle::add(target, "click", move |event| {
             if let Some(this) = weak.upgrade() {
@@ -695,21 +767,22 @@ impl Mirror {
         }
     }
 
-    /// Sets `aria-owns` on the elements whose `accessibility_id` names an `html_element`
-    /// overlay present in the document, so its DOM is read where the node is.
-    fn refresh_owners(&self, document: &web_sys::Document) {
-        for (id, author) in &self.owners {
-            let Some(element) = self.elements.get(id) else {
-                continue;
-            };
-            let owned = crate::html_element::overlay_dom_id(author);
-            let present = document.get_element_by_id(&owned).is_some();
-            attribute(element, "aria-owns", present.then_some(owned.as_str()));
-        }
+    /// Sets `aria-owns` on `id`'s element when its `accessibility_id` names an `html_element`
+    /// overlay the window shows, so the overlay's DOM is read where the node is.
+    fn own(&self, id: NodeId) {
+        let (Some(element), Some(author)) = (self.elements.get(&id), self.owners.get(&id)) else {
+            return;
+        };
+        let owned = self
+            .overlays
+            .contains(author)
+            .then(|| crate::html_element::overlay_dom_id(author));
+        attribute(element, "aria-owns", owned.as_deref());
     }
 
-    /// Whether `id`'s bounds leave a container around it that clips its children: a node a
-    /// scroll container has scrolled out of view.
+    /// Whether `id`'s bounds leave those of a node around it: a node a scroll container has
+    /// scrolled out of view (gpux's nodes do not say which ones clip their children, so any
+    /// ancestor's box counts; ScrollIntoView does nothing where no scroll container is).
     fn clipped(&self, id: NodeId) -> bool {
         let state = self.tree.state();
         let Some(node) = state.node_by_tree_local_id(id, TreeId::ROOT) else {
@@ -720,8 +793,7 @@ impl Mirror {
         };
         let mut parent = node.parent();
         while let Some(ancestor) = parent {
-            if ancestor.clips_children()
-                && let Some(port) = ancestor.bounding_box()
+            if let Some(port) = ancestor.bounding_box()
                 && (bounds.x0 < port.x0 - 0.5
                     || bounds.y0 < port.y0 - 0.5
                     || bounds.x1 > port.x1 + 0.5
@@ -762,7 +834,7 @@ fn write(element: &web_sys::HtmlElement, node: &NodeRef, prefix: &str, scale: f6
 
     attribute(el, "role", gpux::aria_role(role));
     let text_role = matches!(role, Role::Label | Role::TextRun);
-    let text_input = node.is_text_input();
+    let text_input = is_text_field(role);
     let name = (!text_role).then(|| node.label()).flatten();
     attribute(el, "aria-label", name.as_deref());
     attribute(el, "aria-description", node.description().as_deref());

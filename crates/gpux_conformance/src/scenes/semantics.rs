@@ -73,6 +73,16 @@ struct Controls {
     /// The check box and the slider take keyboard focus, so screen readers and keys reach them.
     subscribe_focus: gpux::FocusHandle,
     volume_focus: gpux::FocusHandle,
+    /// Whether the Details disclosure is open.
+    expanded: bool,
+    details_focus: gpux::FocusHandle,
+    /// The Copies spin button's value.
+    copies: f64,
+    copies_focus: gpux::FocusHandle,
+    /// Whether the links are grouped under "Pinned" (a node), or in an unnamed box (none).
+    pinned: bool,
+    /// The shelf's items: a scroll container shows the first two.
+    shelf_focus: Vec<gpux::FocusHandle>,
 }
 
 impl gpux::Render for Controls {
@@ -220,10 +230,216 @@ impl gpux::Render for Controls {
                     .aria_label("Fruits")
                     .flex()
                     .gap(px(8.))
-                    .children(
-                        ["Apple", "Pear", "Plum"]
-                            .map(|fruit| div().id(fruit).role(Role::ListItem).child(fruit)),
+                    .children(["Apple", "Pear", "Plum"].into_iter().enumerate().map(
+                        |(index, fruit)| {
+                            div()
+                                .id(fruit)
+                                .role(Role::ListItem)
+                                .aria_position_in_set(index + 1)
+                                .aria_size_of_set(3)
+                                .aria_selected(fruit == "Pear")
+                                .child(fruit)
+                        },
+                    )),
+            )
+            .child(self.more(cx))
+    }
+}
+
+impl Controls {
+    /// The scene's second half: a disclosure and what it controls, a spin button, a field
+    /// marked invalid, a disabled button, a table, a group that comes and goes, and a scroll
+    /// container holding items out of view.
+    fn more(&self, cx: &mut gpux::Context<Self>) -> impl IntoElement {
+        let expanded = self.expanded;
+        let entity = cx.entity().downgrade();
+        let set = move |change: fn(&mut Self)| {
+            let entity = entity.clone();
+            move |_: Option<&gpux::accesskit::ActionData>,
+                  _: &mut gpux::Window,
+                  cx: &mut gpux::App| {
+                entity
+                    .update(cx, |this: &mut Self, cx| {
+                        change(this);
+                        cx.notify();
+                    })
+                    .ok();
+            }
+        };
+        div()
+            .flex()
+            .flex_col()
+            .gap(px(6.))
+            .child(
+                div()
+                    .flex()
+                    .gap(px(10.))
+                    .child(
+                        div()
+                            .id("details")
+                            .role(Role::Button)
+                            .aria_label("Details")
+                            .aria_expanded(expanded)
+                            .aria_controls("details-panel")
+                            .track_focus(&self.details_focus)
+                            .w(px(90.))
+                            .h(px(24.))
+                            .bg(rgb(GRAY_HEX))
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                this.expanded = !this.expanded;
+                                cx.notify();
+                            }))
+                            .on_a11y_action(
+                                gpux::AccessibleAction::Expand,
+                                set(|this| this.expanded = true),
+                            )
+                            .on_a11y_action(
+                                gpux::AccessibleAction::Collapse,
+                                set(|this| this.expanded = false),
+                            ),
+                    )
+                    .child(
+                        div()
+                            .id("copies")
+                            .role(Role::SpinButton)
+                            .aria_label("Copies")
+                            .aria_numeric_value(self.copies)
+                            .aria_min_numeric_value(1.)
+                            .aria_max_numeric_value(9.)
+                            .track_focus(&self.copies_focus)
+                            .w(px(60.))
+                            .h(px(24.))
+                            .bg(rgb(GRAY_HEX))
+                            .on_a11y_action(
+                                gpux::AccessibleAction::Increment,
+                                set(|this| this.copies = (this.copies + 1.).min(9.)),
+                            )
+                            .on_a11y_action(
+                                gpux::AccessibleAction::Decrement,
+                                set(|this| this.copies = (this.copies - 1.).max(1.)),
+                            ),
+                    )
+                    .child(
+                        div()
+                            .id("delete")
+                            .role(Role::Button)
+                            .aria_label("Delete")
+                            .aria_disabled(true)
+                            .w(px(60.))
+                            .h(px(24.))
+                            .bg(rgb(GRAY_HEX)),
                     ),
+            )
+            .when(expanded, |more| {
+                more.child(
+                    div()
+                        .id("details-panel")
+                        .role(Role::Region)
+                        .aria_label("Details panel")
+                        .accessibility_id("details-panel")
+                        .child("More about it"),
+                )
+            })
+            .child(
+                div()
+                    .flex()
+                    .gap(px(8.))
+                    .child(
+                        div()
+                            .id("code")
+                            .role(Role::TextInput)
+                            .aria_label("Code")
+                            .aria_value("12")
+                            .aria_invalid(true)
+                            .aria_read_only(true)
+                            .aria_error_message("code-error")
+                            .w(px(80.))
+                            .h(px(20.))
+                            .bg(rgb(GRAY_HEX)),
+                    )
+                    .child(
+                        div()
+                            .id("code-error")
+                            .role(Role::Label)
+                            .accessibility_id("code-error")
+                            .aria_value("Six digits")
+                            .child("Six digits"),
+                    ),
+            )
+            .child(
+                div()
+                    .id("scores")
+                    .role(Role::Table)
+                    .aria_label("Scores")
+                    .aria_row_count(2)
+                    .aria_column_count(2)
+                    .children([["Ada", "3"], ["Max", "5"]].into_iter().enumerate().map(
+                        |(row, cells)| {
+                            div()
+                                .id(("score-row", row))
+                                .role(Role::Row)
+                                .aria_row_index(row)
+                                .flex()
+                                .gap(px(8.))
+                                .children(cells.into_iter().enumerate().map(
+                                    move |(column, cell)| {
+                                        div()
+                                            .id(("score", row * 2 + column))
+                                            .role(Role::Cell)
+                                            .aria_column_index(column)
+                                            .child(cell)
+                                    },
+                                ))
+                        },
+                    )),
+            )
+            .child(
+                div()
+                    .flex()
+                    .gap(px(8.))
+                    .child(
+                        div()
+                            .id("pin")
+                            .role(Role::Button)
+                            .aria_label("Pin")
+                            .w(px(40.))
+                            .h(px(20.))
+                            .bg(rgb(GRAY_HEX))
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                this.pinned = !this.pinned;
+                                cx.notify();
+                            })),
+                    )
+                    .child(
+                        div()
+                            .id("pins")
+                            .flex()
+                            .gap(px(8.))
+                            .when(self.pinned, |pins| {
+                                pins.role(Role::Group).aria_label("Pinned")
+                            })
+                            .children(["Alpha", "Beta"].map(|name| {
+                                div().id(name).role(Role::Link).aria_label(name).child(name)
+                            })),
+                    ),
+            )
+            .child(
+                div()
+                    .id("shelf")
+                    .role(Role::List)
+                    .aria_label("Shelf")
+                    .h(px(40.))
+                    .w(px(120.))
+                    .overflow_y_scroll()
+                    .children(self.shelf_focus.iter().enumerate().map(|(index, focus)| {
+                        div()
+                            .id(("shelf-item", index))
+                            .role(Role::ListItem)
+                            .aria_label(gpux::SharedString::from(format!("Item {}", index + 1)))
+                            .track_focus(focus)
+                            .h(px(20.))
+                            .child(gpux::SharedString::from(format!("Item {}", index + 1)))
+                    })),
             )
     }
 }
@@ -231,7 +447,11 @@ impl gpux::Render for Controls {
 fn controls(_: &mut gpux::Window, cx: &mut gpux::App) -> gpux::AnyView {
     use gpux::AppContext as _;
     cx.new(|cx| {
-        let title = cx.new(gpux::EditableTextState::new);
+        let title = cx.new(|cx| {
+            let mut title = gpux::EditableTextState::new(cx);
+            title.set_placeholder("Untitled", cx);
+            title
+        });
         cx.observe(&title, |_, _, cx| cx.notify()).detach();
         Controls {
             clicks: 0,
@@ -240,6 +460,12 @@ fn controls(_: &mut gpux::Window, cx: &mut gpux::App) -> gpux::AnyView {
             title,
             subscribe_focus: cx.focus_handle(),
             volume_focus: cx.focus_handle(),
+            expanded: false,
+            details_focus: cx.focus_handle(),
+            copies: 1.,
+            copies_focus: cx.focus_handle(),
+            pinned: false,
+            shelf_focus: (0..5).map(|_| cx.focus_handle()).collect(),
         }
     })
     .into()
@@ -255,7 +481,7 @@ fn state_is(clicks: usize, subscribed: bool, volume: u32) -> Step {
 pub const CONTROLS: SceneSpec = SceneSpec {
     id: "accessibility",
     areas: &[Area::AccessibilityTree, Area::Accessibility],
-    size: (360., 220.),
+    size: (360., 420.),
     scales: &[1., 2.],
     lanes: &[Lane::A, Lane::B, Lane::C, Lane::D, Lane::E, Lane::F],
     golden: false,

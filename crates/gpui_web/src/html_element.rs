@@ -243,6 +243,12 @@ impl WebHtmlElementRegistry {
         }
     }
 
+    /// The registry keys of the overlays shown.
+    #[cfg(feature = "accessibility")]
+    pub(crate) fn keys(&self) -> impl Iterator<Item = &String> {
+        self.roots.keys()
+    }
+
     pub(crate) fn sync_roots(
         &mut self,
         elements: &[HtmlElementPrimitive],

@@ -1371,7 +1371,8 @@ impl PlatformWindow for WebWindow {
         {
             let accessibility = self.inner.accessibility.borrow().clone();
             if let Some(accessibility) = accessibility {
-                accessibility.refresh_html_owners();
+                accessibility.set_html_overlays(self.inner.html_element_registry.borrow().keys());
+                accessibility.place();
             }
         }
 

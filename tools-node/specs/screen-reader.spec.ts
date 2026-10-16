@@ -246,3 +246,148 @@ test('screen-reader: activation the button label is the application\'s @pr', asy
   });
   await expect(page.getByRole('button', { name: 'Barrierefreiheit aktivieren' })).toHaveCount(1);
 });
+
+test('screen-reader: tree states, relations and positions reach ARIA @pr', async ({ gpux, page }) => {
+  await openMirrored(gpux);
+  const root = mirror(page);
+  const details = root.getByRole('button', { name: 'Details' });
+  await expect(details).toHaveAttribute('aria-expanded', 'false');
+  await expect(root.getByRole('button', { name: 'Delete' })).toHaveAttribute('aria-disabled', 'true');
+  const code = root.getByRole('textbox', { name: 'Code' });
+  await expect(code).toHaveAttribute('aria-readonly', 'true');
+  await expect(code).toHaveAttribute('aria-invalid', 'true');
+  const error = (await code.getAttribute('aria-errormessage'))!;
+  await expect(page.locator(`[id="${error}"]`)).toHaveText('Six digits');
+  const pear = root.getByRole('listitem').filter({ hasText: 'Pear' });
+  await expect(pear).toHaveAttribute('aria-selected', 'true');
+  await expect(pear).toHaveAttribute('aria-posinset', '2');
+  await expect(pear).toHaveAttribute('aria-setsize', '3');
+  const scores = root.getByRole('table', { name: 'Scores' });
+  await expect(scores).toHaveAttribute('aria-rowcount', '2');
+  await expect(scores.getByRole('row').nth(1)).toHaveAttribute('aria-rowindex', '2');
+  await expect(scores.getByRole('cell').nth(1)).toHaveAttribute('aria-colindex', '2');
+});
+
+test('screen-reader: tree drops removed nodes and keeps a node that loses its role in order @pr', async ({ gpux, page }) => {
+  await openMirrored(gpux);
+  const root = mirror(page);
+  // A node that leaves the tree leaves the DOM; what it controlled is named again when back.
+  await gpux.click('role=button name=Details');
+  const panel = root.getByRole('region', { name: 'Details panel' });
+  await expect(panel).toHaveCount(1);
+  await expect(root.getByRole('button', { name: 'Details' })).toHaveAttribute(
+    'aria-controls',
+    (await panel.getAttribute('id'))!,
+  );
+  await gpux.click('role=button name=Details');
+  await expect(panel).toHaveCount(0);
+  // The links' box becomes a named group, then a box with no node again: the links keep their
+  // elements and their order either way.
+  const alpha = root.getByRole('link', { name: 'Alpha' });
+  await alpha.evaluate((element) => ((element as unknown as { kept: boolean }).kept = true));
+  await gpux.click('role=button name=Pin');
+  const pinned = root.getByRole('group', { name: 'Pinned' });
+  await expect(pinned.getByRole('link')).toHaveText(['Alpha', 'Beta']);
+  await gpux.click('role=button name=Pin');
+  await expect(pinned).toHaveCount(0);
+  const links = root.getByRole('link');
+  await expect(links).toHaveText(['Alpha', 'Beta']);
+  expect(await alpha.evaluate((element) => (element as unknown as { kept?: boolean }).kept)).toBe(true);
+});
+
+test('screen-reader: tree updates touch only the changed nodes @pr', async ({ gpux, page }) => {
+  await openMirrored(gpux);
+  await page.evaluate((selector) => {
+    const root = document.querySelector(selector)!;
+    const touched = new Set<Element>();
+    (globalThis as unknown as { __touched: Set<Element> }).__touched = touched;
+    new MutationObserver((records) => {
+      for (const record of records) {
+        const target = record.target instanceof Element ? record.target : record.target.parentElement;
+        if (target && target !== root) touched.add(target.closest('[data-gpux-node]') ?? target);
+      }
+    }).observe(root, { subtree: true, attributes: true, childList: true, characterData: true });
+  }, MIRROR);
+  await gpux.click('role=checkbox name=Subscribe');
+  await expectStatus(page, 'clicks 0 subscribed true volume 5');
+  await gpux.frames(4);
+  const touched = await page.evaluate(() =>
+    [...(globalThis as unknown as { __touched: Set<Element> }).__touched].map(
+      (element) => `${element.getAttribute('role') ?? 'text'}:${element.getAttribute('aria-label') ?? element.textContent}`,
+    ),
+  );
+  expect(touched.length).toBeGreaterThan(0);
+  for (const element of touched) {
+    expect(['checkbox:Subscribe', 'status:', 'text:clicks 0 subscribed true volume 5'].some((allowed) =>
+      element.startsWith(allowed),
+    ), `${element} changed: ${touched}`).toBe(true);
+  }
+});
+
+test('screen-reader: tree follows the canvas when the page scrolls @pr', async ({ gpux, page }) => {
+  await openMirrored(gpux);
+  await page.evaluate(() => {
+    document.body.style.height = '3000px';
+    window.scrollTo(0, 120);
+  });
+  await gpux.frames(2);
+  const canvas = (await page.locator('canvas').first().boundingBox())!;
+  const button = await gpux.locate('role=button name=Activate');
+  const box = (await mirror(page).getByRole('button', { name: 'Activate' }).boundingBox())!;
+  near(box, { ...button, x: button.x + canvas.x, y: button.y + canvas.y });
+});
+
+test('screen-reader: input disclosure keys expand and collapse @pr', async ({ gpux, page }) => {
+  await openMirrored(gpux);
+  const details = mirror(page).getByRole('button', { name: 'Details' });
+  await details.focus();
+  await page.keyboard.press('Enter');
+  await expect(details).toHaveAttribute('aria-expanded', 'true');
+  await expect(mirror(page).getByRole('region', { name: 'Details panel' })).toHaveCount(1);
+  await details.focus();
+  await page.keyboard.press('Enter');
+  await expect(details).toHaveAttribute('aria-expanded', 'false');
+  await expect(mirror(page)).toHaveAttribute('data-gpux-last-action', /^Collapse /);
+});
+
+test('screen-reader: input spin button keys step its value @pr', async ({ gpux, page }) => {
+  await openMirrored(gpux);
+  const copies = mirror(page).getByRole('spinbutton', { name: 'Copies' });
+  await copies.focus();
+  await page.keyboard.press('ArrowUp');
+  await expect(copies).toHaveAttribute('aria-valuenow', '2');
+  await page.keyboard.press('ArrowDown');
+  await expect(copies).toHaveAttribute('aria-valuenow', '1');
+});
+
+test('screen-reader: input focusing a node scrolled out of view scrolls it in @pr', async ({ gpux, page }) => {
+  await openMirrored(gpux);
+  const shelf = (await mirror(page).getByRole('list', { name: 'Shelf' }).boundingBox())!;
+  const item = mirror(page).getByRole('listitem', { name: 'Item 5' });
+  expect((await item.boundingBox())!.y).toBeGreaterThan(shelf.y + shelf.height - 1);
+  await item.focus();
+  await expect(mirror(page)).toHaveAttribute('data-gpux-last-action', /^ScrollIntoView /);
+  await expect
+    .poll(async () => {
+      const box = (await item.boundingBox())!;
+      return box.y >= shelf.y - 1 && box.y + box.height <= shelf.y + shelf.height + 1;
+    })
+    .toBe(true);
+});
+
+test('screen-reader: input the IME textarea describes the field, and the window holds focus otherwise @pr', async ({ gpux, page }) => {
+  await openMirrored(gpux);
+  // No node has focus: the window holds DOM focus, not an unnamed edit field.
+  await expect
+    .poll(() => page.evaluate(() => document.activeElement?.hasAttribute('data-gpux-a11y-mirror')))
+    .toBe(true);
+  await gpux.click('role=textbox name=Title');
+  const textarea = page.locator('textarea');
+  await expect(textarea).toBeFocused();
+  await expect(textarea).toHaveAttribute('aria-label', 'Title');
+  await expect(textarea).toHaveAttribute('aria-multiline', 'false');
+  await expect(textarea).toHaveAttribute('aria-placeholder', 'Untitled');
+  // Focus moves to a check box: the textarea no longer stands for the field.
+  await gpux.click('role=checkbox name=Subscribe');
+  await expect(textarea).not.toHaveAttribute('aria-label', 'Title');
+});

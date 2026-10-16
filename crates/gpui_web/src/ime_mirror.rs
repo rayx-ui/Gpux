@@ -47,6 +47,18 @@ const CONTEXT_CHARS: usize = 512;
 /// element write and therefore an IME restart.
 const MIN_EDGE_CHARS: usize = 64;
 
+/// What the textarea tells screen readers of the text field it stands for.
+#[cfg(feature = "accessibility")]
+#[derive(Default)]
+pub(crate) struct AccessibleField {
+    pub(crate) name: Option<String>,
+    pub(crate) description: Option<String>,
+    pub(crate) placeholder: Option<String>,
+    pub(crate) required: bool,
+    pub(crate) invalid: bool,
+    pub(crate) multiline: bool,
+}
+
 /// The hidden `<textarea>` IMEs edit, plus the bookkeeping that relates it
 /// to the document.
 ///
@@ -183,14 +195,37 @@ impl ImeMirror {
         };
     }
 
-    /// Names the textarea for screen readers while it stands for a focused text field of the
-    /// accessibility tree, or clears the name.
+    /// Describes the textarea for screen readers while it stands for a focused text field of
+    /// the accessibility tree (its name, description, placeholder, whether it is required,
+    /// invalid or multiline), or clears the description.
     #[cfg(feature = "accessibility")]
-    pub(crate) fn set_accessible_name(&self, name: Option<&str>) {
-        match name {
-            Some(name) => self.element.set_attribute("aria-label", name).ok(),
-            None => self.element.remove_attribute("aria-label").ok(),
+    pub(crate) fn set_accessible_field(&self, field: Option<&AccessibleField>) {
+        let element: &web_sys::Element = self.element.as_ref();
+        let set = |name: &str, value: Option<&str>| {
+            match value {
+                Some(value) => element.set_attribute(name, value).ok(),
+                None => element.remove_attribute(name).ok(),
+            };
         };
+        let flag = |value: bool| value.then_some("true");
+        set("aria-label", field.and_then(|field| field.name.as_deref()));
+        set(
+            "aria-description",
+            field.and_then(|field| field.description.as_deref()),
+        );
+        set(
+            "aria-placeholder",
+            field.and_then(|field| field.placeholder.as_deref()),
+        );
+        set(
+            "aria-required",
+            field.and_then(|field| flag(field.required)),
+        );
+        set("aria-invalid", field.and_then(|field| flag(field.invalid)));
+        set(
+            "aria-multiline",
+            field.map(|field| if field.multiline { "true" } else { "false" }),
+        );
     }
 
     pub(crate) fn event_target(&self) -> &web_sys::EventTarget {

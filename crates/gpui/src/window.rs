@@ -7601,6 +7601,11 @@ impl Window {
     /// The HTML payload is trusted application markup and is not sanitized here.
     /// Native renderers ignore this metadata; `gpui_web` consumes it to sync a
     /// real DOM overlay above the canvas.
+    ///
+    /// In the web screen-reader mirror, the element whose
+    /// [`accessibility_id`](crate::StatefulInteractiveElement::accessibility_id) equals `id`'s
+    /// text owns the overlay (`aria-owns`), so screen readers read the overlay's DOM where that
+    /// element is in the tree; give the element painting the overlay that id.
     pub fn paint_html_element(
         &mut self,
         id: ElementId,
