@@ -268,6 +268,65 @@
           "path": ".agentx/memory/decisions/repository/validation/2026-10-13-repository-validation-fast-mode-proof-and-timing.md"
         }
       ]
+    },
+    {
+      "id": "d-range-listener-lease",
+      "requirementIds": [
+        "RX",
+        "LL"
+      ],
+      "descriptionMarkdown": "**Decision.** `VirtualList` calls its `on_rendered_range` listener inside `fast::layers::lists::render_items`: the lease of the view holding the list, and any update of it the listener makes, is part of drawing that view, as rendering its rows is. A range the listener records in that view (RayX's `ListViewState` and `TreeStateBase` keep `visible_range` there) therefore does not build the views that read the holder again.\n\n**Contract.** A view that shows the range takes it from an event the listener emits (RayX's `VisibleRangeChanged`), which notifies it, not by reading the holder as it renders. Documented in `docs/fast-mode.md`.\n\n**Owner.** The fix is in gpux, not RayX: RayX's high-level API emits `VisibleRangeChanged` from `ListViewState`/`TreeStateBase`, and emitting requires updating that entity, which gpux counted as a change for every reader, whatever field held the range. Keeping the range in a `Cell` outside the entity would still need the update to emit.",
+      "invariantsMarkdown": "- With scroll layers off the listener is called as before.\n- Frames equal frames drawn without fast mode for a holder that records the range and for a view told of it by an event (`fast::tests::virtual_list_layers::range`).",
+      "rationaleMarkdown": "It follows gpux's existing rule that a lease which is part of drawing a view (`render_next`, `rendering_rows_of`) stamps neither an update nor a write, and that any new framework lease of a view while a frame is drawn needs the same mark. The listener is called by the framework on every frame the list is drawn, before its rows render.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/virtual_list/mod.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/ui/virtualization/2026-07-24-ui-virtualization-overscanned-mounted-range-publication.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-oracle.md"
+        }
+      ]
+    },
+    {
+      "id": "d-scrollbar-in-scroll-owner",
+      "requirementIds": [
+        "RX"
+      ],
+      "descriptionMarkdown": "**Decision (owner, 2026-10-16: option (c), fix the visible-scrollbar case in this epic).** A `ListView`'s scrollbar is drawn by `ListViewState`, the view that owns the scroll and is built on every scroll, not by the `ListView` wrapper in the view holding it. The wrapper hands the state its scrollbar settings (`ListViewScrollbar`), as it hands it the row renderer, and the state draws its list and the scrollbar layer in a relative box filling the wrapper's content box.\n\n**Fade.** On a frame whose offset changed, RayX's `Scrollbar` no longer notifies its view at once: it schedules the idle timer (one at a time), which notifies the view once the scroll has been idle for the delay, for the thumb to fade. The scrolled frame already shows the thumb, since prepaint compares the offset with the last one.",
+      "invariantsMarkdown": "- A scrollbar reads the offset as it prepaints; gpux builds again a view whose prepaint read an offset that moved, so it belongs to the view that owns the scroll.\n- The thumb shows on a scrolled frame and fades once the scroll is idle (`virtual_list_rebuilds::a_list_view_scrollbar_fades_once_the_scroll_is_idle`).",
+      "rationaleMarkdown": "Drawn by the wrapper, the scrollbar made the view holding a ListView depend on the offset, and its paint-time notification counted as a change of the state view for every view reading it: the holder was built on every scroll frame (2 views a frame against 1 for a bare list).",
+      "sourceRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/element.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/state.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/layout/scroll/scrollbar.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/ui/virtualization/2026-08-11-ui-virtualization-wheel-input-invalidation.md"
+        }
+      ]
     }
   ],
   "memoryDecisionsConsidered": [

@@ -1,12 +1,12 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list",
-  "revision": 57,
-  "planRevision": 3,
+  "revision": 74,
+  "planRevision": 6,
   "specHashes": {
     "requirements": "9084aebf4ffae7ee7c8ab434f1a2926f10a92fe3d9c8af4ff6df6e7dd4e37b9b",
-    "design": "37fdac31f34e8fe155ab1a0a2683e57b293e1d72fc403cbd271732569376a02f",
-    "plan": "2818fa5fecedcf125ffe06e61ff71cba0556804986850f56bf1bddbea31c14ea"
+    "design": "0e00371145ca46eabdf720c93eff6cdfdfc211df4766e2f373d31fde23bebe57",
+    "plan": "ca79ddb71d6b3e24cf5fa2faea8fd3f56b0c44b1a0ebb953a49b6b215e2217c9"
   },
   "tasks": {
     "t01-move": {
@@ -76,13 +76,17 @@
       ]
     },
     "t12-rayx-layers": {
-      "status": "in_progress",
+      "status": "blocked",
+      "workerIds": [
+        "virtual-list"
+      ],
+      "blockerMarkdown": "Waits on t13: the state views rebuild on scroll frames and demote their layers (plan revision 3 moved t12 after t13); no source written for it yet."
+    },
+    "t13-state-rebuilds": {
+      "status": "done",
       "workerIds": [
         "virtual-list"
       ]
-    },
-    "t13-state-rebuilds": {
-      "status": "pending"
     }
   },
   "validationBatches": {
@@ -145,6 +149,36 @@
         }
       },
       "recordedAt": "2026-10-16T19:39:44Z"
+    },
+    "3f4531b39b39a9ac7751e55a6d8a486a8473569e8f0c14fe1df20dc7b8ce7ff7": {
+      "snapshot": {
+        "specHash": "81c6f13cccb60b9055522d25686f458b9a7f7a441a09dd417280cd4c0c9cee81",
+        "repositories": {
+          "gpux": "e6171c0645bdc69fffcd034cbf4644e78f91af19f4b22c7b48174586bda47bf4",
+          "rayx": "c12f13b931a3979b6bfec4ffc6291dfd47265b11510fb6598ade9e210f541127"
+        }
+      },
+      "recordedAt": "2026-10-16T19:43:07Z"
+    },
+    "5b14eeac7d9df588e69a19905dbb82fd153afd05e13d102e3380dbf1f5635620": {
+      "snapshot": {
+        "specHash": "d09c9ea1fc56145f385d67fd3f7f3544c084c6f768d461d35ced07c272670ea9",
+        "repositories": {
+          "gpux": "28fbc256c304c57f07b0f31577164f3cc7fb4c47f22705c8b57c1f237ee99e86",
+          "rayx": "fe2abe5773a27cfab6549340efe4d983644c4579ff0e32e979310f9150988fde"
+        }
+      },
+      "recordedAt": "2026-10-16T20:05:06Z"
+    },
+    "cf9930e1e9b16f235732b0c29d187b3f89c59ff87b6c5ee4518baec45727b33a": {
+      "snapshot": {
+        "specHash": "d404e47cabb0031c3d7b96ad83b5f8adbf57ee9e1f3555886d3ca70f5314753b",
+        "repositories": {
+          "gpux": "28fbc256c304c57f07b0f31577164f3cc7fb4c47f22705c8b57c1f237ee99e86",
+          "rayx": "3c23a20db3abad8443005fc717c5183b1fa108d8d274dc01bab83e5f166f1c28"
+        }
+      },
+      "recordedAt": "2026-10-16T20:16:11Z"
     }
   },
   "checkResults": {
@@ -453,6 +487,57 @@
       "logPath": "artifacts-temp/agentx/gpux-virtual-list/s05-rayx-migration-final-fde64dfee110.log",
       "logSha256": "6edc50e7b644a0eae0c95e132fb35a7db16f936330a7ada614052e747b9de0f6",
       "inputsHash": "6bf3bf4a90926985b604d6ea805e7d766391006fc9257e7e21ac26b843065165"
+    },
+    "s06-rayx-rebuilds/c-rx-rebuilds/baseline": {
+      "checkId": "c-rx-rebuilds",
+      "boundaryId": "s06-rayx-rebuilds",
+      "phase": "baseline",
+      "batchId": "3f4531b39b39a9ac7751e55a6d8a486a8473569e8f0c14fe1df20dc7b8ce7ff7",
+      "definitionHash": "d4c46d1ca89593f3dccf7171168a330ba6de58b46c3eeca9c1a014bac6bd1fa8",
+      "basisHash": "f14e80ad9285414ca1c7bcf3319e1b902b68d39e4d392e02ecc57517be1cd019",
+      "status": "passed",
+      "exitCode": 101,
+      "testCount": 2,
+      "durationSeconds": 0.7813,
+      "recordedAt": "2026-10-16T19:43:06Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/s06-rayx-rebuilds-baseline-3136e664bc10.log",
+      "logSha256": "ffbbfb18c60bba768fbeb525bba0149d8b7fc909493f973db89206437a41f1b6",
+      "inputsHash": "08319fa106f1137dbfcfae8d8983364fe3e577d87a4960a4cd6d9aa94040cd71"
+    },
+    "s06-rayx-rebuilds/c-rx-rebuilds/final": {
+      "checkId": "c-rx-rebuilds",
+      "boundaryId": "s06-rayx-rebuilds",
+      "phase": "final",
+      "batchId": "cf9930e1e9b16f235732b0c29d187b3f89c59ff87b6c5ee4518baec45727b33a",
+      "definitionHash": "6564b389cdce9db26008c4ee57ac0e3d51bee6a6b59392ff1ffba38752b238e8",
+      "basisHash": "e676bafc203680dd7367d1e4b693630bf83e12274532f6dfac468691b376f0fe",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 6.6222,
+      "recordedAt": "2026-10-16T20:16:10Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/s06-rayx-rebuilds-final-80cc43c927d7.log",
+      "logSha256": "229cfd06dbb118dbf00471d5c1d66d0bba2e9f1c2ab9518a15dc5d85868337fe",
+      "inputsHash": "9337dda43b3aee7a7fef423eea295b8f4ee456de07a019f4c2045d02ef719189"
+    },
+    "s06-rayx-rebuilds/c-gpux-range-lease/final": {
+      "checkId": "c-gpux-range-lease",
+      "boundaryId": "s06-rayx-rebuilds",
+      "phase": "final",
+      "batchId": "5b14eeac7d9df588e69a19905dbb82fd153afd05e13d102e3380dbf1f5635620",
+      "definitionHash": "80a14c7efd8e99b05ef54282108e2e24f3be7ef935c07e0e13cfda28067f83c4",
+      "basisHash": "5d9aa7d5781c7b09fa2b9b556ae2c648b6221c8b5d476dd42f00c2e187a64e7d",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 0.4606,
+      "recordedAt": "2026-10-16T20:05:06Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/s06-rayx-rebuilds-final-6f4327d45bc1.log",
+      "logSha256": "cee49136d838edc7e2bb9d241b22ca54c41fb780f2c9fbca34680dab879425e8",
+      "inputsHash": "105eba6f4a3f6a30b7662bb0d3c7368c4314f7f93694c6c418fe10ca429c777c"
     }
   },
   "reviews": {
@@ -918,6 +1003,88 @@
         "s05-F2"
       ],
       "recordedAt": "2026-10-16T19:41:15Z"
+    },
+    "s06-rayx-rebuilds": {
+      "reviewerId": "reviewer-s06-independent",
+      "snapshotId": "cf9930e1e9b16f235732b0c29d187b3f89c59ff87b6c5ee4518baec45727b33a",
+      "criterionIds": [
+        "RX-3"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/virtual_list_rebuilds.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-3"
+          ],
+          "sha256": "abadf9281054fedb8bf0ee1d0aa2b55897219d9a748c082648344d90ac4a5452"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/state.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-3"
+          ],
+          "sha256": "e4cf83a4e0693c6007a40864cdac9cd453976d3f2225d3b8dca0bf6ff177b581"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/element.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-3"
+          ],
+          "sha256": "3da77962c54a25fc9d7c4e1005a7e16b74709c50455e38e60987df3bdc8438c8"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/layout/scroll/scrollbar.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-3"
+          ],
+          "sha256": "eed50ecc09ec025b979c9bfe21be43d0167a3a9eb5d4c90d29a3505dc5bd70dd"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/virtual_list/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-3"
+          ],
+          "sha256": "3c2ee1f6df1adee68748a503ba3bdfc4b18efae838bbcc045d286420ed55971a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/range.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-3"
+          ],
+          "sha256": "88167be0adabe3f951192a304739525de2c707612e65c495d2237a32a2d6c8d2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md",
+          "kind": "source",
+          "criterionIds": [
+            "RX-3"
+          ],
+          "sha256": "03d4bdb6b40e3b21f7227dbb27f95c449de3471268ff0c78634c45888ec25abe"
+        }
+      ],
+      "summaryMarkdown": "RX-3 met. Cause isolated and named in the test's doc comment (the range listener's lease of the state view, counted as a change for its wrapper's holder), red baseline recorded, fixed in gpux under d-range-listener-lease with gpux's own oracle-compared proof (c-gpux-range-lease 2/2, holder-recorded and event-told readers). The default-scrollbar rebuild is fixed under the owner's d-scrollbar-in-scroll-owner: the state view draws the scrollbar and Scrollbar defers its notify to the idle timer, whose fade the new test keeps. The RX-3 group asserts strict per-frame equality with the bare holder for ListView with and without scrollbar and TreeBase, and that each list scrolled (c-rx-rebuilds 4/4). F1-F5 resolved. For s07: RX-2 must show the list layer stays eligible with the scrollbar layer now drawn over it in the state view.\n\nInspected planRevision 6: designs d-range-listener-lease and d-scrollbar-in-scroll-owner; gpux `range.rs` (two lease tests, each comparing painted primitives with a fast-mode-off reference window), `docs/fast-mode.md` rewrap; RayX `list_view/{element,state}.rs` (scrollbar settings handed to the state view, which draws list and `scrollbar_layer` in a relative box), `scrollbar.rs` paint (offset change schedules the shared idle timer instead of notifying at once; prepaint's own idle/fade scheduling at ~827-852 still re-arms it, so a timer firing mid-scroll is harmless), and the strict RX-3 test plus the fade test. Recorded results at this snapshot: c-rx-rebuilds 4/4, c-gpux-range-lease 2/2. Owner argument accepted: emitting `VisibleRangeChanged` needs a lease of the state entity, which gpux counted as a change regardless of where the range lives. Observation for s07, not a finding: the scrollbar layer now sits over the list inside the state view; RX-2's composite test must show the list layer stays eligible.",
+      "findingIds": [
+        "s06-F1",
+        "s06-F2",
+        "s06-F3",
+        "s06-F4",
+        "s06-F5"
+      ],
+      "recordedAt": "2026-10-16T20:17:57Z"
     }
   },
   "checkpoints": {
@@ -965,6 +1132,15 @@
       },
       "reviewHash": "0285b853034fea410be988aaae57939f71acb6beddd9227d32c24e40ee583b8a",
       "recordedAt": "2026-10-16T19:41:31Z"
+    },
+    "s06-rayx-rebuilds": {
+      "snapshotId": "cf9930e1e9b16f235732b0c29d187b3f89c59ff87b6c5ee4518baec45727b33a",
+      "commits": {
+        "gpux": "c854f307c109d91b92cd97734695396e3cafab87",
+        "rayx": "d98675c2a60aa6a034baf1edce58633d39566dcb"
+      },
+      "reviewHash": "b2aa144b6b99c79d6dce77b0ab743c81b6f94df835e5b78faec0a4c7c7f8082a",
+      "recordedAt": "2026-10-16T20:18:18Z"
     }
   },
   "findings": [
@@ -1154,9 +1330,102 @@
           "path": ".claude/skills/rayx-components/references/headless-and-non-visual/headless-and-non-visual.md"
         }
       ]
+    },
+    {
+      "id": "s06-F1",
+      "criterionIds": [
+        "RX-3"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved: d-range-listener-lease records the decision, the gpux ownership and the narrowed contract; `a_range_recorded_in_the_holding_view_builds_no_reader_again` now compares every frame with a fast-mode-off reference, and `a_view_told_of_the_range_by_an_event_shows_it` proves the event path rebuilds the reader with equal frames. Registered as c-gpux-range-lease.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/range.rs",
+          "symbol": "a_range_recorded_in_the_holding_view_builds_no_reader_again"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/range.rs",
+          "symbol": "a_view_told_of_the_range_by_an_event_shows_it"
+        }
+      ],
+      "boundaryId": "s06-rayx-rebuilds"
+    },
+    {
+      "id": "s06-F2",
+      "criterionIds": [
+        "RX-3"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved by owner decision (c), d-scrollbar-in-scroll-owner: ListViewState draws the scrollbar and Scrollbar paint defers its notify to the idle timer; the default-scrollbar case asserts strict per-frame equality with the bare holder (no root subtraction), and the fade test keeps the thumb's idle fade.",
+      "regressionRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/virtual_list_rebuilds.rs",
+          "symbol": "a_list_view_with_its_scrollbar_builds_no_more_views_than_a_bare_list"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/virtual_list_rebuilds.rs",
+          "symbol": "a_list_view_scrollbar_fades_once_the_scroll_is_idle"
+        }
+      ],
+      "boundaryId": "s06-rayx-rebuilds"
+    },
+    {
+      "id": "s06-F3",
+      "criterionIds": [
+        "RX-3"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved: `check` asserts `built == holder` per frame and that both the bare list and the list scrolled to row 40 or further.",
+      "regressionRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/virtual_list_rebuilds.rs",
+          "symbol": "check"
+        }
+      ],
+      "boundaryId": "s06-rayx-rebuilds"
+    },
+    {
+      "id": "s06-F4",
+      "criterionIds": [
+        "RX-3"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved: c-gpux-range-lease (gpux, RX-3) is in s06 and passed.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/range.rs"
+        }
+      ],
+      "boundaryId": "s06-rayx-rebuilds"
+    },
+    {
+      "id": "s06-F5",
+      "criterionIds": [
+        "RX-3"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved: the paragraph in docs/fast-mode.md is rewrapped to the file's width.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md"
+        }
+      ],
+      "boundaryId": "s06-rayx-rebuilds"
     }
   ],
-  "handoffMarkdown": "VL-5 outcome before the fix (code at 85aa8bd): the parent_viewport group FAILED, so the suspected defect is real. Inside the parent div's layer the list published primary size 302 px against 100 px, ranges 0..18 against 2..9, and whole-frame descriptions of 109 lines against 57 (raw output: artifacts-temp/agentx/gpux-virtual-list/t09-before-fix.txt). Fix: the list takes its parent viewport from fast::layers::paint::unlayered_content_mask. Deviation from d-parent-viewport-viewport: the rows it prepaints are the viewport's, not the painted region's, because rendering rows over the painted region adds element states and hitboxes a frame drawn from scratch lacks; the list reads the parent's offset, so the layer repaints on every scroll and composites only at the offset it was painted at, where the viewport's rows are all it shows.",
+  "handoffMarkdown": "Cause isolated by probes: the on_rendered_range listener of ListViewState/TreeStateBase updates the state view while the list draws; gpux counted it as a change, so the view holding the ListView/TreeBase wrapper (which reads the state) rebuilt on every frame the range changed. Not the cause: the wrapper's render-time set_render_item write, nor unchanged-range writes. Fix in gpux: VirtualList calls the listener inside lists::render_items. Separate, by gpux design: a visible RayX Scrollbar reads the offset in prepaint, so the view holding a ListView with its default scrollbar rebuilds every scroll frame; the state view does not.",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",

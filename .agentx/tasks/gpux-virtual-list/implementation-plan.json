@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list",
-  "revision": 3,
+  "revision": 6,
   "title": "VirtualList in gpux: RayX's variable-size virtual list moved into gpux with per-row scroll layers, its redraw, ParentViewport and rebuild defects fixed, and RayX moved onto it",
   "validationMode": "sprint",
   "repositories": [
@@ -800,6 +800,37 @@
         "testCountPattern": "gpux-testkit: (\\d+) passed"
       },
       "reuse": false
+    },
+    {
+      "id": "c-gpux-range-lease",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "RX-3"
+      ],
+      "descriptionMarkdown": "gpux's own proof of d-range-listener-lease: a range recorded in the holding view builds no reader again, and a view told of it by an event shows it, frames equal to fast mode off.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "--",
+        "fast::tests::virtual_list_layers::range::a_range_recorded_in_the_holding_view_builds_no_reader_again",
+        "fast::tests::virtual_list_layers::range::a_view_told_of_the_range_by_an_event_shows_it"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
     }
   ],
   "finalCheckIds": [
@@ -1139,13 +1170,13 @@
     },
     {
       "id": "s06-rayx-rebuilds",
-      "title": "No state-view rebuilds on scroll-only frames, and RayX composites",
+      "title": "No state-view rebuilds on scroll-only frames",
       "dependsOn": [
         "s05-rayx-migration"
       ],
       "checkIds": [
         "c-rx-rebuilds",
-        "c-rx-layers"
+        "c-gpux-range-lease"
       ],
       "tasks": [
         {
@@ -1156,11 +1187,14 @@
             "RX-3"
           ],
           "designIds": [
-            "d-state-rebuilds"
+            "d-state-rebuilds",
+            "d-range-listener-lease",
+            "d-scrollbar-in-scroll-owner"
           ],
           "dependsOn": [],
           "checkIds": [
-            "c-rx-rebuilds"
+            "c-rx-rebuilds",
+            "c-gpux-range-lease"
           ],
           "sourceRefs": [
             {
@@ -1176,7 +1210,19 @@
               "path": "crates/rayx_components/rayx_components_base/src/tree/element.rs"
             }
           ]
-        },
+        }
+      ]
+    },
+    {
+      "id": "s07-rayx-layers",
+      "title": "RayX's ListView and TreeView composite from list layers",
+      "dependsOn": [
+        "s06-rayx-rebuilds"
+      ],
+      "checkIds": [
+        "c-rx-layers"
+      ],
+      "tasks": [
         {
           "id": "t12-rayx-layers",
           "title": "Prove ListView and TreeView composite",
@@ -1188,9 +1234,7 @@
             "d-rayx-migration",
             "d-proof"
           ],
-          "dependsOn": [
-            "t13-state-rebuilds"
-          ],
+          "dependsOn": [],
           "checkIds": [
             "c-rx-layers"
           ]
