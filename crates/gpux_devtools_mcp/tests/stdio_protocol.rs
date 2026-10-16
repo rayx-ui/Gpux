@@ -1,5 +1,6 @@
 //! The sidecar's MCP side against a scripted app: initialize and the tool list, every `gpux_*`
-//! and `browser_*` tool, Playwright's response sections, and `--print-manifest`.
+//! and `browser_*` tool, Playwright's response sections, and `--print-manifest`; and the binary
+//! over a real pipe, telling the harness when apps' tools come and go.
 
 mod support;
 
@@ -66,8 +67,8 @@ fn the_tool_list_holds_the_gpux_and_playwright_tools() {
         assert!(names.contains(&name), "{name} is listed");
     }
     assert!(
-        !names.contains(&"browser_set_property"),
-        "SetValue replaces it"
+        names.contains(&"browser_set_property"),
+        "RayX DevKit's tool, as SetValue"
     );
 }
 
@@ -340,4 +341,175 @@ fn the_probe_snapshots_and_taps_a_named_button() {
     assert_eq!(app.last("input")["ref"], "5");
     assert_eq!(app.last("input")["window"], 1);
     app.disconnect();
+}
+
+#[test]
+fn browser_set_property_sets_the_value_through_set_value() {
+    let server = server();
+    let app = ScriptedApp::connect(&server, "demo", json!([]));
+    let mut client = Client::new(&server);
+    let result = client.call(
+        "browser_set_property",
+        json!({ "target": "6", "property": "value", "value": "Ada" }),
+    );
+    let act = app.last("act");
+    assert_eq!(act["ref"], "6");
+    assert_eq!(act["action"], "setValue");
+    assert_eq!(act["value"], "Ada");
+    let text = Client::text(&result);
+    for section in [
+        "### Result",
+        "### Ran Playwright code",
+        "### Page",
+        "### Snapshot",
+    ] {
+        assert!(text.contains(section), "{section} in {text}");
+    }
+    let numeric = client.call(
+        "browser_set_property",
+        json!({ "target": "7", "value": 0.5 }),
+    );
+    assert!(Client::text(&numeric).contains("Set 7 to 0.5"), "{numeric}");
+    assert_eq!(app.last("act")["value"], 0.5);
+}
+
+/// The binary on a real pipe: MCP on its stdin and stdout, apps on its port.
+struct Binary {
+    child: std::process::Child,
+    stdin: std::process::ChildStdin,
+    lines: std::sync::mpsc::Receiver<Value>,
+    port: u16,
+}
+
+impl Binary {
+    // A test drives the real binary on its pipes; nothing async runs here.
+    #[allow(clippy::disallowed_methods)]
+    fn start() -> Self {
+        use std::io::BufRead as _;
+        let port = std::net::TcpListener::bind("127.0.0.1:0")
+            .unwrap()
+            .local_addr()
+            .unwrap()
+            .port();
+        let mut child = std::process::Command::new(env!("CARGO_BIN_EXE_gpux-devtools-mcp"))
+            .args(["--port", &port.to_string()])
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .unwrap();
+        let stdin = child.stdin.take().unwrap();
+        let stdout = child.stdout.take().unwrap();
+        let (sender, lines) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            for line in std::io::BufReader::new(stdout)
+                .lines()
+                .map_while(Result::ok)
+            {
+                if sender.send(serde_json::from_str(&line).unwrap()).is_err() {
+                    return;
+                }
+            }
+        });
+        // The binary says on stderr when it listens.
+        let mut stderr = std::io::BufReader::new(child.stderr.take().unwrap());
+        let mut line = String::new();
+        stderr.read_line(&mut line).unwrap();
+        assert!(line.contains("waiting for gpux apps"), "{line}");
+        Self {
+            child,
+            stdin,
+            lines,
+            port,
+        }
+    }
+
+    fn send(&mut self, message: Value) {
+        use std::io::Write as _;
+        writeln!(self.stdin, "{message}").unwrap();
+        self.stdin.flush().unwrap();
+    }
+
+    fn next(&self, what: &str) -> Value {
+        self.lines
+            .recv_timeout(std::time::Duration::from_secs(10))
+            .unwrap_or_else(|_| panic!("no {what} on stdout"))
+    }
+
+    /// Connects an app offering `tools`, as gpux-devtools does.
+    fn app(
+        &self,
+        id: &str,
+        tools: Value,
+    ) -> tungstenite::WebSocket<tungstenite::stream::MaybeTlsStream<std::net::TcpStream>> {
+        let (mut socket, _) =
+            tungstenite::connect(format!("ws://127.0.0.1:{}", self.port)).unwrap();
+        let hello = json!({
+            "jsonrpc": "2.0", "id": 1, "method": "hello",
+            "params": { "protocolVersion": gpux_devtools_mcp::PROTOCOL_VERSION, "token": null,
+                        "appId": id, "appName": id, "platform": "test", "windows": [], "tools": tools }
+        });
+        socket
+            .send(tungstenite::Message::text(hello.to_string()))
+            .unwrap();
+        loop {
+            if let tungstenite::Message::Text(text) = socket.read().unwrap() {
+                let reply: Value = serde_json::from_str(&text).unwrap();
+                assert_eq!(reply["id"], 1, "{reply}");
+                return socket;
+            }
+        }
+    }
+}
+
+impl Drop for Binary {
+    fn drop(&mut self) {
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+    }
+}
+
+#[test]
+fn the_binary_serves_stdio_and_tells_the_harness_when_app_tools_change() {
+    let mut binary = Binary::start();
+    binary.send(json!({ "jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {} }));
+    let init = binary.next("the initialize answer");
+    assert_eq!(init["id"], 1);
+    assert_eq!(init["result"]["capabilities"]["tools"]["listChanged"], true);
+    let list = |binary: &mut Binary, id: u64| -> Vec<String> {
+        binary.send(json!({ "jsonrpc": "2.0", "id": id, "method": "tools/list" }));
+        let answer = binary.next("the tool list");
+        assert_eq!(answer["id"], id, "{answer}");
+        answer["result"]["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|tool| tool["name"].as_str().unwrap().to_string())
+            .collect()
+    };
+    assert!(!list(&mut binary, 2).contains(&"rayx_metadata".to_string()));
+
+    // An app connects after the harness listed the tools: the harness hears of it.
+    let mut socket = binary.app(
+        "lab",
+        json!([{ "name": "rayx_metadata", "description": "metadata", "inputSchema": { "type": "object" } }]),
+    );
+    let changed = binary.next("a list_changed notification");
+    assert_eq!(
+        changed["method"], "notifications/tools/list_changed",
+        "{changed}"
+    );
+    assert!(changed.get("id").is_none(), "a notification has no id");
+    assert!(list(&mut binary, 3).contains(&"rayx_metadata".to_string()));
+
+    // An app without tools changes nothing; the app leaving changes the list again.
+    let _quiet = binary.app("quiet", json!([]));
+    socket.close(None).ok();
+    socket.flush().ok();
+    let changed = binary.next("a list_changed notification");
+    assert_eq!(
+        changed["method"], "notifications/tools/list_changed",
+        "{changed}"
+    );
+    assert!(!list(&mut binary, 4).contains(&"rayx_metadata".to_string()));
 }

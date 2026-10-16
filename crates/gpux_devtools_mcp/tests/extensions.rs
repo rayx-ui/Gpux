@@ -1,13 +1,14 @@
 //! Extension tools: what apps advertise in `hello` joins the tool list and is forwarded to the
-//! app; a name two apps offer needs an app id; a disconnected app and a failing tool fail
-//! clearly, keeping the request id; versions and tokens are checked at `hello`.
+//! app; a name two apps offer needs an app id; a disconnected app (before or during a call) and
+//! a failing tool fail clearly, naming the app and keeping the request id; an app tool sharing
+//! the built-in tools' prefix is still forwarded; versions and tokens are checked at `hello`.
 
 mod support;
 
 use gpux_devtools_mcp::{PROTOCOL_VERSION, apps::Server};
 use serde_json::{Value, json};
 use std::time::Duration;
-use support::{Client, ScriptedApp};
+use support::{Client, HANG_UP, ScriptedApp};
 use tungstenite::Message;
 
 fn metadata_tool() -> Value {
@@ -170,4 +171,67 @@ fn hello_checks_the_version_and_the_token() {
 
     let (reply, _) = hello(&server, PROTOCOL_VERSION, Some("secret"));
     assert_eq!(reply["result"]["protocolVersion"], PROTOCOL_VERSION);
+}
+
+/// Waits until the registry reports `event`.
+fn wait_for(events: &std::sync::mpsc::Receiver<String>, event: &str) {
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    while events
+        .recv_timeout(Duration::from_millis(100))
+        .ok()
+        .as_deref()
+        != Some(event)
+    {
+        assert!(std::time::Instant::now() < deadline, "no `{event}`");
+    }
+}
+
+#[test]
+fn a_tool_of_an_app_that_disconnected_names_the_app() {
+    let server = Server::start(0, None).unwrap();
+    let events = server.registry.subscribe();
+    let app = ScriptedApp::connect(&server, "lab", metadata_tool());
+    app.disconnect();
+    wait_for(&events, "disconnected lab");
+    let mut client = Client::new(&server);
+    let error = client.call_err("rayx_metadata", json!({}));
+    assert!(
+        error.contains("lab") && error.contains("disconnected"),
+        "{error}"
+    );
+    // A name no app ever offered stays unknown.
+    let error = client.call_err("rayx_nothing", json!({}));
+    assert!(error.contains("unknown tool"), "{error}");
+}
+
+#[test]
+fn a_call_waiting_when_its_app_disconnects_fails_naming_it() {
+    let server = Server::start(0, None).unwrap();
+    let _app = ScriptedApp::connect_with(&server, "lab", metadata_tool(), |method, _| {
+        (method == "extension.call").then(|| Err(HANG_UP.to_string()))
+    });
+    let mut client = Client::new(&server);
+    let error = client.call_err("rayx_metadata", json!({}));
+    assert!(
+        error.contains("lab") && error.contains("disconnected"),
+        "{error}"
+    );
+}
+
+#[test]
+fn an_app_tool_sharing_the_browser_prefix_is_forwarded() {
+    let server = Server::start(0, None).unwrap();
+    let app = ScriptedApp::connect(
+        &server,
+        "lab",
+        json!([{ "name": "browser_lab_extra", "description": "An app's own", "inputSchema": { "type": "object" } }]),
+    );
+    let mut client = Client::new(&server);
+    assert!(tool_names(&mut client).contains(&"browser_lab_extra".to_string()));
+    let result = client.call("browser_lab_extra", json!({ "x": 1 }));
+    assert!(
+        Client::text(&result).contains("browser_lab_extra"),
+        "{result}"
+    );
+    assert_eq!(app.last("extension.call")["name"], "browser_lab_extra");
 }

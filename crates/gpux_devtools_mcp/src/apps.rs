@@ -130,6 +130,9 @@ pub struct Registry {
     next_connection: Arc<AtomicU64>,
     /// Notifications of apps connecting and disconnecting, for tests and logs.
     events: Arc<Mutex<Vec<Sender<String>>>>,
+    /// The extension tools of apps that disconnected, by name, with the ids of the apps that
+    /// offered them: a call to one names the app that went away.
+    departed: Arc<Mutex<HashMap<String, Vec<String>>>>,
 }
 
 impl Registry {
@@ -149,6 +152,17 @@ impl Registry {
         receiver
     }
 
+    /// The apps that offered the extension tool `name` and disconnected, when no connected app
+    /// offers it.
+    pub fn departed_offering(&self, name: &str) -> Vec<String> {
+        self.departed
+            .lock()
+            .unwrap()
+            .get(name)
+            .cloned()
+            .unwrap_or_default()
+    }
+
     fn notify(&self, event: String) {
         self.events
             .lock()
@@ -165,7 +179,7 @@ impl Registry {
         params: Value,
         timeout: Duration,
     ) -> Result<Value, RequestError> {
-        let (receiver, label) = {
+        let (receiver, label, id) = {
             let inner = self.inner.lock().unwrap();
             let Some(connection) = inner.get(&connection) else {
                 return Err(RequestError::Disconnected(format!("#{connection}")));
@@ -181,11 +195,17 @@ impl Registry {
             {
                 return Err(RequestError::Disconnected(connection.info.app_id.clone()));
             }
-            (receiver, connection.info.app_id.clone())
+            (receiver, connection.info.app_id.clone(), id)
         };
         match receiver.recv_timeout(timeout) {
             Ok(result) => result,
-            Err(RecvTimeoutError::Timeout) => Err(RequestError::Timeout(label)),
+            Err(RecvTimeoutError::Timeout) => {
+                // A late answer finds nothing waiting for it.
+                if let Some(connection) = self.inner.lock().unwrap().get(&connection) {
+                    connection.pending.lock().unwrap().remove(&id);
+                }
+                Err(RequestError::Timeout(label))
+            }
             Err(RecvTimeoutError::Disconnected) => Err(RequestError::Disconnected(label)),
         }
     }
@@ -426,7 +446,15 @@ fn serve(stream: TcpStream, registry: Registry, token: Option<String>, stop: Arc
         }
     }
 
-    registry.inner.lock().unwrap().remove(&connection);
+    if let Some(gone) = registry.inner.lock().unwrap().remove(&connection) {
+        let mut departed = registry.departed.lock().unwrap();
+        for tool in &gone.info.tools {
+            let offered = departed.entry(tool.name.clone()).or_default();
+            if !offered.contains(&gone.info.app_id) {
+                offered.push(gone.info.app_id.clone());
+            }
+        }
+    }
     // Requests still waiting fail with the app's name; none is sent again.
     for (_, sender) in pending.lock().unwrap().drain() {
         let _ = sender.send(Err(RequestError::Disconnected(label.clone())));

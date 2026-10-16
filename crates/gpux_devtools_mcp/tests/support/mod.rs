@@ -19,6 +19,9 @@ use tungstenite::Message;
 pub const SNAPSHOT: &str =
     "- window \"Main\" [ref=0]:\n  - button \"Save\" [ref=5]\n  - textbox \"Name\" [ref=6]";
 
+/// An answer that makes the scripted app hang up instead of answering.
+pub const HANG_UP: &str = "__hang_up__";
+
 /// What a scripted app was asked, in order: `(method, params)`.
 pub type Requests = Arc<Mutex<Vec<(String, Value)>>>;
 
@@ -35,7 +38,7 @@ impl ScriptedApp {
     }
 
     /// As [`Self::connect`], with `answer` overriding the canned result of a request (return
-    /// `Some(Err(message))` to fail it).
+    /// `Some(Err(message))` to fail it, `Some(Err(HANG_UP.into()))` to disconnect instead).
     pub fn connect_with(
         server: &Server,
         id: &str,
@@ -104,6 +107,11 @@ impl ScriptedApp {
                         .push((method.clone(), params.clone()));
                     let result =
                         answer(&method, &params).unwrap_or_else(|| Ok(canned(&method, &params)));
+                    if result.as_ref().err().map(String::as_str) == Some(HANG_UP) {
+                        let _ = socket.close(None);
+                        let _ = socket.flush();
+                        return;
+                    }
                     let reply = match result {
                         Ok(result) => {
                             json!({ "jsonrpc": "2.0", "id": message["id"], "result": result })

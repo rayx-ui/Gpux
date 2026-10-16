@@ -113,7 +113,7 @@ connected at once.
 
 The `gpux_*` tools speak the devtools protocol directly. Every tool that reads or drives a window
 takes `app` (an app id, needed only when more than one app is connected) and `window` (a window
-id, the app's last window by default).
+id; the app's active window, else its first, by default).
 
 | Tool | What it does |
 |---|---|
@@ -131,9 +131,10 @@ answering with Playwright MCP's sections (`### Result`, `### Ran Playwright code
 `### Snapshot`): `browser_snapshot`, `browser_click`, `browser_hover`, `browser_drag`,
 `browser_type`, `browser_press_key`, `browser_mouse_move_xy`, `browser_mouse_down`,
 `browser_mouse_up`, `browser_mouse_wheel`, `browser_mouse_click_xy`, `browser_mouse_drag_xy`,
-`browser_take_screenshot`, `browser_wait_for`, `browser_tabs` (the connected apps' windows) and
-`browser_observe`. Their `ref` is a snapshot's `[ref=N]`. Setting a value is `gpux_act` with
-`setValue`, the accessibility action.
+`browser_take_screenshot`, `browser_wait_for`, `browser_tabs` (the connected apps' windows),
+`browser_observe` and `browser_set_property` (RayX DevKit's tool: it sets the element's value
+through its accessibility `SetValue` action, as `gpux_act` with `setValue` does). Their `target`
+is a snapshot's `[ref=N]`.
 
 ### Extension tools
 
@@ -148,9 +149,20 @@ Options::new("dev.example.notes", "Notes").extension(Extension::new(
 ))
 ```
 
-The app advertises them in `hello`; the sidecar lists them under their own names and forwards a
-call to the app, returning its result. When two connected apps advertise the same name, a call
-names the app with `app`. A call to an app that disconnected fails naming it.
+The app advertises them in `hello`; the sidecar lists them under their own names (and tells the
+harness with `notifications/tools/list_changed` whenever apps' tools come or go, so an app that
+connects after the harness listed the tools still reaches it) and forwards a call to the app as
+an `extension.call` request, returning its result. When two connected apps advertise the same
+name, a call names the app with `app`. A call to a tool whose app disconnected, before or during
+the call, fails naming the app.
+
+## Accessibility modes
+
+The devtools read the tree through inspection, which works in every `AccessibilityMode`
+([accessibility.md](accessibility.md#switches)): with `Off`, screen readers are refused but an
+agent still sees the whole tree, and `Always` makes no difference to it. Only
+`Application::new_inaccessible`, the hard off, builds no tree at all: there every request that
+reads or acts on a window fails saying the window has no accessibility tree.
 
 ## Making elements visible
 
@@ -177,13 +189,14 @@ JSON-RPC 2.0 over text frames, version 1 (`gpux_devtools::protocol`). The app's 
 `hello` (`appId`, `appName`, `protocolVersion`, `token`, `windows`, `tools`), which the sidecar
 answers with its own version, or with error -32001 (token) or -32002 (version), after which the
 app stops retrying. The app then sends `windowOpened`/`windowClosed` notifications and answers the
-sidecar's requests (`snapshot`, `query`, `act`, `input`, `screenshot`, `wait`, `stats`, and its
-extension tools by name), keeping the request's id in errors. An answer to a request of an
+sidecar's requests (`snapshot`, `query`, `act`, `input`, `screenshot`, `wait`, `stats`, and
+`extension.call` with a tool's `name` and `arguments`), keeping the request's id in errors. An answer to a request of an
 earlier connection is dropped, never sent on the next.
 
 ## Testing
 
 `cargo test -p gpux-devtools` runs the client against an in-test WebSocket server (`connection`,
 `snapshot`, `actions`, `observe`), and `cargo test -p gpux-devtools-mcp` the sidecar
-(`stdio_protocol`, `extensions`). The `devtools` groups of lanes B, D, E and F connect the
+(`--test stdio_protocol`: the MCP side, every tool and the binary on a real pipe;
+`--test extensions`: app tools, disconnects, versions and tokens). The `devtools` groups of lanes B, D, E and F connect the
 conformance hosts to a sidecar on each platform ([testing.md](testing.md)).

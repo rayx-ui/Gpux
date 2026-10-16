@@ -284,7 +284,9 @@ stops a window's frames while it is hidden or the display sleeps, and the scenes
 animated and transition frames) and IME composition stay in lanes A and C: lane D runs on the
 real clock, and a host cannot drive the platform's input method.
 
-The `devtools` group (`--grep devtools`) runs a gpux-devtools sidecar server in the host on a free
+The devtools crates' own groups are lane A: `cargo test -p gpux-devtools` (`connection`,
+`snapshot`, `actions`, `observe`) and `cargo test -p gpux-devtools-mcp` (`stdio_protocol`,
+`extensions`). The `devtools` group (`--grep devtools`) runs a gpux-devtools sidecar server in the host on a free
 loopback port and connects the app to it: `devtools-hello-snapshot` reads `hello` (the app and
 its windows) and a snapshot showing the probe window's button, and `devtools-tap` clicks the
 button through the sidecar's `input` and waits for its effect in the window's tree
@@ -367,7 +369,8 @@ starts a gpux-devtools server on the computer, runs `adb reverse tcp:9230 tcp:<p
 device's loopback port reaches it (the host's manifest grants `android.permission.INTERNET`),
 and its probe reads the app's `hello` and a snapshot and taps the probe window's button with a
 touch (`input` `tap`), waiting for the effect. The host passes once its tree shows the tap and the
-testkit closed the sidecar; the testkit reports the probe's own failures.
+testkit closed the sidecar; the testkit reports the probe's own failures and removes the
+`adb reverse` afterwards.
 
 The `composition-android-*` and `platform-view-android*` checks open a composed window with a
 native `View` and read the result as the others do: the screen for what shows where, taps and a
@@ -433,8 +436,10 @@ its console. The host runs its platform checks and every lane-F scene:
   and draws again. (Reopening it through a URL of its own makes a fresh Simulator ask
   "Open in …?" and wait for a tap.)
 - `devtools-ios`: the host runs a gpux-devtools sidecar server on loopback, which the Simulator
-  shares with the Mac, connects the app to it, and the sidecar's probe reads `hello` and a
-  snapshot and taps the probe window's button with a touch, waiting for its effect.
+  shares with the Mac (a Simulator app is a Mac process, so the server listens on the Mac's
+  loopback interface, where a sidecar started on the Mac would), connects the app to it, and the
+  sidecar's probe reads `hello` and a snapshot and taps the probe window's button with a touch,
+  waiting for its effect.
 
 The `scroll-layers-ios-div`, `-list`, `-resume` and `-timing` checks do the same on Metal (the
 timing check as `scroll-layers-android-timing` does): touch pans

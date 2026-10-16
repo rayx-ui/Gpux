@@ -44,7 +44,7 @@ fn target_properties(mut properties: Value) -> Value {
     );
     object.insert(
         "window".into(),
-        json!({ "type": ["number", "null"], "description": "The window id; the app's first window when omitted." }),
+        json!({ "type": ["number", "null"], "description": "The window id; the app's active window, else its first, when omitted." }),
     );
     properties
 }
@@ -90,12 +90,13 @@ pub fn builtin() -> Vec<Value> {
         tool(
             "gpux_act",
             "Perform an accessibility action",
-            "Perform an AccessKit action on a ref (click, focus, setValue, increment, decrement, expand, collapse, scrollIntoView, customAction); reports whether a handler ran.",
+            "Perform an AccessKit action on a ref (click, focus, blur, setValue, increment, decrement, expand, collapse, scrollIntoView, customAction); reports whether a handler ran.",
             target_properties(json!({
                 "ref": { "type": "string" },
-                "action": { "type": "string", "enum": ["click", "focus", "setValue", "increment", "decrement", "expand", "collapse", "scrollIntoView", "customAction"] },
+                "action": { "type": "string", "enum": ["click", "focus", "blur", "setValue", "increment", "decrement", "expand", "collapse", "scrollIntoView", "customAction"] },
                 "value": { "type": ["string", "number", "null"] },
-                "customAction": { "type": ["number", "null"], "description": "The custom action's id." }
+                "id": { "type": ["number", "null"], "description": "The custom action's id." },
+                "customAction": { "type": ["number", "null"], "description": "The custom action's id (as `id`)." }
             })),
             false,
         ),
@@ -117,7 +118,9 @@ pub fn builtin() -> Vec<Value> {
                 "deltaX": { "type": ["number", "null"] },
                 "deltaY": { "type": ["number", "null"] },
                 "text": { "type": ["string", "null"] },
-                "keys": { "type": ["string", "null"], "description": "Keystrokes, e.g. `cmd-a backspace`." }
+                "replace": { "type": ["boolean", "null"], "description": "With type: clear the field first." },
+                "durationMs": { "type": ["number", "null"], "description": "With longPress: how long the touch is held (800 by default)." },
+                "keys": { "type": ["string", "array", "null"], "items": { "type": "string" }, "description": "Keystrokes, e.g. `cmd-a backspace`." }
             })),
             false,
         ),
@@ -304,6 +307,18 @@ pub fn builtin() -> Vec<Value> {
             true,
         ),
         tool(
+            "browser_set_property",
+            "Set a value",
+            "Set a gpux element's value through its accessibility SetValue action (the property grid's editors, sliders, text fields).",
+            json!({
+                "element": { "type": ["string", "null"] },
+                "target": { "type": "string" },
+                "property": { "type": ["string", "null"], "description": "Kept for RayX DevKit compatibility; the element's value is what is set." },
+                "value": { "type": ["string", "number", "boolean"] }
+            }),
+            false,
+        ),
+        tool(
             "browser_observe",
             "Observe",
             "Capture the current window's metadata and accessibility snapshot as one JSON object.",
@@ -488,9 +503,16 @@ pub fn call(
             }
             Ok(json_result(&result))
         }
-        name if name.starts_with("browser_") => browser(registry, session, name, arguments),
+        name if name.starts_with("browser_") && is_builtin(name) => {
+            browser(registry, session, name, arguments)
+        }
         _ => extension(registry, name, arguments),
     }
+}
+
+/// Whether `name` is one of the sidecar's own tools (an app's tool may share their prefix).
+fn is_builtin(name: &str) -> bool {
+    builtin().iter().any(|tool| tool["name"] == name)
 }
 
 fn extension(registry: &Registry, name: &str, arguments: Value) -> Result<Value, String> {
@@ -512,7 +534,17 @@ fn extension(registry: &Registry, name: &str, arguments: Value) -> Result<Value,
         }
         None => match offering.as_slice() {
             [app] => app.clone(),
-            [] => return Err(format!("unknown tool: {name}")),
+            [] => {
+                let departed = registry.departed_offering(name);
+                return Err(if departed.is_empty() {
+                    format!("unknown tool: {name}")
+                } else {
+                    format!(
+                        "{name} was offered by {}, which disconnected",
+                        departed.join(", ")
+                    )
+                });
+            }
             _ => {
                 return Err(format!(
                     "several apps offer {name}; name one with `app`: {}",
@@ -660,6 +692,45 @@ fn browser(
                 &format!("Clicked {target}"),
                 format!("await {}.{method}();", locator(target)),
             )
+        }
+        "browser_set_property" => {
+            let target = required(&arguments, "target")?;
+            let value = match arguments.get("value") {
+                Some(Value::String(text)) => json!(text),
+                Some(Value::Number(number)) => json!(number),
+                Some(Value::Bool(flag)) => json!(flag.to_string()),
+                _ => return Err("missing argument `value`".into()),
+            };
+            let acted = ask(
+                registry,
+                &app,
+                "act",
+                json!({ "ref": target, "action": "setValue", "value": value }),
+                window,
+                Duration::ZERO,
+            )?;
+            if acted.get("handled").and_then(Value::as_bool) == Some(false) {
+                return Err(format!("{target} handles no SetValue action"));
+            }
+            let snapshot = ask(
+                registry,
+                &app,
+                "snapshot",
+                json!({}),
+                window,
+                Duration::ZERO,
+            )?;
+            Ok(text_result(format!(
+                "### Result\nSet {target} to {value}\n\n### Ran Playwright code\n```js\nawait {}.fill({});\n```\n\n{}",
+                locator(target),
+                serde_json::to_string(
+                    &value
+                        .as_str()
+                        .map_or_else(|| value.to_string(), str::to_string)
+                )
+                .unwrap_or_default(),
+                snapshot_text(&app, &snapshot, None)?
+            )))
         }
         "browser_hover" => {
             let target = required(&arguments, "target")?;

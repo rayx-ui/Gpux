@@ -1017,6 +1017,15 @@ fn run_on_device(
                 None
             }
         };
+        // The device's port goes back to nothing.
+        let remove = on_device(&[
+            "reverse",
+            "--remove",
+            &format!("tcp:{}", gpux_conformance::devtools::LOOPBACK_PORT),
+        ]);
+        if let Err(error) = adb_run("adb-reverse-remove", remove, runner) {
+            writeln!(out, "lane e: could not remove the adb reverse: {error}").ok();
+        }
     }
     pull_frames(&adb, &serial, &logs, runner, root, out);
     // `adb logcat` can drop lines from its stream (it did while transferring screenshots); the

@@ -1,32 +1,105 @@
 //! The MCP side: JSON-RPC 2.0 over stdio, one message per line.
 
 use serde_json::{Value, json};
-use std::io::{BufRead, Write};
+use std::{
+    collections::BTreeSet,
+    io::{BufRead, Write},
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicBool, Ordering},
+        mpsc::RecvTimeoutError,
+    },
+    time::Duration,
+};
 
 use crate::{SERVER_NAME, SERVER_VERSION, apps::Registry, tools};
 
 /// The MCP protocol version the sidecar answers `initialize` with.
 pub const MCP_PROTOCOL_VERSION: &str = "2025-06-18";
 
-/// Serves MCP on `input` and `output` until `input` ends.
+/// Serves MCP on `input` and `output` until `input` ends. Whenever the extension tools the
+/// connected apps offer change, it tells the harness with `notifications/tools/list_changed`,
+/// so tools of apps that connect after the harness listed them reach it.
 pub fn serve(
     registry: &Registry,
     input: impl BufRead,
-    mut output: impl Write,
+    output: impl Write + Send + 'static,
 ) -> std::io::Result<()> {
+    let output = Arc::new(Mutex::new(output));
+    let done = Arc::new(AtomicBool::new(false));
+    let watcher = {
+        let events = registry.subscribe();
+        let registry = registry.clone();
+        let output = Arc::clone(&output);
+        let done = Arc::clone(&done);
+        std::thread::Builder::new()
+            .name("gpux-devtools-mcp-tools".into())
+            .spawn(move || {
+                let mut offered = extension_names(&registry);
+                while !done.load(Ordering::SeqCst) {
+                    match events.recv_timeout(Duration::from_millis(100)) {
+                        Ok(_) => {
+                            let now = extension_names(&registry);
+                            if now != offered {
+                                offered = now;
+                                let notification = json!({
+                                    "jsonrpc": "2.0",
+                                    "method": "notifications/tools/list_changed",
+                                });
+                                if write_line(&output, &notification).is_err() {
+                                    break;
+                                }
+                            }
+                        }
+                        Err(RecvTimeoutError::Timeout) => {}
+                        Err(RecvTimeoutError::Disconnected) => break,
+                    }
+                }
+            })?
+    };
     let mut session = tools::Session::default();
+    let mut result = Ok(());
     for line in input.lines() {
-        let line = line?;
+        let line = match line {
+            Ok(line) => line,
+            Err(error) => {
+                result = Err(error);
+                break;
+            }
+        };
         if line.trim().is_empty() {
             continue;
         }
-        if let Some(response) = handle_line(registry, &mut session, &line) {
-            serde_json::to_writer(&mut output, &response)?;
-            output.write_all(b"\n")?;
-            output.flush()?;
+        if let Some(response) = handle_line(registry, &mut session, &line)
+            && let Err(error) = write_line(&output, &response)
+        {
+            result = Err(error);
+            break;
         }
     }
-    Ok(())
+    done.store(true, Ordering::SeqCst);
+    watcher.join().ok();
+    result
+}
+
+/// The names of the extension tools the connected apps offer.
+fn extension_names(registry: &Registry) -> BTreeSet<String> {
+    registry
+        .apps()
+        .iter()
+        .flat_map(|app| app.tools.iter().map(|tool| tool.name.clone()))
+        .collect()
+}
+
+/// Writes one message and a line break, as one write the watcher cannot interleave.
+fn write_line(output: &Mutex<impl Write>, message: &Value) -> std::io::Result<()> {
+    let mut line = serde_json::to_vec(message)?;
+    line.push(b'\n');
+    let mut output = output
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    output.write_all(&line)?;
+    output.flush()
 }
 
 /// Answers one MCP message; `None` for notifications.
