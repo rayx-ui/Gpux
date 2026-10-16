@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-a11y-devtools",
-  "revision": 86,
+  "revision": 98,
   "planRevision": 10,
   "specHashes": {
     "requirements": "75c003f6b5b8ba6b6dda4cb5e0419778781e291e68ce5498786c7161618e76f7",
@@ -88,16 +88,28 @@
       ]
     },
     "t14-devtools-client": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t15-devtools-snapshot": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t16-devtools-act": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t17-devtools-observe": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t18-mcp-sidecar": {
       "status": "pending"
@@ -267,6 +279,16 @@
         }
       },
       "recordedAt": "2026-10-16T18:33:10Z"
+    },
+    "955c884f78bd2583b78489afc863141c291796989f413c81f854f0d262e119bf": {
+      "snapshot": {
+        "specHash": "b4430c0bc07ca4cc748a03e8f9d55b639841284a065f76473fb06b632ee16678",
+        "repositories": {
+          "gpux": "b6f51b65555ca9b49a3a4034c7d18a2be0a7658bbb0dcea6dec891f6273058c4",
+          "rayx": "8364a75c6cfd60250954afc934f9d2b4d44ab7bcb5fb6a9caab2526e97adcc62"
+        }
+      },
+      "recordedAt": "2026-10-16T18:53:23Z"
     }
   },
   "checkResults": {
@@ -807,6 +829,108 @@
       "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s05b-mobile-screen-readers-final-3907484def15.log",
       "logSha256": "6b903a1674c892e63da5483765c20a2f8e82af7f08c7176f893dffbbd4b332fa",
       "inputsHash": "c2892de070d161133a176a03b67d319cbb926b447b1017556ca4ef667acec3e2"
+    },
+    "s06-devtools/check-devtools-connection/final": {
+      "checkId": "check-devtools-connection",
+      "boundaryId": "s06-devtools",
+      "phase": "final",
+      "batchId": "955c884f78bd2583b78489afc863141c291796989f413c81f854f0d262e119bf",
+      "definitionHash": "1a2ee3719a99d67ddeab4f003457044bfea977dfd2014fb71c0759a592bb7970",
+      "basisHash": "8b9a23d82452e3cf3e345d3a8fe5ee2560fba6d250c6cdb2aaec67652dada50a",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 13,
+      "durationSeconds": 2.7952,
+      "recordedAt": "2026-10-16T18:53:16Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s06-devtools-final-34948fe2cd78.log",
+      "logSha256": "f6c0ccf72288cf9ab82a0fa524c772900602278eafd1f33bf59c9396ca4ddc35",
+      "inputsHash": "40ce438ae85cf93461e689df254b99730481772c1f6f9f5f23fab6285ceb2af1"
+    },
+    "s06-devtools/check-devtools-snapshot/final": {
+      "checkId": "check-devtools-snapshot",
+      "boundaryId": "s06-devtools",
+      "phase": "final",
+      "batchId": "955c884f78bd2583b78489afc863141c291796989f413c81f854f0d262e119bf",
+      "definitionHash": "ed2b7d5602a5367dc374348a808588b4c3ae3480cbb37278e12e0402dc2faa93",
+      "basisHash": "8d86974b0848fc47556d19f318dd7363940eb03fb96c1476b3d54099e72d3de0",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 8,
+      "durationSeconds": 1.0856,
+      "recordedAt": "2026-10-16T18:53:18Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s06-devtools-final-b77510040ad5.log",
+      "logSha256": "1bb2d05e82707232370888b3b47143021574b018188304dbab4d7a8170e9a7ca",
+      "inputsHash": "40ce438ae85cf93461e689df254b99730481772c1f6f9f5f23fab6285ceb2af1"
+    },
+    "s06-devtools/check-devtools-actions/final": {
+      "checkId": "check-devtools-actions",
+      "boundaryId": "s06-devtools",
+      "phase": "final",
+      "batchId": "955c884f78bd2583b78489afc863141c291796989f413c81f854f0d262e119bf",
+      "definitionHash": "4985d533f368009c42ebd1e62fe47024b54c8d5994c1b9611f6983d74564a047",
+      "basisHash": "25bea1ba5547ec22eb506ebe89b6d745099c527ce6fba8da50a8f4f2d383d3b6",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 13,
+      "durationSeconds": 1.8114,
+      "recordedAt": "2026-10-16T18:53:19Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s06-devtools-final-f00b9fdde55c.log",
+      "logSha256": "83139ab79a87d7687f97ea2476415616477f2f9208fca76a48ef8fe5fdd33996",
+      "inputsHash": "40ce438ae85cf93461e689df254b99730481772c1f6f9f5f23fab6285ceb2af1"
+    },
+    "s06-devtools/check-devtools-observe/final": {
+      "checkId": "check-devtools-observe",
+      "boundaryId": "s06-devtools",
+      "phase": "final",
+      "batchId": "955c884f78bd2583b78489afc863141c291796989f413c81f854f0d262e119bf",
+      "definitionHash": "4ead6d3aa87bd4f2e5b8ecc3ec16e0002425b59785dbbc8c2dbe5dfc9d780ff6",
+      "basisHash": "8b21613b5b320e5a0a331b6a8bd85c007710b9745207f7a9e79246db7221e770",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 6,
+      "durationSeconds": 1.787,
+      "recordedAt": "2026-10-16T18:53:21Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s06-devtools-final-77621a3a3839.log",
+      "logSha256": "e713c3ac54708d6f4ebfcf035cbc2b1e6d8314ff2646cc1fbcceac04ca44efd6",
+      "inputsHash": "40ce438ae85cf93461e689df254b99730481772c1f6f9f5f23fab6285ceb2af1"
+    },
+    "s06-devtools/check-devtools-web-build/final": {
+      "checkId": "check-devtools-web-build",
+      "boundaryId": "s06-devtools",
+      "phase": "final",
+      "batchId": "955c884f78bd2583b78489afc863141c291796989f413c81f854f0d262e119bf",
+      "definitionHash": "5ce0ee483e89d09cb244d369ec235155bb05b27e47855cc1c4a64f20985336f1",
+      "basisHash": "ab4cb6210700aa926a1ae6916156d728ad740be06f0f9e0c8c7c4ef486d5e9eb",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.8842,
+      "recordedAt": "2026-10-16T18:53:22Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s06-devtools-final-6333817b68cf.log",
+      "logSha256": "40f5231d57beb891ced9db86f53212ee4412690e4a554d68e623ef0e2226aa8d",
+      "inputsHash": "b1d65a37fc7332c02c43cea8b81702ca5047f6a752041b3bf2995e5468f180af"
+    },
+    "s06-devtools/check-devtools-not-linked/final": {
+      "checkId": "check-devtools-not-linked",
+      "boundaryId": "s06-devtools",
+      "phase": "final",
+      "batchId": "955c884f78bd2583b78489afc863141c291796989f413c81f854f0d262e119bf",
+      "definitionHash": "e1cd6bee7d15858bd892af827be8533105363db9c1bf0b8c0c7f590947d46d6c",
+      "basisHash": "95f5e34d49c917e797eb6ea16a4e62fcc32ee0225cac0b3bf06e3de6f3d00480",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.4938,
+      "recordedAt": "2026-10-16T18:53:23Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s06-devtools-final-7130eac5d953.log",
+      "logSha256": "063973f1ece272a6b0a0b24ca34bc8b12e70426627d5f9cad06a7ed0bec86897",
+      "inputsHash": "40ce438ae85cf93461e689df254b99730481772c1f6f9f5f23fab6285ceb2af1"
     }
   },
   "reviews": {
@@ -1943,6 +2067,183 @@
         "gpux:docs/measurements/a11y-devtools.md": "406c3678b07a71e25202104191caf50da6b0607e4acec9c01ec1ff77949d2e90",
         "gpux:docs/measurements/screen-reader-walkthrough.md": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
       }
+    },
+    "s06-devtools": {
+      "reviewerId": "reviewer-s06-ddcd5e3a",
+      "snapshotId": "955c884f78bd2583b78489afc863141c291796989f413c81f854f0d262e119bf",
+      "criterionIds": [
+        "DEV-1",
+        "DEV-2",
+        "DEV-3",
+        "DEV-4",
+        "DEV-5"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/src/gpux_devtools.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DEV-1",
+            "DEV-2"
+          ],
+          "sha256": "5607a4a42f389287297c84e3816b6e42b135385595bb92ce6b60a847dce1c343"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/src/protocol.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DEV-2"
+          ],
+          "sha256": "fcf83f17d24a2dc94df94ed5270ba28c2bb71572b7ee1dca0e1718745e8ac70f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/src/transport/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DEV-1"
+          ],
+          "sha256": "f5462bfd97c86eb27542b9dc4c3cf0ce8ce207b85c583d01b146e7a9a87954ee"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/src/transport/native.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DEV-1",
+            "DEV-2"
+          ],
+          "sha256": "c0e23350164f5fd6132dec41f3dda57a17395ace30bfe0029ff46038a34354ae"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/src/transport/web.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DEV-1",
+            "DEV-5"
+          ],
+          "sha256": "22fea54ef57f436fbfe76e211c0ad016eb09d71b78d4ceba08cf5b78f8a6eccb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "DEV-1",
+            "DEV-5"
+          ],
+          "sha256": "43d5460c44c752e95d9b7e62eb15ae37ad00cde523ab6f980a8b6a9f84d190b0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "DEV-1"
+          ],
+          "sha256": "8ff43e818a44ab62f15256fd2db2e09e45293befe9e511661006627550f16f3a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "README.md",
+          "kind": "source",
+          "criterionIds": [
+            "DEV-1"
+          ],
+          "sha256": "022ea8e4938deeb429460e9e537142e7077bbd84fb8f86cd8f18aae391e240e0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/src/snapshot.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DEV-3"
+          ],
+          "sha256": "3c2e3bce086b31ac93027674ab06bc1742231fe95982e4abf192433b9458bb6f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/src/requests.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DEV-3",
+            "DEV-4",
+            "DEV-5"
+          ],
+          "sha256": "6a5ab7ff8af442e22aca26a61765e49c0b842be8ded9dc93afc06bbcd9efcd88"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/tests/support/mod.rs",
+          "kind": "test",
+          "criterionIds": [
+            "DEV-1",
+            "DEV-2",
+            "DEV-3",
+            "DEV-4",
+            "DEV-5"
+          ],
+          "sha256": "76c14cab4306a7d87cba3e84713c574d74598a4685b2af9af6f8cd5038e0f7ae"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/tests/connection.rs",
+          "kind": "test",
+          "criterionIds": [
+            "DEV-1",
+            "DEV-2"
+          ],
+          "sha256": "c1e4fe2b964b750c4ce8d4d3213135904c453fd3f715861393d9769736c83848"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/tests/snapshot.rs",
+          "kind": "test",
+          "criterionIds": [
+            "DEV-3"
+          ],
+          "sha256": "96adbb59fa2d70e363a7a437d7e8cb5c7cd78ac279c4348a16f7b4b71f63a1f4"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/tests/actions.rs",
+          "kind": "test",
+          "criterionIds": [
+            "DEV-4"
+          ],
+          "sha256": "089c5d8d798100a8551b5f8792e191ccc7c6ff3cba38b68a916c494aa7b59763"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/tests/observe.rs",
+          "kind": "test",
+          "criterionIds": [
+            "DEV-5"
+          ],
+          "sha256": "66b2ed01978ed1019dc57489e754554104cfc523bd942cbce8fa3a91c332d75e"
+        }
+      ],
+      "deltaSummaryMarkdown": "Inspected 3a5ecb6. S06-F7: with `replace`, select-all is now built from `Modifiers::secondary_key().platform`, which follows `KeyboardOs::current()`, so a Mac keyboard in the browser gets cmd-a. `input_types_after_a_focusing_click_and_presses_keys` types into a field that already holds text, with `replace: true`, and asserts only the new text remains; with the modifier inverted it fails (the coordinator reports \"HeFresh\"). The commit touches nothing else. F1 to F6 stay resolved, so every finding is closed and the sprint passes.",
+      "reattestedFrom": "a7c1ca7bb542543f57a11b138660b931f304943c7b4a37b685315a09855a844c",
+      "summaryMarkdown": "Clean crate structure that keeps the boundaries: gpux and gpux-platform do not link the crate, the README and workspace entries are in place, gpui state is touched only on the foreground (the native thread only moves frames), nothing runs per frame while disconnected, the app never listens on a port, and input goes through `dispatch_event`/`dispatch_keystroke`/`dispatch_text_input`, a faithful port of rayx_devkit's live path with its draw flushes. Connection, snapshot, act and observe tests are meaningful for their criteria. Failed on S06-F1: `wait` uses `std::time::Instant`, which panics on wasm32, so the browser target DEV-5 builds for breaks at runtime. Minor: the web socket lifecycle (F2), answers reaching a later connection (F3), input kinds without an observed effect (F4), no frame count without diagnostics (F5), unescaped YAML text (F6).",
+      "findingIds": [
+        "S06-F1",
+        "S06-F2",
+        "S06-F3",
+        "S06-F4",
+        "S06-F5",
+        "S06-F6",
+        "S06-F7"
+      ],
+      "recordedAt": "2026-10-16T18:53:45Z",
+      "recordHashes": {
+        "gpux:docs/measurements/a11y-devtools.md": "406c3678b07a71e25202104191caf50da6b0607e4acec9c01ec1ff77949d2e90",
+        "gpux:docs/measurements/screen-reader-walkthrough.md": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
     }
   },
   "checkpoints": {
@@ -2017,6 +2318,15 @@
       },
       "reviewHash": "e02fe0cb735377a878ff6180734cb23dc4d7d5d886e147cc9b451878046e0344",
       "recordedAt": "2026-10-16T18:34:40Z"
+    },
+    "s06-devtools": {
+      "snapshotId": "955c884f78bd2583b78489afc863141c291796989f413c81f854f0d262e119bf",
+      "commits": {
+        "gpux": "3a5ecb630462bcfb8fbbbfe6886e73db1731104f",
+        "rayx": "4ee806e9999ff02c2d0a7fcc4be0379a036f10a7"
+      },
+      "reviewHash": "c2b04edd822b54ed5afa84a3b5bc3fa66e75f29c208f4c8b401b94bdeb89dacd",
+      "recordedAt": "2026-10-16T18:54:05Z"
     }
   },
   "findings": [
@@ -2576,9 +2886,168 @@
         }
       ],
       "boundaryId": "s05b-mobile-screen-readers"
+    },
+    {
+      "id": "S06-F1",
+      "criterionIds": [
+        "DEV-5"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**`wait` panics in the browser.** `requests::wait` (`crates/gpux_devtools/src/requests.rs`, `use std::time::{Duration, Instant}` and `let start = Instant::now()`) uses `std::time::Instant`, which panics on `wasm32-unknown-unknown` (\"time not implemented on this platform\"); gpui itself uses `web-time`/`scheduler::Instant` there. Expected: DEV-5's crate \"builds for wasm32\" and the web transport serve the browser, so every request must also run there. Observed: `check-devtools-web-build` only compiles, and the first `wait` from a sidecar would abort the page's app. The timeout is also measured in wall time while its 16 ms poll runs on the executor's clock, so the two clocks disagree on the test platform.\n**Repair:** measure the start and timeout with the executor's clock (`cx.background_executor().now()`, the `scheduler::Instant` gpui uses), or `web_time::Instant` on wasm, and drop `std::time::Instant` from the crate. Add a test that times `wait` out by advancing only the test executor's clock (no real-time sleep), so the timeout follows the executor's clock.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/src/requests.rs",
+          "symbol": "wait"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/tests/observe.rs",
+          "symbol": "wait_times_out_on_the_executor_clock"
+        }
+      ],
+      "boundaryId": "s06-devtools"
+    },
+    {
+      "id": "S06-F2",
+      "criterionIds": [
+        "DEV-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**The web transport's socket lifecycle leaks and throws.** In `transport/web.rs`, (a) `Transport` has no `Drop` (`Control::Shutdown` is `allow(dead_code)` on wasm), so a second `install`, which the docs say \"replaces the earlier connection\", drops `State` without closing its `web_sys::WebSocket`: the old connection stays open to the sidecar and its handlers are dropped closures; (b) `close()` leaves the old socket's handlers attached, and an off-then-on toggle before the browser fires `close` makes `connect()` replace `state.handlers`, so the old socket's `onclose` calls a dropped `Closure` (a wasm-bindgen exception). If the closure were kept alive instead, it would `take()` the *new* socket. (c) `onclose` after a failed connect counts as `was_open` because the socket is stored before it opens, so every failed retry sends a spurious `Disconnected`.\n**Repair:** on close, detach `onopen`/`onmessage`/`onclose` (set them to `None`) before `socket.close()` and before dropping the closures; tag each socket with a generation so a stale event cannot act on a newer socket; record `open` on `onopen`; add `impl Drop for Transport` that closes the socket. The native transport handles the same cases correctly.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/src/transport/web.rs",
+          "symbol": "close"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/src/transport/web.rs",
+          "symbol": "connect"
+        }
+      ],
+      "boundaryId": "s06-devtools"
+    },
+    {
+      "id": "S06-F3",
+      "criterionIds": [
+        "DEV-2"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Answers can reach a later connection.** `received` spawns each request's answer and sends it whenever it completes (`cx.update(|cx| send(cx, Message::response(Some(id), outcome)))`). A `wait` or `longPress` in flight when the sidecar restarts answers on the *next* connection, possibly before or interleaved with that connection's own ids (a fresh sidecar starts its ids again). The native thread also keeps `Control::Send`s queued while disconnected and drains them on the new socket before the foreground's `hello`, so the app's first message on a connection can be a stale response, against DEV-2's \"first message is `hello`\". `connected()` also does not check `enabled`, so an `Event::Connected` already queued when `set_enabled(false)` runs takes guards and sends `hello` for a moment.\n**Repair:** give each connection a generation (incremented on `Connected`/`Disconnected`), capture it with each spawned answer, and drop answers whose generation is over; have the native thread discard queued `Send`s when a connection ends; ignore `Connected` while `!enabled`. Cover the restart with a test in `connection.rs` (an open `wait`, the server dropped and re-accepted: the first frame is `hello` and the old id never arrives).",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/src/gpux_devtools.rs",
+          "symbol": "received"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/src/transport/native.rs",
+          "symbol": "run"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/tests/connection.rs",
+          "symbol": "an_answer_to_an_earlier_connection_never_reaches_the_next"
+        }
+      ],
+      "boundaryId": "s06-devtools"
+    },
+    {
+      "id": "S06-F4",
+      "criterionIds": [
+        "DEV-4"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Several input kinds are tested without checking their effect.** In `tests/actions.rs`, `input_drags_wheels_pinches_and_long_presses` asserts only that `drag`, `pinch` and `longPress` return `ok`, and `input_clicks_double_clicks_and_hovers` checks nothing about `hover`. Deleting the `dispatch_event` calls for those kinds would leave the group green, so the check cannot fail for them (the repository rule: \"a check must be able to fail\"). Only click, wheel, type and press have an observed outcome.\n**Repair:** give `Controls` listeners that record the drag's move with the pressed button (or an `on_drag`/`on_drag_move`), a pinch (`on_pinch`), a hover (`.hover` style or `on_hover`) and a long press (the touch recognizer's long-press, or the touch `Started`/`Ended` pair after `durationMs`), and assert each in the status line.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/tests/actions.rs",
+          "symbol": "Gestures"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/tests/actions.rs",
+          "symbol": "input_long_presses_for_its_duration"
+        }
+      ],
+      "boundaryId": "s06-devtools"
+    },
+    {
+      "id": "S06-F5",
+      "criterionIds": [
+        "DEV-5"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**`stats` has no frame count without `diagnostics`.** DEV-5 says `stats` returns frame counts, fast-mode counters and the tree's size. Observed: with the crate's default features `fast` is `null` and nothing counts frames (`observe.rs` asserts `stats[\"fast\"].is_null()`), so an agent on a default build gets only `treeNodes`. Fast mode's counters are rightly `diagnostics`-only (a gpui rule), but a frame count is not a diagnostics collector.\n**Repair:** report a frame count in every build. Either the window exposes a cheap drawn-frame counter, or the crate counts frames only while connected with an `on_next_frame` chain started on connect and dropped on disconnect (nothing per frame while disconnected). If the owner wants frame counts only with `diagnostics`, amend DEV-5 to say so.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "symbol": "Window::frames_drawn"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/tests/observe.rs",
+          "symbol": "stats_count_the_frames_drawn"
+        }
+      ],
+      "boundaryId": "s06-devtools"
+    },
+    {
+      "id": "S06-F6",
+      "criterionIds": [
+        "DEV-3"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Text content is written into the YAML unescaped.** `snapshot::write` appends a `text` node's content raw after `: ` (`out.push_str(&content)`), so text with a newline, a leading `-`/`[`/`\"`, or `: ` makes the snapshot invalid YAML or gives it another structure, unlike Playwright's aria snapshot, which quotes such values. Values and names are quoted.\n**Repair:** quote text content when YAML needs it (newline, a leading indicator character, `: `, ` #`, surrounding whitespace), as Playwright's `yamlEscapeValueIfNeeded` does. Add a `snapshot.rs` case with multi-line and `key: value`-like text that a YAML parser reads back as the same string.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/src/snapshot.rs",
+          "symbol": "scalar"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/tests/snapshot.rs",
+          "symbol": "text_yaml_would_misread_is_quoted"
+        }
+      ],
+      "boundaryId": "s06-devtools"
+    },
+    {
+      "id": "S06-F7",
+      "criterionIds": [
+        "DEV-4"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**`type` with `replace` picks select-all by `cfg!(target_os)` and has no test.** The repair added `replace: true` to `input` `type` (`requests.rs`: `if cfg!(target_os = \"macos\") { \"cmd-a\" } else { \"ctrl-a\" }`). The web rules say keyboard conventions are decided through `KeyboardOs::current()`, never `cfg!(target_os = ...)`, because a wasm32 build says nothing about the visitor's keyboard: a Mac visitor in the browser gets `ctrl-a`, which does not select all, so the old text stays and the new text is added to it. No test in `actions.rs` uses `replace`, against the constraint that every new behaviour gets a test.\n**Repair:** build the select-all keystroke from the secondary modifier (`Modifiers::secondary_key()` / `KeyboardOs::current()`, the way gpui names the secondary key) instead of `cfg!`. Add an `actions.rs` test that types into the Title field, types again with `replace: true`, and asserts the value is only the new text.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/src/requests.rs",
+          "symbol": "input"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/tests/actions.rs",
+          "symbol": "input_types_after_a_focusing_click_and_presses_keys"
+        }
+      ],
+      "boundaryId": "s06-devtools"
     }
   ],
-  "handoffMarkdown": "Implemented in dd6d759/3b77b99/f942a9e.",
+  "handoffMarkdown": "Implemented in 273964a.",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",
