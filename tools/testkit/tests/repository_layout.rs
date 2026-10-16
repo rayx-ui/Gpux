@@ -234,7 +234,13 @@ fn the_root_workspace_lists_the_moved_crates_but_not_the_benchmark() {
     // The benchmark stays a workspace of its own.
     let benchmark =
         std::fs::read_to_string(checkout().join("crates/gpux_tests_benchmark/Cargo.toml")).unwrap();
-    assert!(benchmark.contains("\n[workspace]\n"), "{benchmark}");
+    // Compared by line: Windows checks the manifest out with CRLF line endings.
+    assert!(
+        benchmark
+            .lines()
+            .any(|line| line.trim_end() == "[workspace]"),
+        "{benchmark}"
+    );
     assert!(benchmark.contains("name = \"gpux-tests-benchmark\""));
 }
 
