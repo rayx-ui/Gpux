@@ -635,6 +635,7 @@ impl DispatchTree {
         &self.nodes[node_id.0]
     }
 
+    #[cfg(test)]
     pub(crate) fn parent_node_id(&self, node_id: DispatchNodeId) -> Option<DispatchNodeId> {
         self.nodes.get(node_id.0).and_then(|node| node.parent)
     }

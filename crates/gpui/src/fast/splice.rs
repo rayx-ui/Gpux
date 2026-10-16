@@ -17,11 +17,9 @@
 //!   nested view began, the nested view is prepainted and painted where it
 //!   was, with what it inherited there, and the copy goes on after it.
 //!
-//! gpux copies more than gpui-fast between gaps: its DevKit nodes, whose ids
-//! are allocated before an element's children and recorded after them, and
-//! the dispatch nodes they point at, are mapped across the stretches of one
-//! view, since a node allocated before a gap is recorded after it. A nested
-//! view inherits gpux's every stack where it was drawn: element ids, text
+//! gpux copies more than gpui-fast between gaps: the dispatch nodes and the
+//! accessibility events of one view are mapped across its stretches, since a
+//! node opened before a gap is closed after it. A nested view inherits gpux's every stack where it was drawn: element ids, text
 //! style, content masks for prepaint and paint, element offset, rem size,
 //! opacity, transform, scroll and sticky contexts, hitbox behavior and
 //! positioned depth.
@@ -131,7 +129,6 @@ pub(crate) struct Rebuild {
     scroll_contexts: Vec<ScrollContainerContext>,
     sticky_contexts: Vec<StickyLayoutContext>,
     hitbox_behavior: Option<HitboxBehavior>,
-    pointer_semantics_suppressed: usize,
     positioned_hitbox_depth: usize,
 }
 
@@ -164,7 +161,6 @@ pub(crate) fn rebuild_here(
         scroll_contexts: window.scroll_container_context_stack.stack.clone(),
         sticky_contexts: window.sticky_layout_context_stack.clone(),
         hitbox_behavior: window.hitbox_behavior_overrides.last().copied(),
-        pointer_semantics_suppressed: window.pointer_semantics_suppressed,
         positioned_hitbox_depth: window.positioned_hitbox_depth,
     }))
 }
@@ -183,7 +179,6 @@ struct Inherited {
     scroll_contexts: Vec<ScrollContainerContext>,
     sticky_contexts: Vec<StickyLayoutContext>,
     hitbox_behavior_overrides: Vec<HitboxBehavior>,
-    pointer_semantics_suppressed: usize,
     positioned_hitbox_depth: usize,
 }
 
@@ -247,10 +242,6 @@ fn enter_gap(
             &mut window.hitbox_behavior_overrides,
             rebuild.hitbox_behavior.into_iter().collect(),
         ),
-        pointer_semantics_suppressed: mem::replace(
-            &mut window.pointer_semantics_suppressed,
-            rebuild.pointer_semantics_suppressed,
-        ),
         positioned_hitbox_depth: mem::replace(
             &mut window.positioned_hitbox_depth,
             rebuild.positioned_hitbox_depth,
@@ -270,7 +261,6 @@ fn leave_gap(window: &mut Window, inherited: Inherited) {
     window.scroll_container_context_stack.stack = inherited.scroll_contexts;
     window.sticky_layout_context_stack = inherited.sticky_contexts;
     window.hitbox_behavior_overrides = inherited.hitbox_behavior_overrides;
-    window.pointer_semantics_suppressed = inherited.pointer_semantics_suppressed;
     window.positioned_hitbox_depth = inherited.positioned_hitbox_depth;
 }
 
@@ -291,8 +281,8 @@ pub(crate) struct Gap {
     /// all.
     element_states: Vec<(GlobalElementId, TypeId)>,
     dependencies: RenderDependencies,
-    /// Its dispatch node and DevKit node in this frame, once prepainted.
-    prepainted: Option<(DispatchNodeId, usize)>,
+    /// Its element's dispatch node in this frame, once prepainted.
+    prepainted: Option<DispatchNodeId>,
 }
 
 /// A nested view built for a splice that did not happen, with what the view
@@ -765,7 +755,7 @@ fn prepaint_nested(
 
 /// Whether the view `splice` draws around its gaps came out of this frame's
 /// layout as it did last frame, and its gaps where they were, so that what
-/// it drew around them, and the DevKit nodes of their elements, still stand.
+/// it drew around them still stands.
 pub(crate) fn splice_holds(window: &mut Window, splice: &Splice) -> bool {
     if !crate::fast::layout::layouts_unchanged(window.layout_engine.as_ref().unwrap(), &splice.held)
     {
@@ -850,14 +840,13 @@ pub(crate) fn splice_prepaint(
 
         // The gap hangs off its element's dispatch node, which that element
         // pushed before the view began and which was copied with the
-        // stretch before it, as its DevKit node's id was.
+        // stretch before it.
         let parent = window.rendered_frame.dispatch_tree.nodes[gap_range.start.dispatch_tree_index]
             .parent
             .expect("a nested view hangs off its element's node");
         copy.unwind_to(Some(parent), &mut window.next_frame.dispatch_tree);
         let node = copy.copied(parent).expect("its element's node was copied");
-        let devtools_node = copy.devtools_id(gap_range.start.devtools_node_id - 1);
-        prepaint_gap(window, gap, node, devtools_node, cx);
+        prepaint_gap(window, gap, node, cx);
 
         cursor = gap_range.end.clone();
         next_record = gap.record + gap_nested + 1;
@@ -875,34 +864,6 @@ pub(crate) fn splice_prepaint(
     );
     copy.close(&mut window.next_frame.dispatch_tree);
     let end = window.prepaint_index();
-
-    // A DevKit node counts the hitboxes of its element's whole subtree: the
-    // gap's element, and every copied node around it up to the view's root,
-    // count the gap's change in hitboxes.
-    for gap in &gaps {
-        let Some((_, devtools_node)) = gap.prepainted else {
-            continue;
-        };
-        let previous = &window.rendered_frame.fast_retained.records[gap.record].prepaint_range;
-        let previous = previous.end.hitboxes_index - previous.start.hitboxes_index;
-        let change = gap_hitbox_count(window, gap) as isize - previous as isize;
-        if change == 0 {
-            continue;
-        }
-        let frame = &mut window.next_frame;
-        let mut node = Some(devtools_node);
-        while let Some(id) = node.filter(|id| copy.copied_devtools_id(*id)) {
-            let Some(entry) = frame
-                .devtools_node_indices
-                .get(id)
-                .and_then(|&index| frame.devtools_nodes.get_mut(index))
-            else {
-                break;
-            };
-            entry.hitbox_count = (entry.hitbox_count as isize + change).max(0) as usize;
-            node = entry.parent_devtools_node_id;
-        }
-    }
 
     // The gaps' layout keys and dependencies are this frame's.
     let mut layout_keys = kept_layout_keys;
@@ -925,29 +886,9 @@ pub(crate) fn splice_prepaint(
     }
 }
 
-/// How many hitboxes the gap's subtree inserted this frame.
-fn gap_hitbox_count(window: &Window, gap: &Gap) -> usize {
-    window
-        .next_frame
-        .fast_retained
-        .find_open_or_painted(&gap.global_id)
-        .map(|index| {
-            let range = &window.next_frame.fast_retained.records[index].prepaint_range;
-            range.end.hitboxes_index - range.start.hitboxes_index
-        })
-        .unwrap_or(0)
-}
-
 /// Prepaints a gap where its element prepainted it last frame: under the
-/// element's copied dispatch node `node` and DevKit node `devtools_node`,
-/// with what it inherited there.
-fn prepaint_gap(
-    window: &mut Window,
-    gap: &mut Gap,
-    node: DispatchNodeId,
-    devtools_node: usize,
-    cx: &mut App,
-) {
+/// element's copied dispatch node `node`, with what it inherited there.
+fn prepaint_gap(window: &mut Window, gap: &mut Gap, node: DispatchNodeId, cx: &mut App) {
     debug_assert_eq!(window.next_frame.dispatch_tree.active_node_id(), Some(node));
     let gap_record = &window.rendered_frame.fast_retained.records[gap.record];
     let rebuild = gap_record
@@ -959,7 +900,6 @@ fn prepaint_gap(
     let bounds = window.layout_bounds(gap.layout_id);
     let element_id = gap.global_id.last().cloned().expect("a view has an id");
     window.element_id_stack.push(element_id);
-    window.push_existing_devtools_node(devtools_node);
     let scope = crate::fast::layout_key::enter_prepaint_scope(window, gap.layout_key);
     let global_id = gap.global_id.clone();
     prepaint_nested(
@@ -971,10 +911,9 @@ fn prepaint_gap(
         cx,
     );
     crate::fast::layout_key::exit_prepaint_scope(window, scope);
-    window.pop_devtools_node(devtools_node);
     window.element_id_stack.pop();
     leave_gap(window, inherited);
-    gap.prepainted = Some((node, devtools_node));
+    gap.prepainted = Some(node);
 }
 
 /// Copies last frame's records `records`, whose prepaint was copied from
@@ -1068,7 +1007,7 @@ pub(crate) fn splice_paint(window: &mut Window, spliced: &mut SplicedPrepaint, c
 
 /// Paints a gap where its element painted it last frame.
 fn paint_gap(window: &mut Window, gap: &mut Gap, cx: &mut App) {
-    let Some((node, devtools_node)) = gap.prepainted else {
+    let Some(node) = gap.prepainted else {
         return;
     };
     let gap_record = &window.rendered_frame.fast_retained.records[gap.record];
@@ -1081,26 +1020,21 @@ fn paint_gap(window: &mut Window, gap: &mut Gap, cx: &mut App) {
     let element_id = gap.global_id.last().cloned().expect("a view has an id");
     window.element_id_stack.push(element_id);
     window.next_frame.dispatch_tree.set_active_node(node);
-    window.push_existing_devtools_node(devtools_node);
     crate::fast::retained::paint_view(&mut gap.view.fast_retention, gap.entity, window, cx);
-    window.update_devtools_element_after_paint(devtools_node, node);
-    window.pop_devtools_node(devtools_node);
     window.element_id_stack.pop();
     leave_gap(window, inherited);
 }
 
 /// Last frame's prepaint copied stretch by stretch, with the dispatch nodes
-/// the copy is inside of left open between stretches, and the DevKit ids and
-/// dispatch nodes of every stretch mapped, for a node recorded in one
-/// stretch to find what it points at in another.
+/// the copy is inside of left open between stretches, and the dispatch nodes
+/// of every stretch mapped, for a node recorded in one stretch to find what
+/// it points at in another.
 #[derive(Default)]
 struct StretchCopy {
     /// Last frame's dispatch nodes the copy is inside of, innermost last.
     open: Vec<DispatchNodeId>,
     /// Each stretch of dispatch nodes copied, and where it landed.
     nodes: Vec<(Range<usize>, usize)>,
-    /// Each stretch of DevKit ids copied, and where it landed.
-    devtools_ids: Vec<(Range<usize>, usize)>,
     /// The element states the gaps used last frame. The stretch before a
     /// gap holds the accesses its view's layout made for everything nested
     /// in it, the gaps included: a gap built again uses what it needs
@@ -1179,60 +1113,6 @@ impl StretchCopy {
                 next.hitbox_dispatch_nodes.insert(hitbox.id, node);
             }
         }
-
-        // DevKit ids are allocated before an element's children, and its
-        // node is recorded after them: a node recorded here may have been
-        // allocated in an earlier stretch.
-        let old_ids = range.start.devtools_node_id..range.end.devtools_node_id;
-        let new_start = next.next_devtools_node_id;
-        next.next_devtools_node_id += old_ids.len();
-        next.devtools_node_indices
-            .resize(next.next_devtools_node_id, usize::MAX);
-        self.devtools_ids.push((old_ids, new_start));
-        let enclosing = next.devtools_node_stack.last().copied();
-        let copied_nodes: &[crate::window::DevtoolsFrameNode] = if crate::window::DEVTOOLS {
-            &rendered.devtools_nodes
-                [range.start.devtools_nodes_index..range.end.devtools_nodes_index]
-        } else {
-            &[]
-        };
-        for source in copied_nodes {
-            let devtools_node_id = self.devtools_id(source.devtools_node_id);
-            let dispatch_node_id = self
-                .copied(DispatchNodeId::from_usize(source.dispatch_node_id))
-                .expect("a copied DevKit node's dispatch node was copied");
-            let dispatch_node = next.dispatch_tree.node(dispatch_node_id);
-            next.devtools_node_indices[devtools_node_id] = next.devtools_nodes.len();
-            next.devtools_nodes.push(crate::window::DevtoolsFrameNode {
-                devtools_node_id,
-                parent_devtools_node_id: source
-                    .parent_devtools_node_id
-                    .and_then(|parent| self.try_devtools_id(parent))
-                    .or(enclosing),
-                dispatch_node_id: dispatch_node_id.as_usize(),
-                parent_dispatch_node_id: next
-                    .dispatch_tree
-                    .parent_node_id(dispatch_node_id)
-                    .map(DispatchNodeId::as_usize),
-                type_name: source.type_name,
-                global_id: source.global_id.clone(),
-                source: source.source,
-                bounds: source.bounds,
-                semantics: source.semantics.clone(),
-                hitbox_count: source.hitbox_count,
-                key_listener_count: dispatch_node.key_listeners.len(),
-                action_listener_count: dispatch_node.action_listeners.len(),
-                focused: dispatch_node.focus_id.is_some() && dispatch_node.focus_id == window.focus,
-                fast_row: source.fast_row,
-            });
-            if let Some(setters) = rendered
-                .devtools_property_setters
-                .get(&source.dispatch_node_id)
-            {
-                next.devtools_property_setters
-                    .insert(dispatch_node_id.as_usize(), setters.clone());
-            }
-        }
     }
 
     /// Copies the dispatch nodes `range` of `source` into `target`, each
@@ -1286,28 +1166,6 @@ impl StretchCopy {
         let node = node.as_usize();
         let (range, start) = self.nodes.iter().find(|(range, _)| range.contains(&node))?;
         Some(DispatchNodeId::from_usize(node - range.start + start))
-    }
-
-    /// What last frame's DevKit id `id` is now, if it was copied.
-    fn try_devtools_id(&self, id: usize) -> Option<usize> {
-        let (range, start) = self
-            .devtools_ids
-            .iter()
-            .find(|(range, _)| range.contains(&id))?;
-        Some(id - range.start + start)
-    }
-
-    /// Whether `id`, a DevKit id of this frame, was given to a node copied
-    /// in a stretch.
-    fn copied_devtools_id(&self, id: usize) -> bool {
-        self.devtools_ids
-            .iter()
-            .any(|(range, start)| (*start..start + range.len()).contains(&id))
-    }
-
-    fn devtools_id(&self, id: usize) -> usize {
-        self.try_devtools_id(id)
-            .expect("a copied DevKit node's id was allocated in a copied stretch")
     }
 }
 

@@ -418,11 +418,10 @@ impl Render for Wrapping {
     }
 }
 
-/// Found by review: the DevKit nodes around a gap kept last frame's count of
-/// hitboxes when the gap gained or lost one. Every node from the gap's
-/// element up to the spliced view counts the change.
+/// A gap that gains or loses a hitbox is spliced, and the hitboxes copied
+/// around it and its new ones equal the frame drawn from scratch.
 #[test]
-fn devkit_nodes_around_a_gap_count_its_new_hitboxes() {
+fn a_gap_that_gains_or_loses_a_hitbox_is_spliced() {
     let mut pair = ViewPair::open_in(SPLICE, |_, cx| Wrapping {
         toggling: cx.new(|_| Toggling { clickable: false }),
     });

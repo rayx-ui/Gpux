@@ -170,14 +170,4 @@ fn accessibility_scenes_are_catalogued_under_their_area() {
             "the accessibility scene runs in lane {lane:?}"
         );
     }
-    // The scenes annotate through AccessKit only.
-    for source in [
-        include_str!("../src/scenes/semantics.rs"),
-        include_str!("../src/scenes/common.rs"),
-        include_str!("../src/scenes/editing.rs"),
-        include_str!("../src/scenes/lists.rs"),
-    ] {
-        assert!(!source.contains("devtools_semantics"));
-        assert!(!source.contains("DevtoolsSemantics"));
-    }
 }

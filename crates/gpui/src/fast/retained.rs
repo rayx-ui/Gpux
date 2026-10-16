@@ -22,8 +22,8 @@
 //! hitboxes re-pointed at the reused dispatch nodes, tooltips, deferred
 //! draws, the dispatch subtree with its focus, element states and their
 //! pending transfers, line layouts, listeners, input handlers, cursor
-//! styles, tab stops, window-control hitboxes and the DevKit nodes with
-//! their remapped ids, parents, focus and property setters. What records add
+//! styles, tab stops, window-control hitboxes and the accessibility events.
+//! What records add
 //! is the nesting, the layout, the dependencies and the hovers.
 //!
 //! Hovers follow gpux's rule (`fast::dependencies::may_replay_hovers`): a
@@ -268,16 +268,6 @@ impl PrepaintStateIndex {
                 from.dispatch_tree_index,
                 to.dispatch_tree_index,
             ),
-            devtools_nodes_index: shift(
-                self.devtools_nodes_index,
-                from.devtools_nodes_index,
-                to.devtools_nodes_index,
-            ),
-            devtools_node_id: shift(
-                self.devtools_node_id,
-                from.devtools_node_id,
-                to.devtools_node_id,
-            ),
             a11y_events_index: shift(
                 self.a11y_events_index,
                 from.a11y_events_index,
@@ -314,8 +304,6 @@ impl PartialEq for PrepaintStateIndex {
             tooltips_index,
             deferred_draws_index,
             dispatch_tree_index,
-            devtools_nodes_index,
-            devtools_node_id,
             a11y_events_index,
             accessed_element_states_index,
             pending_element_state_transfers_index,
@@ -326,8 +314,6 @@ impl PartialEq for PrepaintStateIndex {
             && *tooltips_index == other.tooltips_index
             && *deferred_draws_index == other.deferred_draws_index
             && *dispatch_tree_index == other.dispatch_tree_index
-            && *devtools_nodes_index == other.devtools_nodes_index
-            && *devtools_node_id == other.devtools_node_id
             && *a11y_events_index == other.a11y_events_index
             && *accessed_element_states_index == other.accessed_element_states_index
             && *pending_element_state_transfers_index == other.pending_element_state_transfers_index

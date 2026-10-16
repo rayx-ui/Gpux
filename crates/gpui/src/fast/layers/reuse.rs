@@ -5,9 +5,9 @@
 //! gpux carries through its own [`Window::reuse_prepaint`] and
 //! [`Window::reuse_paint`], so that everything they copy for a view drawn
 //! from last frame (the hitboxes' dispatch nodes, element states queued to be
-//! carried over, the DevKit node tree) is carried for a composited layer
-//! too, and then moves what the scroll moved: the hitboxes, the window
-//! control hitboxes, and the bounds the DevKit and tests see.
+//! carried over, the accessibility events) is carried for a composited layer
+//! too, and then moves what the scroll moved: the hitboxes and the window
+//! control hitboxes.
 //!
 //! On a frame that composites a layer, its content is neither prepainted nor
 //! painted, but what prepainting and painting it added to the last frame
@@ -125,10 +125,6 @@ pub(crate) fn carry_prepaint_records(
             .truncate(start.accessed_element_states_index);
         next.pending_element_state_transfers
             .truncate(start.pending_element_state_transfers_index);
-    }
-    for node in &mut next.devtools_nodes[start.devtools_nodes_index..] {
-        node.bounds.x += step.x.as_f32();
-        node.bounds.y += step.y.as_f32();
     }
     start..window.prepaint_index()
 }
@@ -253,15 +249,10 @@ pub(crate) fn follow_prepaint(
     let shift = |range: &Range<PrepaintStateIndex>| {
         range.start.shifted(&from.start, to)..range.end.shifted(&from.start, to)
     };
-    let mut hidden_hitboxes = window.fast_layers.hidden_hitboxes.take();
     for layer in window.fast_layers.layers.values_mut() {
-        layer.rows.follow_told_prepaint(
-            frame,
-            &mut window.next_frame,
-            &mut hidden_hitboxes,
-            &inside,
-            &shift,
-        );
+        layer
+            .rows
+            .follow_told_prepaint(frame, &mut window.next_frame, &inside, &shift);
         let current = layer
             .input
             .ranges_frame
@@ -276,7 +267,6 @@ pub(crate) fn follow_prepaint(
         layer.rows.follow_prepaint(&shift);
         layer.input.prepaint_followed = Some(frame);
     }
-    window.fast_layers.hidden_hitboxes = hidden_hitboxes;
 }
 
 /// Follows, as [`follow_prepaint`] does, the copy of the paint records the

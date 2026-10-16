@@ -1257,18 +1257,6 @@ impl VisualTestContext {
             .flatten()
     }
 
-    /// The devtools snapshot of the latest frame, taken after the executor parks and any pending
-    /// invalidation draws.
-    pub fn settled_frame_snapshot(&mut self) -> crate::DevtoolsFrameSnapshot {
-        self.run_until_parked();
-        self.update(|window, cx| {
-            if window.invalidator.is_dirty() {
-                window.draw(cx).clear(cx);
-            }
-            window.devtools_frame_snapshot()
-        })
-    }
-
     /// The accessibility tree of the latest frame as queries see it, taken after the executor
     /// parks and any pending invalidation draws. The first call starts the window's
     /// inspection, which lasts as long as the window, and draws the frame from scratch, so the

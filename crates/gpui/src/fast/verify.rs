@@ -6,8 +6,8 @@
 //! describes far more of the frame than gpui-fast does: every scene family
 //! (its own included), the screen-effect requests, hitboxes in hit-test
 //! order, cursors, tooltips, tab stops, mouse listeners, input handlers, the
-//! dispatch tree and focus path, the element states the frame accessed and
-//! the DevKit node tree. It compares draw orders by rank rather than by
+//! dispatch tree and focus path, the element states the frame accessed, the
+//! effect diagnostics and the accessibility tree. It compares draw orders by rank rather than by
 //! gpui-fast's overlap depth, because gpux replays cached views by inserting
 //! their primitives again and both windows number draw orders alike.
 
@@ -546,36 +546,8 @@ pub(crate) fn describe_frame_hit_at(window: &Window, points: &[Point<Pixels>]) -
     element_states.sort();
     element_states.dedup();
     lines.extend(element_states);
-    // The DevKit nodes, which the snapshot leaves the rows off screen out
-    // of and tells row after row, numbered as they are told.
-    let devtools = window.devtools_frame_snapshot();
-    lines.push(format!(
-        "devtools viewport {:?} effects {:?}",
-        devtools.viewport, devtools.effects
-    ));
-    let ids = told_order(
-        frame.next_devtools_node_id,
-        &lists,
-        prepaint(|index| index.devtools_node_id),
-        // The snapshot leaves them out (see `lists::shown_nodes`).
-        |_, _| false,
-    );
-    let mut told_id: FxHashMap<usize, usize> = FxHashMap::default();
-    for (told, id) in ids.iter().enumerate() {
-        told_id.insert(*id, told);
-    }
-    let told =
-        |ids: &FxHashMap<usize, usize>, id: usize| ids.get(&id).copied().unwrap_or(usize::MAX);
-    for mut element in devtools.elements {
-        element.devtools_node_id = told(&told_id, element.devtools_node_id);
-        element.parent_devtools_node_id =
-            element.parent_devtools_node_id.map(|id| told(&told_id, id));
-        element.dispatch_node_id = told(&told_node, element.dispatch_node_id);
-        element.parent_dispatch_node_id = element
-            .parent_dispatch_node_id
-            .map(|id| told(&told_node, id));
-        lines.push(format!("devtools {element:?}"));
-    }
+    // The shader-effect counts.
+    lines.push(format!("effects {:?}", window.effect_diagnostics()));
     // The accessibility tree, as a frame drawn from scratch builds it.
     window.a11y.describe(&mut lines);
     lines
@@ -587,8 +559,8 @@ impl Window {
     /// windows drawing the same frame share: scene primitives by draw order
     /// with their atlas placement neutralized, then hitboxes in hit-test
     /// order, cursors, tooltips, tab stops, listeners, the dispatch tree and
-    /// focus path, the element states the frame accessed, and the DevKit
-    /// node tree. Fast-mode tests compare a window drawing incrementally with
+    /// focus path, the element states the frame accessed, the effect
+    /// diagnostics and the accessibility tree. Fast-mode tests compare a window drawing incrementally with
     /// one drawing from scratch by it.
     pub fn describe_rendered_frame(&self) -> Vec<String> {
         describe_frame(self)
@@ -854,22 +826,6 @@ pub(crate) mod retention {
             lines.push(format!(
                 "hitbox {:?} {:?} {:?}",
                 hitbox.bounds, hitbox.content_mask, hitbox.behavior
-            ));
-        }
-        // What the DevKit shows of it, its text among it, without the ids a
-        // frame numbers its nodes by.
-        for node in &frame.devtools_nodes
-            [prepaint.start.devtools_nodes_index..prepaint.end.devtools_nodes_index]
-        {
-            lines.push(format!(
-                "devtools {:?}",
-                crate::DevtoolsElementSnapshot {
-                    devtools_node_id: 0,
-                    parent_devtools_node_id: None,
-                    dispatch_node_id: 0,
-                    parent_dispatch_node_id: None,
-                    ..node.snapshot()
-                }
             ));
         }
         lines
