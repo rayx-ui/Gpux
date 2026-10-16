@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list-layer-kinds",
-  "revision": 24,
+  "revision": 30,
   "planRevision": 6,
   "specHashes": {
     "requirements": "6624ffc34f924fe7c0c2363d3e6013bf10669885d6b44b6f000d06f239120c33",
@@ -10,10 +10,16 @@
   },
   "tasks": {
     "t01-axis-slots": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
     },
     "t02-horizontal-oracle": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
     },
     "t03-sticky-extra-rows": {
       "status": "pending"
@@ -101,6 +107,16 @@
         }
       },
       "recordedAt": "2026-10-16T22:58:17Z"
+    },
+    "5c82811f91b5bebc045783369462c34ad8e3860abc2b1006ef7a4410ece6fa1b": {
+      "snapshot": {
+        "specHash": "ebe43eb4df55aabd31f8b7a8811f28366756aa345fa5c31c99786ebb92c5d743",
+        "repositories": {
+          "gpux": "0f8b079aa694310d6b742d45ca98067d693a9da33770838074b8c7018777a635",
+          "rayx": "6760fd3c6087a69623a43744e89e30e142b974ccc4b14b30ccb46f50b02077d1"
+        }
+      },
+      "recordedAt": "2026-10-16T23:07:26Z"
     }
   },
   "checkResults": {
@@ -239,6 +255,40 @@
       "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s00b-layer-gaps-final-ff138bdbbc72.log",
       "logSha256": "7f73d7ac03e4a23b2583b24010dc7b22639db9fa617bd80b6eca866599ef8df2",
       "inputsHash": "b62c4acd86815fe286595a103b1b42d4c10dcdfdb2d6784cee10d5d260a478b6"
+    },
+    "s01-horizontal/c-horizontal/final": {
+      "checkId": "c-horizontal",
+      "boundaryId": "s01-horizontal",
+      "phase": "final",
+      "batchId": "5c82811f91b5bebc045783369462c34ad8e3860abc2b1006ef7a4410ece6fa1b",
+      "definitionHash": "9195fe6b91df7c697ae922735921d2492c87bbde5425094d0d7f8ae824ea03c7",
+      "basisHash": "8e4dd9405a96adda459a552ee09465a00e5ffd47ff54e9654d03cbb49f67b6ed",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 0.3433,
+      "recordedAt": "2026-10-16T23:07:25Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s01-horizontal-final-ba32d1c670c4.log",
+      "logSha256": "3688432d68e19c289ae382771fb4ca3a87f4be63837de11b0cb88a232c6528e1",
+      "inputsHash": "9d461bb141a25b08cd698c93f831187b117ddeaa1a1d8b6b2d450eb39475ccea"
+    },
+    "s01-horizontal/c-horizontal-oracle/final": {
+      "checkId": "c-horizontal-oracle",
+      "boundaryId": "s01-horizontal",
+      "phase": "final",
+      "batchId": "5c82811f91b5bebc045783369462c34ad8e3860abc2b1006ef7a4410ece6fa1b",
+      "definitionHash": "fcb4ff15f73b8db9405b1e7730dfc187c215e897c87939b266a6a475db450575",
+      "basisHash": "12843f9307c8e8860d6ae8a51fa6e99ba4a7d58a8011b91f254fe85064874dc4",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 0.393,
+      "recordedAt": "2026-10-16T23:07:26Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s01-horizontal-final-1b3af7e52dcd.log",
+      "logSha256": "46fce0be0eaec874142ed3807d190a43b4bf97a5e81ee3288bcedd8daf951477",
+      "inputsHash": "9d461bb141a25b08cd698c93f831187b117ddeaa1a1d8b6b2d450eb39475ccea"
     }
   },
   "reviews": {
@@ -471,6 +521,75 @@
         "lk-s00b-F3"
       ],
       "recordedAt": "2026-10-16T22:59:42Z"
+    },
+    "s01-horizontal": {
+      "reviewerId": "reviewer-lk-s01",
+      "snapshotId": "8e17230ac87d72b497bb4a9dd64bf01a8d84a2bdf4e3ae395437af9602e77ee7",
+      "criterionIds": [
+        "HZ-1",
+        "HZ-2"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "HZ-1",
+            "HZ-2"
+          ],
+          "sha256": "605154974d3c14e6a3279c93a71c4fdd93214de1f29bd8ecc1be11e96be2b742"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/virtual_list/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "HZ-1"
+          ],
+          "sha256": "ed94f8d48c9fd58ebbc30153f3441a2609809d30199c862f15a4d41db4074541"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/scene.rs",
+          "kind": "source",
+          "criterionIds": [
+            "HZ-2"
+          ],
+          "sha256": "f64a7dc09bcabaace5f9ff6d9fcfa8aa0834be7c519cf0042f84f7efc73a0f6b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/horizontal.rs",
+          "kind": "test",
+          "criterionIds": [
+            "HZ-1"
+          ],
+          "sha256": "0a1d3ba5a7ce3f3d11e2be1cee2a992aaf2e378b73e05132d633c4cd8ce2dc71"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/ineligible.rs",
+          "kind": "test",
+          "criterionIds": [
+            "HZ-1"
+          ],
+          "sha256": "23bd7462b13e7d2db6d97d94ded1b3d9e230686b5ffd0197f0d7327fb2463ff6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/horizontal_oracle.rs",
+          "kind": "test",
+          "criterionIds": [
+            "HZ-2"
+          ],
+          "sha256": "1fd3c0f757bebc81375a8ac16f2bf62d51f18b9b3405ea505e281d8655f8cb95"
+        }
+      ],
+      "summaryMarkdown": "Passed, with no findings.\n\n**Axis-generic code.** `begin_virtual_list` takes the list's axis and works along it: content size and start, overscan reach from the viewport's extent, and placement by the list's own origins. The axis-generic parts are `row_slot` (whole viewport across the axis), `hidden_in_view`, the Extend test (cross-axis offset unchanged), `rows_region`, `rows_overflow`, and the spill test and extent in `end_paint_rows`. The remaining y-only code in lists.rs belongs to the vertical-only `list` element (`list_row_top`, `held_rows_land_alike`, `end_list`) or already handles both axes (`step`/`delta`, `drawn_alike`, painted region). The content-ordering helpers `apart_in_order`/`gather` in scene.rs already take runs along either axis. `uniform_list` and `list` pass `Axis::Vertical`. Sticky lists stay ineligible because `carried` is `sticky_items.is_empty()`.\n\n**Tests.** `horizontal` asserts composite-or-repaint each frame (repainted ≤ 1, the same tolerance as the vertical `rows` group), ineligible 0, kept > 0, closure rows equal to `list_rows_rendered` and a mean ≤ 2. It also compares a horizontal history with layers off, and covers width changes of 7.5 and 11 px plus a cross-axis wheel. `horizontal_oracle` covers fractional widths, gap and padding at scales 1 and 1.25, plus seeded `describe_rendered_frame` histories. The removed ineligible horizontal case is superseded as HZ-1 requires. The sprint checks are fresh at revision 28.",
+      "findingIds": [],
+      "recordedAt": "2026-10-16T23:09:10Z"
     }
   },
   "checkpoints": {
@@ -491,6 +610,15 @@
       },
       "reviewHash": "8231b1687eeb79c2bb9b2e943d81b2d3eba7acdf566c730159f914f3e9ed2643",
       "recordedAt": "2026-10-16T23:00:06Z"
+    },
+    "s01-horizontal": {
+      "snapshotId": "8e17230ac87d72b497bb4a9dd64bf01a8d84a2bdf4e3ae395437af9602e77ee7",
+      "commits": {
+        "gpux": "5333f7525f916248b8a4c393d177d63489f1f30a",
+        "rayx": "77733880057de4e79fe963cd1cce7e51d9b622d0"
+      },
+      "reviewHash": "d9185c5c73cf6f9d7668ba1d0ccb05b80f5e4bd64fc4a173eeab13043a9f976a",
+      "recordedAt": "2026-10-16T23:09:49Z"
     }
   },
   "findings": [
@@ -607,7 +735,7 @@
       "boundaryId": "s00b-layer-gaps"
     }
   ],
-  "handoffMarkdown": "uniform_list measures once in request_layout through lists::measure_item; kept without a layer under view retention by WindowLayers::measured_items (dependencies, scale factor, rem, text style, frame before by measured_items_frame; owner changes ignoring bare notifications via invalidate::measured_item_changed_without_layer). fast::tests::uniform_measured_item (6); list_layers measure test updated.",
+  "handoffMarkdown": "virtual_list_layers::horizontal_oracle (3): quads at 1 and 1.25 with fractional widths, gap, padding; whole-frame descriptions over random horizontal wheel/move/click/resize histories. It found nothing to fix.",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",
