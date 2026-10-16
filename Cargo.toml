@@ -77,10 +77,13 @@ scheduler = { package = "gpux-scheduler", path = "crates/scheduler", version = "
 sum_tree = { package = "gpux-sum-tree", path = "crates/sum_tree", version = "0.3.0" }
 util = { package = "gpux-zed-util", path = "crates/util", version = "0.3.0" }
 util_macros = { package = "gpux-zed-util-macros", path = "crates/util_macros", version = "0.3.0" }
-accesskit = { version = "0.24.0", features = ["enumn"] }
-accesskit_macos = "0.26.0"
-accesskit_unix = "0.22"
-accesskit_windows = "0.34"
+# AccessKit 0.25: gpux is ahead of Zed here (an upstream import keeps these pins unless Zed's
+# are newer; see docs/upstream/accesskit-0.25.md). Every adapter moves with `accesskit`.
+accesskit = { version = "0.25.1", features = ["enumn"] }
+accesskit_consumer = "0.39.1"
+accesskit_macos = "0.27.1"
+accesskit_unix = "0.24.0"
+accesskit_windows = "0.35.1"
 anyhow = "1.0.86"
 ashpd = { version = "0.13", default-features = false, features = ["async-io", "inhibit", "open_uri", "file_chooser", "settings"] }
 async-channel = { version = "2.5", default-features = false }

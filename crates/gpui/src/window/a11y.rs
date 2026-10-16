@@ -115,6 +115,15 @@ use std::sync::{
 /// The fixed AccessKit node ID used for the root of every window's a11y tree.
 pub(crate) const ROOT_NODE_ID: NodeId = NodeId(0);
 
+/// The tree information every gpux tree update carries: the window root and gpux as toolkit.
+pub(crate) fn tree_info() -> accesskit::TreeInfo {
+    accesskit::TreeInfo {
+        root: ROOT_NODE_ID,
+        toolkit_name: Some("gpux".to_string()),
+        toolkit_version: Some(env!("CARGO_PKG_VERSION").to_string()),
+    }
+}
+
 /// A listener for an accessibility action on a specific node.
 pub(crate) type A11yActionListener =
     Box<dyn FnMut(Option<&accesskit::ActionData>, &mut Window, &mut App) + 'static>;
@@ -578,7 +587,7 @@ impl A11yNodeBuilder {
         let nodes = std::mem::take(&mut self.all_nodes);
         let update = TreeUpdate {
             nodes,
-            tree: Some(accesskit::Tree::new(ROOT_NODE_ID)),
+            tree: Some(tree_info()),
             tree_id: accesskit::TreeId::ROOT,
             focus,
         };
