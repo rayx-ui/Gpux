@@ -73,9 +73,12 @@ case "$EVENT_NAME" in
         warp=true
       fi
     elif [ -n "${BASE_SHA:-}" ]; then
-      # Documentation, memory and licences cannot change what a test proves.
-      if ! git diff --name-only "$BASE_SHA" "${HEAD_SHA:-HEAD}" \
-        | grep -qv -E '^(docs/|\.agentx/|\.claude/|README\.md$|CLAUDE\.md$|LINUX-WSL\.md$|LICENSE)'; then
+      # Documentation, memory and licences cannot change what a test proves. The file list is
+      # read whole first: piped into `grep -q`, a long `git diff` dies of SIGPIPE when grep stops
+      # at the first code file, and `pipefail` then reads the pull request as documentation only.
+      changed=$(git diff --name-only "$BASE_SHA" "${HEAD_SHA:-HEAD}")
+      if [ -z "$changed" ] \
+        || ! grep -qv -E '^(docs/|\.agentx/|\.claude/|README\.md$|CLAUDE\.md$|LINUX-WSL\.md$|LICENSE)' <<<"$changed"; then
         jobs=(check)
       fi
     fi

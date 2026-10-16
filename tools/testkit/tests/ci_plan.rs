@@ -311,6 +311,78 @@ fn a_documentation_only_pull_request_runs_only_check() {
     windows,
     ignore = "plan.sh needs bash and jq; the Unix runners run this test"
 )]
+fn a_code_change_with_a_long_file_list_runs_every_job() {
+    // A pull request that moves many files lists more paths than a pipe holds (a layout change
+    // listed 1427, about 129 KB). Piped into `grep -q`, `git diff` died of SIGPIPE once grep
+    // stopped at the first code file, and `pipefail` turned that into "documentation only".
+    let dir = tempfile::tempdir().unwrap();
+    assert!(available("git"), "this test builds a repository with `git`");
+    let git = |args: &[&str]| {
+        let status = Command::new("git")
+            .args(["-c", "user.name=t", "-c", "user.email=t@example.com"])
+            .args(args)
+            .current_dir(dir.path())
+            .status()
+            .unwrap();
+        assert!(status.success(), "git {args:?}");
+    };
+    git(&["init", "-q"]);
+    std::fs::write(dir.path().join("README.md"), "base").unwrap();
+    git(&["add", "."]);
+    git(&["commit", "-q", "-m", "base"]);
+    git(&["tag", "base"]);
+    let moved = dir
+        .path()
+        .join("crates")
+        .join("moved_crate_with_a_long_name");
+    std::fs::create_dir_all(&moved).unwrap();
+    for index in 0..3000 {
+        std::fs::write(
+            moved.join(format!(
+                "a_source_file_with_a_long_descriptive_name_{index:05}.rs"
+            )),
+            "",
+        )
+        .unwrap();
+    }
+    git(&["add", "."]);
+    git(&["commit", "-q", "-m", "move"]);
+    let listed = Command::new("git")
+        .args(["diff", "--name-only", "base", "HEAD"])
+        .current_dir(dir.path())
+        .output()
+        .unwrap()
+        .stdout
+        .len();
+    assert!(
+        listed > 128 * 1024,
+        "the file list ({listed} bytes) must exceed a pipe buffer"
+    );
+    let Some(plan) = plan_in(
+        dir.path(),
+        &[
+            ("EVENT_NAME", "pull_request"),
+            ("PR_LABELS", "[]"),
+            ("BASE_SHA", "base"),
+            ("HEAD_SHA", "HEAD"),
+        ],
+    ) else {
+        return;
+    };
+    let jobs = plan.unwrap().get("jobs").to_string();
+    for job in ["check", "test", "lane-a", "lane-c", "lane-d", "package"] {
+        assert!(
+            jobs.contains(&format!("\"{job}\"")),
+            "{job} missing from {jobs}"
+        );
+    }
+}
+
+#[test]
+#[cfg_attr(
+    windows,
+    ignore = "plan.sh needs bash and jq; the Unix runners run this test"
+)]
 fn an_unknown_platform_is_refused() {
     let Some(result) = plan_in(
         &root(),
