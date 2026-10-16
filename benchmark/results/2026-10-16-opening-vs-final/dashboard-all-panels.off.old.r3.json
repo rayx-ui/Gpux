@@ -1,0 +1,66 @@
+{
+  "scenario": "dashboard-all-panels",
+  "group": "retention",
+  "label": "off",
+  "target": "macos",
+  "fast_mode": "FastMode { layout_retention: false, view_retention: false, splice: false, scroll_layers: false }",
+  "fast_stats": null,
+  "viewport": [
+    1280.0,
+    801.0
+  ],
+  "scale_factor": 2.0,
+  "frames": 600.0,
+  "warmup": 120,
+  "wall_s": 5.000005209,
+  "fps": 119.99987498413023,
+  "vsync_ms": 8.314416999999999,
+  "janky_frames": 0,
+  "inactive_frames": 0,
+  "open_to_first_present_ms": 73.783208,
+  "first_draw_ms": 12.558335,
+  "draw_ms": {
+    "count": 600,
+    "mean": 6.834626560000002,
+    "p50": 6.836223,
+    "p95": 6.946815,
+    "p99": 7.196671,
+    "max": 7.344127
+  },
+  "frame_ms": {
+    "count": 600,
+    "mean": 6.935292586666666,
+    "p50": 6.934527,
+    "p95": 7.049215,
+    "p99": 7.294975,
+    "max": 7.450623
+  },
+  "main_cpu_ms": {
+    "mean": 7.030290048333336,
+    "p50": 7.028375,
+    "p95": 7.152083,
+    "p99": 7.454625,
+    "max": 7.598583
+  },
+  "interval_ms": {
+    "mean": 8.33333847333333,
+    "p50": 8.33275,
+    "p95": 8.365625,
+    "p99": 8.740333,
+    "max": 9.2065
+  },
+  "process_cpu_ms_per_frame": 7.2539033333333345,
+  "process_cpu_pct": 87.04674931469656,
+  "allocations_per_frame": 33312.47,
+  "allocated_kb_per_frame": 19251.654650065106,
+  "heap_live_mb": 27.001261711120605,
+  "heap_peak_mb": 29.737614631652832,
+  "footprint_mb": {
+    "after_open": 35.90711975097656,
+    "after_first_frame": 36.45399475097656,
+    "after_warmup": 141.37589263916016,
+    "end": 141.45401763916016,
+    "peak": 141.45401763916016
+  },
+  "resident_mb": 98.125
+}
