@@ -1120,6 +1120,11 @@ impl TransformationMatrix {
         }
     }
 
+    #[inline]
+    fn is_unit(&self) -> bool {
+        self.rotation_scale == [[1.0, 0.0], [0.0, 1.0]] && self.translation == [0.0, 0.0]
+    }
+
     /// Move the origin by a given point
     pub fn translate(mut self, point: Point<ScaledPixels>) -> Self {
         self.compose(Self {
@@ -1224,10 +1229,20 @@ impl TransformationMatrix {
 
     /// Apply transformation to the bounds and return the enclosing axis-aligned bounds.
     pub fn apply_to_scaled_bounds(&self, bounds: Bounds<ScaledPixels>) -> Bounds<ScaledPixels> {
-        let top_left = self.apply_to_scaled_point(bounds.origin);
-        let top_right = self.apply_to_scaled_point(bounds.top_right());
-        let bottom_left = self.apply_to_scaled_point(bounds.bottom_left());
-        let bottom_right = self.apply_to_scaled_point(bounds.bottom_right());
+        // The unit matrix maps every corner to itself, which is nearly every
+        // primitive's.
+        let unit = self.is_unit();
+        let corner = |point: Point<ScaledPixels>| {
+            if unit {
+                point
+            } else {
+                self.apply_to_scaled_point(point)
+            }
+        };
+        let top_left = corner(bounds.origin);
+        let top_right = corner(bounds.top_right());
+        let bottom_left = corner(bounds.bottom_left());
+        let bottom_right = corner(bounds.bottom_right());
 
         let min_x = top_left
             .x
@@ -1597,6 +1612,65 @@ mod tests {
 
     fn prepared_effect(effect: impl Into<ElementEffect>) -> PreparedElementEffect {
         effect.into().prepare()
+    }
+
+    /// The corners run through the matrix one by one, as every bounds was
+    /// transformed before the unit matrix took a shortcut.
+    fn transformed_through_every_corner(
+        matrix: &TransformationMatrix,
+        bounds: Bounds<ScaledPixels>,
+    ) -> Bounds<ScaledPixels> {
+        let corners = [
+            bounds.origin,
+            bounds.top_right(),
+            bounds.bottom_left(),
+            bounds.bottom_right(),
+        ]
+        .map(|corner| matrix.apply_to_scaled_point(corner));
+        let min = |value: fn(&Point<ScaledPixels>) -> f32| {
+            corners.iter().map(value).fold(f32::INFINITY, f32::min)
+        };
+        let max = |value: fn(&Point<ScaledPixels>) -> f32| {
+            corners.iter().map(value).fold(f32::NEG_INFINITY, f32::max)
+        };
+        Bounds::from_corners(
+            point(ScaledPixels(min(|p| p.x.0)), ScaledPixels(min(|p| p.y.0))),
+            point(ScaledPixels(max(|p| p.x.0)), ScaledPixels(max(|p| p.y.0))),
+        )
+    }
+
+    #[test]
+    fn the_unit_matrix_bounds_are_those_of_going_through_every_corner() {
+        let unit = TransformationMatrix::unit();
+        assert!(unit.is_unit());
+        let boxes = [
+            (0.0, 0.0, 10.0, 20.0),
+            (12.5, 3.25, 7.75, 100.125),
+            (-30.0, -4.5, 64.0, 0.0),
+            (1000.5, 2000.25, -8.0, -16.0),
+            (0.1, 0.2, 0.3, 0.7),
+        ];
+        for (x, y, width, height) in boxes {
+            let bounds = Bounds {
+                origin: point(ScaledPixels(x), ScaledPixels(y)),
+                size: size(ScaledPixels(width), ScaledPixels(height)),
+            };
+            assert_eq!(
+                unit.apply_to_scaled_bounds(bounds),
+                transformed_through_every_corner(&unit, bounds)
+            );
+        }
+        let moved =
+            TransformationMatrix::unit().translate(point(ScaledPixels(5.0), ScaledPixels(-2.0)));
+        assert!(!moved.is_unit());
+        let bounds = Bounds {
+            origin: point(ScaledPixels(1.0), ScaledPixels(2.0)),
+            size: size(ScaledPixels(3.0), ScaledPixels(4.0)),
+        };
+        assert_eq!(
+            moved.apply_to_scaled_bounds(bounds),
+            transformed_through_every_corner(&moved, bounds)
+        );
     }
 
     #[cfg(feature = "diagnostics")]

@@ -28,8 +28,8 @@
     "successfulAttemptRequiresCommitBeforeNextExperiment": true,
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
-  "currentExperimentId": null,
-  "nextExperimentIndex": 2,
+  "currentExperimentId": "d85b6e3f-9680-4916-9b8e-e376c306c6b2",
+  "nextExperimentIndex": 3,
   "experiments": [
     {
       "id": "da43b412-919f-4f5e-a2c4-7c963e8d2751",
@@ -41,6 +41,17 @@
       "finishedAt": "2026-10-16T10:35:43Z",
       "state": "done",
       "status": "success"
+    },
+    {
+      "id": "d85b6e3f-9680-4916-9b8e-e376c306c6b2",
+      "index": 2,
+      "type": "hypothesis",
+      "name": "Skip the matrix for identity primitive bounds",
+      "path": "2026-10-16-02-skip-the-matrix-for-identity-primitive-bounds.json",
+      "startedAt": "2026-10-16T10:39:16Z",
+      "finishedAt": null,
+      "state": "running",
+      "status": ""
     }
   ]
 }
