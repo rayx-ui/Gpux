@@ -9,11 +9,11 @@
   "path": "2026-10-16-03-aria-properties-allocated-on-first-use.json",
   "createdAt": "2026-10-16T02:05:17Z",
   "startedAt": "2026-10-16T02:05:17Z",
-  "finishedAt": null,
-  "state": "running",
-  "status": "",
+  "finishedAt": "2026-10-16T02:12:07Z",
+  "state": "done",
+  "status": "success",
   "checkpointCommit": "35fa5aa71fea7317d5c21e05604bac195f7d6cde",
-  "resultCommit": "",
+  "resultCommit": "09577bbc940fb177d0209a968e00767b4b225be7",
   "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 35fa5aa71fea7317d5c21e05604bac195f7d6cde",
   "repositories": [
     {
@@ -21,12 +21,19 @@
       "path": ".",
       "role": "main",
       "checkpointCommit": "35fa5aa71fea7317d5c21e05604bac195f7d6cde",
-      "resultCommit": "",
+      "resultCommit": "09577bbc940fb177d0209a968e00767b4b225be7",
       "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 35fa5aa71fea7317d5c21e05604bac195f7d6cde",
-      "status": ""
+      "status": "success"
     }
   ],
-  "repositoryCommits": [],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "09577bbc940fb177d0209a968e00767b4b225be7"
+    }
+  ],
   "atomicDiscipline": {
     "oneHypothesisOnly": true,
     "singleImplementationAttempt": true,

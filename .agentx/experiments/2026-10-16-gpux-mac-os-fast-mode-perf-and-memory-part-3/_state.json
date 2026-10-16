@@ -11,13 +11,13 @@
   "status": "",
   "createdAt": "2026-10-16T01:54:00Z",
   "finishedAt": null,
-  "lastStableCommit": "b83d0b2e412fe3d6dee0fb3ffb3cf27f71822f27",
+  "lastStableCommit": "09577bbc940fb177d0209a968e00767b4b225be7",
   "repositories": [
     {
       "name": "main",
       "path": ".",
       "role": "main",
-      "lastStableCommit": "b83d0b2e412fe3d6dee0fb3ffb3cf27f71822f27"
+      "lastStableCommit": "09577bbc940fb177d0209a968e00767b4b225be7"
     }
   ],
   "atomicDiscipline": {
@@ -28,7 +28,7 @@
     "successfulAttemptRequiresCommitBeforeNextExperiment": true,
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
-  "currentExperimentId": "8439cf4f-24bc-404b-892d-0b6e483f7322",
+  "currentExperimentId": null,
   "nextExperimentIndex": 4,
   "experiments": [
     {
@@ -62,9 +62,10 @@
       "name": "Aria properties allocated on first use",
       "path": "2026-10-16-03-aria-properties-allocated-on-first-use.json",
       "startedAt": "2026-10-16T02:05:17Z",
-      "finishedAt": null,
-      "state": "running",
-      "status": ""
+      "finishedAt": "2026-10-16T02:12:07Z",
+      "state": "done",
+      "status": "success",
+      "resultCommit": "09577bbc940fb177d0209a968e00767b4b225be7"
     }
   ]
 }
