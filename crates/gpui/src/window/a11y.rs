@@ -298,6 +298,10 @@ pub(crate) struct A11y {
     pub(crate) nodes: A11yNodeBuilder,
     pub(crate) focus_ids: FxHashMap<NodeId, FocusId>,
     pub(crate) node_bounds: FxHashMap<NodeId, Bounds<Pixels>>,
+    /// Beside the builder's open nodes: each one's bounds in window pixels, recorded in its
+    /// `Push` event when it pops, hidden or not, so a row a layer held off screen keeps them
+    /// when it is replayed shown.
+    open_bounds: SmallVec<[Bounds<Pixels>; 16]>,
     /// The action handlers the frame being drawn registered as it painted, in paint order;
     /// a reused stretch of paint moves the last frame's here (see [`crate::PaintIndex`]).
     pub(crate) listeners: Vec<A11yListener>,
@@ -360,6 +364,7 @@ impl A11y {
             nodes: A11yNodeBuilder::new(),
             focus_ids: FxHashMap::default(),
             node_bounds: FxHashMap::default(),
+            open_bounds: SmallVec::new(),
             listeners: Vec::new(),
             rendered_listeners: Vec::new(),
             rendered_events: Vec::new(),
@@ -620,6 +625,7 @@ impl A11y {
         if !self.nodes.push_element(id, node, path, container) {
             return false;
         }
+        self.open_bounds.push(bounds);
         if !hidden {
             self.node_bounds.insert(id, bounds);
             if let Some(target) = self.current_scroll_target {
@@ -629,9 +635,20 @@ impl A11y {
         true
     }
 
+    /// Sets where the element being prepainted paints (a fixed or sticky element paints away
+    /// from its layout bounds), where actions reach its node.
+    pub(crate) fn set_visual_bounds(&mut self, id: NodeId, bounds: Bounds<Pixels>) {
+        if let Some(open) = self.open_bounds.last_mut() {
+            *open = bounds;
+        }
+        if let Some(target) = self.node_bounds.get_mut(&id) {
+            *target = bounds;
+        }
+    }
+
     /// Pops the node of the element being prepainted.
-    pub(crate) fn pop_node(&mut self, id: NodeId) {
-        let bounds = self.node_bounds.get(&id).copied();
+    pub(crate) fn pop_node(&mut self, _id: NodeId) {
+        let bounds = self.open_bounds.pop();
         self.nodes.pop(bounds);
     }
 
@@ -1068,6 +1085,7 @@ impl A11y {
     pub(crate) fn begin_frame(&mut self) {
         self.focus_ids.clear();
         self.node_bounds.clear();
+        self.open_bounds.clear();
         self.listeners.clear();
         self.replay_skipped.clear();
         self.replay_scroll_parents.clear();

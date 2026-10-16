@@ -337,3 +337,176 @@ fn a_rolled_back_prepaint_leaves_nothing_in_the_tree() {
         .count();
     assert_eq!(parents, 1);
 }
+
+/// A view whose tree holds what the replay carries beside nodes: an active descendant of a
+/// focused list box, relations between elements, and synthetic children.
+struct Rich {
+    list: crate::FocusHandle,
+}
+
+impl Render for Rich {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .size_full()
+            .flex()
+            .flex_col()
+            .child(
+                div()
+                    .id("listbox")
+                    .role(Role::ListBox)
+                    .aria_label("Fruits")
+                    .track_focus(&self.list)
+                    .child(
+                        div()
+                            .id("apple")
+                            .role(Role::ListBoxOption)
+                            .aria_label("Apple")
+                            .h(px(10.)),
+                    )
+                    .child(
+                        div()
+                            .id("pear")
+                            .role(Role::ListBoxOption)
+                            .aria_label("Pear")
+                            .aria_active_descendant()
+                            .h(px(10.)),
+                    ),
+            )
+            .child(
+                div()
+                    .id("name-label")
+                    .role(Role::Label)
+                    .accessibility_id("name-label")
+                    .aria_label("Name")
+                    .h(px(10.)),
+            )
+            .child(
+                div()
+                    .id("name")
+                    .role(Role::TextInput)
+                    .aria_labelled_by("name-label")
+                    .h(px(10.)),
+            )
+            .child(
+                div()
+                    .id("runs")
+                    .role(Role::Paragraph)
+                    .a11y_synthetic_children(|builder| {
+                        for index in 0..2 {
+                            let mut run = accesskit::Node::new(accesskit::Role::TextRun);
+                            run.set_value(format!("run {index}"));
+                            let id = builder.synthetic_node_id(index);
+                            builder.push_child(id, run);
+                        }
+                    })
+                    .h(px(10.)),
+            )
+    }
+}
+
+/// A root around a [`Rich`] view, which changes on its own, so the view is drawn from last
+/// frame.
+struct AroundRich {
+    rich: crate::Entity<Rich>,
+    tick: usize,
+}
+
+impl Render for AroundRich {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .size_full()
+            .child(
+                crate::AnyView::from(self.rich.clone())
+                    .cached(crate::StyleRefinement::default().size_full()),
+            )
+            .child(crate::SharedString::from(format!("tick {}", self.tick)))
+    }
+}
+
+/// The active descendant, the relations and the synthetic children of a view drawn from last
+/// frame are carried: its frames equal those of a window drawing from scratch.
+#[test]
+fn a_reused_view_carries_its_active_descendant_relations_and_synthetic_children() {
+    use crate::AppContext as _;
+    for mode in [VIEWS, SPLICE] {
+        let open = |mode: FastMode| {
+            let mut cx = super::oracle_support::oracle_app(0);
+            let window = cx.add_window(|window, cx| {
+                let rich = cx.new(|cx| Rich {
+                    list: cx.focus_handle(),
+                });
+                let list = rich.read(cx).list.clone();
+                window.focus(&list, cx);
+                AroundRich { rich, tick: 0 }
+            });
+            cx.simulate_window_resize(window.into(), crate::size(px(300.), px(200.)));
+            cx.set_draw_on_flush(false);
+            let guard = cx
+                .update_window(window.into(), |_, window, _| {
+                    window.set_fast_mode(mode);
+                    window.begin_a11y_inspection()
+                })
+                .unwrap();
+            (cx, window, guard)
+        };
+        let (mut incremental, inc_window, _inc_guard) = open(mode);
+        let (mut reference, ref_window, _ref_guard) = open(FastMode::OFF);
+        for step in 0..4 {
+            for (cx, window) in [(&mut incremental, inc_window), (&mut reference, ref_window)] {
+                window
+                    .update(cx, |around, _, cx| {
+                        around.tick = step;
+                        cx.notify();
+                    })
+                    .unwrap();
+            }
+            let draw = |cx: &mut crate::TestAppContext,
+                        window: crate::WindowHandle<AroundRich>,
+                        scratch: bool| {
+                cx.update_window(window.into(), |_, window, cx| {
+                    if scratch {
+                        window.forget_retained_state();
+                    }
+                    window.draw(cx).clear(cx);
+                    (
+                        crate::fast::verify::describe_frame(window),
+                        window.fast_frame_stats(),
+                    )
+                })
+                .unwrap()
+            };
+            let (expected, _) = draw(&mut reference, ref_window, true);
+            let (actual, stats) = draw(&mut incremental, inc_window, false);
+            if let Some(difference) =
+                crate::fast::verify::first_frame_difference(&actual, &expected)
+            {
+                panic!("{mode:?} step {step}: {difference}");
+            }
+            let has = |needle: &str| {
+                actual
+                    .iter()
+                    .any(|line| line.starts_with("a11y") && line.contains(needle))
+            };
+            assert!(has("run 1"), "synthetic children: {actual:#?}");
+            assert!(has("labelled_by"), "the relation: {actual:#?}");
+            // The active descendant takes the tree's focus from the focused list box.
+            let pear = actual
+                .iter()
+                .find(|line| line.contains("label: \"Pear\""))
+                .and_then(|line| line.split_whitespace().nth(2))
+                .expect("the option's node");
+            assert!(
+                actual
+                    .iter()
+                    .any(|line| line.starts_with(&format!("a11y focus {pear} "))),
+                "the active descendant has the focus: {actual:#?}"
+            );
+            if step > 0 {
+                assert!(
+                    stats.views_reused + stats.views_spliced > 0,
+                    "{mode:?} step {step}: {stats:?}"
+                );
+            }
+        }
+    }
+}

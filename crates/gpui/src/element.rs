@@ -747,8 +747,7 @@ impl<E: Element> Drawable<E> {
                     let scale = window.scale_factor();
                     window
                         .a11y
-                        .node_bounds
-                        .insert(global_id.accesskit_node_id(), visual_bounds);
+                        .set_visual_bounds(global_id.accesskit_node_id(), visual_bounds);
                     if let Some(node) = window.a11y.nodes.current_node_mut() {
                         node.set_bounds(a11y_rect(visual_bounds, scale));
                     }
