@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-a11y-devtools",
-  "revision": 6,
+  "revision": 10,
   "title": "gpux accessibility-first: AccessKit as the one semantic tree for screen readers on every platform, gpux-devtools and its MCP, RayX on both",
   "validationMode": "sprint",
   "repositories": [
@@ -1528,15 +1528,9 @@
       ],
       "descriptionMarkdown": "New lane E group `screen-reader`: `uiautomator dump` of the `accessibility` scene (text, content description, class, bounds) and an accessibility click through the adapter changing the scene's state. Also an accessibility adjustment of the slider (0.9) changing its value.",
       "argv": [
-        "cargo",
-        "run",
-        "-p",
-        "gpux-testkit",
-        "--",
-        "lane",
-        "e",
-        "--grep",
-        "screen-reader"
+        "bash",
+        "-c",
+        "ANDROID_HOME=$HOME/Library/Android/sdk JAVA_HOME=/Library/Java/JavaVirtualMachines/microsoft-21.jdk/Contents/Home PATH=/Library/Java/JavaVirtualMachines/microsoft-21.jdk/Contents/Home/bin:$PATH cargo run -p gpux-testkit -- lane e --grep screen-reader"
       ],
       "expected": {
         "exitCode": 0,
@@ -2109,6 +2103,43 @@
         "testCountPattern": "(\\d+) passed"
       },
       "reuse": false
+    },
+    {
+      "id": "check-sr-android-registry",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "SR-5"
+      ],
+      "descriptionMarkdown": "New group `accessibility_registry` in `crates/gpui_mobile/src/accessibility_registry.rs`: the Android windows sharing one surface share one adapter on their Activity's view, which serves the front window (its tree updates, its actions, the new front window's tree when it changes), is rebuilt for a window opened under another Activity, and goes with the last window or a cleared embedded context.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-mobile",
+        "--lib",
+        "accessibility_registry"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui_mobile/**",
+        "crates/gpui_wgpu/**"
+      ]
     }
   ],
   "finalCheckIds": [
@@ -2889,7 +2920,8 @@
             "check-sr-android-build",
             "check-sr-android-native-build",
             "check-sr-android",
-            "check-sr-mobile-feature-tree"
+            "check-sr-mobile-feature-tree",
+            "check-sr-android-registry"
           ],
           "sourceRefs": [
             {

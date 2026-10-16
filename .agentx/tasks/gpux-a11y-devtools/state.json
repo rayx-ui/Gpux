@@ -1,12 +1,12 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-a11y-devtools",
-  "revision": 60,
-  "planRevision": 6,
+  "revision": 86,
+  "planRevision": 10,
   "specHashes": {
-    "requirements": "576149548596ab4efd6002b4893418950f88808afddc5f295e262a98fb21ea9c",
-    "design": "f6eb854ee044f8849782c3d23345766e3f0d07d467a8f9ff7e032e07c8de9deb",
-    "plan": "879f9af1c453e1618a5dc773219b15b1c1d62b6f077837f000727726721aa36f"
+    "requirements": "75c003f6b5b8ba6b6dda4cb5e0419778781e291e68ce5498786c7161618e76f7",
+    "design": "8fac3da2bc816a9bf6df4fb9326d95ba71cbd30363d6ce20f8af9da98a56bec8",
+    "plan": "4eece923c606785de49e3cbacb185e0569b441e9b9b08d7f1bd4ba1ab84581f1"
   },
   "tasks": {
     "t01-baseline": {
@@ -136,22 +136,40 @@
       "status": "pending"
     },
     "t13a-web-mirror": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t13b-web-input": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t13c-web-activation": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t13d-ios-adapter": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t13e-android-adapter": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t13f-accessibility-docs": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t30-owner-walkthrough": {
       "status": "pending"
@@ -229,6 +247,26 @@
         }
       },
       "recordedAt": "2026-10-16T17:31:31Z"
+    },
+    "acc5adfbdc41829137abe4c2a5c686f570add02f4c003312a678d26eeae56e97": {
+      "snapshot": {
+        "specHash": "a50347ac87ef5ac6ef53097ae819e30cd3a23775c5a6de7811275eeb618b77e8",
+        "repositories": {
+          "gpux": "eb658172961439dde137daa5c8e8cee7bf7cce17bd9f72210721a51e5f7b8e85",
+          "rayx": "8364a75c6cfd60250954afc934f9d2b4d44ab7bcb5fb6a9caab2526e97adcc62"
+        }
+      },
+      "recordedAt": "2026-10-16T18:07:01Z"
+    },
+    "38b7cb8ef210c252cf41d8e44c28a0929528bb4b1a18361e05d1ff3a0d53c72d": {
+      "snapshot": {
+        "specHash": "b4430c0bc07ca4cc748a03e8f9d55b639841284a065f76473fb06b632ee16678",
+        "repositories": {
+          "gpux": "2de3b43331a8b8f0b832738043162e3c311f6a78b37162641960976efccaab0b",
+          "rayx": "8364a75c6cfd60250954afc934f9d2b4d44ab7bcb5fb6a9caab2526e97adcc62"
+        }
+      },
+      "recordedAt": "2026-10-16T18:33:10Z"
     }
   },
   "checkResults": {
@@ -587,6 +625,188 @@
       "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s05-queries-final-64c0fe956e0e.log",
       "logSha256": "27e47607d642f19603140a31229d9ad4f1d3d465a778622e1a0bc8ab706ef399",
       "inputsHash": "e55f8c951689d38a66206cfaa8cb9b4d54b5d00997bb91a3c2508f2c7373d751"
+    },
+    "s05a-web-screen-readers/check-sr-web-tree/final": {
+      "checkId": "check-sr-web-tree",
+      "boundaryId": "s05a-web-screen-readers",
+      "phase": "final",
+      "batchId": "acc5adfbdc41829137abe4c2a5c686f570add02f4c003312a678d26eeae56e97",
+      "definitionHash": "f7b24a3a6b2f2e24c66e838169d52e12f8718f92cd282bbdfd0f3d4fc5349970",
+      "basisHash": "f166e4453fd07f2e7a96df089a5b03e7b82cc00b029aaa5bc5fd5b56201b8627",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 10,
+      "durationSeconds": 43.5395,
+      "recordedAt": "2026-10-16T18:06:47Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s05a-web-screen-readers-final-45c79eec3819.log",
+      "logSha256": "3686eb8789559b58befbe1c3a5fb493bd58ab1d535fb3402ba311df98d373e73"
+    },
+    "s05a-web-screen-readers/check-sr-web-input/final": {
+      "checkId": "check-sr-web-input",
+      "boundaryId": "s05a-web-screen-readers",
+      "phase": "final",
+      "batchId": "acc5adfbdc41829137abe4c2a5c686f570add02f4c003312a678d26eeae56e97",
+      "definitionHash": "2abbb7792fa0d43937880b8578f93fbc275fae62735b7e0efbf091ec1c578a96",
+      "basisHash": "f0ade2d7aa6985631a1b02fcd4d7a915185b2dc1c1139a3fbdd1b2cdcdcb77a4",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 10,
+      "durationSeconds": 6.7955,
+      "recordedAt": "2026-10-16T18:06:54Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s05a-web-screen-readers-final-9bd8288b938d.log",
+      "logSha256": "900cea1e15e501357edb7ab43632f2ccabf0993cd7f609c5401b21bc9f22026a"
+    },
+    "s05a-web-screen-readers/check-sr-web-activation/final": {
+      "checkId": "check-sr-web-activation",
+      "boundaryId": "s05a-web-screen-readers",
+      "phase": "final",
+      "batchId": "acc5adfbdc41829137abe4c2a5c686f570add02f4c003312a678d26eeae56e97",
+      "definitionHash": "c8460232610d3b0344f5c979a9d0a4eb4c665eb885efd8405d8840c06ac88265",
+      "basisHash": "9c7801f8b166279872ccc306355aee749be2f48d5d846f29b83c483eb99ba367",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 5.0892,
+      "recordedAt": "2026-10-16T18:06:59Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s05a-web-screen-readers-final-36deff00f1c1.log",
+      "logSha256": "328cd938336ff0b51578a5f3301ca879af306adde11177453e978c56cd206e4e"
+    },
+    "s05a-web-screen-readers/check-sr-web-build/final": {
+      "checkId": "check-sr-web-build",
+      "boundaryId": "s05a-web-screen-readers",
+      "phase": "final",
+      "batchId": "acc5adfbdc41829137abe4c2a5c686f570add02f4c003312a678d26eeae56e97",
+      "definitionHash": "f2e94b90ce1e8f02c71f37ee3aced619124b5769515f0c4dd0c69724866a7a5d",
+      "basisHash": "1f1081492dd12ce67247b06ba7e76e631ecc7a3c48e39c6001c017690b00a6aa",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.9971,
+      "recordedAt": "2026-10-16T18:07:00Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s05a-web-screen-readers-final-14129af4c78d.log",
+      "logSha256": "3e2b3eb2c318bf75f4d516546dec5849f8c5d68eb855cc17d0882fd19a3069b2",
+      "inputsHash": "6724844aeeaf791747ddad87db7de1ed9498e11041cfe18b41653fec36ede3db"
+    },
+    "s05b-mobile-screen-readers/check-sr-ios/final": {
+      "checkId": "check-sr-ios",
+      "boundaryId": "s05b-mobile-screen-readers",
+      "phase": "final",
+      "batchId": "38b7cb8ef210c252cf41d8e44c28a0929528bb4b1a18361e05d1ff3a0d53c72d",
+      "definitionHash": "5040d0d535d59897706bfadbe6c1e8621cf3a3165948be975331c4631cc95c59",
+      "basisHash": "38b645f158c46c1ca5acc8fae85f180f0a0c2bea1e6e9c55a716d2b5bc8f5cce",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 8.6946,
+      "recordedAt": "2026-10-16T18:32:38Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s05b-mobile-screen-readers-final-78807a9d111a.log",
+      "logSha256": "dc7174bf470aaa1f7165e98af90266e5a9534d98d2292f5616dd1e5ad774aaff"
+    },
+    "s05b-mobile-screen-readers/check-sr-ios-build/final": {
+      "checkId": "check-sr-ios-build",
+      "boundaryId": "s05b-mobile-screen-readers",
+      "phase": "final",
+      "batchId": "38b7cb8ef210c252cf41d8e44c28a0929528bb4b1a18361e05d1ff3a0d53c72d",
+      "definitionHash": "d52fe3a7608debe61422e8f1928c0d80b2e9f389cbaa73cc3c3db7a42b513276",
+      "basisHash": "f6c8cd1de4bd0022fcd41ce78b2207bc55fdaa2e817e95957c8500a777690290",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.3114,
+      "recordedAt": "2026-10-16T18:32:38Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s05b-mobile-screen-readers-final-db7c5be04d06.log",
+      "logSha256": "a95dd71e2804b568a0ea51a97312c01f7bbb0ac5672a580346a11e8d5a35e43f",
+      "inputsHash": "3b7b73c1a9ee41f0032a2e33524aec592a547b96b7bb47f3f7f92cd7339a224f"
+    },
+    "s05b-mobile-screen-readers/check-sr-android/final": {
+      "checkId": "check-sr-android",
+      "boundaryId": "s05b-mobile-screen-readers",
+      "phase": "final",
+      "batchId": "38b7cb8ef210c252cf41d8e44c28a0929528bb4b1a18361e05d1ff3a0d53c72d",
+      "definitionHash": "ddae5ecd70b8d168f05540bddebd185b1bc05ee81e022ea81f50bf76e5b3d417",
+      "basisHash": "5bda911db4b43e428e48f528c20e4224b97f85b811b30fe0d3512da40e6fc29c",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 28.3037,
+      "recordedAt": "2026-10-16T18:33:06Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s05b-mobile-screen-readers-final-790b1a2ce7b4.log",
+      "logSha256": "fec8edcb11579c2031b85372fc602c930c31060c02bf430c1ca31eafdedbd99d"
+    },
+    "s05b-mobile-screen-readers/check-sr-android-build/final": {
+      "checkId": "check-sr-android-build",
+      "boundaryId": "s05b-mobile-screen-readers",
+      "phase": "final",
+      "batchId": "38b7cb8ef210c252cf41d8e44c28a0929528bb4b1a18361e05d1ff3a0d53c72d",
+      "definitionHash": "5f5c49eeb6cb05de2405b3a1addcc68519ad691f7f6ecc1878515505366c449d",
+      "basisHash": "82cecc2b271c5a40c5c6457a8ee7041c6d59054de5e08672a84468d05d53e78a",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 1.094,
+      "recordedAt": "2026-10-16T18:33:07Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s05b-mobile-screen-readers-final-9f18e96d0117.log",
+      "logSha256": "2c3e1c9a3aab6707f91417ffc90b2fa757d17d221061f42e0b773f9a3fe2109d",
+      "inputsHash": "c2892de070d161133a176a03b67d319cbb926b447b1017556ca4ef667acec3e2"
+    },
+    "s05b-mobile-screen-readers/check-sr-android-native-build/final": {
+      "checkId": "check-sr-android-native-build",
+      "boundaryId": "s05b-mobile-screen-readers",
+      "phase": "final",
+      "batchId": "38b7cb8ef210c252cf41d8e44c28a0929528bb4b1a18361e05d1ff3a0d53c72d",
+      "definitionHash": "18fba84116888195a4a9c8b521935df94fa85f6964d3398c847d34e75da29e2d",
+      "basisHash": "f74944cf46bd219719338deed46b6359ca201ed5f0403f05c8d73d7cc50efe5c",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.4776,
+      "recordedAt": "2026-10-16T18:33:08Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s05b-mobile-screen-readers-final-fa7e2d2eefdd.log",
+      "logSha256": "a38e73af125da3fc29d5160de2f36582b993bdde9596f08fb63dd8015cddc15d",
+      "inputsHash": "c2892de070d161133a176a03b67d319cbb926b447b1017556ca4ef667acec3e2"
+    },
+    "s05b-mobile-screen-readers/check-sr-mobile-feature-tree/final": {
+      "checkId": "check-sr-mobile-feature-tree",
+      "boundaryId": "s05b-mobile-screen-readers",
+      "phase": "final",
+      "batchId": "38b7cb8ef210c252cf41d8e44c28a0929528bb4b1a18361e05d1ff3a0d53c72d",
+      "definitionHash": "76f953ae539d3d5d666914e0d26803f1834ec056860c3f27d823cc9cb2fbfb9a",
+      "basisHash": "aeea48bc01707fca6185287c7fdd932b55de98b30d1422ca6c1394b3a6f08ff6",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.5988,
+      "recordedAt": "2026-10-16T18:33:09Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s05b-mobile-screen-readers-final-394b5432b1fe.log",
+      "logSha256": "678a2181d5bc9a544b4afe839142c770f3a76332ce247d60695d827524ea6948",
+      "inputsHash": "2d1280928b7b5c337c7cdf8946db40e0c4dd6b30e0123eeff4195b0e250ae585"
+    },
+    "s05b-mobile-screen-readers/check-sr-android-registry/final": {
+      "checkId": "check-sr-android-registry",
+      "boundaryId": "s05b-mobile-screen-readers",
+      "phase": "final",
+      "batchId": "38b7cb8ef210c252cf41d8e44c28a0929528bb4b1a18361e05d1ff3a0d53c72d",
+      "definitionHash": "0f915bea378d86446c4866084a4a3adcc8dad4bfcdbac16d329677c3f10091ce",
+      "basisHash": "f4e73efa2ae5094ee12228d6435f211a1d73df733f72987506ca1dcdc3c514a0",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 0.3175,
+      "recordedAt": "2026-10-16T18:33:09Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s05b-mobile-screen-readers-final-3907484def15.log",
+      "logSha256": "6b903a1674c892e63da5483765c20a2f8e82af7f08c7176f893dffbbd4b332fa",
+      "inputsHash": "c2892de070d161133a176a03b67d319cbb926b447b1017556ca4ef667acec3e2"
     }
   },
   "reviews": {
@@ -1389,6 +1609,340 @@
         "gpux:docs/measurements/a11y-devtools.md": "406c3678b07a71e25202104191caf50da6b0607e4acec9c01ec1ff77949d2e90",
         "gpux:docs/measurements/screen-reader-walkthrough.md": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
       }
+    },
+    "s05a-web-screen-readers": {
+      "reviewerId": "reviewer-s05a-q7m3kx",
+      "snapshotId": "acc5adfbdc41829137abe4c2a5c686f570add02f4c003312a678d26eeae56e97",
+      "criterionIds": [
+        "SR-1",
+        "SR-2",
+        "SR-3"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/accessibility.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SR-1",
+            "SR-2",
+            "SR-3"
+          ],
+          "sha256": "9b48829e4a7c20b04fbfc3af1c7977f18a289de50d1471549843da33297a2792"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SR-1",
+            "SR-3"
+          ],
+          "sha256": "87e707cb64033f918e1da33d02522696ad6990ee1d0a864ebbab64e23f0d1167"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/html_element.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SR-1"
+          ],
+          "sha256": "67bfdb7145d82760df27e65ca3745020e3facf37d95be8c396784d489802b611"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/events.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SR-2"
+          ],
+          "sha256": "94bea2af2bc63f074ab67e01da185ab580f24b5f5a19529c95ed27dcfb9daa5e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/ime_mirror.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SR-2"
+          ],
+          "sha256": "54a80206f4aec9ca74db066463d0baa60f80bfba38d0d4d1ae902ebbb7989f8f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SR-2"
+          ],
+          "sha256": "71831a03cf1e040ffe318597676018a7d84d077ff00fb852a34f74adbf083bd4"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "SR-1",
+            "SR-3"
+          ],
+          "sha256": "b72ef3b6957ad827cdabbbbeb767927343cd6461ca7eed96f8a0d7a497e0e65d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/src/gpui_platform.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SR-3"
+          ],
+          "sha256": "b14baf7787fe8ed2616dd2e091ec3302f0e5a06d2e302e4c18e93166bd1b1777"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/web_host/lib.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SR-3"
+          ],
+          "sha256": "58510a9e3ad502d9eae3375ea6e941908c6c87e434d417050fef0771ab1595c2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/web_host/web_scenes.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SR-1"
+          ],
+          "sha256": "a692143dde3d84e8c9402a01d87f0b69fda826e70f7d92e87c6c11f51d4fcfee"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scenes/semantics.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SR-1",
+            "SR-2"
+          ],
+          "sha256": "49d9b063a09e086b578d055a259c09864f05573dd13d3e5e802fca9c5a783859"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scenes/common.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SR-2"
+          ],
+          "sha256": "89f7e5545276013223fc459e364f2e4f113da4ab6ad6d5c3f1040757d78365b7"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/screen-reader.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "SR-1",
+            "SR-2",
+            "SR-3"
+          ],
+          "sha256": "6fce3d9721b5ac62c37311e06a6a2a92b1cc1e79b7b1d48349a23d4ef36160f9"
+        }
+      ],
+      "deltaSummaryMarkdown": "Inspected 2ca37d5: `WebAccessibility::schedule_focus`/`pending_focus` (focus moves coalesced into one task after the frame, when GPUI has registered the input handler; the guard still wraps every programmatic focus), the new `Target::Window` case in `move_focus` that keeps or returns DOM focus to the IME textarea while an input handler is registered, the role-less `Pad` editor in the `accessibility` scene, and the spec `screen-reader: input an editor without a node keeps text input on the textarea` (no focusin on the mirror root on the way, textarea focused, CDP `insertText` reaches the pad). F7 holds as resolved; F1-F6 are unaffected by the delta.",
+      "reattestedFrom": "056ba8adaace1f96a48fe55a3aad9da1c1dd5fd89e0a128e59e8f4d1e3bb693a",
+      "summaryMarkdown": "The adapter is sound in structure: consumer-driven writes, one element per non-generic node, fixed boxes under a transformed root, relations over prefixed DOM ids, a synchronous focus guard proven by the echo test, key events forwarded through the factored `handle_key_down`/`handle_key_up`, and activation (button first, `Always`, localized label, no tree before) fully covered. It fails because SR-1 and SR-2 behaviours the criteria name as spec-covered (Expand/Collapse, spin buttons, ScrollIntoView; most states and relations, positions/indices, node removal) have no scene support and no test (F1, F2). Minor: the update-locality test cannot fail, the IME textarea's exposure is partial, `aria-owns` relies on an undocumented id convention and rescans every frame, and boxes go stale when the canvas moves without a tree update.",
+      "findingIds": [
+        "S05A-F1",
+        "S05A-F2",
+        "S05A-F3",
+        "S05A-F4",
+        "S05A-F5",
+        "S05A-F6",
+        "S05A-F7"
+      ],
+      "recordedAt": "2026-10-16T18:07:35Z",
+      "recordHashes": {
+        "gpux:docs/measurements/a11y-devtools.md": "406c3678b07a71e25202104191caf50da6b0607e4acec9c01ec1ff77949d2e90",
+        "gpux:docs/measurements/screen-reader-walkthrough.md": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "s05b-mobile-screen-readers": {
+      "reviewerId": "reviewer-s05b-c373f8",
+      "snapshotId": "38b7cb8ef210c252cf41d8e44c28a0929528bb4b1a18361e05d1ff3a0d53c72d",
+      "criterionIds": [
+        "SR-4",
+        "SR-5",
+        "SR-6"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/ios/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SR-4"
+          ],
+          "sha256": "effab689e65629009dc3efcaf38fd4cd9180514f0b0802b2bc7a694805841c10"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/accessibility.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SR-4"
+          ],
+          "sha256": "aa74af2a075cf3a12860490141fec94e5450abc9cde7ff7874dd7483937088da"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "SR-4",
+            "SR-5"
+          ],
+          "sha256": "c6645834c5d82526c0f24164fd8ebc53fc7fc0c5c39eec09e3cc3db0873b0058"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "SR-4",
+            "SR-5"
+          ],
+          "sha256": "618b88f43fbc8e22a72118dba074a677b0fe948668ee12060a68f66cdf9c8ea3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/accessibility.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SR-5"
+          ],
+          "sha256": "cbc96a50e4205171379a40f6d4ad2746efb87cc2e013953d7a28e529feba41b5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SR-5"
+          ],
+          "sha256": "ab35066083fd4a5cbd2c8f534e7a1a9123bd6266e6f3de15cd83d27b25b5c3be"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/jni.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SR-5"
+          ],
+          "sha256": "ff74ce0f7354bf068b926386f7ec6458e52b0a88ffd7e699254eec1f94da57c2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/accessibility.md",
+          "kind": "source",
+          "criterionIds": [
+            "SR-6"
+          ],
+          "sha256": "069bcec57215e19a78c04f3251708cdfd4d8716eae602fdeafd1d83fec482400"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/ios_host/screen_reader.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SR-4"
+          ],
+          "sha256": "14635eecdc42e5da01d423bc76b41ea582be794ee3b2c259b71f1dc85a78b342"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/ios_host/checks.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SR-4"
+          ],
+          "sha256": "83abf115459649d1358acd6040b6482beea555ce2894c691a261830467194f14"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/ios.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "SR-4"
+          ],
+          "sha256": "a7c35f8b06a960683177f8416db2a7f26c8e2f9f332d6461bb8197d329239b0c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/android_host/screen_reader.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SR-5"
+          ],
+          "sha256": "915b26cc41b01cb92df715bfd6ed6e793c09e3611b4b26ce8d115ecfcbe6f7fa"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/android_host/lib.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SR-5"
+          ],
+          "sha256": "6efeb04fee3766f541751a5b33bbf936baa01091f999b439e6c26a96f81aece9"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/android.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "SR-5"
+          ],
+          "sha256": "66c756d731c8075be8cbe0a6208a2063520af6cc23ec5f3c894ba6c986be0bbd"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/accessibility_registry.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SR-5"
+          ],
+          "sha256": "d09e51f4246c999828fa6d4561046a9de1522b6ff047088c8e0fbeb124236fd5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/accessibility_registry.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SR-5"
+          ],
+          "sha256": "d09e51f4246c999828fa6d4561046a9de1522b6ff047088c8e0fbeb124236fd5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/android.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SR-5"
+          ],
+          "sha256": "8fc4dcc6d5a229013a7f96e41866a7a3c77f7bbb517f1d613560c01fccda1c8e"
+        }
+      ],
+      "summaryMarkdown": "Full review at revision 84 after caf018a. SR-4 (iOS): one SubclassingAdapter per Metal view, main-thread updates, dropped before the view; lane F reads labels/traits/value/frame and activates the button. SR-5 (Android): one host-keyed InjectingAdapter per Activity view serving the front window, rebuilt for a new Activity, kept while the Activity stays (no queued-uninstall race on reopen), declared host view preferred, existing app delegates left alone; registry tests and lane E dump/click/adjust cover it. SR-6: docs cover every switch, source, inspection, the web mirror, both adapters, limits (front-window only on Android) and the walkthrough. S05B-F1..F6 resolved. Residual, non-blocking: `release()` then re-`initialize` on the same embedded Activity could still meet the queued delegate removal; recognising AccessKit's own delegate in the pre-check would close it.",
+      "findingIds": [
+        "S05B-F1",
+        "S05B-F2",
+        "S05B-F3",
+        "S05B-F4",
+        "S05B-F5",
+        "S05B-F6"
+      ],
+      "recordedAt": "2026-10-16T18:33:48Z",
+      "recordHashes": {
+        "gpux:docs/measurements/a11y-devtools.md": "406c3678b07a71e25202104191caf50da6b0607e4acec9c01ec1ff77949d2e90",
+        "gpux:docs/measurements/screen-reader-walkthrough.md": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
     }
   },
   "checkpoints": {
@@ -1445,6 +1999,24 @@
       },
       "reviewHash": "fde0bbff9d057e6c970be9a636be3a0d7a4d3d31915113735f6667cedc2bccf2",
       "recordedAt": "2026-10-16T17:32:48Z"
+    },
+    "s05a-web-screen-readers": {
+      "snapshotId": "acc5adfbdc41829137abe4c2a5c686f570add02f4c003312a678d26eeae56e97",
+      "commits": {
+        "gpux": "2ca37d537f69c77cd3b6c5d098820889912050f2",
+        "rayx": "4ee806e9999ff02c2d0a7fcc4be0379a036f10a7"
+      },
+      "reviewHash": "d3082bdce9ad9824f36e29046679a90572d089b5f5a1668c276c6bdaf9e9c048",
+      "recordedAt": "2026-10-16T18:08:09Z"
+    },
+    "s05b-mobile-screen-readers": {
+      "snapshotId": "38b7cb8ef210c252cf41d8e44c28a0929528bb4b1a18361e05d1ff3a0d53c72d",
+      "commits": {
+        "gpux": "caf018ac88defef3a432245ddd4e18bcec5653da",
+        "rayx": "4ee806e9999ff02c2d0a7fcc4be0379a036f10a7"
+      },
+      "reviewHash": "e02fe0cb735377a878ff6180734cb23dc4d7d5d886e147cc9b451878046e0344",
+      "recordedAt": "2026-10-16T18:34:40Z"
     }
   },
   "findings": [
@@ -1715,9 +2287,298 @@
         }
       ],
       "boundaryId": "s05-queries"
+    },
+    {
+      "id": "S05A-F1",
+      "criterionIds": [
+        "SR-2"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "Disclosure Expand/Collapse, spin-button Increment/Decrement and Focus-then-ScrollIntoView are now in the `accessibility` scene (Details, Copies, Shelf) and covered by `screen-reader: input disclosure keys expand and collapse`, `... spin button keys step its value`, `... focusing a node scrolled out of view scrolls it in`; spin buttons no longer route to the IME textarea (`is_text_field`), and `clipped` works without `clips_children`.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/screen-reader.spec.ts",
+          "symbol": "screen-reader: input disclosure keys expand and collapse"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/screen-reader.spec.ts",
+          "symbol": "screen-reader: input spin button keys step its value"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/screen-reader.spec.ts",
+          "symbol": "screen-reader: input focusing a node scrolled out of view scrolls it in"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/accessibility.rs",
+          "symbol": "is_text_field"
+        }
+      ],
+      "boundaryId": "s05a-web-screen-readers"
+    },
+    {
+      "id": "S05A-F2",
+      "criterionIds": [
+        "SR-1"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "Expanded, disabled, read-only, invalid, selected, `aria-errormessage`, `aria-controls`, posinset/setsize, row/col counts and 1-based indices are asserted; node removal (Details panel) and a node losing its role (Pinned group) keep identity and order.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/screen-reader.spec.ts",
+          "symbol": "screen-reader: tree states, relations and positions reach ARIA"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/screen-reader.spec.ts",
+          "symbol": "screen-reader: tree drops removed nodes and keeps a node that loses its role in order"
+        }
+      ],
+      "boundaryId": "s05a-web-screen-readers"
+    },
+    {
+      "id": "S05A-F3",
+      "criterionIds": [
+        "SR-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "A MutationObserver test now limits the DOM changed by a checkbox toggle to the checkbox, the status and its text.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/screen-reader.spec.ts",
+          "symbol": "screen-reader: tree updates touch only the changed nodes"
+        }
+      ],
+      "boundaryId": "s05a-web-screen-readers"
+    },
+    {
+      "id": "S05A-F4",
+      "criterionIds": [
+        "SR-2"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "`set_accessible_field` carries name, description, placeholder, required, invalid and `aria-multiline`; with no node focused the named window root holds focus instead of an unnamed edit field (see F7 for the regression this introduced).",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/screen-reader.spec.ts",
+          "symbol": "screen-reader: input the IME textarea describes the field, and the window holds focus otherwise"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/ime_mirror.rs",
+          "symbol": "ImeMirror::set_accessible_field"
+        }
+      ],
+      "boundaryId": "s05a-web-screen-readers"
+    },
+    {
+      "id": "S05A-F5",
+      "criterionIds": [
+        "SR-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "The `accessibility_id` contract is documented on `Window::paint_html_element`; `aria-owns` is resolved per written node against the shown overlay keys and for all owners only when that set changes. The existing `screen-reader: tree orders an html_element in with aria-owns` spec still proves it.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "symbol": "Window::paint_html_element"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/accessibility.rs",
+          "symbol": "WebAccessibility::set_html_overlays"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/screen-reader.spec.ts",
+          "symbol": "screen-reader: tree orders an html_element in with aria-owns"
+        }
+      ],
+      "boundaryId": "s05a-web-screen-readers"
+    },
+    {
+      "id": "S05A-F6",
+      "criterionIds": [
+        "SR-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "The root is placed after every draw and on page scroll/resize; a spec scrolls the page and re-checks a box against the painted control.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/screen-reader.spec.ts",
+          "symbol": "screen-reader: tree follows the canvas when the page scrolls"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/accessibility.rs",
+          "symbol": "WebAccessibility::place"
+        }
+      ],
+      "boundaryId": "s05a-web-screen-readers"
+    },
+    {
+      "id": "S05A-F7",
+      "criterionIds": [
+        "SR-2"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "While an input handler is registered and the tree's focus is the window (an editor without a node), the IME textarea keeps or takes DOM focus, so IME composition, paste and the software keyboard keep their path; focus moves run after the frame, once GPUI has registered the handler. Proven by `screen-reader: input an editor without a node keeps text input on the textarea`, which failed with the new case disabled.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/screen-reader.spec.ts",
+          "symbol": "screen-reader: input an editor without a node keeps text input on the textarea"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/accessibility.rs",
+          "symbol": "WebAccessibility::schedule_focus"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scenes/semantics.rs",
+          "symbol": "Pad"
+        }
+      ],
+      "boundaryId": "s05a-web-screen-readers"
+    },
+    {
+      "id": "S05B-F1",
+      "criterionIds": [
+        "SR-5"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Android adapter is a set-once static that outlives its Activity and view.**\n\nExpected: the mobile rules say *never keep per-activity Android state in a set-once static: a restarted `android_main` in the same process must replace it*, and `d-mobile-adapters` requires the adapter to be dropped before the view it is attached to. `jni.rs` already replaces `ANDROID_APP`/`PLATFORM` per run (`Current<T>`), and the embedded host's `shutdown()`/`initialize()` swap the Activity.\n\nObserved: `crates/gpui_mobile/src/android/accessibility.rs` creates `ADAPTER` once (`if adapter.is_none()`) on the first Activity's decor view / SurfaceView and never drops or replaces it; `Registration::drop` only removes the window, and `WINDOWS.activated` is never reset. After a NativeActivity restart in the same process (which CI's lane E emulator does at startup, per the `Current` comment) or an embedded Activity recreation, new windows register with the stale adapter: its host is a weak ref to the dead view, the new view gets no delegate, and TalkBack sees nothing. The old view and its delegate are never uninstalled.\n\nRepair: tie the adapter to the Activity/host it was built on: record the host (or Activity) it was created for and, in `register`, drop and recreate it (resetting `activated`) when `activity_as_ptr()`/the host view differs; drop it (its `Drop` uninstalls the delegate on the UI thread) when the last registration goes and on `clear_embedded_context`/activity destroy. Add a lane E or focused check that proves a second adapter is installed on the new host after the adapter is recreated (e.g. close all windows, reopen, re-dump), so the path can fail.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/accessibility_registry.rs",
+          "symbol": "accessibility_registry_puts_one_adapter_per_host_and_rebuilds_it_for_a_new_host"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/jni.rs",
+          "symbol": "clear_embedded_context"
+        }
+      ],
+      "boundaryId": "s05b-mobile-screen-readers"
+    },
+    {
+      "id": "S05B-F2",
+      "criterionIds": [
+        "SR-5"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Embedded host view lookup guesses, off the UI thread, and can panic the UI thread.**\n\nExpected: the adapter sits on the view GPUI draws into. gpux already has the declaration of that view for embedded hosts whose SurfaceView does not fill the window: `dev.gpux.mobile.Composition.setHostView`.\n\nObserved: `host_view` ignores it and takes the first `SurfaceView` found depth-first under `android.R.id.content` (an app with a video/camera SurfaceView before GPUI's gets the wrong host and wrong bounds), and walks the view hierarchy (`getDecorView`, `getChildAt`) from the GPUI thread rather than the UI thread. `InjectingAdapter::new` panics on the UI thread (`host already has an accessibility delegate`) if the consumer set a delegate on that view. The embedded path has no runtime proof (lane E runs the NativeActivity host only).\n\nRepair: prefer the view named through `Composition.setHostView` (expose it to Rust, or let the embedded host pass its SurfaceView to `initialize`), fall back to the SurfaceView search/decor view; check `getAccessibilityDelegate()` first and log-and-skip instead of letting the adapter panic; document in `docs/accessibility.md` that the embedded host's view is chosen this way.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/accessibility.rs",
+          "symbol": "declared_host_view"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/accessibility.rs",
+          "symbol": "create"
+        }
+      ],
+      "boundaryId": "s05b-mobile-screen-readers"
+    },
+    {
+      "id": "S05B-F3",
+      "criterionIds": [
+        "SR-6"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Known limits omit the Android one-window behaviour.**\n\nExpected (SR-6): what each platform's screen reader gets and its known limits.\n\nObserved: `docs/accessibility.md` (Android, Known limits) does not say that one adapter serves every GPUI window on the Activity's surface and TalkBack sees only the front (last opened) window, nor that a window behind it is unreachable until the front closes; the iOS section does not say each window's Metal view is separate.\n\nRepair: add both to the Android/iOS sections or Known limits (and the restart behaviour once S05B-F1 is fixed).",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/accessibility.md"
+        }
+      ],
+      "boundaryId": "s05b-mobile-screen-readers"
+    },
+    {
+      "id": "S05B-F4",
+      "criterionIds": [
+        "SR-5"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**testkit: `a11y_dump` was inserted under `screenshot`'s doc comment, and the new request has no parse test.**\n\nExpected: each function keeps its own rustdoc; new testkit requests are covered like `tap`/`swipe`/`trim-memory` in `tooling/testkit/tests/android.rs`.\n\nObserved: in `tooling/testkit/src/android.rs` the `/// Takes screenshot number …` paragraph now sits directly above `/// uiautomator dump …` on `fn a11y_dump`, so `a11y_dump` carries both docs and `fn screenshot` has none; `request(\"gpux-conformance-host: a11y-dump 3\")` is not tested.\n\nRepair: move the screenshot paragraph back above `fn screenshot`, and add `Request::A11yDump` parse cases (valid number, missing number) to the existing request test.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/android.rs",
+          "symbol": "host_requests_parse_from_logcat_lines"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/android.rs",
+          "symbol": "screenshot"
+        }
+      ],
+      "boundaryId": "s05b-mobile-screen-readers"
+    },
+    {
+      "id": "S05B-F5",
+      "criterionIds": [
+        "SR-5"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Spec text no longer matches the chosen Android design.**\n\nExpected: the design and the criterion describe what was built.\n\nObserved: `d-mobile-adapters` says *one adapter per window* and SR-5/the design say the adapter goes on *the NativeActivity's content view*. The implementation (reasonably, since a view takes one delegate and all windows share the Activity's surface) installs one shared adapter on the decor view (whose coordinates are the NativeActivity surface's) serving the front window.\n\nRepair: the coordinator amends `d-mobile-adapters` (one adapter per Android host view, serving the front window; the decor view for a NativeActivity) and the SR-5 wording, so the final review measures the real contract.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/tasks/gpux-a11y-devtools/implementation-plan.json"
+        }
+      ],
+      "boundaryId": "s05b-mobile-screen-readers"
+    },
+    {
+      "id": "S05B-F6",
+      "criterionIds": [
+        "SR-5"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Closing the last window and opening another on the same Activity leaves TalkBack with no adapter (race introduced by the F1/F2 repairs).**\n\nExpected: SR-5/`d-mobile-adapters` — the adapter is dropped with the last window and a later window on the surface gets the tree again.\n\nObserved: `Registration::drop` (`accessibility_registry.rs`) drops the `InjectingAdapter` when the last window goes; its `Drop` only *posts* `uninstall_delegate` to the UI thread (`attach_and_post_to_ui_thread`). The next `register` on the same host runs `create()` synchronously on the GPUI thread (not the UI thread, in both the NativeActivity and the embedded host), and the new pre-check `getAccessibilityDelegate()` still sees the old `dev.accesskit.android.Delegate` because the posted uninstall has not run yet; `create` logs \"already has an accessibility delegate\" and returns `None`, so the window registers with no adapter and TalkBack sees nothing until another window opens. (Without the pre-check, AccessKit's own install would run after the queued uninstall and succeed.) The registry tests use a fake adapter and lane E keeps the anchor window open, so nothing exercises this.\n\nRepair: treat AccessKit's own delegate as ours — skip the warning when the existing delegate `is_instance_of` `dev.accesskit.android.Delegate` (load it through the adapter's class loader, or compare class names), or move the check into a UI-thread post; alternatively keep the adapter while the host is unchanged and drop it only on a host change or `release()`. Add a check that can fail: e.g. in lane E close every GPUI window including the anchor (or a focused registry/host test that reopens on the same host) and re-dump to find the scene's nodes.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/accessibility_registry.rs",
+          "symbol": "accessibility_registry_keeps_one_adapter_per_host_and_rebuilds_it_for_a_new_host"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/accessibility_registry.rs",
+          "symbol": "Registration::drop"
+        }
+      ],
+      "boundaryId": "s05b-mobile-screen-readers"
     }
   ],
-  "handoffMarkdown": "Implemented in a811bc1/0b4f178 (built with s02-s05 in a development worktree).",
+  "handoffMarkdown": "Implemented in dd6d759/3b77b99/f942a9e.",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",
