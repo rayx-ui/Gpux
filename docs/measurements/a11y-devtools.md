@@ -429,6 +429,13 @@ The browser half of that (a′) series' second round failed to start (the disk f
 moment) and was run again right after the series.
 
 Raw reports and the merged repetitions are in `artifacts-temp/agentx/gpux-a11y-devtools/after/`.
+In the browser the two list scrolls (`scroll-uniform-list`, `scroll-variable-list`) run at one
+of two main-thread CPU levels, about 0.6–0.7 ms or 1.1–1.5 ms per frame for `scroll-uniform-list`,
+whichever variant runs: the (a′) of the inspection series ran 0.60/0.66/1.10 ms, the (a′) of the
+first series 1.10/1.11/1.20, (c′) 0.67/0.68/1.56, (i′) 1.47/1.50/1.50. Their ratios between
+variants measure which level the repetitions landed on, not the variants, so the browser ranges
+below leave them out; their cells stay in the tables.
+
 On macOS a run occasionally never draws and times out after 300 s (the harness drops it, so
 that cell is the median of the other repetitions): `dashboard-clock` once in each of the (a′) and
 (c′) series and `dashboard-all-panels` once in (i′). A process sampled while hung
@@ -464,15 +471,16 @@ open follow-up, not as a measured regression of the epic.
   because each frame builds an AccessKit node for every node of the tree (868 on the dashboards,
   2,801 on `scroll-div-cards`) even where fast mode carried the element itself. The retained
   tree is small: the live heap at the end grows by at most 2.3 MB.
-- In the browser (c′) costs 0.61–1.48× (a′)'s CPU, against 1.0–2.5× for the before (c). The
-  two list scrolls are cheaper with the tree on in these runs (0.61× and 0.63×), which these
-  measurements do not explain and are not read as a result; `table-stream` (1.48×),
-  `text-typing` (1.45×) and `scroll-div-cards` (1.39×) pay most for building their nodes.
+- In the browser (c′) costs 0.90–1.48× (a′)'s CPU, leaving out the two list scrolls (their
+  0.61× and 0.63× are the two CPU levels above), against 1.0–2.5× for the before (c);
+  `table-stream` (1.48×), `text-typing` (1.45×) and `scroll-div-cards` (1.39×) pay most for
+  building their nodes.
 - GPU time is the same for (a′) and (c′) on every scenario (the scene does not change).
 - **Inspection costs what building the tree costs, plus its containers.** With an inspection
-  guard held, (i′) costs 0.94–1.44× its (a′)'s CPU on macOS and 1.10–2.26× in the browser
-  (`scroll-div-cards` 2.20 → 4.04 ms, `dashboard-clock` 1.06 → 1.83 ms), allocating 1.3–36× the
-  count per frame: the tree is built every frame as under (c′), with up to 153 more nodes and the
+  guard held, (i′) costs 0.94–1.44× its (a′)'s CPU on macOS (`dashboard-clock` 0.62 → 0.89 ms,
+  `scroll-div-cards` 1.68 → 2.38 ms) and 1.10–1.87× in the browser leaving out the two list
+  scrolls (`dashboard-clock` 1.29 → 1.83 ms, `scroll-div-cards` 2.16 → 4.04 ms), allocating 1.3–36×
+  the count per frame: the tree is built every frame as under (c′), with up to 153 more nodes and the
   element-id map. This is the cost an app pays only while gpux-devtools or a test inspects it.
 
 ### The tree: what a screen reader gets and what inspection reads

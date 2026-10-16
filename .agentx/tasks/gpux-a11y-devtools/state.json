@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-a11y-devtools",
-  "revision": 148,
+  "revision": 153,
   "planRevision": 18,
   "specHashes": {
     "requirements": "4a6c683aa102b8f1030e274bee5dff3347e540bfc919978760a9eff0017628d4",
@@ -178,7 +178,7 @@
       ]
     },
     "t29-after-measurements": {
-      "status": "in_progress",
+      "status": "implemented",
       "workerIds": [
         "local_a11y_impl"
       ]
@@ -3593,6 +3593,64 @@
         "gpux:docs/measurements/a11y-devtools.md": "406c3678b07a71e25202104191caf50da6b0607e4acec9c01ec1ff77949d2e90",
         "gpux:docs/measurements/screen-reader-walkthrough.md": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
       }
+    },
+    "s10-after": {
+      "reviewerId": "independent-reviewer-s08-rayx-opus-091c999e",
+      "snapshotId": "e78ad3e6b5499aac93bcfe001d4a8a0921fe323df9863d0cf0f70868d9d7a933",
+      "criterionIds": [
+        "PERF-2"
+      ],
+      "verdict": "failed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/measurements/a11y-devtools.md",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-2"
+          ],
+          "sha256": "19c97e9cddcde9d72ffe9d20fc7df5ec92e1484c637c6a7210558eb3d4c89234"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "benchmark/run.py",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-2"
+          ],
+          "sha256": "f9db40c6794ef687f31c35b576e02bf990bd6284da4c0ebb52e2b1a91b614dbd"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "benchmark/src/driver.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-2"
+          ],
+          "sha256": "99a73450c0f9e641267549a1d17cc9d5c9cb4e89d0b2b4c3ec47ab922d9089ec"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "benchmark/src/web.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-2"
+          ],
+          "sha256": "574db00c3e526daaa84da1adbd63f5bbd5ebccb306ace8ca7e82c7774469e68e"
+        }
+      ],
+      "deltaSummaryMarkdown": "Inspected gpux 1466e49 and 23e21c4 and the new data. The benchmark's `--accessibility inspect` passes `--inspect` on the desktop and `&inspect=1` in the browser, and `driver::open` holds `begin_a11y_inspection()` in the run state for the whole run. Every i′ report carries `inspecting: true` with fast mode on and no inactive frames; every a′ report carries `false`. The node counts (always from c′, inspecting from i′: 868→920, 151→304, ...) and the live-heap deltas i′ − a′ in the new tree table match my medians of `inspect-a`/`inspect-i`. The macOS (a′)/(i′) table matches. The hang paragraph now rests on evidence: 0 of 12 back-to-back launches with the 58257fe binary, a `CVDisplayLink` thread in the healthy sample and none in the hung one. It is correctly no longer called pre-existing. A new defect is in the inspection-cost claims for the browser.",
+      "reattestedFrom": "78c6b540da0b892ffff586e6615c2d275f71f867225826aaa3caf8103a9db223",
+      "summaryMarkdown": "Every other part of PERF-2 holds up under the raw reports. All 4×66 reports are fast mode on (`FastMode { layout_retention, view_retention, splice, scroll_layers: true }`) with no inactive frames, and `a11y_nodes` is set only in c′, so the switch took effect. (1) a′ vs b: I recomputed the per-repetition CPU and `draw` p50 of the same-session control from `control-a`/`control-b`. The ranges overlap on every scenario on both targets (repetition spread is ±20–40%, so CPU alone could not resolve a ~10–20% change), and the allocation counts and bytes per frame are identical to within 1–6 allocations. That is the decisive evidence that a′ does no extra per-frame work, so \"no regression above the noise\" is supported. Using the same-session b instead of the day-earlier before-b is right given the 1.05–1.42× drift. (2) c′: the medians match the doc (CPU 0.96–1.34× on macOS; allocations 1.3–33×). The named cause is well supported: the extra allocations scale at about 7 per tree node on every scenario (dashboard-clock +6,095 for 868 nodes, scroll-div-cards +19,580 for 2,801, text-typing +1,071 for 151). The browser list-scroll drop (c′ faster in 2 of 3 repetitions) is honestly reported as unexplained, and it is not a regression. (3) The live-heap deltas match the medians; values ≤0.1 MB sit within repetition spread. (4) The hang sample shows the main thread blocked in the AppKit run loop with no display-link thread. The pre-existing claim rests on the before-(a) `table-stream` timeout in a 58257fe build, which is plausible but indirect; running `hang/loop.sh` against the wt-b binary would settle it. Failing only on the tree-size table, which was measured without inspection.",
+      "findingIds": [
+        "s10-perf2-tree-size-not-inspection",
+        "s10-perf2-browser-bimodal-ratios"
+      ],
+      "recordedAt": "2026-10-16T23:56:10Z",
+      "recordHashes": {
+        "gpux:docs/measurements/a11y-devtools.md": "2dfbd0172c4e67983796cbd22de23a79ed559e6338c30c7fbb771692f11b08d7",
+        "gpux:docs/measurements/screen-reader-walkthrough.md": "d647a0e88aa62a59cdf656ee35ff14469a1fb2b392066e9cb655cf15f229abd5"
+      }
     }
   },
   "checkpoints": {
@@ -4736,9 +4794,43 @@
           "path": ".agentx/memory/knowledge/gpui/rules.md"
         }
       ]
+    },
+    {
+      "id": "s10-perf2-tree-size-not-inspection",
+      "boundaryId": "s10-after",
+      "criterionIds": [
+        "PERF-2"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "The tree size is now measured with an inspection guard held (i′, `--accessibility inspect`) beside the Always tree, with node counts and the live-heap delta i′ − a′.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "benchmark/src/driver.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "benchmark/run.py"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/measurements/a11y-devtools.md"
+        }
+      ]
+    },
+    {
+      "id": "s10-perf2-browser-bimodal-ratios",
+      "boundaryId": "s10-after",
+      "criterionIds": [
+        "PERF-2"
+      ],
+      "severity": "minor",
+      "status": "open",
+      "descriptionMarkdown": "The browser inspection-cost range is read from a bimodal measurement, and the bullet's examples do not match its own table. (1) Browser main-thread CPU on the list scrolls jumps between two levels from run to run, whatever the variant. Per repetition, `scroll-uniform-list` ran 0.60/0.66/1.10 ms for (a′, inspect series), 1.10/1.11/1.20 for (a′, after series), 0.67/0.68/1.56 for (c′) and 1.47/1.50/1.50 for (i′); `scroll-variable-list` shows the same split. The findings bullet's \"1.10–2.26× in the browser\" for (i′) is therefore set by its two list scrolls (2.26×, 1.94×), which compare an (a′) that mostly landed on the low level with an (i′) that always landed on the high one. The same split also explains the c′ list-scroll \"0.61×/0.63×\" the doc calls unexplained. Against the after-series (a′) these scrolls cost about 1.1–1.3×, in line with only 2–3 more nodes. (2) The bullet's examples \"`scroll-div-cards` 2.20 → 4.04 ms, `dashboard-clock` 1.06 → 1.83 ms\" match neither table: the browser table reads 2.16 → 4.04 and 1.29 → 1.83, and the macOS table 1.68 → 2.38 and 0.62 → 0.89. Expected: CPU ratios that come from comparable runs, examples that match the tables, and the bimodality named so the c′ and i′ browser list scrolls are not read as results. Repair: name the two-level browser CPU in the setup notes, exclude the browser list scrolls from the (c′) and (i′) ranges (or rerun them until both variants land on the same level, reporting `draw` p50 per level), and correct the bullet's example numbers and their target. Optional: the hang paragraph calls the epic-binary hangs (about 5 of 200 vs 0 of 78 for b) an open follow-up but tracks it only in this document; record it where it will be picked up (an epic follow-up item or a ToFix entry)."
     }
   ],
-  "handoffMarkdown": "Checklist Accessibility section, fast-mode/README/LINUX-WSL/SKILL/gpui-fast docs (gpux f6a4743), gpui rayx_diagnostics alias dropped with diagnostics_names updated (50c5960), gpux memory synced for frame-pipeline, positioning-scroll, gpui, frame-effects, input, validation (bef1e9e).",
+  "handoffMarkdown": "PERF-2 recorded in docs/measurements/a11y-devtools.md (87c5046): same-session b vs a', alternated a' vs c', tree sizes, session drift; benchmark switch f6a5207, README 912507f. Raw in artifacts-temp/agentx/gpux-a11y-devtools/after/.",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",
