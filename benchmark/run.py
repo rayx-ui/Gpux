@@ -213,7 +213,12 @@ def run_desktop_jobs(target, jobs, exe, options):
         if platform.system() == "Darwin":
             # Keep the display awake: a sleeping display stops delivering frames.
             command = ["caffeinate", "-d", "-i", "-u", *command]
-        accessibility = {"GPUX_ACCESSIBILITY": options.accessibility} if options.accessibility else None
+        if options.accessibility == "inspect":
+            # An inspection guard held by the app, as gpux-devtools and tests hold one.
+            command.append("--inspect")
+            accessibility = None
+        else:
+            accessibility = {"GPUX_ACCESSIBILITY": options.accessibility} if options.accessibility else None
         try:
             sh(command, timeout=300, env=accessibility)
         except subprocess.SubprocessError as error:
@@ -288,7 +293,11 @@ def run_web(target, jobs, dist, options):
                 "query": (
                     f"scenario={job['scenario']}&fast={fast_arg(job['config'])}&frames={options.frames}"
                     f"&warmup={options.warmup}&label={job['config']}&target={target}&backend={backend}"
-                    + (f"&accessibility={options.accessibility}" if options.accessibility else "")
+                    + (
+                        "&inspect=1" if options.accessibility == "inspect"
+                        else f"&accessibility={options.accessibility}" if options.accessibility
+                        else ""
+                    )
                 ),
                 "out": job["out"],
             }
@@ -354,10 +363,11 @@ def main():
     parser.add_argument("--skip-build", action="store_true", help="reuse the last build")
     parser.add_argument(
         "--accessibility",
-        choices=["auto", "always", "off"],
+        choices=["auto", "always", "off", "inspect"],
         default=None,
         help="gpux's accessibility mode for every run: GPUX_ACCESSIBILITY on the desktop, "
-        "?accessibility= in the browser (always builds the tree every frame); unset keeps the default",
+        "?accessibility= in the browser (always builds the tree every frame); inspect holds an "
+        "inspection guard instead (the tree gpux-devtools reads); unset keeps the default",
     )
     parser.add_argument(
         "--hold-clocks", type=int, default=0, metavar="N",

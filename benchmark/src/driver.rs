@@ -51,6 +51,9 @@ pub struct Config {
     /// The target's name in the report (`macos`, `ios-sim`, `web-webgpu`, ...).
     pub target: String,
     pub fast: Fast,
+    /// Hold an accessibility inspection guard for the run, as gpux-devtools and tests do: the
+    /// tree is built every frame with its inspection containers and element-id map.
+    pub inspect: bool,
     /// Called when the measured frames begin, so a runner outside the process (the browser's
     /// DevTools protocol) can take its own samples over the same frames.
     pub on_measuring: Option<Box<dyn FnOnce()>>,
@@ -58,7 +61,7 @@ pub struct Config {
 
 impl Config {
     /// Reads `--scenario <id> [--fast default|on|off] [--frames n] [--warmup n] [--label name]
-    /// [--target name]` from a command line, also returning `--out <file>` if given.
+    /// [--target name] [--inspect]` from a command line, also returning `--out <file>` if given.
     pub fn from_args(
         args: impl IntoIterator<Item = String>,
         default_target: &str,
@@ -71,6 +74,7 @@ impl Config {
         let mut label = String::from("unlabelled");
         let mut target = String::from(default_target);
         let mut out = None;
+        let mut inspect = false;
         let number = |value: Option<String>, name: &str| {
             value
                 .and_then(|value| value.parse().ok())
@@ -91,6 +95,7 @@ impl Config {
                 "--label" => label = args.next().ok_or("--label <name>")?,
                 "--target" => target = args.next().ok_or("--target <name>")?,
                 "--out" => out = args.next(),
+                "--inspect" => inspect = true,
                 // Launchers add their own arguments (Xcode's -NSDocumentRevisionsDebugMode ...).
                 _ => {}
             }
@@ -105,6 +110,7 @@ impl Config {
                 label,
                 target,
                 fast,
+                inspect,
                 on_measuring: None,
             },
             out,
@@ -141,6 +147,8 @@ enum Phase {
 
 struct Run {
     config: Config,
+    /// Held for the whole run when [`Config::inspect`] asks for it.
+    _inspection: Option<gpux::A11yInspection>,
     step: Option<Step>,
     done: Option<Done>,
     phase: Phase,
@@ -168,6 +176,7 @@ pub fn open(cx: &mut App, config: Config, options: WindowOptions, done: Done) {
     let now = Instant::now();
     let run = Rc::new(RefCell::new(Run {
         config,
+        _inspection: None,
         step: None,
         done: Some(done),
         phase: Phase::Opening,
@@ -204,7 +213,12 @@ pub fn open(cx: &mut App, config: Config, options: WindowOptions, done: Done) {
         .expect("opening the benchmark window");
     run.borrow_mut().memory_after_open = metrics::memory();
     window
-        .update(cx, |_, window, _| schedule(&run, window))
+        .update(cx, |_, window, _| {
+            if run.borrow().config.inspect {
+                run.borrow_mut()._inspection = Some(window.begin_a11y_inspection());
+            }
+            schedule(&run, window)
+        })
         .expect("the window is open");
 }
 
@@ -389,6 +403,7 @@ fn report(state: &Run, window: &mut Window) -> Value {
         "target": state.config.target,
         "fast_mode": fast_mode(window),
         "fast_stats": fast_stats(window),
+        "inspecting": state.config.inspect,
         // The accessibility tree the last frame built, when a source asked for one
         // (`GPUX_ACCESSIBILITY=always`, or `?accessibility=always` in the browser).
         "a11y_nodes": window.a11y_tree().map(|tree| tree.nodes.len()),

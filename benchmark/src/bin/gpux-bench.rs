@@ -3,7 +3,7 @@
 //! ```text
 //! gpux-bench --list
 //! gpux-bench --scenario <id> [--fast default|on|off] [--frames 600] [--warmup 120]
-//!            [--label <config>] [--target <name>] [--out <file.json>]
+//!            [--label <config>] [--target <name>] [--out <file.json>] [--inspect]
 //! ```
 //!
 //! Opens one real, visible window of 1280 by 800 logical pixels, runs the scenario and writes the

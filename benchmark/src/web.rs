@@ -57,6 +57,7 @@ pub fn run() {
         label: param("label").unwrap_or_else(|| "unlabelled".into()),
         target: param("target").unwrap_or_else(|| "web".into()),
         fast,
+        inspect: param("inspect").as_deref() == Some("1"),
         on_measuring: Some(Box::new(|| publish("measuring", true.into()))),
     };
     let backend = match param("backend").as_deref() {
