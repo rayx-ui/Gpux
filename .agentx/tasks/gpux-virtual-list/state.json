@@ -1,12 +1,12 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list",
-  "revision": 45,
-  "planRevision": 2,
+  "revision": 57,
+  "planRevision": 3,
   "specHashes": {
     "requirements": "9084aebf4ffae7ee7c8ab434f1a2926f10a92fe3d9c8af4ff6df6e7dd4e37b9b",
     "design": "37fdac31f34e8fe155ab1a0a2683e57b293e1d72fc403cbd271732569376a02f",
-    "plan": "d8bdc34fab89b2ff570865182157a1d820dc1f8082584e225608ef81c6f86a5f"
+    "plan": "2818fa5fecedcf125ffe06e61ff71cba0556804986850f56bf1bddbea31c14ea"
   },
   "tasks": {
     "t01-move": {
@@ -70,10 +70,16 @@
       ]
     },
     "t11-rayx-migrate": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
     },
     "t12-rayx-layers": {
-      "status": "pending"
+      "status": "in_progress",
+      "workerIds": [
+        "virtual-list"
+      ]
     },
     "t13-state-rebuilds": {
       "status": "pending"
@@ -129,6 +135,16 @@
         }
       },
       "recordedAt": "2026-10-16T19:24:21Z"
+    },
+    "2565759dc7dba54a862d9dcff6c9140f9514119b1d50b0984d6417f4753cc72f": {
+      "snapshot": {
+        "specHash": "802d61a7005615c532d8f9c5edb063625a21fff4f88859e0982fb8b5a6ea3048",
+        "repositories": {
+          "gpux": "e6171c0645bdc69fffcd034cbf4644e78f91af19f4b22c7b48174586bda47bf4",
+          "rayx": "35ed369be5a05001146e9d91a0ff6ed63162224468f6ed0af105edca425cbb79"
+        }
+      },
+      "recordedAt": "2026-10-16T19:39:44Z"
     }
   },
   "checkResults": {
@@ -369,6 +385,74 @@
       "logPath": "artifacts-temp/agentx/gpux-virtual-list/s04-parent-viewport-layers-docs-final-ece3b1e2f6a2.log",
       "logSha256": "1ae961d6ce948cb3ed23fe764d91ab94eb6028359c92350f79ff56a509e0ae8f",
       "inputsHash": "49449a4c3caa58fb5b89879105ab7c2784e7c242e5bd64e34f8df0d17b948e4f"
+    },
+    "s05-rayx-migration/c-rx-list-view/final": {
+      "checkId": "c-rx-list-view",
+      "boundaryId": "s05-rayx-migration",
+      "phase": "final",
+      "batchId": "2565759dc7dba54a862d9dcff6c9140f9514119b1d50b0984d6417f4753cc72f",
+      "definitionHash": "4a726377d518a708ca99efbd45cb463c10991bad5e4d5c0104cd94b5ae111094",
+      "basisHash": "aafe0cd33231383c0729e2c29740df0db28bd857296943de5865ad6b89924bdd",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 33,
+      "durationSeconds": 0.4039,
+      "recordedAt": "2026-10-16T19:39:43Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/s05-rayx-migration-final-efbe9b1b5e1b.log",
+      "logSha256": "29a2a1eea5a87fe1e279e0bca71a86bea8f5c1fb8aca2cab93d6501bdc6375d4",
+      "inputsHash": "6bf3bf4a90926985b604d6ea805e7d766391006fc9257e7e21ac26b843065165"
+    },
+    "s05-rayx-migration/c-rx-sliver/final": {
+      "checkId": "c-rx-sliver",
+      "boundaryId": "s05-rayx-migration",
+      "phase": "final",
+      "batchId": "2565759dc7dba54a862d9dcff6c9140f9514119b1d50b0984d6417f4753cc72f",
+      "definitionHash": "aebd72b8ae7ae6ab2afd22ee3cc0e17e09d514d674840d610997bf7e13a18add",
+      "basisHash": "6791adf7cfcbf145777fa4f1607f0f195c046e7d45af3490da4aff0c23ac781e",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 34,
+      "durationSeconds": 0.2398,
+      "recordedAt": "2026-10-16T19:39:43Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/s05-rayx-migration-final-2d11e5341ec3.log",
+      "logSha256": "0f473254c732da8189bfb0fc60aaf690ca15b361f3dde0cf9fa34bc32cacdc40",
+      "inputsHash": "6bf3bf4a90926985b604d6ea805e7d766391006fc9257e7e21ac26b843065165"
+    },
+    "s05-rayx-migration/c-rx-tree/final": {
+      "checkId": "c-rx-tree",
+      "boundaryId": "s05-rayx-migration",
+      "phase": "final",
+      "batchId": "2565759dc7dba54a862d9dcff6c9140f9514119b1d50b0984d6417f4753cc72f",
+      "definitionHash": "32b59539b7f1dcdc6de8ec94815ae4d6fe8ffd61afc5a7061bc7751b22803d20",
+      "basisHash": "7ea61791d66b5c660d2fd9d2ade0d2be8584669175010a2f3a2a9ddfc0fc7d17",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 42,
+      "durationSeconds": 0.3458,
+      "recordedAt": "2026-10-16T19:39:43Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/s05-rayx-migration-final-87af0afb2969.log",
+      "logSha256": "9b009c2fd7aa0c1ad5d5d5fc0418715d591da4164e2869f675ccb214f10e289f",
+      "inputsHash": "6bf3bf4a90926985b604d6ea805e7d766391006fc9257e7e21ac26b843065165"
+    },
+    "s05-rayx-migration/c-rx-scroll/final": {
+      "checkId": "c-rx-scroll",
+      "boundaryId": "s05-rayx-migration",
+      "phase": "final",
+      "batchId": "2565759dc7dba54a862d9dcff6c9140f9514119b1d50b0984d6417f4753cc72f",
+      "definitionHash": "9431c4fd5f7c415b5a785e5d9245709644102ea2c8189344766c9bf124f1b6c6",
+      "basisHash": "6ca320afecf3348ad1804dafe3114d6d9400a7202e7da72114b02dccae4a5171",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 9,
+      "durationSeconds": 0.6163,
+      "recordedAt": "2026-10-16T19:39:44Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/s05-rayx-migration-final-fde64dfee110.log",
+      "logSha256": "6edc50e7b644a0eae0c95e132fb35a7db16f936330a7ada614052e747b9de0f6",
+      "inputsHash": "6bf3bf4a90926985b604d6ea805e7d766391006fc9257e7e21ac26b843065165"
     }
   },
   "reviews": {
@@ -735,6 +819,105 @@
         "s04-F3"
       ],
       "recordedAt": "2026-10-16T19:25:02Z"
+    },
+    "s05-rayx-migration": {
+      "reviewerId": "reviewer-s05-independent",
+      "snapshotId": "373f5cee056c58b8ebfbd84bb789456044a1c0d6399bbcce24f0cce32031f853",
+      "criterionIds": [
+        "RX-1"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/lib.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-1"
+          ],
+          "sha256": "0ec9895dd41f706424614e53c5d6a7845c2f93c2e075a666c7b10b2f8a8d9650"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/scroll_base.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-1"
+          ],
+          "sha256": "45d537aacd3722d2bff698fccef3d2a3f0adf52cccfeea7aeb93b4f3a832363c"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "RX-1"
+          ],
+          "sha256": "3465d0543239336e356d9c7581ebed95b3b301c9ec0a6f60e3540dcfc55519bd"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/tree/state.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-1"
+          ],
+          "sha256": "20d304992346b106d9d875669cdab1561962add764e7b70faba1f80534d54335"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/state.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-1"
+          ],
+          "sha256": "a0342b894d10ea1ecd8ae2b03ebcd3065f667ab8f8467b54b5b80ca85c4eb1c4"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_datatable/src/state/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-1"
+          ],
+          "sha256": "f7a5a750b495dcaee05b5746621059e214345f38c76e5c9dfb6536a60bcc9ddb"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/application_configuration_programmatic_scroll_parent_viewport.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-1"
+          ],
+          "sha256": "5cd17874c5459c3a683f58e19cdcf7039acf603620b8fd852f0d9e2a0683227f"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/scroll_activity_owners.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-1"
+          ],
+          "sha256": "443e65eebfbcc39240917b397cd1bad74fd0fe9aaa9af446558de411855049eb"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/application_configuration_programmatic_scroll_core.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-1"
+          ],
+          "sha256": "f003d6735fc70c2a576f0184207e198b9c48d8e0651846dcb20621d0a55bb3bc"
+        }
+      ],
+      "deltaSummaryMarkdown": "Inspected `git diff 80f521f1 f8be3d7a`. It changes one line: line 121 of headless-and-non-visual docsblock.json now says `indices / VirtualStickyRow`, and the file still parses as JSON. A grep of f8be3d7a outside `.agentx` for `Virtual[A-Za-z]*Base`, `OrderedExtentIndexBase`, `virtual_list_base`, `rayx_components_base::(Virtual|virtual_list)`, `rayx::base::[vh]_virtual` and `rayx_components_base/src/virtual_list` finds nothing. Code is unchanged since the passing focused checks.",
+      "reattestedFrom": "2565759dc7dba54a862d9dcff6c9140f9514119b1d50b0984d6417f4753cc72f",
+      "summaryMarkdown": "The code migration is correct. At 196bfd51 `rayx_components_base::virtual_list` and its exports are gone, with no alias or forwarding layer. Every crate, Lab, Test Suite, test and DataTable caller imports gpux names; the amend moved the 12 app `rayx::base::` imports. The `ScrollbarHandleBase` impl for `gpux::VirtualListScrollHandle` matches the removed one method for method via `base_handle()`. `rayx_diagnostics` forwards to `gpux/diagnostics`, and `cargo check -p rayx_components_core --features rayx_diagnostics` compiles the `on_range_lookup` and `range_lookup_diagnostics` paths. ListView/TreeView APIs differ only by the gpux type names, and the four focused checks pass. c2608ef5 is an unmodified `-x` cherry-pick of b233fca9. The review fails on documentation only: the docsblock.json sources still name `VirtualListBase` (F1), and the updated skill docs give `rayx_components_base`/`rayx::base` import paths and file anchors that no longer exist (F2).",
+      "findingIds": [
+        "s05-F1",
+        "s05-F2"
+      ],
+      "recordedAt": "2026-10-16T19:41:15Z"
     }
   },
   "checkpoints": {
@@ -773,6 +956,15 @@
       },
       "reviewHash": "26ba9f3a20b48754722492ebb06d1b95fd1708ffd53e9bb5fcfe9ba9bcf668d5",
       "recordedAt": "2026-10-16T19:25:18Z"
+    },
+    "s05-rayx-migration": {
+      "snapshotId": "373f5cee056c58b8ebfbd84bb789456044a1c0d6399bbcce24f0cce32031f853",
+      "commits": {
+        "gpux": "36d77344480284d7bc30f72761776df71107cbd6",
+        "rayx": "f8be3d7a17aee4f387db1322b2a9ab7916f7b54e"
+      },
+      "reviewHash": "0285b853034fea410be988aaae57939f71acb6beddd9227d32c24e40ee583b8a",
+      "recordedAt": "2026-10-16T19:41:31Z"
     }
   },
   "findings": [
@@ -912,6 +1104,54 @@
         {
           "repositoryId": "gpux",
           "path": "crates/gpui/src/elements/virtual_list/mod.rs"
+        }
+      ]
+    },
+    {
+      "id": "s05-F1",
+      "boundaryId": "s05-rayx-migration",
+      "criterionIds": [
+        "RX-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved at f8be3d7a. Both docsblock.json sources now use gpux's names (`VirtualList`, `VirtualListScrollHandle`, `VirtualStickyRow`, `VirtualListExternalScrollBehavior`) under the `gpux` crate. No RayX documentation names a removed `*Base` virtual-list type.",
+      "regressionRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": ".claude/skills/rayx-components/references/headless-and-non-visual/docsblock.json"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": ".claude/skills/rayx-components/references/list/docsblock.json"
+        }
+      ]
+    },
+    {
+      "id": "s05-F2",
+      "boundaryId": "s05-rayx-migration",
+      "criterionIds": [
+        "RX-1"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved at 80f521f1 and unchanged at f8be3d7a. The skill docs import gpux paths and point their anchors at gpux's virtual_list source.",
+      "regressionRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": ".claude/skills/rayx/references/virtualization.md"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": ".claude/skills/rayx/references/component-boundaries.md"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": ".claude/skills/rayx/references/sticky-positioning.md"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": ".claude/skills/rayx-components/references/headless-and-non-visual/headless-and-non-visual.md"
         }
       ]
     }

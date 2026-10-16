@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list",
-  "revision": 2,
+  "revision": 3,
   "title": "VirtualList in gpux: RayX's variable-size virtual list moved into gpux with per-row scroll layers, its redraw, ParentViewport and rebuild defects fixed, and RayX moved onto it",
   "validationMode": "sprint",
   "repositories": [
@@ -1100,8 +1100,7 @@
         "c-rx-list-view",
         "c-rx-sliver",
         "c-rx-tree",
-        "c-rx-scroll",
-        "c-rx-layers"
+        "c-rx-scroll"
       ],
       "tasks": [
         {
@@ -1135,35 +1134,18 @@
               "path": "crates/rayx_components/rayx_components_base/src/tree/state.rs"
             }
           ]
-        },
-        {
-          "id": "t12-rayx-layers",
-          "title": "Prove ListView and TreeView composite",
-          "descriptionMarkdown": "Write `rayx_components_core/tests/virtual_list_layers.rs` (RX-2): own-scroll ListView and TreeView of 10,000 rows with the default row wrappers, fast mode on, 60 wheel frames; a sticky-policy ListView counted ineligible. If a default row wrapper makes rows ineligible, fix the wrapper in RayX and say why.",
-          "criterionIds": [
-            "RX-2"
-          ],
-          "designIds": [
-            "d-rayx-migration",
-            "d-proof"
-          ],
-          "dependsOn": [
-            "t11-rayx-migrate"
-          ],
-          "checkIds": [
-            "c-rx-layers"
-          ]
         }
       ]
     },
     {
       "id": "s06-rayx-rebuilds",
-      "title": "No state-view rebuilds on scroll-only frames",
+      "title": "No state-view rebuilds on scroll-only frames, and RayX composites",
       "dependsOn": [
         "s05-rayx-migration"
       ],
       "checkIds": [
-        "c-rx-rebuilds"
+        "c-rx-rebuilds",
+        "c-rx-layers"
       ],
       "tasks": [
         {
@@ -1193,6 +1175,24 @@
               "repositoryId": "rayx",
               "path": "crates/rayx_components/rayx_components_base/src/tree/element.rs"
             }
+          ]
+        },
+        {
+          "id": "t12-rayx-layers",
+          "title": "Prove ListView and TreeView composite",
+          "descriptionMarkdown": "Write `rayx_components_core/tests/virtual_list_layers.rs` (RX-2): own-scroll ListView and TreeView of 10,000 rows with the default row wrappers, fast mode on, 60 wheel frames; a sticky-policy ListView counted ineligible. If a default row wrapper makes rows ineligible, fix the wrapper in RayX and say why.",
+          "criterionIds": [
+            "RX-2"
+          ],
+          "designIds": [
+            "d-rayx-migration",
+            "d-proof"
+          ],
+          "dependsOn": [
+            "t13-state-rebuilds"
+          ],
+          "checkIds": [
+            "c-rx-layers"
           ]
         }
       ]
