@@ -26,7 +26,7 @@ announced after each. "Expected" is what the AccessKit tree holds for the contro
 | Subscribe | check box | Subscribe | unchecked, then checked after a toggle |
 | Volume | slider | Volume | its value, then the adjusted value |
 | Title | text field | Title | empty, then the typed text |
-| Email | text field | Email | required; described by "We never share it" |
+| Email | text field | Email | `ada@example.com`; required; described by "We never share it" |
 | Fruits | list | Fruits | its items, with their positions |
 | Details | button (disclosure) | Details | collapsed, then expanded; controls the "Details panel" region |
 | Copies | spin button | Copies | its value |

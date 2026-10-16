@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-a11y-devtools",
-  "revision": 147,
+  "revision": 148,
   "planRevision": 18,
   "specHashes": {
     "requirements": "4a6c683aa102b8f1030e274bee5dff3347e540bfc919978760a9eff0017628d4",
@@ -178,7 +178,10 @@
       ]
     },
     "t29-after-measurements": {
-      "status": "pending"
+      "status": "in_progress",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t13a-web-mirror": {
       "status": "done",
