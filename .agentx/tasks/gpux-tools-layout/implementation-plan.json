@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-tools-layout",
-  "revision": 2,
+  "revision": 3,
   "title": "One layout for gpux test and benchmark tooling: crates/gpux_tests_* and tools/",
   "validationMode": "sprint",
   "repositories": [

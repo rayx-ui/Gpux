@@ -1,12 +1,12 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-tools-layout",
-  "revision": 12,
-  "planRevision": 2,
+  "revision": 22,
+  "planRevision": 3,
   "specHashes": {
-    "requirements": "a2cfc8fcd710618c3339f6bce69f3121f9bcab1d3f579ed85fad28bc5d2cd2cf",
-    "design": "b685ab09ad5c982b043092126754eb7d13b35ed7587af8d6d5543428ad406649",
-    "plan": "cd59bf23de00865cbda25fb76f70b438f893dfd60a2ca35a61898c6bc6d25b4b"
+    "requirements": "c4e870158158b3614af43ed0b0729d299545e62ec1129cdad96f379b63827087",
+    "design": "3c21e94697cec35097000d711ed8e28976bab379f062a6ceeb250354360622e2",
+    "plan": "7b706b9f21cf8f17bf1c88f150cc5199a59ab93405556032725ec82d26f2a0d0"
   },
   "tasks": {
     "t01-conformance-rename": {
@@ -34,13 +34,22 @@
       ]
     },
     "t05-ci-docs": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "b2deecdd-9a47-4d12-b561-16a673be72fa"
+      ]
     },
     "t06-memory-sync": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "b2deecdd-9a47-4d12-b561-16a673be72fa"
+      ]
     },
     "t07-layout-guard": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "b2deecdd-9a47-4d12-b561-16a673be72fa"
+      ]
     }
   },
   "validationBatches": {
@@ -61,6 +70,15 @@
         }
       },
       "recordedAt": "2026-10-16T16:02:21Z"
+    },
+    "6bac271cf051d156303e6549676de0e89f9ae9368aff8bf50d07c7315dd42b0a": {
+      "snapshot": {
+        "specHash": "f71f9365a849390370a48782d7df778e78e37ebc105fc03891094f64acf34a67",
+        "repositories": {
+          "gpux": "4bd67eb63b7eeb97e5f14d8d27829afc54d10b2f825500c2d0d31d2899078919"
+        }
+      },
+      "recordedAt": "2026-10-16T16:11:36Z"
     }
   },
   "checkResults": {
@@ -248,6 +266,22 @@
       "logPath": "artifacts-temp/agentx/gpux-tools-layout/s01-moves-final-28ea176c09ec.log",
       "logSha256": "4adf195190f4bb88f02a8a9ccd5b867bf3f4f7b1da54146c4446985c0becec20",
       "inputsHash": "9fc6032be0fa22e074d37d3df7534bb70864c370137829e54313ef4d982b944d"
+    },
+    "s02-references/c-layout-guard/final": {
+      "checkId": "c-layout-guard",
+      "boundaryId": "s02-references",
+      "phase": "final",
+      "batchId": "6bac271cf051d156303e6549676de0e89f9ae9368aff8bf50d07c7315dd42b0a",
+      "definitionHash": "0491da0cdc0a33cc2e4c6961d170ed8646b2f96a3d6528800a5d52982569a8ad",
+      "basisHash": "83d97b65547bbaf55823d23cd435dadef005d70fab36a9ffcd83a7a685f375ce",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 11,
+      "durationSeconds": 0.314,
+      "recordedAt": "2026-10-16T16:11:36Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-tools-layout/s02-references-final-627a24bd0c01.log",
+      "logSha256": "a46c07884b68ee6cf91a32c52b7c098c911a59fc7b374db5badee4044eeedbeb"
     }
   },
   "reviews": {
@@ -504,6 +538,188 @@
         "F-S01-ANDROID-MANIFEST-WIRING"
       ],
       "recordedAt": "2026-10-16T16:02:57Z"
+    },
+    "s02-references": {
+      "reviewerId": "reviewer-s02-independent",
+      "snapshotId": "6bac271cf051d156303e6549676de0e89f9ae9368aff8bf50d07c7315dd42b0a",
+      "criterionIds": [
+        "DOCS-1",
+        "DOCS-2",
+        "DOCS-3",
+        "DOCS-4",
+        "GUARD-1"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/ci.yml",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-1"
+          ],
+          "sha256": "7a440c04cc1ca3c71b896b3e297a63b6ecc7f3730196cef8324a93619da78d96"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/lane-b.yml",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-1"
+          ],
+          "sha256": "9d30db61ac4628c18db34aa12cd76f412a88a537fcbbe51a21b9828feaabe932"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/lane-e.yml",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-1"
+          ],
+          "sha256": "1f4f90d0f8b1904dc6ef8c8e7aa85da7054870488fcb1d23afc1191f34c5f2df"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/lane-f.yml",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-1"
+          ],
+          "sha256": "b80bebe956694c50cec2d0fab6f0b02d874c8c06153652969470847b9d0f1cd4"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "README.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-2"
+          ],
+          "sha256": "9b72ef72f3c4ebef75b48b28dc4cff828959df48f8efac07b6480953b627570d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/testing.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-2"
+          ],
+          "sha256": "27a2d3f6d5326fce9964b4d5549b08d37101a562143817fbb66154efc43d137d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "LINUX-WSL.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-2"
+          ],
+          "sha256": "5470e552da355137bed8b8e69fd1cd753f2b7b483fb7fcf832a56a572f5a06ae"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/references/update-from-zed-gpui-closure.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-2"
+          ],
+          "sha256": "9e25e316f0e88dc446f964d3c8e587b728da2d958066744c0e2d1594428e5c30"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "CLAUDE.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-2",
+            "DOCS-3"
+          ],
+          "sha256": "17e2b3db241d9b111d9a39ee5bc1ec74ec33df30c1dc9116aba528e438b140cb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "AGENTS.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-2",
+            "DOCS-3"
+          ],
+          "sha256": "7429c7451faaa2597150febacf8937850190bc6d100ad4a6a1f9cd3cecfa09fd"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/README.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-3"
+          ],
+          "sha256": "993418af5b40aea19fb45a826d9ecb506120e0da393e29dde13811a40983e9bc"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/repository/packaging/rules.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-4"
+          ],
+          "sha256": "cdda56c6ed40853fc2c743c62d9299b0c3c9ab78e32b34d122fb239791c6679c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/repository/validation/rules.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-4"
+          ],
+          "sha256": "efe3a0b1865aaffb4bacbcc642c2a611128771007cb19ce43a261370d7bd3ed7"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/repository/validation/state.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-4"
+          ],
+          "sha256": "8930ac9e65df4a33d62c6502a380e5f979369079e6937c43444fdca156751dfa"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-gpux-testkit.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-4"
+          ],
+          "sha256": "27e98411a728b464ee9e9fa46d2ac5f480856faf46dd4363e73765d5df9d16ec"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "GUARD-1"
+          ],
+          "sha256": "6f7e37260b4bfe6c975b874f489583ad1ebf94d49473e52b5c9b986704d68952"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/repository_layout.rs",
+          "kind": "test",
+          "criterionIds": [
+            "GUARD-1",
+            "DOCS-1",
+            "DOCS-2",
+            "DOCS-4"
+          ],
+          "sha256": "f78beed84290bab5a8bc6dfb169bfbaac54debc6fae9448bd7894ca41986e935"
+        }
+      ],
+      "deltaSummaryMarkdown": "I inspected the repair delta for all four findings.\n\n- `lane-b.yml` now merges `../../blob-reports` from `tools/browser`, which resolves to the root `blob-reports` that the download step writes. The new guard test `lane_b_merges_the_shard_reports_it_downloaded` resolves the merge argument from `tools/browser` against the download `path`; it would fail on the old `../blob-reports`. The latest s02 check log shows 11/11 passing.\n- The Zed-closure preserve list now covers both `crates/gpux_tests_*` crates and all of `tools/`, including `ios`.\n- The Crate Layout sections of `CLAUDE.md` and `AGENTS.md` are identical. They now match the tree: library crates plus `gpux_tests_*` in `crates/`, with conformance publishable and the benchmark the only standalone, unpublished workspace; the testkit and perf Rust crates plus browser, android and ios in `tools/`; the fork in `vendor/wgpu`. The README paragraph and the `tools/README.md` intro now say \"no consumer depends on them\".\n- `packaging/state.md` now restricts the shared version and license to workspace crates and exempts the standalone benchmark (`0.0.0`, `publish = false`).",
+      "reattestedFrom": "0376ed2abf069a4c4c0f803d5725c1662a1d5f00b2d1ebee67291757e024ec07",
+      "summaryMarkdown": "The guard (`tools/testkit/tests/repository_layout.rs`) matches d-guard. Old folders are checked through `git ls-files`. Exclusions are exactly the scope's historical records plus fixtures, `vendor/`, `Cargo.lock` and the guard itself. Every stale pattern, and each exception (`knowledge/tooling/`, `RayX/tools-node`, the runtime `gpux-conformance` markers), has a seeded case. The guard fails outside a checkout. 10 tests passed in the s02 check log. Historical records are untouched; only this epic's own task files changed. The memory edits are path facts only, and their links resolve except the 6 pre-existing `../RayX` links. One CI regression is outside the guard's reach: the lane B merge path still has `tools-node` depth. Three minor accuracy gaps remain in the preserve list, the layout rule wording and the packaging state.",
+      "findingIds": [
+        "s02-lane-b-merge-reports-depth",
+        "s02-zed-preserve-list-incomplete",
+        "s02-layout-rule-every-rust-crate",
+        "s02-packaging-state-benchmark-exemption"
+      ],
+      "recordedAt": "2026-10-16T16:12:12Z"
     }
   },
   "checkpoints": {
@@ -514,6 +730,14 @@
       },
       "reviewHash": "e37ac220777aeecec683652e25eb650627e2ae8b4a2f8cd6394ee1ec19145149",
       "recordedAt": "2026-10-16T16:03:25Z"
+    },
+    "s02-references": {
+      "snapshotId": "6bac271cf051d156303e6549676de0e89f9ae9368aff8bf50d07c7315dd42b0a",
+      "commits": {
+        "gpux": "f9fcfac109e36e0ec0e90db3283bfd5bb18baf5c"
+      },
+      "reviewHash": "1e2c306f3bbb4d4eba7e6e3177b93d35627593a10e4dc09f7240debe34632a15",
+      "recordedAt": "2026-10-16T16:12:30Z"
     }
   },
   "findings": [
@@ -557,6 +781,87 @@
         }
       ],
       "boundaryId": "s01-moves"
+    },
+    {
+      "id": "s02-lane-b-merge-reports-depth",
+      "criterionIds": [
+        "DOCS-1"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved. `.github/workflows/lane-b.yml` runs `merge-reports --reporter html,list ../../blob-reports` from `tools/browser`, which matches the download-artifact `path: blob-reports`. Regression test: `lane_b_merges_the_shard_reports_it_downloaded`.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/repository_layout.rs",
+          "symbol": "lane_b_merges_the_shard_reports_it_downloaded"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/lane-b.yml"
+        }
+      ],
+      "boundaryId": "s02-references"
+    },
+    {
+      "id": "s02-zed-preserve-list-incomplete",
+      "criterionIds": [
+        "DOCS-2"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved. The preserve list (line 13) names `crates/gpux_tests_conformance`, `crates/gpux_tests_benchmark` and all of `tools/` (`testkit`, `perf`, `browser`, `android`, `ios`).",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/references/update-from-zed-gpui-closure.md"
+        }
+      ],
+      "boundaryId": "s02-references"
+    },
+    {
+      "id": "s02-layout-rule-every-rust-crate",
+      "criterionIds": [
+        "DOCS-3"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved. The Crate Layout sections of `CLAUDE.md` and `AGENTS.md` are identical and accurate against the tree: `crates/` holds the library crates plus `gpux_tests_*` (conformance publishable; the benchmark is the only standalone, unpublished workspace), and `tools/` holds the testkit and perf Rust workspace crates, browser, and the android and ios shells. `vendor/wgpu` holds the fork. `README.md` and `tools/README.md` use \"no consumer depends on them\".",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "CLAUDE.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "AGENTS.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "README.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/README.md"
+        }
+      ],
+      "boundaryId": "s02-references"
+    },
+    {
+      "id": "s02-packaging-state-benchmark-exemption",
+      "criterionIds": [
+        "DOCS-4"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved. `packaging/state.md` says all workspace crates share the workspace version and Apache-2.0, and that the standalone `crates/gpux_tests_benchmark` (`0.0.0`, `publish = false`) is exempt and never published. This is consistent with `rules.md` and the manifest.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/repository/packaging/state.md"
+        }
+      ],
+      "boundaryId": "s02-references"
     }
   ],
   "handoffMarkdown": "",
