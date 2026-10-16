@@ -1,10 +1,7 @@
 use crate::{
     AbsoluteLength, App, Bounds, DefiniteLength, Edges, GridTemplate, Length, Pixels, Point, Size,
     Style, Window, size,
-    util::{
-        ceil_to_device_pixel, round_half_toward_zero, round_stroke_to_device_pixel,
-        round_to_device_pixel,
-    },
+    util::{ceil_to_device_pixel, round_stroke_to_device_pixel, round_to_device_pixel},
 };
 use collections::{FxHashMap, FxHashSet};
 use std::{fmt::Debug, ops::Range};
@@ -180,6 +177,9 @@ pub struct TaffyLayoutEngine {
     computed_layouts: FxHashSet<LayoutId>,
     pub(crate) layout_bounds_scratch_space: Vec<LayoutId>,
     pub(crate) retention: crate::fast::layout::LayoutRetention,
+    /// Whether layout bounds round their edges' ties down, as they do while
+    /// the window's scroll layers snap (see [`crate::util::round_edge`]).
+    pub(crate) round_ties_down: bool,
     #[cfg(feature = "diagnostics")]
     diagnostics: [u64; 31],
     #[cfg(feature = "diagnostics")]
@@ -210,6 +210,7 @@ impl TaffyLayoutEngine {
             computed_layouts: FxHashSet::default(),
             layout_bounds_scratch_space: Vec::new(),
             retention: crate::fast::layout::LayoutRetention::default(),
+            round_ties_down: false,
             #[cfg(feature = "diagnostics")]
             diagnostics: [0; 31],
             #[cfg(feature = "diagnostics")]
@@ -969,10 +970,9 @@ impl TaffyLayoutEngine {
             .insert(id, absolute_outer_origin);
 
         let absolute_far = absolute_outer_origin + Point::from(Size::from(layout_size));
-        let snapped_bounds = Bounds::from_corners(
-            absolute_outer_origin.map(round_half_toward_zero),
-            absolute_far.map(round_half_toward_zero),
-        );
+        let round = |value: f32| crate::util::round_edge(value, self.round_ties_down);
+        let snapped_bounds =
+            Bounds::from_corners(absolute_outer_origin.map(round), absolute_far.map(round));
 
         let bounds = (snapped_bounds / scale_factor).map(Pixels);
         self.absolute_layout_bounds.insert(id, bounds);

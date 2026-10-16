@@ -12,6 +12,7 @@ mod dependency_nesting;
 mod draw_order;
 mod edge_shadows;
 mod glyph_runs;
+mod half_pixel_edges;
 mod hover_dependencies;
 mod layer_carry;
 mod layer_content_layout;
@@ -41,6 +42,7 @@ mod stats;
 mod switches;
 mod text_carry;
 mod transformed_masks;
+mod uniform_measured_item;
 #[cfg(feature = "diagnostics")]
 mod verify_mode;
 mod view_invalidation;

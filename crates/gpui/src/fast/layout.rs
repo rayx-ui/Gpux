@@ -1237,6 +1237,7 @@ pub(crate) fn begin_frame(window: &mut Window) {
         *engine = TaffyLayoutEngine::new();
         engine.retention.active = active;
     }
+    engine.round_ties_down = window.fast_mode.snapping();
 }
 
 /// Runs `f`, laying out a list row: the nodes it claims linger.

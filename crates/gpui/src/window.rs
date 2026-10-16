@@ -81,8 +81,8 @@ use self::a11y::A11y;
 #[cfg(not(target_family = "wasm"))]
 use self::a11y::ROOT_NODE_ID;
 use crate::util::{
-    atomic_incr_if_not_zero, ceil_to_device_pixel, floor_to_device_pixel, round_half_toward_zero,
-    round_half_toward_zero_f64, round_stroke_to_device_pixel, round_to_device_pixel,
+    atomic_incr_if_not_zero, ceil_to_device_pixel, floor_to_device_pixel,
+    round_half_toward_zero_f64, round_stroke_to_device_pixel,
 };
 pub use prompts::*;
 
@@ -4679,14 +4679,26 @@ impl Window {
     /// Rounds a logical value to the nearest device pixel.
     #[inline]
     pub fn pixel_snap(&self, value: Pixels) -> Pixels {
-        px(round_to_device_pixel(value.0, self.scale_factor()) / self.scale_factor())
+        px(self.round_edge_to_device_pixel(value.0) / self.scale_factor())
     }
 
     /// f64 variant of [`Self::pixel_snap`].
     #[inline]
     pub fn pixel_snap_f64(&self, value: f64) -> f64 {
         let scale_factor = f64::from(self.scale_factor());
-        round_half_toward_zero_f64(value * scale_factor) / scale_factor
+        let value = value * scale_factor;
+        if self.fast_mode.snapping() {
+            crate::util::round_half_down_f64(value) / scale_factor
+        } else {
+            round_half_toward_zero_f64(value) / scale_factor
+        }
+    }
+
+    /// `logical` in device pixels, rounded as an edge: ties down while scroll
+    /// layers snap, toward zero otherwise (see [`crate::util::round_edge`]).
+    #[inline]
+    fn round_edge_to_device_pixel(&self, logical: f32) -> f32 {
+        crate::util::round_edge(logical * self.scale_factor(), self.fast_mode.snapping())
     }
 
     /// Snaps a bounds' origin and size to the nearest device pixel.
@@ -4708,7 +4720,6 @@ impl Window {
         width: Pixels,
         style: &UnderlineStyle,
     ) -> Bounds<ScaledPixels> {
-        let scale_factor = self.scale_factor();
         let thickness = self.snap_stroke(style.thickness);
         let height = if style.wavy {
             ScaledPixels(thickness.0 * 3.)
@@ -4716,7 +4727,7 @@ impl Window {
             thickness
         };
         Bounds {
-            origin: origin.map(|c| ScaledPixels(round_to_device_pixel(c.0, scale_factor))),
+            origin: origin.map(|c| ScaledPixels(self.round_edge_to_device_pixel(c.0))),
             size: size(self.snap_stroke(width), height),
         }
     }
@@ -4796,11 +4807,10 @@ impl Window {
 
     #[inline]
     fn snap_bounds(&self, bounds: Bounds<Pixels>) -> Bounds<ScaledPixels> {
-        let scale_factor = self.scale_factor();
-        let left = round_to_device_pixel(bounds.left().0, scale_factor);
-        let top = round_to_device_pixel(bounds.top().0, scale_factor);
-        let right = round_to_device_pixel(bounds.right().0, scale_factor).max(left);
-        let bottom = round_to_device_pixel(bounds.bottom().0, scale_factor).max(top);
+        let left = self.round_edge_to_device_pixel(bounds.left().0);
+        let top = self.round_edge_to_device_pixel(bounds.top().0);
+        let right = self.round_edge_to_device_pixel(bounds.right().0).max(left);
+        let bottom = self.round_edge_to_device_pixel(bounds.bottom().0).max(top);
         Bounds::from_corners(
             point(ScaledPixels(left), ScaledPixels(top)),
             point(ScaledPixels(right), ScaledPixels(bottom)),
@@ -7702,10 +7712,9 @@ impl Window {
     ) {
         self.invalidator.debug_assert_paint();
 
-        let scale_factor = self.scale_factor();
         let height = style.thickness;
         let bounds = Bounds {
-            origin: origin.map(|c| ScaledPixels(round_to_device_pixel(c.0, scale_factor))),
+            origin: origin.map(|c| ScaledPixels(self.round_edge_to_device_pixel(c.0))),
             size: size(self.snap_stroke(width), self.snap_stroke(height)),
         };
         let content_mask = self.paint_content_mask();
@@ -8045,7 +8054,9 @@ impl Window {
                 .map(|value| ScaledPixels(value.0 as f32 / SMOOTH_SVG_SCALE_FACTOR)),
         };
         let final_bounds = svg_bounds
-            .map_origin(|value| ScaledPixels(round_half_toward_zero(value.0)))
+            .map_origin(|value| {
+                ScaledPixels(crate::util::round_edge(value.0, self.fast_mode.snapping()))
+            })
             .map_size(|size| size.ceil());
 
         self.next_frame.scene.insert_primitive(MonochromeSprite {
@@ -13766,6 +13777,19 @@ mod tests {
                     scaled.abs() / divisor + i32::from(2 * (scaled.abs() % divisor) > divisor);
                 ScaledPixels((scaled.signum() * rounded) as f32)
             };
+            // Edges round their ties down while scroll layers snap, as they
+            // do by default; widths round them toward zero.
+            let ties_down = window.fast_mode.snapping();
+            let edge = |quarters: i32| {
+                if ties_down {
+                    // The ceiling of (scaled - divisor / 2) / divisor.
+                    let scaled = quarters * numerator;
+                    let divisor = 4 * denominator;
+                    ScaledPixels(-(divisor - 2 * scaled).div_euclid(2 * divisor) as f32)
+                } else {
+                    snap(quarters)
+                }
+            };
             let stroke = |quarters| {
                 if quarters == 0 {
                     ScaledPixels(0.)
@@ -13784,7 +13808,7 @@ mod tests {
                                 wavy,
                             };
                             let bounds = Bounds::new(
-                                point(snap(origin), snap(-origin)),
+                                point(edge(origin), edge(-origin)),
                                 size(
                                     stroke(width),
                                     stroke(thickness) * if wavy { 3. } else { 1. },

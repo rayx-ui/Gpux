@@ -385,6 +385,14 @@ A list goes without a layer, counted `ineligible`, when it has rows that stick t
 uniform list drawn bottom up (`y_flipped`), is a horizontal `virtual_list` (`h_virtual_list`),
 has rows holding what no tile can (see the reasons above), or lies over no opaque background.
 
+A `uniform_list` measures the item it sizes its rows by once a frame, as it requests its layout,
+and its prepaint takes that size. The size is kept, with the element states and lines measuring
+reached, while the frame only scrolls the list's layer; and, without a layer, under view
+retention, while nothing measuring it read changed since the frame before, the view holding the
+list changed in nothing its render read (a notification alone does not count), and the scale
+factor, rem size and text style are the same (`lists::measure_item`,
+`fast::tests::uniform_measured_item`). With fast mode off it measures on every frame.
+
 A `virtual_list` knows each item's size up front. Its layer places row `n` at the list's own origin
 for it (`origins[n]`, the gaps before it included), never by a sum from another row, and a row the
 layer holds lands where a new layout puts it after the sizes, their count or the gap change. The
@@ -418,16 +426,22 @@ Over 60 wheel frames of 15 px on 10,000 rows in a 100 px list (the harness of
 frame paints 2.17 primitives on average for a `virtual_list` of rows 16 to 28 px tall and for one
 of 20 px rows, as for a `uniform_list` of the same 20 px rows. It renders 0.80 and 0.87 rows and
 keeps 6.9 and 7.6 (the `uniform_list` 0.87 and 7.8), and its row closure runs for those rows alone
-(the `uniform_list`'s also renders its first row to measure it, 1.87 rows a frame). The group
+(the `uniform_list`'s measured the first row again on every frame before it kept its measured
+item, 1.87 rows a frame). The group
 itself runs at the test overscan of half a viewport. The planning measurement (2026-10-16, before
 the list had a layer) found 21 primitives and 25 rows a frame for RayX's lists, against 5 to 6
 primitives and 0 to 2 rows for `uniform_list` and `list`.
 
-An edge that lies on exactly half a device pixel can round one pixel apart in a frame shown from a
-layer and in a frame drawn from scratch, once the layer moved it across the window's origin: the
-rounding goes half toward zero, which a whole-pixel move does not preserve across zero. This holds
-for any layer (a padded `uniform_list` at 4.25 px and scale 2 shows it); the list layer groups keep
-their edges off exact halves.
+While scroll layers snap (in a window with them, and in the reference they are held to), the
+device-pixel rounding of edges (layout bounds, quad and underline bounds, sprite origins) takes ties
+down, `ceil(x - 0.5)`: the same rounding wherever the edge lies, so an edge a layer moves by whole
+device pixels lands where one drawn there afresh does, as the glyph origins round. An edge at or
+past the window's origin rounds as it does with snapping off; only a tie at a negative position
+lands a pixel lower. Rounding ties
+toward zero, as gpux does with snapping off, does not survive a move across zero: a row a layer
+held at 0.5 px and moved up by 4 lands at -4 where a frame drawn from scratch puts it at -3. Style
+sizes keep rounding toward zero. `fast::tests::half_pixel_edges` holds every kind of layer to it at
+scale factors 1, 1.25, 1.5 and 2.
 
 `FastStats::list_rows_rendered` and `list_rows_kept` count the rows rendered into list layers
 and the rows kept without rendering. `Window::describe_rendered_frame` describes a frame shown

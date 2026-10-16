@@ -1620,7 +1620,8 @@ pub(crate) fn snap_scroll_offset(window: &Window, offset: Point<Pixels>) -> Poin
 }
 
 /// [`snap_scroll_offset`] at `scale_factor`, snapping only when `compiled`,
-/// rounding as [`Window::pixel_snap`] does.
+/// rounding ties toward zero, as [`Window::pixel_snap`] does with snapping
+/// off: both windows a layer is compared between snap offsets alike.
 pub(crate) fn snap_offset(
     offset: Point<Pixels>,
     scale_factor: f32,

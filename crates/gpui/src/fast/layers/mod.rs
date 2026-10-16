@@ -76,6 +76,13 @@ pub(crate) fn on_thread() -> bool {
 #[derive(Default)]
 pub(crate) struct WindowLayers {
     pub(crate) layers: FxHashMap<GlobalElementId, Layer>,
+    /// The measured items of uniform lists drawn without a layer under view
+    /// retention, by list, as last measured or kept (see
+    /// [`lists::measure_item`]).
+    pub(crate) measured_items: FxHashMap<GlobalElementId, lists::Measured>,
+    /// Counts the frames drawn, with or without scroll layers, for
+    /// `measured_items` to tell the frame before.
+    pub(crate) measured_items_frame: u64,
     /// The key the next layer gets, so keys stay unique in the window.
     pub(crate) next_key: u32,
     /// The scrolls and offset reads of the frame being drawn.
@@ -164,6 +171,7 @@ pub(crate) fn active(window: &Window, cx: &App) -> bool {
 pub(crate) fn finish_frame(window: &mut Window) {
     window.fast_layers.pending_content.clear();
     if !window.fast_mode.scroll_layers() {
+        finish_measured_items(window);
         return;
     }
     policy::drop_layers_on_resize(window);
@@ -187,6 +195,23 @@ pub(crate) fn finish_frame(window: &mut Window) {
         .finish_frame(frame, |id| live.contains_key(id));
     layers.hidden_hitboxes = None;
     layers.frame += 1;
+    finish_measured_items(window);
+}
+
+/// Keeps the measured items of lists drawn without a layer only for the
+/// frame right after the one that measured or kept them, and none past a
+/// frame drawn from scratch.
+fn finish_measured_items(window: &mut Window) {
+    let refreshed = window.refreshing;
+    let layers = &mut window.fast_layers;
+    let frame = layers.measured_items_frame;
+    if refreshed {
+        layers.measured_items.clear();
+    }
+    layers
+        .measured_items
+        .retain(|_, measured| measured.frame == frame);
+    layers.measured_items_frame += 1;
 }
 
 /// Notes that `window` removed an entry from its sprite atlas. The atlas

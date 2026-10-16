@@ -443,7 +443,7 @@ impl Row {
 
 /// A list's measured item, and what it was measured with besides the item
 /// itself.
-struct Measured {
+pub(crate) struct Measured {
     size: Size<Pixels>,
     rem_size: Pixels,
     text_style: TextStyle,
@@ -455,7 +455,19 @@ struct Measured {
     /// last carried them, `frame`: a frame that keeps the size right after
     /// keeps them shaped.
     lines: Range<crate::LineLayoutIndex>,
-    frame: u64,
+    pub(crate) frame: u64,
+    /// What measuring the item read, for a list drawn without a layer: the
+    /// size is kept while none of it changed.
+    dependencies: Option<RenderDependencies>,
+    /// The scale factor it was measured at: style sizes round to device
+    /// pixels, so another one measures another size.
+    scale_factor: f32,
+    /// For a list drawn without a layer, the view holding it, watched for
+    /// notifications, and how often it had been notified, and by scrolls,
+    /// when the size was last measured or kept: a notification other than a
+    /// scroll's measures again, as what shapes the item may live outside
+    /// entities.
+    owner: Option<(invalidate::OwnerWatch, u64, u64)>,
 }
 
 /// The rows a list renders into its layer this frame.
@@ -850,9 +862,12 @@ fn stale_rows(
         .collect()
 }
 
-/// The size of a uniform list's measured item: `measure`d, unless the
-/// frame only scrolls the list's layer, whose content, the measured item
-/// included, is then as it was (spec §8).
+/// The size of the item a uniform list `id` measures its rows by, measured
+/// by `measure` unless kept: by the list's layer while the frame only
+/// scrolls it, and without a layer, under view retention, while nothing
+/// measuring it read changed and the frame only scrolls the list. A kept
+/// size reaches the element states measuring reached and keeps the lines it
+/// shaped, as measuring again would.
 pub(crate) fn measure_item(
     window: &mut Window,
     cx: &mut App,
@@ -862,60 +877,160 @@ pub(crate) fn measure_item(
     if !LIST_LAYERS {
         return measure(window, cx);
     }
-    if !COMPILED || window.fast_layers.layers.is_empty() {
-        return measure(window, cx);
-    }
     let Some(id) = id else {
         return measure(window, cx);
     };
-    // A list measures before it decides what its layer does: take in the
-    // offsets published since the last frame first, so that a wheel on a
-    // tracked handle counts as the scroll it is, as a handle-less list's
-    // does (see `ScrollStates::take_offsets_set`).
-    window.fast_layers.scrolls.take_offsets_set();
-    if let Some(size) = kept_item_size(window, cx, id) {
+    let layered = COMPILED && !window.fast_layers.layers.is_empty();
+    if layered {
+        // A list measures before it decides what its layer does: take in the
+        // offsets published since the last frame first, so that a wheel on a
+        // tracked handle counts as the scroll it is, as a handle-less list's
+        // does (see `ScrollStates::take_offsets_set`).
+        window.fast_layers.scrolls.take_offsets_set();
+        if let Some(size) = kept_item_size(window, cx, id) {
+            carry_measured_records(window, id);
+            return size;
+        }
+    }
+    if let Some(size) = kept_item_size_without_layer(window, cx, id) {
+        // What measuring read stays among what the view holding the list
+        // read, as measuring again would leave it.
+        if let Some(dependencies) = window
+            .fast_layers
+            .measured_items
+            .get(id)
+            .and_then(|measured| measured.dependencies.clone())
+        {
+            cx.replay_dependencies_as_own(&dependencies);
+        }
         carry_measured_records(window, id);
         return size;
     }
+    // Measuring is part of building the view holding the list: what it
+    // reads is that view's own, for view retention and splice to decide on.
+    let recording = window
+        .fast_mode
+        .view_retention()
+        .then(|| cx.begin_recording_dependencies());
     let start = window.prepaint_index();
     let size = measure(window, cx);
     let end = window.prepaint_index();
-    let states = window.next_frame.accessed_element_states
-        [start.accessed_element_states_index..end.accessed_element_states_index]
-        .iter()
-        .map(|(id, type_id)| (id.clone(), *type_id))
-        .collect();
-    let rem_size = window.rem_size();
-    let text_style = window.text_style();
-    let frame = window.fast_layers.frame;
+    let dependencies =
+        recording.map(|recording| cx.finish_recording_dependencies_as_own(recording).all);
+    let states: Rc<[(GlobalElementId, std::any::TypeId)]> =
+        window.next_frame.accessed_element_states
+            [start.accessed_element_states_index..end.accessed_element_states_index]
+            .iter()
+            .map(|(id, type_id)| (id.clone(), *type_id))
+            .collect();
+    let (rem_size, text_style, frame, scale_factor) = (
+        window.rem_size(),
+        window.text_style(),
+        window.fast_layers.frame,
+        window.scale_factor(),
+    );
+    let lines = start.line_layout_index..end.line_layout_index;
+    let measured = |dependencies| Measured {
+        size,
+        rem_size,
+        text_style: text_style.clone(),
+        states: states.clone(),
+        lines: lines.clone(),
+        frame,
+        dependencies,
+        scale_factor,
+        owner: None,
+    };
+    let in_layer = measured(None);
+    let owner = invalidate::owner_view(window).map(|view| {
+        let watch = invalidate::OwnerWatch::new(view);
+        let (notifies, scrolls) = (watch.notifies(), watch.scroll_notifies());
+        (watch, notifies, scrolls)
+    });
+    let without_layer = dependencies.map(|dependencies| Measured {
+        frame: window.fast_layers.measured_items_frame,
+        owner,
+        ..measured(Some(dependencies))
+    });
     if let Some(layer) = window.fast_layers.layers.get_mut(id) {
-        layer.rows.measured = Some(Measured {
-            size,
-            rem_size,
-            text_style,
-            states,
-            lines: start.line_layout_index..end.line_layout_index,
-            frame,
-        });
+        layer.rows.measured = Some(in_layer);
+    }
+    match without_layer {
+        Some(measured) => {
+            window
+                .fast_layers
+                .measured_items
+                .insert(id.clone(), measured);
+        }
+        None => {
+            window.fast_layers.measured_items.remove(id);
+        }
     }
     size
+}
+
+/// The measured item's size as kept for the uniform list `id` drawn without
+/// a layer, if nothing measuring it read changed since the frame before and
+/// the frame only scrolls the list.
+fn kept_item_size_without_layer(
+    window: &Window,
+    cx: &App,
+    id: &GlobalElementId,
+) -> Option<Size<Pixels>> {
+    // A list with a layer keeps its size by the layer alone. Notifications
+    // are counted only where layers are compiled.
+    if !COMPILED
+        || !window.fast_mode.view_retention()
+        || paint::inside_layer(window)
+        || window.fast_layers.layers.contains_key(id)
+    {
+        return None;
+    }
+    let measured = window.fast_layers.measured_items.get(id)?;
+    let dependencies = measured.dependencies.as_ref()?;
+    let (watch, notifies, scrolls) = measured.owner.as_ref()?;
+    let notified_otherwise = watch.notifies().saturating_sub(*notifies)
+        > watch.scroll_notifies().saturating_sub(*scrolls);
+    if invalidate::owner_view(window) != Some(watch.view()) || notified_otherwise {
+        return None;
+    }
+    let source = window.fast_layers.scrolls.source(id);
+    (measured.frame + 1 == window.fast_layers.measured_items_frame
+        && measured.scale_factor == window.scale_factor()
+        && measured.rem_size == window.rem_size()
+        && measured.text_style == window.text_style()
+        && !invalidate::changed(window, cx, dependencies, source.as_ref())
+        && !invalidate::measured_item_changed_without_layer(window, cx, id))
+    .then_some(measured.size)
 }
 
 /// Reaches in the frame being drawn the element states measuring the item
 /// of the list `id` reached, as measuring it again would, and keeps the
 /// lines it shaped when they lie in the last frame.
 fn carry_measured_records(window: &mut Window, id: &GlobalElementId) {
-    let frame = window.fast_layers.frame;
-    let Some((states, lines)) = window
+    // The layer's record when the list has one, by the layers' frames, or
+    // the record kept without a layer, by the frames drawn.
+    let in_layer = window
         .fast_layers
         .layers
         .get(id)
-        .and_then(|layer| layer.rows.measured.as_ref())
-        .map(|measured| {
-            let lines = (measured.frame + 1 == frame).then(|| measured.lines.clone());
-            (measured.states.clone(), lines)
-        })
-    else {
+        .is_some_and(|layer| layer.rows.measured.is_some());
+    let layers = &window.fast_layers;
+    let (frame, measured) = if in_layer {
+        (
+            layers.frame,
+            layers
+                .layers
+                .get(id)
+                .and_then(|layer| layer.rows.measured.as_ref()),
+        )
+    } else {
+        (layers.measured_items_frame, layers.measured_items.get(id))
+    };
+    let Some((states, lines)) = measured.map(|measured| {
+        let lines = (measured.frame + 1 == frame).then(|| measured.lines.clone());
+        (measured.states.clone(), lines)
+    }) else {
         return;
     };
     window
@@ -931,14 +1046,22 @@ fn carry_measured_records(window: &mut Window, id: &GlobalElementId) {
         window.text_system.reuse_layouts(lines);
     }
     let end = window.text_system.layout_index();
-    if let Some(measured) = window
-        .fast_layers
-        .layers
-        .get_mut(id)
-        .and_then(|layer| layer.rows.measured.as_mut())
-    {
+    let layers = &mut window.fast_layers;
+    let measured = if in_layer {
+        layers
+            .layers
+            .get_mut(id)
+            .and_then(|layer| layer.rows.measured.as_mut())
+    } else {
+        layers.measured_items.get_mut(id)
+    };
+    if let Some(measured) = measured {
         measured.lines = start..end;
         measured.frame = frame;
+        if let Some((watch, notifies, scrolls)) = &mut measured.owner {
+            *notifies = watch.notifies();
+            *scrolls = watch.scroll_notifies();
+        }
     }
 }
 

@@ -1,6 +1,7 @@
 //! Frames shown from a `virtual_list`'s layer equal frames drawn from
-//! scratch: the primitives they draw, tiles expanded, at scale factors 1 and
-//! 1.25 with fractional row sizes, a gap and padding; and whole frame
+//! scratch: the primitives they draw, tiles expanded, at scale factors 1,
+//! 1.25 and 2 with fractional row sizes, a gap and padding (on half a device
+//! pixel at 2); and whole frame
 //! descriptions over random histories of wheel turns, pointer moves and
 //! clicks, in two applications run one after the other at scale 1.
 
@@ -65,6 +66,22 @@ fn quads_equal_those_drawn_without_layers_at_scale_1_25(cx: &mut TestAppContext)
         &fractional_wheels(12, 80),
         1.25,
         "scale 1.25",
+        true,
+    );
+    assert!(counters["layers_composited"] >= 40, "{counters:?}");
+}
+
+#[crate::test]
+fn quads_equal_those_drawn_without_layers_at_scale_2(cx: &mut TestAppContext) {
+    if !crate::fast::layers::COMPILED {
+        return;
+    }
+    let counters = compare_steps(
+        cx,
+        fractional_page,
+        &fractional_wheels(13, 80),
+        2.,
+        "scale 2",
         true,
     );
     assert!(counters["layers_composited"] >= 40, "{counters:?}");

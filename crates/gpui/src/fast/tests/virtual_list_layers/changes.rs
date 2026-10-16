@@ -33,11 +33,10 @@ fn a_row_size_change_moves_the_rows_the_layer_holds(cx: &mut TestAppContext) {
     }
     let grow: fn(&mut Page) = |page| {
         let mut extents = (*page.extents).clone();
-        // A row above those shown and one the layer holds below them. Whole
-        // pixels: an edge on half a device pixel rounds otherwise once moved
-        // across the window's origin, with any layer (see `docs/fast-mode.md`).
-        extents[3] += 7.;
-        extents[12] += 11.;
+        // A row above those shown and one the layer holds below them, each
+        // by half a pixel more: the rows after them move by ties.
+        extents[3] += 7.5;
+        extents[12] += 11.5;
         page.extents = Rc::new(extents);
     };
     compare_steps(cx, page, &script(Step::Edit(grow)), 1., "sizes", true);

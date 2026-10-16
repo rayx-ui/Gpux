@@ -4193,6 +4193,7 @@ impl Interactivity {
                         *scroll_offset_state.borrow_mut() = new_scroll_offset;
                         // A handle's publish notes its own scroll.
                         crate::fast::layers::invalidate::note_scrolled(window, &fast_container);
+                        crate::fast::layers::invalidate::note_scroll_notify(current_view);
                         cx.notify(current_view);
                     }
                     cx.stop_propagation();
@@ -5658,17 +5659,21 @@ impl ScrollHandle {
             // Immediate input publishes outside prepaint. Invalidate its complete tracked view
             // set in the input turn so a concurrent content update cannot overtake the scroll
             // render and no redundant post-prepaint owner frame is needed.
+            crate::fast::layers::invalidate::note_scroll_notify(owner);
             cx.notify(owner);
             for entity_id in dependent_views {
                 if entity_id != owner {
+                    crate::fast::layers::invalidate::note_scroll_notify(entity_id);
                     cx.notify(entity_id);
                 }
             }
         } else if changed {
             cx.defer(move |cx| {
+                crate::fast::layers::invalidate::note_scroll_notify(owner);
                 cx.notify(owner);
                 for entity_id in dependent_views {
                     if entity_id != owner {
+                        crate::fast::layers::invalidate::note_scroll_notify(entity_id);
                         cx.notify(entity_id);
                     }
                 }
