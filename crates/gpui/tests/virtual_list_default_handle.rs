@@ -15,9 +15,8 @@ use std::{
 };
 
 use gpux::{
-    Context, Entity, FastMode, IntoElement, ParentElement as _, Render,
-    Styled as _, TestApp, TestAppWindow, VirtualListScrollHandle, Window, div, point, px, size,
-    v_virtual_list,
+    Context, Entity, FastMode, IntoElement, ParentElement as _, Render, Styled as _, TestApp,
+    TestAppWindow, VirtualListScrollHandle, Window, div, point, px, size, v_virtual_list,
 };
 
 /// More renders than any test here asks of the holder.
@@ -48,11 +47,7 @@ impl Render for Holder {
             cx.entity(),
             "default-handle",
             Rc::new(vec![size(px(W), px(ROW)); ROWS]),
-            |_, range, _, _| {
-                range
-                    .map(|_| div().w_full().h(px(ROW)))
-                    .collect::<Vec<_>>()
-            },
+            |_, range, _, _| range.map(|_| div().w_full().h(px(ROW))).collect::<Vec<_>>(),
         )
         .on_rendered_range(move |range, _, _| ranges.borrow_mut().push(range))
         .w(px(W))
@@ -147,7 +142,10 @@ impl Fixture {
 }
 
 fn modes() -> [(&'static str, FastMode); 2] {
-    [("fast mode off", FastMode::OFF), ("fast mode on", FastMode::ALL)]
+    [
+        ("fast mode off", FastMode::OFF),
+        ("fast mode on", FastMode::ALL),
+    ]
 }
 
 #[test]
@@ -173,9 +171,17 @@ fn a_handle_less_list_scrolls_and_keeps_its_offset_across_renders() {
         let mut fixture = Fixture::open(mode);
         fixture.frames(2);
         fixture.wheel(-400.);
-        assert_eq!(fixture.last_range(), 20..32, "{name}: the wheel scrolled the list");
+        assert_eq!(
+            fixture.last_range(),
+            20..32,
+            "{name}: the wheel scrolled the list"
+        );
         fixture.wheel(-100.);
-        assert_eq!(fixture.last_range(), 25..37, "{name}: a second wheel turn adds");
+        assert_eq!(
+            fixture.last_range(),
+            25..37,
+            "{name}: a second wheel turn adds"
+        );
 
         let before = fixture.renders.get();
         let holder = fixture.holder.clone();
@@ -199,7 +205,11 @@ fn track_scroll_replaces_the_default_handle() {
         let mut fixture = Fixture::open(mode);
         fixture.frames(2);
         fixture.wheel(-400.);
-        assert_eq!(fixture.last_range(), 20..32, "{name}: the default handle scrolled");
+        assert_eq!(
+            fixture.last_range(),
+            20..32,
+            "{name}: the default handle scrolled"
+        );
 
         let handle = VirtualListScrollHandle::new();
         let holder = fixture.holder.clone();
@@ -211,11 +221,23 @@ fn track_scroll_replaces_the_default_handle() {
             }
         });
         fixture.frames(2);
-        assert_eq!(handle.offset().y, px(0.), "{name}: the tracked handle starts at 0");
-        assert_eq!(fixture.last_range(), 0..12, "{name}: the tracked handle's offset shows");
+        assert_eq!(
+            handle.offset().y,
+            px(0.),
+            "{name}: the tracked handle starts at 0"
+        );
+        assert_eq!(
+            fixture.last_range(),
+            0..12,
+            "{name}: the tracked handle's offset shows"
+        );
 
         fixture.wheel(-200.);
-        assert_eq!(handle.offset().y, px(-200.), "{name}: the wheel moves the tracked handle");
+        assert_eq!(
+            handle.offset().y,
+            px(-200.),
+            "{name}: the wheel moves the tracked handle"
+        );
         assert_eq!(fixture.last_range(), 10..22, "{name}");
     }
 }

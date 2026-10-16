@@ -25,8 +25,8 @@ use crate::{
     InteractiveElement, IntoElement, IsZero as _, ListSizingBehavior, Overflow, ParentElement,
     Pixels, Point, Render, ScrollBehavior, ScrollContainerContext, ScrollHandle,
     ScrollMutationSource, ScrollStrategy, Size, Stateful, StatefulInteractiveElement,
-    StickyRelationIndex, StickyStacking, StickyStateChangedEvent, StyleRefinement, Styled, Window,
-    div, point, px, size, sticky_push_offset,
+    StickyRelationIndex, StickyStacking, StickyStateChangedEvent, Style, StyleRefinement, Styled,
+    Window, div, point, px, size, sticky_push_offset,
 };
 pub use geometry::{OrderedExtentIndex, RangeLookupWork};
 use geometry::{ParentViewportMetrics, overscanned_range, programmatic_item_target_for_request};
@@ -1081,14 +1081,12 @@ impl Element for VirtualList {
         {
             // One handle for the element's lifetime: a fresh handle tracked on every render
             // would take new metrics on every frame and notify its owner to draw again.
-            let handle = window.with_element_state(
-                global_id,
-                |state: Option<DefaultScrollHandle>, _| {
+            let handle =
+                window.with_element_state(global_id, |state: Option<DefaultScrollHandle>, _| {
                     let state = state
                         .unwrap_or_else(|| DefaultScrollHandle(VirtualListScrollHandle::new()));
                     (state.0.clone(), state)
-                },
-            );
+                });
             self.base.interactivity().tracked_scroll_handle = Some(handle.base_handle.clone());
             self.scroll_handle = handle;
         }
@@ -1189,11 +1187,30 @@ impl Element for VirtualList {
                 );
 
                 let axis = self.axis;
-                match if parent_viewport_scroll {
-                    ListSizingBehavior::Infer
-                } else {
-                    self.sizing_behavior
-                } {
+                if parent_viewport_scroll {
+                    // A list in its parent's flow takes its whole content extent along its axis.
+                    // It lays itself out around a spacer of that extent rather than as a
+                    // measured leaf: when view retention keeps the view holding the list without
+                    // building it, a kept measured leaf other than text has no closure and is
+                    // sized empty, while a kept node keeps its style. The spacer gives the list
+                    // the intrinsic size the leaf measured, with padding and borders outside it.
+                    let extent = size_layout.content_size.along(axis);
+                    let mut spacer = Style {
+                        flex_shrink: 0.,
+                        ..Style::default()
+                    };
+                    spacer.size = match axis {
+                        Axis::Horizontal => size(extent.into(), px(0.).into()),
+                        Axis::Vertical => size(px(0.).into(), extent.into()),
+                    };
+                    crate::fast::layout_key::push_layout_key(window, None);
+                    let spacer = window.request_layout(spacer, None, cx);
+                    crate::fast::layout_key::pop_layout_key(window);
+                    return window.with_text_style(style.text_style().cloned(), |window| {
+                        window.request_layout(style, Some(spacer), cx)
+                    });
+                }
+                match self.sizing_behavior {
                     ListSizingBehavior::Infer => {
                         window.with_text_style(style.text_style().cloned(), |window| {
                             let size_layout = size_layout.clone();
@@ -1201,55 +1218,24 @@ impl Element for VirtualList {
                             window.request_measured_layout(style, {
                                 move |known_dimensions, available_space, _, _| {
                                     let mut size = Size::default();
-                                    if axis == Axis::Horizontal {
-                                        size.width = if parent_viewport_scroll {
-                                            size_layout.content_size.width
-                                        } else {
-                                            known_dimensions.width.unwrap_or(match available_space
-                                                .width
-                                            {
-                                                AvailableSpace::Definite(x) => x,
-                                                AvailableSpace::MinContent
-                                                | AvailableSpace::MaxContent => {
-                                                    size_layout.content_size.width
-                                                }
-                                            })
-                                        };
-                                        size.height = known_dimensions.height.unwrap_or(
-                                            match available_space.height {
-                                                AvailableSpace::Definite(x) => x,
-                                                AvailableSpace::MinContent
-                                                | AvailableSpace::MaxContent => {
-                                                    size_layout.content_size.height
-                                                }
-                                            },
-                                        );
-                                    } else {
-                                        size.width =
-                                            known_dimensions.width.unwrap_or(match available_space
-                                                .width
-                                            {
-                                                AvailableSpace::Definite(x) => x,
-                                                AvailableSpace::MinContent
-                                                | AvailableSpace::MaxContent => {
-                                                    size_layout.content_size.width
-                                                }
-                                            });
-                                        size.height = if parent_viewport_scroll {
-                                            size_layout.content_size.height
-                                        } else {
-                                            known_dimensions.height.unwrap_or(match available_space
-                                                .height
-                                            {
-                                                AvailableSpace::Definite(x) => x,
-                                                AvailableSpace::MinContent
-                                                | AvailableSpace::MaxContent => {
-                                                    size_layout.content_size.height
-                                                }
-                                            })
-                                        };
-                                    }
-
+                                    size.width = known_dimensions.width.unwrap_or(
+                                        match available_space.width {
+                                            AvailableSpace::Definite(x) => x,
+                                            AvailableSpace::MinContent
+                                            | AvailableSpace::MaxContent => {
+                                                size_layout.content_size.width
+                                            }
+                                        },
+                                    );
+                                    size.height = known_dimensions.height.unwrap_or(
+                                        match available_space.height {
+                                            AvailableSpace::Definite(x) => x,
+                                            AvailableSpace::MinContent
+                                            | AvailableSpace::MaxContent => {
+                                                size_layout.content_size.height
+                                            }
+                                        },
+                                    );
                                     size
                                 }
                             })
