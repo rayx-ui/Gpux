@@ -374,16 +374,21 @@ A list goes without a layer, counted `ineligible`, when it has rows that stick t
 uniform list drawn bottom up (`y_flipped`), is a horizontal `virtual_list` (`h_virtual_list`),
 has rows holding what no tile can (see the reasons above), or lies over no opaque background.
 
-A `virtual_list` knows each item's size up front. Its layer places row `n` at the list's own
-origin for it (`origins[n]`, the gaps before it included), never by a sum from another row, and
-a row the layer holds lands where a new layout puts it after the sizes, their count or the gap
-change. The item it renders to measure its cross-axis size is measured once and kept while the
-frame only scrolls the layer (`lists::measure_item`): the frame takes in the offsets published
-since the last one before it decides, so that a wheel on the list's own handle counts as the
-scroll it is, and it reaches the element states measuring the item reached, as measuring it again
-would. Its `on_rendered_range` listener runs on every frame the list is drawn, composited frames
-included, before any row is rendered, with the mounted, clamped, overscanned range a frame drawn
-without layers publishes; rows stuck to an edge never widen it.
+A `virtual_list` knows each item's size up front. Its layer places row `n` at the list's own origin
+for it (`origins[n]`, the gaps before it included), never by a sum from another row, and a row the
+layer holds lands where a new layout puts it after the sizes, their count or the gap change. The
+item it renders to measure its cross-axis size is measured once and kept while the frame only
+scrolls the layer (`lists::measure_item`): the frame takes in the offsets published since the last
+one before it decides, so that a wheel on the list's own handle counts as the scroll it is, and it
+reaches the element states measuring the item reached, as measuring it again would. Its
+`on_rendered_range` listener runs on every frame the list is drawn, composited frames included,
+before any row is rendered, with the mounted, clamped, overscanned range a frame drawn without
+layers publishes; rows stuck to an edge never widen it. The listener is called as part of drawing
+the view holding the list, as its rows are rendered: what it records in that view (RayX's
+`ListViewState` and `TreeStateBase` keep their visible range there) does not build the views that
+read it again, which would otherwise happen on every frame that scrolls the list to another range.
+A view that shows the range takes it from an event the listener emits, as RayX's
+`VisibleRangeChanged` subscribers do, not by reading it as it renders.
 
 A `virtual_list` scrolled by another element has no list layer and calls none of the list hooks:
 it is no scroll container of its own. A `SynchronizedOffset` list applies the offset of the

@@ -1417,7 +1417,7 @@ impl Element for VirtualList {
             |_style, _, hitbox, _positioned_bounds, _sticky_state, window, cx| {
                 if self.items_count == 0 {
                     if let Some(listener) = &self.rendered_range_listener {
-                        listener(0..0, window, cx);
+                        publish_rendered_range(listener, 0..0, window, cx);
                     }
                 } else {
                     if !parent_viewport_scroll {
@@ -1564,7 +1564,7 @@ impl Element for VirtualList {
                     }
 
                     if let Some(listener) = &self.rendered_range_listener {
-                        listener(rendered_range.clone(), window, cx);
+                        publish_rendered_range(listener, rendered_range.clone(), window, cx);
                     }
 
                     // A vertical list that is its own scroll container and has no sticky rows
@@ -1801,6 +1801,21 @@ impl Element for VirtualList {
             },
         )
     }
+}
+
+/// Calls the rendered-range listener as part of drawing the view holding the list, as its rows
+/// are rendered (`fast::layers::lists::render_items`): the listener commonly records the range
+/// in that view, and gpux counts a view updated without a notification as changed, so the views
+/// that read it, such as the one holding a wrapper around the list, would be built again on every
+/// frame that scrolled the list to another range. With scroll layers off it is called as it is
+/// today.
+fn publish_rendered_range(
+    listener: &RenderedRangeListener,
+    range: Range<usize>,
+    window: &mut Window,
+    cx: &mut App,
+) {
+    crate::fast::layers::lists::render_items(window, cx, |window, cx| listener(range, window, cx));
 }
 
 fn overscanned_item_range(
