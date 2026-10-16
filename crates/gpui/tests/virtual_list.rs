@@ -347,7 +347,7 @@ fn overscan_mounts_extra_rows_on_both_sides(cx: &mut TestAppContext) {
     let extents = Rc::new(vec![20.; 200]);
     let handle = VirtualListScrollHandle::new();
     let window = open(cx, {
-        let (probe, extents, handle) = (probe.clone(), extents.clone(), handle.clone());
+        let (probe, extents, handle) = (probe.clone(), extents, handle);
         move |_, cx| {
             list(cx, Axis::Vertical, &extents, &probe)
                 .track_scroll(&handle)
@@ -410,7 +410,7 @@ fn a_fixed_cross_axis_size_renders_no_row_to_measure(cx: &mut TestAppContext) {
     let extents = Rc::new(vec![20.; 200]);
     let handle = VirtualListScrollHandle::new();
     let window = open(cx, {
-        let (probe, extents, handle) = (probe.clone(), extents.clone(), handle.clone());
+        let (probe, extents, handle) = (probe.clone(), extents, handle.clone());
         move |_, cx| {
             list(cx, Axis::Vertical, &extents, &probe)
                 .track_scroll(&handle)
@@ -465,7 +465,7 @@ fn sticky_rows_stack_by_level_and_push_out(cx: &mut TestAppContext) {
     let probe = Shared::default();
     let handle = VirtualListScrollHandle::new();
     let window = open(cx, {
-        let (probe, handle) = (probe.clone(), handle.clone());
+        let (probe, handle) = (probe.clone(), handle);
         move |_, cx| sticky_list(cx, &probe, &handle).into_any_element()
     });
     draw(cx, window, &probe);
@@ -511,7 +511,7 @@ fn a_stuck_row_takes_its_stuck_style_and_reports_its_state(cx: &mut TestAppConte
     let probe = Shared::default();
     let handle = VirtualListScrollHandle::new();
     let window = open(cx, {
-        let (probe, handle) = (probe.clone(), handle.clone());
+        let (probe, handle) = (probe.clone(), handle);
         move |_, cx| sticky_list(cx, &probe, &handle).into_any_element()
     });
     // Rows paint nothing of their own, so the frame shows a quad besides the window's
@@ -550,7 +550,7 @@ fn scroll_to_item_applies_each_strategy(cx: &mut TestAppContext) {
     let extents = Rc::new(vec![20.; 100]);
     let handle = VirtualListScrollHandle::new();
     let window = open(cx, {
-        let (probe, extents, handle) = (probe.clone(), extents.clone(), handle.clone());
+        let (probe, extents, handle) = (probe.clone(), extents, handle.clone());
         move |_, cx| {
             list(cx, Axis::Vertical, &extents, &probe)
                 .track_scroll(&handle)
@@ -590,7 +590,7 @@ fn the_rendered_range_listener_runs_on_every_prepaint(cx: &mut TestAppContext) {
     let count = Rc::new(RefCell::new(100usize));
     let handle = VirtualListScrollHandle::new();
     let window = open(cx, {
-        let (probe, count, handle) = (probe.clone(), count.clone(), handle.clone());
+        let (probe, count, handle) = (probe.clone(), count.clone(), handle);
         move |_, cx| {
             let extents = Rc::new(vec![20.; *count.borrow()]);
             list(cx, Axis::Vertical, &extents, &probe)
