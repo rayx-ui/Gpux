@@ -1,0 +1,367 @@
+{
+  "schemaVersion": 7,
+  "epicId": "gpux-virtual-list",
+  "decisions": [
+    {
+      "id": "d-move",
+      "requirementIds": [
+        "VL"
+      ],
+      "descriptionMarkdown": "**Layout.** RayX's `virtual_list/mod.rs` and `geometry.rs` move to `crates/gpui/src/elements/virtual_list/{mod.rs,geometry.rs}`, a directory module like `editable_text`. `elements/mod.rs` re-exports it.\n\n**Names.** Names drop `Base`. `VirtualListExternalScrollBehaviorBase` becomes `VirtualListExternalScrollBehavior`, the name RayX's rules already use.\n\n**Moves verbatim.** Behaviour and code move as they are, before any fix lands:\n- the sticky relation index and push-out;\n- the extent index;\n- deferred scroll-to-item;\n- the parent-viewport metrics.\n\n**Stays in RayX.** The `ScrollbarHandleBase` impl. A RayX trait on a gpux type is allowed.\n\n**Feature.** `rayx_diagnostics` maps to gpux's existing `diagnostics` feature.\n\n**Tests.** The unit tests move with the code. The element's window-driven tests are new in `crates/gpui/tests/virtual_list.rs`.",
+      "invariantsMarkdown": "- The gpux element depends on nothing outside gpux.\n- The move commit changes no behaviour: fixes land in their own commits.",
+      "rationaleMarkdown": "**Why move it.** Every hook a list layer needs is `pub(crate)` (`render_items`, `measure_item`, `snap_item_offset`, `begin_*`, `prepaint_row`, `end_rows`, `begin_paint_rows`, `paint_row`, `end_paint_rows`). They work on `Window` internals, so exposing them publicly would freeze an internal protocol. A gpux-owned element can use them, as `uniform_list` does.\n\n**Naming.** RayX's naming decision already reserves `VirtualList` for the low-level range renderer.",
+      "sourceRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/virtual_list/mod.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/virtual_list/geometry.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/uniform_list.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/ui/virtualization/2026-06-26-ui-virtualization-listview-treeview-naming.md"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/ui/virtualization/2026-07-31-ui-virtualization-structured-sticky-candidates.md"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/ui/virtualization/2026-07-05-ui-virtualization-virtualized-sticky-policy.md"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/ui/virtualization/2026-07-24-ui-virtualization-laid-out-sticky-cross-axis.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-universal-sticky-push-out.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-sticky-hierarchy-traversal-order.md"
+        }
+      ]
+    },
+    {
+      "id": "d-default-handle",
+      "requirementIds": [
+        "VL"
+      ],
+      "descriptionMarkdown": "**Default handle.** A `VirtualList` with no tracked handle keeps a default `VirtualListScrollHandle` in element state, keyed by its global element id. It creates the handle once, tracks it in its base `div`, and reuses it on every later frame. `track_scroll` and `track_external_scroll` replace it.\n\n**Constructor.** `virtual_list` no longer creates a handle per call.",
+      "invariantsMarkdown": "- One handle per element id for the element's lifetime.\n- A scroll is published only through `ScrollHandle::publish_offset_inner` or the wheel listener, as the positioning-scroll rules require.",
+      "rationaleMarkdown": "**Cause.** The investigation showed the redraw loop with fast mode on and off. A fresh handle tracked on each render publishes new metrics, notifies the owner, and the window draws again forever.\n\n**Precedent.** `uniform_list` and `div` keep a handle-less container's offset in element state the same way.",
+      "sourceRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/virtual_list/mod.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-08-21-gpui-positioning-scroll-immediate-scrollbar-publication.md"
+        }
+      ]
+    },
+    {
+      "id": "d-parent-viewport-retention",
+      "requirementIds": [
+        "VL"
+      ],
+      "descriptionMarkdown": "**Requirement.** A `ParentViewport` list's content extent must survive view retention.\n\n**First step.** The red test pins where the extent is lost. Candidates:\n- the `request_measured_layout` closure, which captures `ItemSizeLayout` from element state inside `request_layout`, replayed by a retained view without rerunning the closure;\n- the measured leaf's output reused without the owner's generation (layout-style decision \"Require explicit invalidation before reusing measured-layout output\");\n- the retained view's layout claimed while the list's request was skipped.\n\n**Fix.** It lands in the element's layout request, through gpux's own layout paths. Retention is touched only if the cause lies there. The fix must not depend on RayX's dependent-view registration, which keeps ListView working today by rebuilding its state view on every scroll.",
+      "invariantsMarkdown": "- With every fast-mode switch combination, the frames equal those drawn with fast mode off.\n- A plain `div` child of the same extent keeps working: it already does, which rules out a general view-retention fault.",
+      "sourceRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/virtual_list/mod.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-measured-layout-invalidation.md"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/ui/virtualization/2026-07-24-ui-virtualization-external-scroll-dependent-invalidation.md"
+        }
+      ]
+    },
+    {
+      "id": "d-parent-viewport-viewport",
+      "requirementIds": [
+        "VL"
+      ],
+      "descriptionMarkdown": "**Viewport.** A `ParentViewport` list takes its viewport from `fast::layers::paint::unlayered_content_mask` (the content mask cut by a painting layer's viewport). It does not use `Window::content_mask`, which is a layer's painted region while that layer paints. The parent-viewport metrics and the mounted range come from that viewport.\n\n**Rows.** The rows it prepaints cover the content mask in effect, so a layer holds the rows it can composite.\n\n**Offset reads.** Its read of the parent offset goes through `ScrollHandle::offset` (`note_offset_read`). A retained or layered parent therefore never shows stale rows or metrics: either the layer repaints, or the frame equals one drawn from scratch.",
+      "invariantsMarkdown": "- Explicit `ParentViewport` and `SynchronizedOffset` behaviours stay as RayX's external-scroll decisions define them.\n- With layers off, the output is today's.",
+      "rationaleMarkdown": "`unlayered_content_mask` exists for exactly this: whatever reads the mask for geometry, rather than for culling, must see the viewport.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/paint.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/virtual_list/mod.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/ui/virtualization/2026-06-26-ui-virtualization-external-scroll-handles.md"
+        }
+      ]
+    },
+    {
+      "id": "d-list-layer-path",
+      "requirementIds": [
+        "LL"
+      ],
+      "descriptionMarkdown": "**New hook.** `fast::layers::lists::begin_virtual_list` generalizes `begin_uniform_list` from `item_height * row` to the list's known extents:\n- each row's slot comes from `origins[row]` and `sizes[row]`;\n- overscan is the rows within `LIST_OVERSCAN_VIEWPORTS` of a viewport on either side, found through the extent index;\n- `needed`, `sort_rows`, `hidden_in_view` and the `RowsFrame` stay as they are.\n\n**Element side.** `VirtualList` calls, at the points `uniform_list` does:\n- `snap_item_offset` before the range;\n- `begin_virtual_list`, `row_indices` and `render_rows`;\n- `prepaint_row` and `end_rows`;\n- `begin_paint_rows`, `paint_row` and `end_paint_rows`.\n\nIt renders through `lists::render_items` (in `virtual_list`'s constructor closure) and measures its cross-axis item through `lists::measure_item`.\n\n**Eligibility.** `carried` is true only for a vertical list that is its own scroll container and has no sticky items. Every other kind takes today's path: counted `ineligible` when it is a scroll container, uncounted when it is not.",
+      "invariantsMarkdown": "- Place a row by the list's own origins, never by a running sum.\n- Take the rows shown from the list's own visible range, never from where rows lie.\n- Every hook is inert while `scroll_layers` is off.\n- Frames equal frames drawn from scratch (the oracle).\n- Rows held off screen answer nothing (`hide_records`, `hide_focus`, `listen_while_shown`).",
+      "rationaleMarkdown": "The uniform path is the closest match: sizes are known up front, so no lazy measuring is needed. `list`'s path is tied to `ListState`'s `StateInner` (`place_list_item`, `anchor_rows`) and its lazy measurement. `RowsFrame` already takes per-row heights (`hidden_in_view`). Horizontal lists would need axis-generic slots throughout `lists.rs`; that is left out (see the scope).",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/uniform_list.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/list.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-scroll-layers.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-oracle.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-switches.md"
+        }
+      ]
+    },
+    {
+      "id": "d-range-publication",
+      "requirementIds": [
+        "LL"
+      ],
+      "descriptionMarkdown": "**Every frame.** The list computes its visible and overscanned range on every frame it is drawn and calls the `on_rendered_range` listener before any row is rendered, composited frames included. Rows the layer holds are not re-rendered for it.\n\n**Sticky rows.** The range excludes active sticky-only rows, as today.",
+      "sourceRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/virtual_list/mod.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/ui/virtualization/2026-07-24-ui-virtualization-overscanned-mounted-range-publication.md"
+        }
+      ]
+    },
+    {
+      "id": "d-rayx-migration",
+      "requirementIds": [
+        "RX"
+      ],
+      "descriptionMarkdown": "**Removal.** RayX deletes `rayx_components_base::virtual_list` and its exports. Every call site imports gpux's names; there is no alias or forwarding layer. RayX keeps the `ScrollbarHandleBase` impl.\n\n**APIs kept.** ListView and TreeView's public API is unchanged: `use_external_scroll_handle`, sticky policy, callback sizing.\n\n**Commits.** RayX's change ships as one commit paired with gpux's.",
+      "invariantsMarkdown": "- RayX's virtualization behaviour is preserved: its existing ListView, Tree, sliver and scroll tests assert what they asserted.\n- RayX's own documentation stops naming `VirtualListBase`.",
+      "sourceRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/state.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/tree/state.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/virtual_list/mod.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/ui/virtualization/2026-06-24-ui-virtualization-native-rust.md"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/ui/virtualization/2026-07-03-ui-virtualization-single-external-scroll-api.md"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/ui/virtualization/2026-08-03-ui-virtualization-idempotent-external-scroll-attachment.md"
+        }
+      ]
+    },
+    {
+      "id": "d-state-rebuilds",
+      "requirementIds": [
+        "RX"
+      ],
+      "descriptionMarkdown": "**First step.** A RayX test counts the views built per scroll frame, ListView and TreeView against a bare `virtual_list` holder, and is red first. Then the cause is isolated. Candidates:\n- `ListView`'s and `TreeBase`'s `RenderOnce` writing the row renderer into the state on every parent render (`state.update(|s, _| s.set_render_item(..))`). gpux counts an update without a notification as changed.\n- `ListViewState::render` reading the scroll offset or metrics (`apply_pending_programmatic_scroll`, `update_follow_tail_before_render`), which positioning-scroll rules forbid unless the view's elements depend on it.\n- `cx.emit(VisibleRangeChanged)` from the range listener.\n\n**Fix.** It lands in the owner of the cause.",
+      "invariantsMarkdown": "- Programmatic scroll, follow-tail, anchors and `VisibleRangeChanged` keep their tested behaviour.",
+      "sourceRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/element.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/state.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/tree/element.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/ui/virtualization/2026-08-11-ui-virtualization-wheel-input-invalidation.md"
+        }
+      ]
+    },
+    {
+      "id": "d-proof",
+      "requirementIds": [
+        "VL",
+        "LL",
+        "RX"
+      ],
+      "descriptionMarkdown": "**gpux groups.** gpux's proof is its own new groups:\n- `elements::virtual_list::` (moved unit tests);\n- `crates/gpui/tests/virtual_list*.rs` (element behaviour and the fixes);\n- `fast::tests::virtual_list_layers::{rows,range,ineligible,oracle,changes,parent_viewport}` (layers);\n- the `list-virtual` lane A scene and its `lane_a_fast_parity` test.\n\n**RayX groups.** RayX's two new groups prove the consumer.\n\n**Left to CI.** The full lane A, the `fast::` lib suite and lane C (the tiles path is unchanged, only exercised by a new list kind) are final checks that CI runs on the pull requests. Timings are not asserted.",
+      "rationaleMarkdown": "This follows the repository's validation decisions: gpux owns its proof, lanes are run through `gpux-testkit`, fast mode is proved by counters and parity, and timings belong to lane G.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-gpux-owns-runtime-proof.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-test-lanes.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-gpux-testkit.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-13-repository-validation-fast-mode-proof-and-timing.md"
+        }
+      ]
+    }
+  ],
+  "memoryDecisionsConsidered": [
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-06-29-gpui-frame-pipeline-unclipped-deferred-overlays.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-07-24-gpui-frame-pipeline-cached-thermal-frame-throttling.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-05-gpui-frame-pipeline-frame-demand-follow-up.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-window-composition.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-fixed-sticky-positioned-scene-order.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-fixed-sticky-positioning.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-nested-scroll-wheel-propagation.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-06-gpui-positioning-scroll-fixed-containing-block.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-opaque-scroll-capture-owner.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-30-gpui-layout-style-registry-taffy-0-14.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-conditional-prepaint-style-recompute.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-disable-taffy-content-size.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-frame-bounded-prepaint-style-handoff.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-request-style-handoff.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-text-measurement-scope.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-local-gpu-lane-g.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-14-repository-validation-wgpu-desktop-perf-4.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-14-repository-validation-wsl-gpu-lanes-c-d.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/virtualization/2026-07-03-ui-virtualization-parent-viewport-mutation-scroll-preservation.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/virtualization/2026-07-03-ui-virtualization-reactive-view-bindings.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/virtualization/2026-07-03-ui-virtualization-unified-list-tree-state-api.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/virtualization/2026-07-05-ui-virtualization-callback-only-item-sizing.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/virtualization/2026-08-21-ui-virtualization-datatable-thumb-rate.md"
+    }
+  ]
+}
