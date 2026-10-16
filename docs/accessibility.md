@@ -185,8 +185,8 @@ adapter posts its Java work to the UI thread itself.
 All of an app's GPUI windows show on the Activity's one surface, and a view takes one delegate,
 so the windows share one adapter, which describes the **front (last opened) window**; a window
 behind it is exposed again when the front one closes. The adapter belongs to its Activity: a
-window opened under a recreated Activity gets a new adapter on the new view, and the adapter goes
-with the last window, or when an embedded host clears its context.
+window opened under a recreated Activity gets a new adapter on the new view; the adapter stays on
+its view until then (also while no window is open), or until an embedded host clears its context.
 
 ## Known limits
 

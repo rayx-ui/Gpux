@@ -3,8 +3,10 @@
 //! accessibility delegate).
 //!
 //! The adapter belongs to its host (an Activity): a window opening under another host drops the
-//! old adapter and puts a new one on the new host's view, and the adapter goes when the last
-//! window closes or the host is released. It describes the front (last opened) window: its
+//! old adapter and puts a new one on the new host's view, and the adapter goes when the host is
+//! released. It stays while its host does, with no window open too: an adapter's removal from
+//! its view is queued on the UI thread, so a new one put on the same view at once would find the
+//! old delegate still there. It describes the front (last opened) window: its
 //! handlers reach that window's callbacks, only that window's tree updates reach the adapter,
 //! and when the front window changes the new one is asked for its tree, which the adapter then
 //! gets in full.
@@ -207,26 +209,17 @@ impl<A: AdapterHandle> Registration<A> {
 
 impl<A: AdapterHandle + 'static> Drop for Registration<A> {
     fn drop(&mut self) {
-        let (front_changed, last) = self
+        let front_changed = self
             .registry
             .windows
             .lock()
             .map(|mut windows| {
                 let was_front = windows.open.last().is_some_and(|w| w.key == self.key);
                 windows.open.retain(|window| window.key != self.key);
-                let last = windows.open.is_empty();
-                if last {
-                    windows.activated = false;
-                }
-                (was_front && windows.activated && !last, last)
+                was_front && windows.activated && !windows.open.is_empty()
             })
-            .unwrap_or((false, false));
-        if last {
-            // No window is left to describe: the adapter leaves the view.
-            if let Ok(mut adapter) = self.registry.adapter.lock() {
-                *adapter = None;
-            }
-        } else if front_changed {
+            .unwrap_or(false);
+        if front_changed {
             self.registry.activate_front();
         }
     }
@@ -275,7 +268,7 @@ mod tests {
     }
 
     #[test]
-    fn accessibility_registry_puts_one_adapter_per_host_and_rebuilds_it_for_a_new_host() {
+    fn accessibility_registry_keeps_one_adapter_per_host_and_rebuilds_it_for_a_new_host() {
         let registry = registry();
         let created = Arc::new(AtomicUsize::new(0));
         let create = || {
@@ -294,17 +287,30 @@ mod tests {
         drop((first, second));
         assert_eq!(
             registry.host(),
-            None,
-            "the last window takes the adapter with it"
+            Some(1),
+            "the adapter stays on its host with no window open"
         );
+        // A window opened again on the same host reuses it, and a screen reader that activated
+        // it is given the new window's tree.
+        registry.activate();
+        let again = registry.register(1, callbacks("c", count.clone()), create);
+        assert_eq!(created.load(Ordering::SeqCst), 1);
+        let last = registry.with_adapter(|adapter| {
+            adapter
+                .updates
+                .last()
+                .and_then(|update| update.nodes[0].1.label().map(str::to_string))
+        });
+        assert_eq!(last, Some(Some("c".to_string())));
+        drop(again);
 
-        // The host goes away with a window still open (an Activity recreated): the next window
-        // under the new host gets an adapter of its own, not the dead view's.
+        // The host goes away (an Activity recreated): the next window under the new host gets
+        // an adapter of its own, not the dead view's.
         let old = registry.register(1, callbacks("a", count.clone()), create);
         registry.activate();
         let new = registry.register(2, callbacks("b", count), create);
         assert_eq!(registry.host(), Some(2));
-        assert_eq!(created.load(Ordering::SeqCst), 3);
+        assert_eq!(created.load(Ordering::SeqCst), 2);
         // The new adapter starts unactivated: the front window is not asked for its tree
         // until a screen reader activates it.
         assert_eq!(registry.with_adapter(|a| a.updates.len()), Some(0));

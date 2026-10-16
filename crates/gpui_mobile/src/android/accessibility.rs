@@ -6,7 +6,7 @@
 //! accessibility delegate, so the app's windows share one adapter on that view, which describes
 //! the front window ([`crate::accessibility_registry`]). The adapter belongs to its Activity: a
 //! window opened under a recreated Activity gets a new adapter on the new view, and the adapter
-//! goes with the last window or when the embedded host's context is cleared.
+//! goes when the embedded host's context is cleared.
 
 use accesskit_android::InjectingAdapter;
 use gpui::accesskit;
