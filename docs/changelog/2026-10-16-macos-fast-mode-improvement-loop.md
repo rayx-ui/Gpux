@@ -1,4 +1,4 @@
-# macOS performance and memory loop: report of gains, 2026-10-15 to 2026-10-16
+# macOS fast-mode performance and memory loop, 2026-10-15 to 2026-10-16
 
 Branch `perf/agentx-macos-loop` (worktree `Gpux-agentx-loop`), 70 commits since the opening state: **local only, not pushed or merged, native macOS only**
 (Apple M5, macOS 26.6.2, Metal, 120 Hz). Four AgentX improvement-loop runs, 31 experiments plus 4 baselines: 19 kept, 12 reverted (one kept experiment, two drawables, was undone by a later one).
@@ -10,7 +10,7 @@ The headline tables compare the **opening state** (commit `d5cb2e1`: PR #3's ben
 before any loop change) with the **final state** (this branch's head, `bcdcf81`). Both binaries were built from their commits and run
 **alternated in one session** (old, new, old, new...) so frequency and thermal drift hit both alike: 15 scenarios, fast mode off and on,
 3 repetitions each, 600 measured frames after 120 warm-up frames. Cells are the median of the three. Raw data:
-[results/2026-10-16-opening-vs-final/](results/2026-10-16-opening-vs-final/) (summary.json, 180 result files).
+[benchmark/results/2026-10-16-opening-vs-final/](../../benchmark/results/2026-10-16-opening-vs-final/) (summary.json, 180 result files).
 
 Caveats that apply to every table:
 - `main_cpu_ms` is thread CPU time. On this machine it moves with pacing and the CPU's frequency choice (the same build read 1.8 or 2.6 ms
@@ -246,4 +246,4 @@ to move. That is why the loop's gains per experiment fell from 10-40% in part 1 
 
 Loop records (hypothesis, plan, numbers, decision per experiment): `.agentx/experiments/2026-10-15-...-perf-and-memory{,-part-2}`,
 `2026-10-16-...-part-3`, `...-part-4`. Durable rules learned are in `.agentx/memory/knowledge/{gpui,platform,repository}/rules.md`.
-Detail per part: [LOOP-2026-10-16.md](LOOP-2026-10-16.md).
+Detail per part: [benchmark/LOOP-2026-10-16.md](../../benchmark/LOOP-2026-10-16.md).
