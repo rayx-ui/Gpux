@@ -4,19 +4,30 @@
 //! The test window records every update a platform adapter would receive.
 
 use gpux::{
-    AccessibilityMode, AnyWindowHandle, Context, IntoElement, Render, Role, TestAppContext,
-    TestDispatcher, VisualTestContext, Window, div, prelude::*, px,
+    AccessibilityMode, AnyWindowHandle, Application, Context, IntoElement, Render, Role,
+    TestAccessibilityAdapter, TestAppContext, TestDispatcher, VisualTestContext, Window, div,
+    prelude::*, px,
 };
 
 struct Labelled {
     /// Set by the test: the mode the next render switches to, in the middle of its frame.
     switch_mode_while_rendering: Option<AccessibilityMode>,
+    /// Set by the test: the next render activates (`true`) or deactivates the window's
+    /// platform adapter, in the middle of its frame.
+    switch_adapter_while_rendering: Option<(TestAccessibilityAdapter, bool)>,
 }
 
 impl Render for Labelled {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         if let Some(mode) = self.switch_mode_while_rendering.take() {
             cx.set_accessibility_mode(mode);
+        }
+        if let Some((adapter, on)) = self.switch_adapter_while_rendering.take() {
+            if on {
+                adapter.activate();
+            } else {
+                adapter.deactivate();
+            }
         }
         div().size_full().child(
             div()
@@ -32,6 +43,7 @@ impl Render for Labelled {
 fn open(cx: &mut TestAppContext) -> (VisualTestContext, AnyWindowHandle, gpux::Entity<Labelled>) {
     let (view, vcx) = cx.add_window_view(|_, _| Labelled {
         switch_mode_while_rendering: None,
+        switch_adapter_while_rendering: None,
     });
     let vcx = vcx.clone();
     let window = vcx.window_handle();
@@ -157,6 +169,50 @@ fn a_source_switched_during_a_frame_takes_effect_on_the_next(cx: &mut TestAppCon
         1,
         "the next frame sends only the root"
     );
+}
+
+/// The platform source counts for a frame only when it is on at the frame's start and its end:
+/// an adapter that disconnects while the frame draws gets nothing from it, and one that connects
+/// gets the next frame's tree.
+#[gpux::test]
+fn an_adapter_switched_during_a_frame_gets_only_frames_it_covered(cx: &mut TestAppContext) {
+    // Frames are drawn one at a time, so each frame's sends are seen alone (activation asks for
+    // a frame of its own, which would otherwise follow at once).
+    cx.set_draw_on_flush(false);
+    let (mut vcx, window, view) = open(cx);
+    let adapter = vcx.accessibility_adapter(window);
+    let mut draw = |vcx: &mut VisualTestContext, switch: Option<bool>| {
+        if let Some(on) = switch {
+            vcx.update(|_, cx| {
+                view.update(cx, |view, cx| {
+                    view.switch_adapter_while_rendering = Some((adapter.clone(), on));
+                    cx.notify();
+                })
+            });
+        }
+        vcx.update(|window, cx| {
+            window.refresh();
+            window.draw(cx).clear(cx);
+        });
+        vcx.take_accessibility_updates(window)
+    };
+    draw(&mut vcx, None);
+
+    // Connects while a frame draws: that frame started without it and sends nothing.
+    let joined = draw(&mut vcx, Some(true));
+    assert!(
+        joined.is_empty(),
+        "the frame it joined is not sent: {joined:?}"
+    );
+    assert!(
+        draw(&mut vcx, None).iter().any(has_save),
+        "the next frame is"
+    );
+
+    // Disconnects while a frame draws: that frame ends without it and sends nothing.
+    let left = draw(&mut vcx, Some(false));
+    assert!(left.is_empty(), "the frame it left is not sent: {left:?}");
+    assert!(draw(&mut vcx, None).is_empty());
 }
 
 #[gpux::test]
@@ -315,6 +371,21 @@ fn child_reads_the_environment() {
     let expected = AccessibilityMode::parse(&expected).unwrap();
     let cx = TestAppContext::build(TestDispatcher::new(0), None);
     assert_eq!(cx.update(|cx| cx.accessibility_mode()), expected);
+    // The builder wins over the variable, whatever it holds.
+    for mode in [
+        AccessibilityMode::Off,
+        AccessibilityMode::Always,
+        AccessibilityMode::Auto,
+    ] {
+        let app =
+            Application::on_test_platform(TestDispatcher::new(0)).with_accessibility_mode(mode);
+        assert_eq!(app.accessibility_mode(), mode);
+    }
+    // And an application that does not set one reads it.
+    assert_eq!(
+        Application::on_test_platform(TestDispatcher::new(0)).accessibility_mode(),
+        expected
+    );
     // A later call wins over the variable.
     cx.update(|cx| cx.set_accessibility_mode(AccessibilityMode::Auto));
     assert_eq!(

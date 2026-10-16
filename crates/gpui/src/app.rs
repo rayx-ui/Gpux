@@ -205,6 +205,21 @@ impl Application {
         self
     }
 
+    /// The application's accessibility mode: the builder's, else `GPUX_ACCESSIBILITY`'s.
+    pub fn accessibility_mode(&self) -> AccessibilityMode {
+        self.0.borrow().accessibility_mode()
+    }
+
+    /// An application on the test platform, for tests of what its builder sets.
+    #[cfg(any(test, feature = "test-support"))]
+    pub fn on_test_platform(dispatcher: crate::TestDispatcher) -> Self {
+        let dispatcher = Arc::new(dispatcher);
+        Self::with_platform(crate::TestPlatform::new(
+            crate::BackgroundExecutor::new(dispatcher.clone()),
+            crate::ForegroundExecutor::new(dispatcher),
+        ))
+    }
+
     /// Assigns the source of assets for the application.
     pub fn with_assets(self, asset_source: impl AssetSource) -> Self {
         let mut context_lock = self.0.borrow_mut();

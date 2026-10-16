@@ -169,6 +169,24 @@ impl AppContext for TestAppContext {
     }
 }
 
+/// A test window's platform accessibility adapter, from
+/// [`TestAppContext::accessibility_adapter`]: it activates and deactivates as a screen reader
+/// connecting and disconnecting would, at any time.
+#[derive(Clone)]
+pub struct TestAccessibilityAdapter(crate::TestWindow);
+
+impl TestAccessibilityAdapter {
+    /// A screen reader connects: the adapter's activation callback runs.
+    pub fn activate(&self) -> Option<accesskit::TreeUpdate> {
+        self.0.simulate_a11y_activation()
+    }
+
+    /// The screen reader disconnects: the adapter's deactivation callback runs.
+    pub fn deactivate(&self) {
+        self.0.simulate_a11y_deactivation();
+    }
+}
+
 impl TestAppContext {
     /// Creates a new `TestAppContext`. Usually you can rely on `#[gpux::test]` to do this for you.
     pub fn build(dispatcher: TestDispatcher, fn_name: Option<&'static str>) -> Self {
@@ -726,6 +744,13 @@ impl TestAppContext {
     /// before inspecting the resulting accessibility tree.
     pub fn activate_accessibility(&self, window: AnyWindowHandle) -> Option<accesskit::TreeUpdate> {
         self.test_window(window).simulate_a11y_activation()
+    }
+
+    /// A handle on `window`'s platform accessibility adapter that can activate and deactivate
+    /// it at any time, including in the middle of the window's frame (from a render), which
+    /// [`Self::activate_accessibility`] cannot.
+    pub fn accessibility_adapter(&self, window: AnyWindowHandle) -> TestAccessibilityAdapter {
+        TestAccessibilityAdapter(self.test_window(window))
     }
 
     /// Takes the accessibility tree updates the window sent to its platform adapter since the
