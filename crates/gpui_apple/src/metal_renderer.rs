@@ -236,7 +236,10 @@ impl MetalRenderer {
         // Support direct-to-display rendering if the window is not transparent
         // https://developer.apple.com/documentation/metal/managing-your-game-window-for-metal-in-macos
         layer.set_opaque(!transparent);
-        layer.set_maximum_drawable_count(3);
+        // Two drawables, not the default three: each is a full-window IOSurface (13-25 MB at
+        // 2x), and with the CPU clocks held two cost no CPU time and the frames arrive on
+        // time. Three read slower only because waiting for a drawable idles the clock.
+        layer.set_maximum_drawable_count(2);
         // Allow texture readback for runtime captures and visual tests.
         layer.set_framebuffer_only(false);
         // metal-rs doesn't bind these setters, so view the same object through

@@ -28,8 +28,8 @@
     "successfulAttemptRequiresCommitBeforeNextExperiment": true,
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
-  "currentExperimentId": null,
-  "nextExperimentIndex": 3,
+  "currentExperimentId": "1551176b-92e2-4449-8aa7-b3c5d62393e3",
+  "nextExperimentIndex": 4,
   "experiments": [
     {
       "id": "fa8f04dc-52c2-4a0c-a819-fbc7d5db0977",
@@ -53,6 +53,17 @@
       "state": "done",
       "status": "success",
       "resultCommit": "6d33e777bcbd4c7db4c17a6ed69a988fa5eabb04"
+    },
+    {
+      "id": "1551176b-92e2-4449-8aa7-b3c5d62393e3",
+      "index": 3,
+      "type": "hypothesis",
+      "name": "Two Metal drawables, judged with the clocks held",
+      "path": "2026-10-16-03-two-metal-drawables-judged-with-the-clocks-held.json",
+      "startedAt": "2026-10-16T12:27:15Z",
+      "finishedAt": null,
+      "state": "running",
+      "status": ""
     }
   ]
 }
