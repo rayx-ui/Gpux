@@ -31,6 +31,7 @@ pub static CATALOG: &[SceneSpec] = &[
     editing::IME,
     lists::UNIFORM_LIST,
     lists::LIST,
+    lists::VIRTUAL_LIST,
     scrolling::WHEEL,
     scrolling::NESTED,
     scrolling::SCROLLBAR,
