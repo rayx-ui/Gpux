@@ -20,7 +20,7 @@ agentx:
 
 ### Alternatives considered: Keep RayX's Test Suite as gpux's runtime proof; share a test harness crate between the two repositories.
 
-### Reasoning: No gpux test, tool, workflow, document or skill step requires a RayX checkout, app, DevKit, xtask or CI; `gpux-testkit` and `gpux-conformance` replace them. RayX stays a consumer: a change to an API RayX uses still ships with the matching RayX change, whose checks prove the consumer still works, not gpux. RayX-specific follow-ups belong to a later RayX epic; `LINUX-WSL.md` keeps its RayX sections, marked consumer-only, until then.
+### Reasoning: No gpux test, tool, workflow, document or skill step requires a RayX checkout, app, DevKit, xtask or CI; `gpux-testkit` and `gpux-tests-conformance` replace them. RayX stays a consumer: a change to an API RayX uses still ships with the matching RayX change, whose checks prove the consumer still works, not gpux. RayX-specific follow-ups belong to a later RayX epic; `LINUX-WSL.md` keeps its RayX sections, marked consumer-only, until then.
 
 ### Trade-offs accepted: RayX's broad application workloads no longer count as gpux evidence, so gpux maintains its own scene catalog and lanes.
 

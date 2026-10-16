@@ -2,7 +2,7 @@
 
 Use this reference when creating, fixing, or validating gpux browser apps. Browser apps, RayX's included, are multithreaded by default.
 
-Run the commands here from the Gpux repository root. gpux's own threaded browser app is the `web_host` example of `gpux-conformance` (`crates/gpux_conformance/examples/web_host`): `gpux-testkit web build` builds it, and lane B's Playwright specs in `tools-node/specs/` drive it ([docs/testing.md](../../../../docs/testing.md#lane-b-a-real-browser)).
+Run the commands here from the Gpux repository root. gpux's own threaded browser app is the `web_host` example of `gpux-tests-conformance` (`crates/gpux_tests_conformance/examples/web_host`): `gpux-testkit web build` builds it, and lane B's Playwright specs in `tools/browser/specs/` drive it ([docs/testing.md](../../../../docs/testing.md#lane-b-a-real-browser)).
 
 ## Default Architecture
 
@@ -46,7 +46,7 @@ To move the pinned nightly (RayX, Gpux and RayX.CLI together), follow RayX's `.c
 
 ## Cargo Build Flags
 
-Build with atomics, shared memory, imported memory, and the TLS exports required by `wasm-bindgen` plus Rust's threaded wasm runtime. This is the reference build `gpux-testkit web build` runs for the `web_host` example (`tooling/testkit/src/web.rs`); another app uses the same flags with its own package:
+Build with atomics, shared memory, imported memory, and the TLS exports required by `wasm-bindgen` plus Rust's threaded wasm runtime. This is the reference build `gpux-testkit web build` runs for the `web_host` example (`tools/testkit/src/web.rs`); another app uses the same flags with its own package:
 
 ```bash
 RUSTFLAGS="-C target-feature=+atomics,+bulk-memory,+mutable-globals \
@@ -59,7 +59,7 @@ RUSTFLAGS="-C target-feature=+atomics,+bulk-memory,+mutable-globals \
   -C link-arg=--export=__tls_align \
   -C link-arg=--export=__tls_base" \
 CFLAGS_wasm32_unknown_unknown="-matomics -mbulk-memory -mmutable-globals" \
-cargo +nightly-2026-06-23 build -p gpux-conformance \
+cargo +nightly-2026-06-23 build -p gpux-tests-conformance \
   --no-default-features --features app-host \
   --example web_host \
   --target wasm32-unknown-unknown \
@@ -110,11 +110,11 @@ When diagnosing a browser app that looks zoomed, separate canvas/DPR scale from 
 
 Invoke browser clipboard writes while the trusted keyboard or menu gesture is still on the stack. `navigator.clipboard.writeText(...)` can reject when `clipboard-write` permission is denied even though the user initiated Copy, so keep `gpui_web`'s synchronous one-shot `copy` event fallback alongside the modern promise. Preserve the document selection, select a focus-neutral offscreen rendered range so Chromium emits `copy`, supply the exact plain-text payload through `ClipboardEvent.clipboardData`, call `preventDefault()`, and restore the prior selection. Do not focus a temporary input: its focus events can re-enter GPUI action dispatch, while default rendered-selection serialization can normalize or trim multiline/trailing-newline content.
 
-Prove clipboard changes in lane B with `tools-node/specs/clipboard.spec.ts` (`cargo run -p gpux-testkit -- lane b --grep clipboard`); its fallback cases remove the Clipboard API and read the system clipboard back. A context-menu Copy change also needs a case with write permission denied, multiple selected lines including a trailing newline, and an actual `navigator.clipboard.readText()` comparison. Granting `clipboard-write` masks the failure mode.
+Prove clipboard changes in lane B with `tools/browser/specs/clipboard.spec.ts` (`cargo run -p gpux-testkit -- lane b --grep clipboard`); its fallback cases remove the Clipboard API and read the system clipboard back. A context-menu Copy change also needs a case with write permission denied, multiple selected lines including a trailing newline, and an actual `navigator.clipboard.readText()` comparison. Granting `clipboard-write` masks the failure mode.
 
 ## Binary Validation
 
-`gpux-testkit web build --verify` checks the generated `web_host_bg.wasm` before any browser starts (`web e2e` and `lane b` always verify; `tooling/testkit/src/wasm_verify.rs` is the reference check for another app's `*_bg.wasm`). The module must have:
+`gpux-testkit web build --verify` checks the generated `web_host_bg.wasm` before any browser starts (`web e2e` and `lane b` always verify; `tools/testkit/src/wasm_verify.rs` is the reference check for another app's `*_bg.wasm`). The module must have:
 
 - an imported or declared shared memory with wasm memory flags containing `0x02`
 - an exported `wasm_thread_entry_point`
@@ -125,10 +125,10 @@ Keep `gpui_platform::web_init()` as the browser entry path and call the linker-s
 
 ## Playwright Validation
 
-Playwright lives in gpux's `tools-node/`. Set it up once per checkout, with Node.js 22 or later and `pnpm`:
+Playwright lives in gpux's `tools/browser/`. Set it up once per checkout, with Node.js 22 or later and `pnpm`:
 
 ```bash
-cd tools-node
+cd tools/browser
 pnpm install
 pnpm exec playwright install chromium
 ```
@@ -143,15 +143,15 @@ cargo run -p gpux-testkit -- lane b --scene <id>
 cargo run -p gpux-testkit -- web e2e [--profile local-gpu] [--grep <pattern>] [--headed]
 ```
 
-`lane b` runs the `@canary` and `@pr` specs in the profile `GPUX_WEB_PROFILE` names (`local-gpu` by default: new headless Chromium on the machine's GPU); `--grep` (which Playwright matches against the spec file name and test titles, so `--grep clipboard` selects `clipboard.spec.ts`) and `--scene` narrow it, and `web e2e` runs any selection, headed with `--headed`. Both build, verify, and serve first. The specs in `tools-node/specs/`: `scenes.spec.ts` runs every lane-B conformance scene with trusted input; one spec per `gpui_web` area (`backend`, `viewport`, `window`, `pointer`, `wheel`, `keyboard`, `touch`, `ime`, `clipboard`, `html-element`, `html-island`, `text-fallback`, `threads`, `assets`, `cursor`, `lifecycle`, `safe-area`); `dawn.spec.ts` fails on any WebGPU validation error; and the `@timing` `timing.spec.ts` runs only in lane G. Use the smallest selection that proves the changed behavior. New browser coverage goes into gpux: a conformance scene in `crates/gpux_conformance/src/scenes/` that names lane B, or a spec in `tools-node/specs/`.
+`lane b` runs the `@canary` and `@pr` specs in the profile `GPUX_WEB_PROFILE` names (`local-gpu` by default: new headless Chromium on the machine's GPU); `--grep` (which Playwright matches against the spec file name and test titles, so `--grep clipboard` selects `clipboard.spec.ts`) and `--scene` narrow it, and `web e2e` runs any selection, headed with `--headed`. Both build, verify, and serve first. The specs in `tools/browser/specs/`: `scenes.spec.ts` runs every lane-B conformance scene with trusted input; one spec per `gpui_web` area (`backend`, `viewport`, `window`, `pointer`, `wheel`, `keyboard`, `touch`, `ime`, `clipboard`, `html-element`, `html-island`, `text-fallback`, `threads`, `assets`, `cursor`, `lifecycle`, `safe-area`); `dawn.spec.ts` fails on any WebGPU validation error; and the `@timing` `timing.spec.ts` runs only in lane G. Use the smallest selection that proves the changed behavior. New browser coverage goes into gpux: a conformance scene in `crates/gpux_tests_conformance/src/scenes/` that names lane B, or a spec in `tools/browser/specs/`.
 
 WebGPU remains the preferred backend, but `gpui_web` automatically retries with WebGL2
 when WebGPU initialization or adapter selection fails. Force either path for
 diagnosis with `?backend=webgl` or `?backend=webgpu`; run
-`tools-node/specs/backend.spec.ts` (`lane b --grep backend`) when backend selection or the
+`tools/browser/specs/backend.spec.ts` (`lane b --grep backend`) when backend selection or the
 renderer transport changes.
 
-The Playwright profiles in `tools-node/playwright.config.ts` pass the browser flags: `--enable-unsafe-webgpu` and `--enable-blink-features=CanvasDrawElement` on every profile, plus `--enable-features=Vulkan,CDPScreenshotNewSurface --use-angle=swiftshader --use-vulkan=swiftshader` for `ci-linux-swiftshader` (no GPU) and `--use-angle=d3d11-warp` for `windows-software`. [docs/testing.md](../../../../docs/testing.md#chromium-flags-and-troubleshooting) explains each flag and the failure messages.
+The Playwright profiles in `tools/browser/playwright.config.ts` pass the browser flags: `--enable-unsafe-webgpu` and `--enable-blink-features=CanvasDrawElement` on every profile, plus `--enable-features=Vulkan,CDPScreenshotNewSurface --use-angle=swiftshader --use-vulkan=swiftshader` for `ci-linux-swiftshader` (no GPU) and `--use-angle=d3d11-warp` for `windows-software`. [docs/testing.md](../../../../docs/testing.md#chromium-flags-and-troubleshooting) explains each flag and the failure messages.
 
 Traces and failure screenshots land in `artifacts-temp/testkit/b/`. When startup fails, check first:
 
@@ -188,7 +188,7 @@ per-frame conversions alongside this path.
 
 `EditableTextStyleRuns` is revision-bound. Every buffer mutation and history restore must reset stored runs to `EditableTextStyleRuns::empty(current_revision)` unless the owner installs fresh runs for that exact revision. Do not carry runs across revisions: a stale style-run revision can make layout reject the update and paint an empty frame even though the buffer still contains text.
 
-Prove text fixes in lane A and in WASM/WebGPU through lane B (a conformance scene or a spec in `tools-node/specs/`), with stable diagnostics for buffer, layout, and style-run revisions plus shaped-row, cache-hit, and invalidated-row counters. Assert the three revisions are equal after real input and delayed redraws. Keep temporary traces only long enough to identify the mismatched transition, then remove them.
+Prove text fixes in lane A and in WASM/WebGPU through lane B (a conformance scene or a spec in `tools/browser/specs/`), with stable diagnostics for buffer, layout, and style-run revisions plus shaped-row, cache-hit, and invalidated-row counters. Assert the three revisions are equal after real input and delayed redraws. Keep temporary traces only long enough to identify the mismatched transition, then remove them.
 
 Run narrow performance specs serially and measure action-to-published-frame latency in browser code. Report cold startup and environment metadata separately so process startup, Playwright transport, and polling backoff do not contaminate warm renderer measurements. Frame budgets belong in `@timing` specs, which only lane G runs (`cargo run -p gpux-testkit -- lane g [--headed]` on a machine with a GPU; summary in `artifacts-temp/testkit/g/timing.md`).
 

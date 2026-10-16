@@ -1,0 +1,993 @@
+{
+  "schemaVersion": 7,
+  "epicId": "gpux-tools-layout",
+  "revision": 3,
+  "title": "One layout for gpux test and benchmark tooling: crates/gpux_tests_* and tools/",
+  "validationMode": "sprint",
+  "repositories": [
+    {
+      "id": "gpux",
+      "path": ".",
+      "role": "execution"
+    }
+  ],
+  "boundaries": {
+    "repositoryIds": [
+      "gpux"
+    ],
+    "forbiddenPaths": [
+      "gpux:.agentx/tasks/frame-effects-navigation-transitions/**",
+      "gpux:.agentx/tasks/frame-family-component-transitions/**",
+      "gpux:.agentx/tasks/gpux-cross-platform-test-lanes/**",
+      "gpux:.agentx/tasks/gpux-fast-mode/**",
+      "gpux:.agentx/tasks/gpux-faster-test-lanes/**",
+      "gpux:.agentx/tasks/gpux-fixed-sticky-positioning/**",
+      "gpux:.agentx/tasks/gpux-text-rendering-quality-performance/**",
+      "gpux:.agentx/tasks/gpux-wgpu-platform-renderers/**",
+      "gpux:.agentx/tasks/high-quality-wasm-text-rendering/**",
+      "gpux:.agentx/tasks/html-element-dom-overlay/**",
+      "gpux:.agentx/tasks/html-island-wasm/**",
+      "gpux:.agentx/tasks/keyed-sticky-stacking/**",
+      "gpux:.agentx/tasks/macos-only-metal-port-and-ci-repair/**",
+      "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**",
+      "gpux:.agentx/experiments/**",
+      "gpux:ToFix/**",
+      "gpux:vendor/wgpu/**",
+      "gpux:docs/changelog/**",
+      "gpux:docs/history/**",
+      "gpux:docs/measurements/**"
+    ]
+  },
+  "checks": [
+    {
+      "id": "c-conf-package",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "CONF-2",
+        "CONF-3"
+      ],
+      "descriptionMarkdown": "New group `tools/testkit/tests/conformance_package.rs`: the lane A, C and D plans and listings, the web build, Android and iOS build invocations select `-p gpux-tests-conformance`; `find_workspace_root` accepts a temporary tree with `Cargo.toml` and `crates/gpux_tests_conformance/Cargo.toml`, rejects one with only `crates/gpux_conformance/Cargo.toml`, and the outside-checkout error names the new folder; the protocol constants of d-protocol-ids keep their values.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-testkit",
+        "--test",
+        "conformance_package"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpux_tests_conformance/**",
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/gpui_platform/**",
+        "crates/gpui_wgpu/**",
+        "crates/gpui_apple/**",
+        "crates/gpui_macos/**",
+        "crates/gpui_web/**",
+        "crates/gpui_mobile/**",
+        "crates/gpux_fonts/**",
+        "crates/gpux_color/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/util/**",
+        "crates/util_macros/**",
+        "crates/bench_metrics/**",
+        "crates/gpui_shared_string/**",
+        "crates/http_client/**",
+        "vendor/wgpu/**",
+        "tools/testkit/**"
+      ]
+    },
+    {
+      "id": "c-conf-check",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "CONF-1"
+      ],
+      "descriptionMarkdown": "The renamed crate compiles with every target (tests, examples) on the host.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-tests-conformance",
+        "--all-targets"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "timeoutSeconds": 3600,
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpux_tests_conformance/**",
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/gpui_platform/**",
+        "crates/gpui_wgpu/**",
+        "crates/gpui_apple/**",
+        "crates/gpui_macos/**",
+        "crates/gpui_web/**",
+        "crates/gpui_mobile/**",
+        "crates/gpux_fonts/**",
+        "crates/gpux_color/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/util/**",
+        "crates/util_macros/**",
+        "crates/bench_metrics/**",
+        "crates/gpui_shared_string/**",
+        "crates/http_client/**",
+        "vendor/wgpu/**"
+      ]
+    },
+    {
+      "id": "c-conf-wasm",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "CONF-1"
+      ],
+      "descriptionMarkdown": "The renamed crate type-checks for the browser exactly as `ci.yml` does.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-tests-conformance",
+        "--target",
+        "wasm32-unknown-unknown",
+        "--no-default-features"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "timeoutSeconds": 3600,
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpux_tests_conformance/**",
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/gpui_platform/**",
+        "crates/gpui_wgpu/**",
+        "crates/gpui_apple/**",
+        "crates/gpui_macos/**",
+        "crates/gpui_web/**",
+        "crates/gpui_mobile/**",
+        "crates/gpux_fonts/**",
+        "crates/gpux_color/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/util/**",
+        "crates/util_macros/**",
+        "crates/bench_metrics/**",
+        "crates/gpui_shared_string/**",
+        "crates/http_client/**",
+        "vendor/wgpu/**"
+      ]
+    },
+    {
+      "id": "c-conf-lane-a",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "CONF-1"
+      ],
+      "descriptionMarkdown": "Lane A's scene target of the renamed crate runs (no GPU or display needed): the narrowest proof that the scenes still run after the rename.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-tests-conformance",
+        "--test",
+        "lane_a"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1
+      },
+      "timeoutSeconds": 3600,
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpux_tests_conformance/**",
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/gpui_platform/**",
+        "crates/gpui_wgpu/**",
+        "crates/gpui_apple/**",
+        "crates/gpui_macos/**",
+        "crates/gpui_web/**",
+        "crates/gpui_mobile/**",
+        "crates/gpux_fonts/**",
+        "crates/gpux_color/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/util/**",
+        "crates/util_macros/**",
+        "crates/bench_metrics/**",
+        "crates/gpui_shared_string/**",
+        "crates/http_client/**",
+        "vendor/wgpu/**"
+      ]
+    },
+    {
+      "id": "c-testkit-package",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "TOOLS-1"
+      ],
+      "descriptionMarkdown": "The moved `gpux-testkit` package's own tests (133 at sprint 1; the touched package, whose existing tests are edited for the new paths, package and library names): proves the runner works from `tools/testkit` and the recorded fixtures still parse (CONF-3).",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-testkit"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 130
+      },
+      "timeoutSeconds": 3600,
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpux_tests_conformance/**",
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/gpui_platform/**",
+        "crates/gpui_wgpu/**",
+        "crates/gpui_apple/**",
+        "crates/gpui_macos/**",
+        "crates/gpui_web/**",
+        "crates/gpui_mobile/**",
+        "crates/gpux_fonts/**",
+        "crates/gpux_color/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/util/**",
+        "crates/util_macros/**",
+        "crates/bench_metrics/**",
+        "crates/gpui_shared_string/**",
+        "crates/http_client/**",
+        "vendor/wgpu/**",
+        "tools/testkit/**"
+      ]
+    },
+    {
+      "id": "c-tools-paths",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "TOOLS-2"
+      ],
+      "descriptionMarkdown": "New group `tools/testkit/tests/tools_paths.rs`: `android::manifest`, `ios::spec` and `ios::project` resolve under `tools/android` and `tools/ios`, the files they name exist in the checkout, and the `xcodegen` invocation of `ios build` passes the moved spec.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-testkit",
+        "--test",
+        "tools_paths"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpux_tests_conformance/**",
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/gpui_platform/**",
+        "crates/gpui_wgpu/**",
+        "crates/gpui_apple/**",
+        "crates/gpui_macos/**",
+        "crates/gpui_web/**",
+        "crates/gpui_mobile/**",
+        "crates/gpux_fonts/**",
+        "crates/gpux_color/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/util/**",
+        "crates/util_macros/**",
+        "crates/bench_metrics/**",
+        "crates/gpui_shared_string/**",
+        "crates/http_client/**",
+        "vendor/wgpu/**",
+        "tools/testkit/**",
+        "tools/android/**",
+        "tools/ios/**"
+      ]
+    },
+    {
+      "id": "c-ios-build",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "TOOLS-2"
+      ],
+      "descriptionMarkdown": "Builds the `ios_host` static library, generates the Xcode project from `tools/ios/project.yml` with XcodeGen and builds the unsigned Simulator app (macOS with Xcode, XcodeGen and the `aarch64-apple-ios-sim` target, all present on the owner's Mac at planning). Depends on the host toolchain, so it never reuses an earlier result.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "ios",
+        "build",
+        "--simulator"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "timeoutSeconds": 3600,
+      "reuse": false
+    },
+    {
+      "id": "c-browser-paths",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "WEB-1"
+      ],
+      "descriptionMarkdown": "New group `tools/testkit/tests/browser_paths.rs`: `WebPaths::new(root).browser` is `root/tools/browser`; the Playwright projects the testkit knows are the ones `tools/browser/playwright.config.ts` defines; the config's artifact folder and `fixtures/catalog.ts`'s default dist, resolved from their own files, are `<repo>/artifacts-temp/testkit/b` and `<repo>/target/gpux-web/dist`; the missing-Playwright message names `tools/browser`.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-testkit",
+        "--test",
+        "browser_paths"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpux_tests_conformance/**",
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/gpui_platform/**",
+        "crates/gpui_wgpu/**",
+        "crates/gpui_apple/**",
+        "crates/gpui_macos/**",
+        "crates/gpui_web/**",
+        "crates/gpui_mobile/**",
+        "crates/gpux_fonts/**",
+        "crates/gpux_color/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/util/**",
+        "crates/util_macros/**",
+        "crates/bench_metrics/**",
+        "crates/gpui_shared_string/**",
+        "crates/http_client/**",
+        "vendor/wgpu/**",
+        "tools/testkit/**",
+        "tools/browser/**"
+      ]
+    },
+    {
+      "id": "c-browser-canary",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "WEB-1"
+      ],
+      "descriptionMarkdown": "Lane B's `@canary` specs from the moved project on the local-gpu profile: builds the threaded WASM host, serves it, runs Playwright from `tools/browser`. Prerequisites: `pnpm install` and `pnpm exec playwright install chromium` in `tools/browser`, the pinned nightly with `rust-src`, the `Cargo.lock` wasm-bindgen CLI, and Node 22 first on PATH (on the owner's Mac nvm puts Node 17 first, hence the PATH prefix; resolve the argv for another machine at sprint start).",
+      "argv": [
+        "sh",
+        "-c",
+        "PATH=/opt/homebrew/opt/node@22/bin:$PATH cargo run -p gpux-testkit -- web e2e --grep @canary"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "timeoutSeconds": 3600,
+      "reuse": false
+    },
+    {
+      "id": "c-bench-paths",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "BENCH-2"
+      ],
+      "descriptionMarkdown": "New Python group `crates/gpux_tests_benchmark/tests/test_run_paths.py` (stdlib `unittest`, imports `run.py` without running it): `ROOT` is the checkout (holds `Cargo.toml` and `crates/gpux_tests_conformance`), results go under `crates/gpux_tests_benchmark/results`, `Tree.dirty()` ignores a change inside the benchmark folder but reports one in another crate (in a temporary git repository), the artifact names match `[lib] name` in the benchmark's `Cargo.toml`, `web/index.html` imports that module, `web/run.mjs`'s Playwright `package.json` path exists, and root `cargo metadata --no-deps` lists no `gpux-tests-benchmark` package (BENCH-1).",
+      "argv": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "crates/gpux_tests_benchmark/tests",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 6
+      },
+      "inputs": [
+        "Cargo.toml",
+        "crates/gpux_tests_benchmark/**",
+        "tools/browser/package.json"
+      ]
+    },
+    {
+      "id": "c-bench-check",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "BENCH-1"
+      ],
+      "descriptionMarkdown": "The standalone benchmark workspace compiles from its new folder against its sibling crates (library and the `gpux-bench` desktop binary).",
+      "argv": [
+        "cargo",
+        "check",
+        "--lib",
+        "--bin",
+        "gpux-bench"
+      ],
+      "cwd": "crates/gpux_tests_benchmark",
+      "expected": {
+        "exitCode": 0
+      },
+      "timeoutSeconds": 3600,
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpux_tests_conformance/**",
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/gpui_platform/**",
+        "crates/gpui_wgpu/**",
+        "crates/gpui_apple/**",
+        "crates/gpui_macos/**",
+        "crates/gpui_web/**",
+        "crates/gpui_mobile/**",
+        "crates/gpux_fonts/**",
+        "crates/gpux_color/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/util/**",
+        "crates/util_macros/**",
+        "crates/bench_metrics/**",
+        "crates/gpui_shared_string/**",
+        "crates/http_client/**",
+        "vendor/wgpu/**",
+        "crates/gpux_tests_benchmark/**"
+      ]
+    },
+    {
+      "id": "c-layout-guard",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "GUARD-1",
+        "DOCS-1",
+        "DOCS-2",
+        "DOCS-4"
+      ],
+      "descriptionMarkdown": "New group `tools/testkit/tests/repository_layout.rs` (d-guard): the target folders exist and the old ones do not, the root workspace members, the stale-reference scans over tracked live files (CI workflows, docs, guidance, skill, memory, sources), and one seeded-failure test per scan. It reads the whole checkout, so it declares no inputs and any product change makes its result stale.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-testkit",
+        "--test",
+        "repository_layout"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 7
+      }
+    },
+    {
+      "id": "final-fmt",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [],
+      "descriptionMarkdown": "Formatting of the whole workspace (a cheap whole-tree tool).",
+      "argv": [
+        "cargo",
+        "fmt",
+        "--check"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-clippy",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [],
+      "descriptionMarkdown": "Clippy on the three moved or renamed workspace packages.",
+      "argv": [
+        "cargo",
+        "clippy",
+        "-p",
+        "gpux-testkit",
+        "-p",
+        "gpux-tests-conformance",
+        "-p",
+        "gpux-perf",
+        "--all-targets",
+        "--no-deps",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "timeoutSeconds": 3600
+    },
+    {
+      "id": "final-clippy-bench",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [],
+      "descriptionMarkdown": "Clippy on the moved standalone benchmark (library and binaries). If the pre-epic benchmark is not clippy-clean on this toolchain, record the pre-existing warnings as a finding instead of fixing unrelated code.",
+      "argv": [
+        "cargo",
+        "clippy",
+        "--lib",
+        "--bins",
+        "--no-deps",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "crates/gpux_tests_benchmark",
+      "expected": {
+        "exitCode": 0
+      },
+      "timeoutSeconds": 3600
+    },
+    {
+      "id": "final-package",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [],
+      "descriptionMarkdown": "`cargo package --workspace`: the epic changes the root manifest and renames a package (CLAUDE.md, packaging rules).",
+      "argv": [
+        "cargo",
+        "package",
+        "--workspace"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "timeoutSeconds": 3600
+    }
+  ],
+  "finalCheckIds": [
+    "final-fmt",
+    "final-clippy",
+    "final-clippy-bench",
+    "final-package"
+  ],
+  "sprints": [
+    {
+      "id": "s01-moves",
+      "title": "Move and rename the crates and tools",
+      "dependsOn": [],
+      "tasks": [
+        {
+          "id": "t01-conformance-rename",
+          "title": "Rename the conformance crate to gpux_tests_conformance",
+          "descriptionMarkdown": "`git mv crates/gpux_conformance crates/gpux_tests_conformance`; set package `gpux-tests-conformance` and `[lib] name = \"gpux_tests_conformance\"`; rename the workspace member and dependency key in the root `Cargo.toml`; replace `gpux_conformance::` / `use gpux_conformance` in the crate's tests and examples and in `tooling/testkit` (sources, tests, `Cargo.toml` dependency key); switch every cargo selector the testkit builds (`-p gpux-conformance`) and `find_workspace_root`/`OUTSIDE_CHECKOUT` to the new names; adjust the existing testkit tests that spell them (`execute.rs` fixture tree, `lane_coverage.rs`, `cli.rs`, `web.rs`). Keep every runtime protocol identifier of d-protocol-ids. Add the new group `conformance_package.rs`. Update `Cargo.lock`'s package name by building, never by hand.",
+          "criterionIds": [
+            "CONF-1",
+            "CONF-2",
+            "CONF-3"
+          ],
+          "designIds": [
+            "d-layout",
+            "d-conformance-rename",
+            "d-protocol-ids"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "c-conf-package",
+            "c-conf-check",
+            "c-conf-wasm",
+            "c-conf-lane-a"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/Cargo.toml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "Cargo.toml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tooling/testkit/Cargo.toml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tooling/testkit/src/gpux_testkit.rs",
+              "symbol": "find_workspace_root"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tooling/testkit/src/lanes.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tooling/testkit/src/web.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tooling/testkit/src/android.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tooling/testkit/src/ios.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tooling/testkit/tests/execute.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tooling/testkit/tests/lane_coverage.rs"
+            }
+          ]
+        },
+        {
+          "id": "t02-tools-move",
+          "title": "Move testkit, perf and the mobile shells to tools/",
+          "descriptionMarkdown": "`git mv` `tooling/testkit`, `tooling/perf`, `tooling/android` and `tooling/ios` to `tools/`; update the root workspace `members` and the `perf` dependency path; introduce `android::manifest(root)` and `ios::spec(root)` beside `ios::project(root)` and use them for the moved paths; fix the moved files' own path mentions (`tools/ios/project.yml` comment, `tools/perf/src/main.rs`, `crates/gpux_tests_conformance/examples/ios_host/lib.rs`). Add the new group `tools_paths.rs`; run the whole testkit package once (`c-testkit-package`) since its existing tests were edited in t01-t03.",
+          "criterionIds": [
+            "TOOLS-1",
+            "TOOLS-2"
+          ],
+          "designIds": [
+            "d-layout",
+            "d-tools-move"
+          ],
+          "dependsOn": [
+            "t01-conformance-rename"
+          ],
+          "checkIds": [
+            "c-tools-paths",
+            "c-ios-build",
+            "c-testkit-package"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "tooling/testkit/src/android.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tooling/testkit/src/ios.rs",
+              "symbol": "project"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tooling/ios/project.yml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tooling/android/AndroidManifest.xml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tooling/perf/src/main.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "Cargo.toml"
+            }
+          ]
+        },
+        {
+          "id": "t03-browser-move",
+          "title": "Move the Playwright project to tools/browser",
+          "descriptionMarkdown": "`git mv` the tracked files of `tools-node/` to `tools/browser/`; rename `WebPaths::tools_node` to `browser` (`root/tools/browser`) and update the testkit's Playwright and local-GPU prerequisite messages and `cli.rs` usage text; add one `..` to `playwright.config.ts`'s artifacts path and to `fixtures/catalog.ts`'s default dist; update the testkit tests that create `tools-node/node_modules` fixtures (`web.rs`, `local_gpu.rs`). Add the new group `browser_paths.rs`. Reinstall with `pnpm install` and `pnpm exec playwright install chromium` in `tools/browser` before `c-browser-canary`.",
+          "criterionIds": [
+            "WEB-1"
+          ],
+          "designIds": [
+            "d-layout",
+            "d-browser-move"
+          ],
+          "dependsOn": [
+            "t02-tools-move"
+          ],
+          "checkIds": [
+            "c-browser-paths",
+            "c-browser-canary"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "tooling/testkit/src/web.rs",
+              "symbol": "WebPaths"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tooling/testkit/src/local_gpu.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tooling/testkit/src/cli.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tools-node/playwright.config.ts"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tools-node/fixtures/catalog.ts"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tooling/testkit/tests/web.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tooling/testkit/tests/local_gpu.rs"
+            }
+          ]
+        },
+        {
+          "id": "t04-benchmark-move",
+          "title": "Move the benchmark to crates/gpux_tests_benchmark",
+          "descriptionMarkdown": "`git mv benchmark crates/gpux_tests_benchmark`; rename package and library (`gpux-tests-benchmark` / `gpux_tests_benchmark`; `use gpux_benchmark` in `src/bin/gpux-bench.rs`); path dependencies `../<crate>`; `run.py` `ROOT`, `Tree.dirty()` exclusion, artifact names; `web/index.html` module import; `web/run.mjs` Playwright path to `tools/browser`; the benchmark `README.md` commands and prerequisites (`python3 crates/gpux_tests_benchmark/run.py ...`, `pnpm install` in `tools/browser`). Leave `RESULTS.md`, `LOOP-*.md` and `results/**` untouched. Add the new Python group `tests/test_run_paths.py`. Then run the BENCH-3 smoke on the Mac and delete its results folder before committing.",
+          "criterionIds": [
+            "BENCH-1",
+            "BENCH-2",
+            "BENCH-3"
+          ],
+          "designIds": [
+            "d-layout",
+            "d-benchmark"
+          ],
+          "dependsOn": [
+            "t01-conformance-rename",
+            "t03-browser-move"
+          ],
+          "checkIds": [
+            "c-bench-paths",
+            "c-bench-check"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "benchmark/Cargo.toml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "benchmark/run.py",
+              "symbol": "Tree"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "benchmark/web/run.mjs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "benchmark/web/index.html"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "benchmark/src/bin/gpux-bench.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "benchmark/README.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s02-references",
+      "title": "CI, docs, guidance, memory and the layout guard",
+      "dependsOn": [
+        "s01-moves"
+      ],
+      "memoryScopes": [
+        "repository",
+        "repository/validation",
+        "repository/packaging",
+        "platform/web",
+        "platform/mobile"
+      ],
+      "tasks": [
+        {
+          "id": "t05-ci-docs",
+          "title": "Point CI, docs and guidance at the new layout",
+          "descriptionMarkdown": "Update `ci.yml`, `lane-b.yml`, `lane-e.yml` and `lane-f.yml` (DOCS-1); `README.md` crate table and prose, `docs/testing.md`, `docs/installation-and-usage.md`, `docs/upstream/gpui-fast.md`, `LINUX-WSL.md`, `.claude/skills/gpux/**` (including the preserve list) and remaining source comments (DOCS-2); the Crate Layout sections of `CLAUDE.md` and `AGENTS.md` and a new `tools/README.md` (DOCS-3). Historical records stay as they are.",
+          "criterionIds": [
+            "DOCS-1",
+            "DOCS-2",
+            "DOCS-3"
+          ],
+          "designIds": [
+            "d-layout",
+            "d-references"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "c-layout-guard"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": ".github/workflows/ci.yml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": ".github/workflows/lane-b.yml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": ".github/workflows/lane-e.yml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": ".github/workflows/lane-f.yml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "README.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "docs/testing.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "docs/installation-and-usage.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "docs/upstream/gpui-fast.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "LINUX-WSL.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "CLAUDE.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "AGENTS.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": ".claude/skills/gpux/SKILL.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": ".claude/skills/gpux/references/update-from-zed-gpui-closure.md"
+            }
+          ]
+        },
+        {
+          "id": "t06-memory-sync",
+          "title": "Sync repository memory to the new paths",
+          "descriptionMarkdown": "Update the path facts in `.agentx/memory`: `knowledge/repository/rules.md` (`run.py --hold-clocks` path), `knowledge/repository/validation/rules.md` (`tools/browser/specs`), `knowledge/repository/packaging/rules.md` (the publishing rule covers workspace crates; the standalone `crates/gpux_tests_benchmark` is exempt), the `state.md` backlinks to moved paths (gpui, renderer, repository/validation, platform/web, platform/mobile), and the path mentions in the current decisions on gpux-testkit, the test lanes and lanes B, E and F. Do not edit `.agentx/tasks/**` or `.agentx/experiments/**`.",
+          "criterionIds": [
+            "DOCS-4"
+          ],
+          "designIds": [
+            "d-references"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "c-layout-guard"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": ".agentx/memory/knowledge/repository/rules.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": ".agentx/memory/knowledge/repository/validation/rules.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": ".agentx/memory/knowledge/repository/packaging/rules.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": ".agentx/memory/knowledge/repository/validation/state.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": ".agentx/memory/knowledge/platform/mobile/state.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": ".agentx/memory/knowledge/platform/web/state.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": ".agentx/memory/knowledge/gpui/state.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": ".agentx/memory/knowledge/renderer/state.md"
+            }
+          ]
+        },
+        {
+          "id": "t07-layout-guard",
+          "title": "Add the repository layout guard",
+          "descriptionMarkdown": "Add `tools/testkit/tests/repository_layout.rs` as d-guard specifies: layout and workspace-member assertions, the stale-reference scans over `git ls-files` with the historical exclusions, `file:line: pattern` failure lists, one seeded-failure test per scan, and a clear failure outside a git checkout. Fix any live reference it still finds.",
+          "criterionIds": [
+            "GUARD-1"
+          ],
+          "designIds": [
+            "d-guard"
+          ],
+          "dependsOn": [
+            "t05-ci-docs",
+            "t06-memory-sync"
+          ],
+          "checkIds": [
+            "c-layout-guard"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "tooling/testkit/tests/lane_coverage.rs"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

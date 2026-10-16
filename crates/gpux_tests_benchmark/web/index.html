@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="data:," />
+  <title>gpux benchmark</title>
+  <style>html, body { margin: 0; height: 100%; overflow: hidden; background: #1e1f24; }</style>
+</head>
+<body>
+  <!-- Loads the benchmark module built by `run.py --target web-*`; the query names the run
+       (see src/web.rs). WASM threads need the page to be cross-origin isolated, which the
+       runner's server does with COOP/COEP headers. -->
+  <script type="module">
+    globalThis.__gpuxBench = { done: false, crossOriginIsolated: globalThis.crossOriginIsolated === true };
+    const { default: init, run } = await import('./gpux_tests_benchmark.js');
+    await init();
+    run();
+  </script>
+</body>
+</html>

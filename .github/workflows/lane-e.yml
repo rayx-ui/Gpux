@@ -10,9 +10,9 @@ on:
     paths:
       - crates/gpui_mobile/**
       - crates/gpui_wgpu/**
-      - crates/gpux_conformance/**
-      - tooling/android/**
-      - tooling/testkit/**
+      - crates/gpux_tests_conformance/**
+      - tools/android/**
+      - tools/testkit/**
       - .github/workflows/lane-e.yml
   schedule:
     - cron: '47 3 * * *'
@@ -31,7 +31,7 @@ env:
   CARGO_PROFILE_DEV_DEBUG: line-tables-only
   LINUX_PACKAGES: >-
     pkg-config libfreetype6-dev libfontconfig1-dev libxkbcommon-dev libxkbcommon-x11-dev
-  # The pinned SDK pieces `gpux-testkit android build` checks for (tooling/testkit/src/android.rs).
+  # The pinned SDK pieces `gpux-testkit android build` checks for (tools/testkit/src/android.rs).
   ANDROID_PACKAGES: >-
     ndk;28.0.12674087 build-tools;36.0.0 platforms;android-36 platform-tools
 
@@ -56,7 +56,7 @@ jobs:
     needs: plan
     if: contains(fromJSON(needs.plan.outputs.jobs), 'lane-e')
     # The emulator draws in software: a frame takes seconds on a loaded runner and the host runs
-    # for the better part of an hour (RUN_TIMEOUT in tooling/testkit/src/android.rs is 45 minutes).
+    # for the better part of an hour (RUN_TIMEOUT in tools/testkit/src/android.rs is 45 minutes).
     timeout-minutes: 90
     name: lane E (emulator)
     runs-on: ubuntu-24.04
