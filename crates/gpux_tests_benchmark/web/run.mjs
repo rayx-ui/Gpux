@@ -8,7 +8,7 @@
 // timings over the DevTools protocol for the measured frames (the page cannot read its CPU
 // time), and writes the merged report to `out`.
 //
-// Playwright comes from the repository's tools-node install (`pnpm install` there, then
+// Playwright comes from the repository's tools/browser install (`pnpm install` there, then
 // `pnpm exec playwright install chromium`).
 
 import { createRequire } from 'node:module';
@@ -18,7 +18,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const require = createRequire(path.join(here, '..', '..', 'tools-node', 'package.json'));
+const require = createRequire(path.join(here, '..', '..', '..', 'tools', 'browser', 'package.json'));
 const { chromium } = require('@playwright/test');
 
 const args = Object.fromEntries(

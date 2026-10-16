@@ -1,5 +1,5 @@
 # The benchmark's iOS app: a minimal UIKit shell around the benchmark's static library, built the
-# way lane F builds its conformance app (tooling/ios/project.yml). `run.py --target ios-sim`
+# way lane F builds its conformance app (tools/ios/project.yml). `run.py --target ios-sim`
 # builds the library for aarch64-apple-ios-sim, generates GpuxBench.xcodeproj from this spec with
 # XcodeGen and builds it with xcodebuild, passing the library's path as GPUX_BENCH_LIB. Simulator
 # builds are not signed.

@@ -3,16 +3,17 @@
 Real-window rendering benchmarks that compare gpux with fast mode **off** and **on**. Every
 target runs the same scenario code: a native desktop app, an iOS app and a WASM app.
 
-They run **locally and on demand only**. `benchmark/` is a standalone Cargo workspace, not a
-member of the gpux workspace, so no CI job, `cargo` command at the repository root or
-`cargo package --workspace` builds it.
+They run **locally and on demand only**. `crates/gpux_tests_benchmark` (package
+`gpux-tests-benchmark`) is a standalone Cargo workspace, not a member of the gpux workspace, so no
+CI job, `cargo` command at the repository root or `cargo package --workspace` builds it. It is
+never published.
 
 The latest results and their analysis are in [RESULTS.md](RESULTS.md).
 
 ## Running
 
 ```bash
-python3 benchmark/run.py --target macos
+python3 crates/gpux_tests_benchmark/run.py --target macos
 ```
 
 `--target` picks what to measure. Repeat it for several targets, or pass `all-local` for every
@@ -24,7 +25,7 @@ target this host can run:
 | `linux` | native app, a real window (Wayland or X11) | Linux, with the gpux prerequisites (`docs/testing.md`, lane D) |
 | `windows` | native app, a real DirectX 12 window | Windows, with the gpux prerequisites |
 | `ios-sim` | the iOS app (`ios/`), full screen on an iOS Simulator | macOS with Xcode, XcodeGen and the `aarch64-apple-ios-sim` Rust target |
-| `web-webgpu` | the WASM app in Playwright's Chromium, WebGPU | the web toolchain lane B uses: `nightly-2026-06-23` with `rust-src`, `wasm-bindgen` matching `Cargo.lock`, Node.js 18+ and `pnpm install && pnpm exec playwright install chromium` in `tools-node/` |
+| `web-webgpu` | the WASM app in Playwright's Chromium, WebGPU | the web toolchain lane B uses: `nightly-2026-06-23` with `rust-src`, `wasm-bindgen` matching `Cargo.lock`, Node.js 18+ and `pnpm install && pnpm exec playwright install chromium` in `tools/browser/` |
 | `web-webgl2` | the same, forced to WebGL2 | as above |
 | `android` | planned (needs an APK shell like lane E's) | |
 
@@ -44,10 +45,10 @@ Examples:
 
 ```bash
 # Only the scrolling scenarios on WebGPU, five repetitions.
-python3 benchmark/run.py --target web-webgpu --scenarios scroll --reps 5
+python3 crates/gpux_tests_benchmark/run.py --target web-webgpu --scenarios scroll --reps 5
 
 # Only fast mode on, for a quick look.
-python3 benchmark/run.py --target macos --configs on --reps 1
+python3 crates/gpux_tests_benchmark/run.py --target macos --configs on --reps 1
 ```
 
 **While a run is going, leave the machine alone.** The windows must stay visible and focused:
@@ -59,7 +60,9 @@ Results go to `results/<name>/`. That directory holds:
 
 - `raw/<target>/<scenario>.<config>.r<n>.json`: one report per run;
 - `meta.json`: the commits, the machine and the settings;
-- `report.md`: the tables, written by `report.py`. Rerun `python3 benchmark/report.py results/<name>` after editing it.
+- `report.md`: the tables, written by `report.py`. Rerun
+  `python3 crates/gpux_tests_benchmark/report.py crates/gpux_tests_benchmark/results/<name>` after
+  editing it.
 
 ## How it works
 
@@ -134,5 +137,5 @@ Caveats:
 Run one scenario by hand:
 
 ```bash
-cd benchmark && cargo run --release -- --scenario hover-grid --fast on --frames 240
+cd crates/gpux_tests_benchmark && cargo run --release -- --scenario hover-grid --fast on --frames 240
 ```

@@ -11,7 +11,7 @@
 //! figures belong to that scenario alone.
 
 use gpux::{App, Bounds, WindowBounds, WindowOptions, px, size};
-use gpux_benchmark::{
+use gpux_tests_benchmark::{
     WINDOW_HEIGHT, WINDOW_WIDTH,
     driver::{self, Config},
     scenarios,
@@ -33,7 +33,7 @@ fn main() {
 
     gpui_platform::application().run(move |cx| async move {
         cx.update(|cx: &mut App| {
-            gpux_benchmark::register_fonts(cx);
+            gpux_tests_benchmark::register_fonts(cx);
             let bounds = Bounds::centered(None, size(px(WINDOW_WIDTH), px(WINDOW_HEIGHT)), cx);
             let options = WindowOptions {
                 window_bounds: Some(WindowBounds::Windowed(bounds)),

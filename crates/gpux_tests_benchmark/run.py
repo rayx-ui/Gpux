@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Builds and runs the gpux rendering benchmarks, locally and on demand only.
 
-    python3 benchmark/run.py --target macos [--target ios-sim ...] [options]
+    python3 crates/gpux_tests_benchmark/run.py --target macos [--target ios-sim ...] [options]
 
 Targets (pick one or more with --target, or --target all-local for every target this host runs):
 
@@ -23,7 +23,7 @@ frames and writes a JSON report. Runs are interleaved: each repetition goes thro
 scenario and, within a scenario, both configurations in a rotating order, so drift (thermal
 state, background load) spreads over both alike.
 
-Results land in benchmark/results/<name>/: raw/<target>/<scenario>.<config>.r<n>.json, meta.json
+Results land in crates/gpux_tests_benchmark/results/<name>/: raw/<target>/<scenario>.<config>.r<n>.json, meta.json
 and report.md (written by report.py). Nothing here runs in CI.
 """
 
@@ -39,7 +39,10 @@ import time
 from pathlib import Path
 
 BENCH = Path(__file__).resolve().parent
-ROOT = BENCH.parent
+ROOT = BENCH.parent.parent
+RESULTS = BENCH / "results"
+# The library's name (`[lib] name` in Cargo.toml), which names the static library and the WASM module.
+LIB = "gpux_tests_benchmark"
 NIGHTLY = os.environ.get("GPUX_WEB_TOOLCHAIN", "nightly-2026-06-23")
 WASM_RUSTFLAGS = " ".join(
     [
@@ -93,7 +96,14 @@ class Tree:
         return git("rev-parse", "HEAD", cwd=self.root)
 
     def dirty(self):
-        return bool(git("status", "--porcelain", "--", "crates", "vendor", "Cargo.toml", "Cargo.lock", cwd=self.root))
+        # The benchmark's own folder (scenarios, results) is not part of the gpux tree it measures.
+        return bool(
+            git(
+                "status", "--porcelain", "--", "crates", "vendor", "Cargo.toml", "Cargo.lock",
+                f":(exclude){self.bench.relative_to(self.root).as_posix()}",
+                cwd=self.root,
+            )
+        )
 
 
 # ---------------------------------------------------------------------------------------------
@@ -114,7 +124,7 @@ def build_ios(tree, _target):
         ],
         cwd=tree.bench,
     )
-    lib = tree.bench / "target" / "aarch64-apple-ios-sim" / "release" / "libgpux_benchmark.a"
+    lib = tree.bench / "target" / "aarch64-apple-ios-sim" / "release" / f"lib{LIB}.a"
     sh(["xcodegen", "generate", "--spec", "project.yml", "--quiet"], cwd=tree.bench / "ios")
     products = tree.bench / "target" / "ios" / "products"
     sh(
@@ -146,7 +156,7 @@ def build_web(tree, _target):
     )
     dist = tree.bench / "target-web" / "dist"
     shutil.rmtree(dist, ignore_errors=True)
-    wasm = tree.bench / "target-web" / "wasm32-unknown-unknown" / "release" / "gpux_benchmark.wasm"
+    wasm = tree.bench / "target-web" / "wasm32-unknown-unknown" / "release" / f"{LIB}.wasm"
     sh(["wasm-bindgen", wasm, "--target", "web", "--out-dir", dist])
     shutil.copy(BENCH / "web" / "index.html", dist / "index.html")
     return dist
@@ -393,7 +403,7 @@ def main():
         sys.exit("no scenario matches --scenarios")
 
     name = options.name or datetime.datetime.now().strftime("%Y-%m-%d-%H%M")
-    out_dir = BENCH / "results" / name
+    out_dir = RESULTS / name
     tree = Tree()
     if tree.dirty():
         log("warning: gpux's sources have uncommitted changes; the report records the commit only")

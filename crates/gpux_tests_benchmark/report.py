@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Turns a results directory's raw JSON reports into report.md tables.
 
-    python3 benchmark/report.py benchmark/results/<name>
+    python3 crates/gpux_tests_benchmark/report.py crates/gpux_tests_benchmark/results/<name>
 
 Each run's report holds per-frame statistics over its measured frames. A cell here is the median
 of that statistic over the run's repetitions. A change is shown against the configuration it is

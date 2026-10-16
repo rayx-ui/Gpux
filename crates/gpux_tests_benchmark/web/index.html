@@ -13,7 +13,7 @@
        runner's server does with COOP/COEP headers. -->
   <script type="module">
     globalThis.__gpuxBench = { done: false, crossOriginIsolated: globalThis.crossOriginIsolated === true };
-    const { default: init, run } = await import('./gpux_benchmark.js');
+    const { default: init, run } = await import('./gpux_tests_benchmark.js');
     await init();
     run();
   </script>
