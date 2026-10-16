@@ -1,12 +1,12 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-a11y-devtools",
-  "revision": 18,
-  "planRevision": 5,
+  "revision": 60,
+  "planRevision": 6,
   "specHashes": {
     "requirements": "576149548596ab4efd6002b4893418950f88808afddc5f295e262a98fb21ea9c",
     "design": "f6eb854ee044f8849782c3d23345766e3f0d07d467a8f9ff7e032e07c8de9deb",
-    "plan": "b531d36b8c23bfe1b4132860fa1dd5199cd9183a1a0bd6740828bf65a8a84be2"
+    "plan": "879f9af1c453e1618a5dc773219b15b1c1d62b6f077837f000727726721aa36f"
   },
   "tasks": {
     "t01-baseline": {
@@ -16,40 +16,76 @@
       ]
     },
     "t02-activation-sources": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t03-inspection-guard": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t04-inspection-everywhere": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t05-text-leaves": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t06-inspection-containers": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t07-relations": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t08-actions": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t09-fast-describe": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t10-fast-retention": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t11-fast-layers": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t12-accesskit-queries": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t13-conformance-accessibility": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t14-devtools-client": {
       "status": "pending"
@@ -127,7 +163,10 @@
       ]
     },
     "t04a-accessibility-feature": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     }
   },
   "validationBatches": {
@@ -150,6 +189,46 @@
         }
       },
       "recordedAt": "2026-10-16T16:04:56Z"
+    },
+    "7774846e724fb89230bd49f1475d01911ccd52ac044bed5b5f0b57fbc9b1081e": {
+      "snapshot": {
+        "specHash": "9ef92aac00db10e77cf13a1537231cdfe03a0a52ba6c183283d4578af372ee41",
+        "repositories": {
+          "gpux": "1d50fd8e0af835d5f186584ba4397ed6617b033cd0f3db9ae025e8facf6e9471",
+          "rayx": "8364a75c6cfd60250954afc934f9d2b4d44ab7bcb5fb6a9caab2526e97adcc62"
+        }
+      },
+      "recordedAt": "2026-10-16T16:42:26Z"
+    },
+    "332f8bd4ba22144cfb3de6a8e55099cf38898ab4501af28cec84057331a83829": {
+      "snapshot": {
+        "specHash": "9ef92aac00db10e77cf13a1537231cdfe03a0a52ba6c183283d4578af372ee41",
+        "repositories": {
+          "gpux": "97984204843c7e3f53fdc47d0cfd4dd2b1b0470d4e6a10dfe63acb8dc594ee91",
+          "rayx": "8364a75c6cfd60250954afc934f9d2b4d44ab7bcb5fb6a9caab2526e97adcc62"
+        }
+      },
+      "recordedAt": "2026-10-16T17:01:13Z"
+    },
+    "a1d17b35e1af05ed8adecc3fa5469f7179e6500b20d26126ac7d6707a0a7861e": {
+      "snapshot": {
+        "specHash": "a50347ac87ef5ac6ef53097ae819e30cd3a23775c5a6de7811275eeb618b77e8",
+        "repositories": {
+          "gpux": "aa28d7a43915ca696e2af657b05e83451c2a9278ca994e2fed0776cdb5248e93",
+          "rayx": "8364a75c6cfd60250954afc934f9d2b4d44ab7bcb5fb6a9caab2526e97adcc62"
+        }
+      },
+      "recordedAt": "2026-10-16T17:23:25Z"
+    },
+    "d3533f87a4edc3c511694463f9bb08dbb5deae37c6bbb1576cc565c994d1e7ab": {
+      "snapshot": {
+        "specHash": "a50347ac87ef5ac6ef53097ae819e30cd3a23775c5a6de7811275eeb618b77e8",
+        "repositories": {
+          "gpux": "de63ea86aab81d42c55675c4ca527d6ce04aa1cac2cb5e22ed71e0ca0e74d27c",
+          "rayx": "8364a75c6cfd60250954afc934f9d2b4d44ab7bcb5fb6a9caab2526e97adcc62"
+        }
+      },
+      "recordedAt": "2026-10-16T17:31:31Z"
     }
   },
   "checkResults": {
@@ -220,6 +299,294 @@
       "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s01a-accesskit-025-final-2f9db67ee0e1.log",
       "logSha256": "4f27ac380b22e1d975eee20ce727fa8cbc09061177f6253af0777fd4de7b7506",
       "inputsHash": "73d1027fe63635169b4b03c523c42248b5c40cf7db82f1a4baf82fc42f62c2b6"
+    },
+    "s02-activation/check-a11y-activation/final": {
+      "checkId": "check-a11y-activation",
+      "boundaryId": "s02-activation",
+      "phase": "final",
+      "batchId": "7774846e724fb89230bd49f1475d01911ccd52ac044bed5b5f0b57fbc9b1081e",
+      "definitionHash": "4b361f498c2342af48ab9b36a3464cb63df854607becdb27c7a318d1870311c7",
+      "basisHash": "ee477dbe5f8e2bae2175e0bf00c8bbf159dc2a75f1758d8c8e4446762620c3ab",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 13,
+      "durationSeconds": 0.2914,
+      "recordedAt": "2026-10-16T16:39:01Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s02-activation-final-782c0cf82874.log",
+      "logSha256": "018930a571ac0f07813e532f81b4e75720607b8d2165de0c7d8914305c86ea20",
+      "inputsHash": "f397efb4128120006060499812e33f04e92c024b7009acdcfd615cd19e978ded"
+    },
+    "s02-activation/check-a11y-inspection-guard/final": {
+      "checkId": "check-a11y-inspection-guard",
+      "boundaryId": "s02-activation",
+      "phase": "final",
+      "batchId": "7774846e724fb89230bd49f1475d01911ccd52ac044bed5b5f0b57fbc9b1081e",
+      "definitionHash": "b4042d1b058a0f7930a882f07c6dd5535a3107bbc557ef332d4f46080f266b17",
+      "basisHash": "d7c6478fefd8c7468333ad2176ae18f46a1832a768ddab475335e4c574830a08",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 0.9962,
+      "recordedAt": "2026-10-16T16:39:02Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s02-activation-final-e070af97a78a.log",
+      "logSha256": "c35680d0deac031bc979ba010f73bb0870518e8828be69f3bbf073023206a38e",
+      "inputsHash": "f397efb4128120006060499812e33f04e92c024b7009acdcfd615cd19e978ded"
+    },
+    "s02-activation/check-a11y-web-build/final": {
+      "checkId": "check-a11y-web-build",
+      "boundaryId": "s02-activation",
+      "phase": "final",
+      "batchId": "7774846e724fb89230bd49f1475d01911ccd52ac044bed5b5f0b57fbc9b1081e",
+      "definitionHash": "3be124241de70de2002dafad64172ef50e1dd7f853bf704a26cde46dbf14786c",
+      "basisHash": "c66f146195f0d4d30183ba5b4eaee2b185f5d388ae399ba5bb414f8f40e1e377",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 3.1617,
+      "recordedAt": "2026-10-16T16:39:06Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s02-activation-final-33db2967862f.log",
+      "logSha256": "5076bd0b698a454e9e79795c3a764cd6114161d189e0404c69f2e9b6513039b2",
+      "inputsHash": "2143bb047e112d83fe4bd232cbcb74e9bc7db0b29e41a02b8148daca76dc5b36"
+    },
+    "s02-activation/check-a11y-ios-build/final": {
+      "checkId": "check-a11y-ios-build",
+      "boundaryId": "s02-activation",
+      "phase": "final",
+      "batchId": "7774846e724fb89230bd49f1475d01911ccd52ac044bed5b5f0b57fbc9b1081e",
+      "definitionHash": "8f9ae7d36a35114e3b6436d388274acf3781d213a9fb2c06d3193bd6a218f142",
+      "basisHash": "3760d26f742cab0d39443f240dd1c33f149f1122027ae80f1714b90d4bf5b858",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 3.1511,
+      "recordedAt": "2026-10-16T16:39:09Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s02-activation-final-be8f7e6298a0.log",
+      "logSha256": "647cbbde5ecd522d5253faf65473feea9379fe5a28cee0cac8d73b47a5958022",
+      "inputsHash": "2a59ce2faec39e0b9799458696727b8a1b0967d3ea07d3cb15f64d89bf872996"
+    },
+    "s02-activation/check-a11y-lane-b/final": {
+      "checkId": "check-a11y-lane-b",
+      "boundaryId": "s02-activation",
+      "phase": "final",
+      "batchId": "7774846e724fb89230bd49f1475d01911ccd52ac044bed5b5f0b57fbc9b1081e",
+      "definitionHash": "a869d5d5e1552917e6db948dea1af9dd4287565b1a5313a1bc63eb0cbcf00ca1",
+      "basisHash": "60e7dc5ea34829e559de1b6daf6d382cd348ff04a7967eac9dd44b9522a45046",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 82.2259,
+      "recordedAt": "2026-10-16T16:40:31Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s02-activation-final-37b3f7785114.log",
+      "logSha256": "869d52acf92496f3e623cd717a4d598bda53b060064e93c2c2245cd986d3c748"
+    },
+    "s02-activation/check-a11y-feature-tree/final": {
+      "checkId": "check-a11y-feature-tree",
+      "boundaryId": "s02-activation",
+      "phase": "final",
+      "batchId": "7774846e724fb89230bd49f1475d01911ccd52ac044bed5b5f0b57fbc9b1081e",
+      "definitionHash": "1bd28c4bbf285020b07d4fea5629100d8f24e4f0ca8941948da36deb7a92aa0c",
+      "basisHash": "5baba209145f35810d4b05a2cf6af3704af8ffc25e52109c5788d19667a6eec1",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.321,
+      "recordedAt": "2026-10-16T16:40:31Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s02-activation-final-6533dbf739f1.log",
+      "logSha256": "cf8440e5d9f111c53626854f5cd322fe447fff4c76dd20cc93b2611dca32135e",
+      "inputsHash": "0c924103ca0a0837d764278b2bd72b08997a6cbe07fb960d73fa7434ccc0b537"
+    },
+    "s02-activation/check-a11y-feature-off-build/final": {
+      "checkId": "check-a11y-feature-off-build",
+      "boundaryId": "s02-activation",
+      "phase": "final",
+      "batchId": "7774846e724fb89230bd49f1475d01911ccd52ac044bed5b5f0b57fbc9b1081e",
+      "definitionHash": "ee7bbbe66b0aa713adad9f419fc77b0aa9178c6db4363805cd823f9c0469c720",
+      "basisHash": "6a071aa4a82e13bccb3f67a6a44bf0c66a74ca9597739bdc70899ec432e0d3d7",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 8.6882,
+      "recordedAt": "2026-10-16T16:40:40Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s02-activation-final-f4c0119499f9.log",
+      "logSha256": "2ebda1de346860befefff1c975feb5e2b3f1e38539d705ed407e7068de539010",
+      "inputsHash": "efcab4ee5b65bd3256e1f150ecb295d086b63b4af1eca02a70c799e1a122c307"
+    },
+    "s03-tree/check-a11y-text-leaves/final": {
+      "checkId": "check-a11y-text-leaves",
+      "boundaryId": "s03-tree",
+      "phase": "final",
+      "batchId": "332f8bd4ba22144cfb3de6a8e55099cf38898ab4501af28cec84057331a83829",
+      "definitionHash": "c1a851f375eead3ec85d2f97f9a3c08fb38a7eb39a1da902b4899847a7526d74",
+      "basisHash": "e70c129899a76cceea5bc8351afa4847d801f2635ef3c49a346a37d9b60fd380",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 7,
+      "durationSeconds": 0.5439,
+      "recordedAt": "2026-10-16T16:58:01Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s03-tree-final-da5828fc53b3.log",
+      "logSha256": "5c3242fb35b673320be2ea12adc00e7bf30656efd3e5a518a4deb9039aedfb32",
+      "inputsHash": "557acc1f5552fd628bc1511d818eb602bb2d82183b1a281de7483b40f015f5ca"
+    },
+    "s03-tree/check-a11y-inspection-tree/final": {
+      "checkId": "check-a11y-inspection-tree",
+      "boundaryId": "s03-tree",
+      "phase": "final",
+      "batchId": "332f8bd4ba22144cfb3de6a8e55099cf38898ab4501af28cec84057331a83829",
+      "definitionHash": "00776e65912d9b9b2728fffcc78881197ab3dd161bc0745c1f3ba8734f03dc8e",
+      "basisHash": "3bf7e3f1850c00d84f5002e9a83a93ea6b3ff0b7c8582e3b29c3202f6074cd60",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 6,
+      "durationSeconds": 0.3091,
+      "recordedAt": "2026-10-16T16:58:01Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s03-tree-final-656a4a7b6352.log",
+      "logSha256": "5394b8d7fbbc09f2edf0aef26c1dfe709d2faed418f483914c0cdbb5c9c14f0e",
+      "inputsHash": "557acc1f5552fd628bc1511d818eb602bb2d82183b1a281de7483b40f015f5ca"
+    },
+    "s03-tree/check-a11y-relations/final": {
+      "checkId": "check-a11y-relations",
+      "boundaryId": "s03-tree",
+      "phase": "final",
+      "batchId": "332f8bd4ba22144cfb3de6a8e55099cf38898ab4501af28cec84057331a83829",
+      "definitionHash": "21fbf1f8a411247dfcf7311d1b9ce8d61389e47b83cf7893f6b15e8f7b71b3ab",
+      "basisHash": "03463f48e8e332ee247f76e35079632f7b5b0c7f6c132ac0d1e9a2dadec79276",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 0.2556,
+      "recordedAt": "2026-10-16T16:58:02Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s03-tree-final-fcddc0e7dbd6.log",
+      "logSha256": "7edf53a4e32c0ea0eae14228d731b66969d6379365411d58d695c8ead2cc201e",
+      "inputsHash": "557acc1f5552fd628bc1511d818eb602bb2d82183b1a281de7483b40f015f5ca"
+    },
+    "s03-tree/check-a11y-actions/final": {
+      "checkId": "check-a11y-actions",
+      "boundaryId": "s03-tree",
+      "phase": "final",
+      "batchId": "332f8bd4ba22144cfb3de6a8e55099cf38898ab4501af28cec84057331a83829",
+      "definitionHash": "80dc1a18e8b9242bd4c3143694acdbf92714fb7205244b496dd30037d823e08b",
+      "basisHash": "a1970fc41d91e98f5b2fc7d1f7fd9243ed0292362eb43176f303e1f9958c7d8d",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 7,
+      "durationSeconds": 0.2536,
+      "recordedAt": "2026-10-16T16:58:02Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s03-tree-final-19c24f25058d.log",
+      "logSha256": "e858f9cd1c6d79d190e22ce1596801e4bcf93b90357b1caf7ccf77a1b9efc8c6",
+      "inputsHash": "557acc1f5552fd628bc1511d818eb602bb2d82183b1a281de7483b40f015f5ca"
+    },
+    "s04-fast/check-fast-a11y-describe/final": {
+      "checkId": "check-fast-a11y-describe",
+      "boundaryId": "s04-fast",
+      "phase": "final",
+      "batchId": "a1d17b35e1af05ed8adecc3fa5469f7179e6500b20d26126ac7d6707a0a7861e",
+      "definitionHash": "51ab7efd1cddcf11161f3bdd3931d20778f2dd4771a01d0fc1b23ed4b390497e",
+      "basisHash": "ae265760673017e859293e86a0c14de000ac0dee9b0aec6288df1b5ac158d5da",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 0.4,
+      "recordedAt": "2026-10-16T17:19:18Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s04-fast-final-74e3859b70e5.log",
+      "logSha256": "193a56d18bf2313c6e2a6a7325989534a2399c3534fb4f74eb4a0eabdaf3e58c",
+      "inputsHash": "8d09dfa2b9300d6f7dd845949f3971276599524483f5f7369dff9b587ab1803b"
+    },
+    "s04-fast/check-fast-a11y-retention/final": {
+      "checkId": "check-fast-a11y-retention",
+      "boundaryId": "s04-fast",
+      "phase": "final",
+      "batchId": "a1d17b35e1af05ed8adecc3fa5469f7179e6500b20d26126ac7d6707a0a7861e",
+      "definitionHash": "f792d9b8adf453daa0485416b339d3056dee0a034ed35173e433b017fc42cafe",
+      "basisHash": "9fea31310fe1d6320d75b2426446e908b9d8908a741f3c0240a29c496f56649f",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 9,
+      "durationSeconds": 28.8978,
+      "recordedAt": "2026-10-16T17:19:47Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s04-fast-final-1162993c82b7.log",
+      "logSha256": "f56ea475d6e94d470a9a3359684aee529aa5b36280baffab06db24f0a1359a9b",
+      "inputsHash": "8d09dfa2b9300d6f7dd845949f3971276599524483f5f7369dff9b587ab1803b"
+    },
+    "s04-fast/check-fast-a11y-layers/final": {
+      "checkId": "check-fast-a11y-layers",
+      "boundaryId": "s04-fast",
+      "phase": "final",
+      "batchId": "a1d17b35e1af05ed8adecc3fa5469f7179e6500b20d26126ac7d6707a0a7861e",
+      "definitionHash": "48ad23a668166704e8204602714228c681b1b9c224802f231f08196529d7c330",
+      "basisHash": "e93bc91f96fc325cd6b1186dc9a98c4f6f4d35ca8bf8f258d1b73c043b9a4293",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 0.7723,
+      "recordedAt": "2026-10-16T17:19:47Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s04-fast-final-cd6b4178c0ca.log",
+      "logSha256": "69d06fcbe9881ea2840e875c8b86ee873af86ad4adb4e5e0aecd99accf7e0668",
+      "inputsHash": "a529122919e882bad6801880b69bd8f1f417b5d88cf36e3ee48ea5bdbc6b35c8"
+    },
+    "s04-fast/check-fast-a11y-counters/final": {
+      "checkId": "check-fast-a11y-counters",
+      "boundaryId": "s04-fast",
+      "phase": "final",
+      "batchId": "a1d17b35e1af05ed8adecc3fa5469f7179e6500b20d26126ac7d6707a0a7861e",
+      "definitionHash": "43e0ab2ad4760537f04c283a7f78e1eabdc23b3281f30f7bdd6eac6002bcf738",
+      "basisHash": "f3fd8462d55ff12394dc1f8d9c0979314854a5dcc9f2b9a6ca4b0fd4e8478fcd",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 0.3968,
+      "recordedAt": "2026-10-16T17:19:48Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s04-fast-final-56ce93684f41.log",
+      "logSha256": "d5271bc61aa91544df10c7f2868403ec94b9d90f16d4b6adbfc483f16d5c3376",
+      "inputsHash": "8d09dfa2b9300d6f7dd845949f3971276599524483f5f7369dff9b587ab1803b"
+    },
+    "s05-queries/check-query-accesskit/final": {
+      "checkId": "check-query-accesskit",
+      "boundaryId": "s05-queries",
+      "phase": "final",
+      "batchId": "d3533f87a4edc3c511694463f9bb08dbb5deae37c6bbb1576cc565c994d1e7ab",
+      "definitionHash": "9420459719021730ddd57f0b79cc90f68ca1026ed4aa3a42d4be610bbb974363",
+      "basisHash": "be00cf5c1553125b87807097f1fbeb26820ebbac264edc254df18a60dedd195d",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 12,
+      "durationSeconds": 15.7791,
+      "recordedAt": "2026-10-16T17:31:23Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s05-queries-final-00596fc7645c.log",
+      "logSha256": "f115dbdc2dad6679264d56e6e7503c7cc13ac97222679d95ae71425f66184fb5",
+      "inputsHash": "c72f43b1e2f5d47b1914ace853c8135e436584e381c593d779b6a6b89474ede1"
+    },
+    "s05-queries/check-conformance-accessibility/final": {
+      "checkId": "check-conformance-accessibility",
+      "boundaryId": "s05-queries",
+      "phase": "final",
+      "batchId": "d3533f87a4edc3c511694463f9bb08dbb5deae37c6bbb1576cc565c994d1e7ab",
+      "definitionHash": "956ea6116eac1454855fb88da559c908357bdba284e6ebdae83d2a02483b1fc4",
+      "basisHash": "3ca588a281f62e58c7b76c3af192452b1f1ac59ebe8290cadcf6398b911a6b18",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 6,
+      "durationSeconds": 7.0074,
+      "recordedAt": "2026-10-16T17:31:30Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s05-queries-final-64c0fe956e0e.log",
+      "logSha256": "27e47607d642f19603140a31229d9ad4f1d3d465a778622e1a0bc8ab706ef399",
+      "inputsHash": "e55f8c951689d38a66206cfaa8cb9b4d54b5d00997bb91a3c2508f2c7373d751"
     }
   },
   "reviews": {
@@ -367,6 +734,661 @@
         "gpux:docs/measurements/a11y-devtools.md": "406c3678b07a71e25202104191caf50da6b0607e4acec9c01ec1ff77949d2e90",
         "gpux:docs/measurements/screen-reader-walkthrough.md": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
       }
+    },
+    "s02-activation": {
+      "reviewerId": "reviewer-s02-ea47c0",
+      "snapshotId": "7774846e724fb89230bd49f1475d01911ccd52ac044bed5b5f0b57fbc9b1081e",
+      "criterionIds": [
+        "ACT-1",
+        "ACT-2",
+        "ACT-3",
+        "ACT-4",
+        "ACT-5"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window/a11y.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ACT-1",
+            "ACT-2",
+            "ACT-3"
+          ],
+          "sha256": "ae449477705fd9ce1f75f4b8b431d3eeee52b49229a766abb5344445b5c14e92"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ACT-1",
+            "ACT-2",
+            "ACT-3",
+            "ACT-4"
+          ],
+          "sha256": "fa4f34a86cf6c08c31c28a99b48f974b7969b60d39d7376c1898d05077be47b5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/app.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ACT-1",
+            "ACT-2"
+          ],
+          "sha256": "deddc1490bbaf0ae0c5af18a5ea616afaabd745ae7ec2e2b61057358f4dc2bda"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform/test/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ACT-1"
+          ],
+          "sha256": "436af2e27a3b28bbd4c978b6b5ee3b9b8d59010665654847330701286b7d4a2b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/web_host/lib.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ACT-4"
+          ],
+          "sha256": "ad1866eaa637429019d15f78f4eb6a903e35aa046dd858063086d821341f7a4e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "ACT-5"
+          ],
+          "sha256": "fafbeb4529f826eaa0262da588a17b34bf4959dd8d5c6a5c5b4504d81e7af5bb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_macos/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "ACT-5"
+          ],
+          "sha256": "9455a5e198b7af608b082f818427a7f04e896f89358f665f46f77bea89d0d771"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_macos/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ACT-5"
+          ],
+          "sha256": "300778855661f1bc9841d5ec6514fc8d52d9ed037fa9c95b41d925810f509c21"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_windows/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "ACT-5"
+          ],
+          "sha256": "8dedcf57657f383999c6e120ec48f80fb29989c30f8111af34532ce7e7477c7d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_linux/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "ACT-5"
+          ],
+          "sha256": "19a357f0d7ff353a6f3de957beb06da058c6380f6ed8d1471639b36d0695ca00"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "ACT-5"
+          ],
+          "sha256": "243a78a14b2d298db7e74248f14d2473b856ffc7e82d7f4e94a6afecbeac89b5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "ACT-5"
+          ],
+          "sha256": "112d4ad26b0884e8d9c9247d064ceaf8bc3b201fc903f6c6ad905bf56a223af5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/a11y_activation.rs",
+          "kind": "test",
+          "criterionIds": [
+            "ACT-1",
+            "ACT-2"
+          ],
+          "sha256": "e70753b81db1bae6e613d38a265675588f3d5b39c3992cf2af2640a560bd65bb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/a11y_inspection_guard.rs",
+          "kind": "test",
+          "criterionIds": [
+            "ACT-3"
+          ],
+          "sha256": "5833734c4ed2d98dee00a9a53f65a6a8840594978cb669aeb480850e6b9262ac"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/accessibility.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "ACT-4"
+          ],
+          "sha256": "5ade0b00f3096ff2bbce41986e23c8def9911e0cdc17d9bf18ad84c281bdabd5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/Cargo.toml",
+          "kind": "runtime",
+          "criterionIds": [
+            "ACT-5"
+          ],
+          "sha256": "fafbeb4529f826eaa0262da588a17b34bf4959dd8d5c6a5c5b4504d81e7af5bb"
+        }
+      ],
+      "deltaSummaryMarkdown": "Inspected 05cbecc. S02-F1: `an_adapter_switched_during_a_frame_gets_only_frames_it_covered` drives the test window's adapter from inside a render through the new test-support `TestAccessibilityAdapter` (`VisualTestContext::accessibility_adapter`), drawing frames by hand with draw-on-flush off: a frame the adapter joins mid-draw sends nothing and the next sends the full tree; a frame it leaves mid-draw sends nothing, nor does the next. The deactivation half fails under the `!self.shadow && self.platform_this_frame` mutation (coordinator ran it) and the activation half guards an end-flag-only rule. S02-F2: `child_reads_the_environment` (child process with GPUX_ACCESSIBILITY = always/off/auto/loud) now asserts `Application::on_test_platform(..).with_accessibility_mode(mode).accessibility_mode() == mode` for every mode and that an app without the builder reads the variable; `on_test_platform` is cfg(test/test-support), `Application::accessibility_mode` is a plain getter. Reran `cargo test -p gpux --test a11y_activation`: 13 passed. The devtools_snapshot_tree.rs deletion is explained (coverage moved to s05's `semantic_query_accesskit`), outside s02's criteria.",
+      "reattestedFrom": "5d29296d3764484b63e380a7b1289327381f9058d58346644d232f4bcb5f4620",
+      "summaryMarkdown": "Implementation of s02 matches the design on reading: `A11y` splits the platform flag, the shared inspection count and the app-wide `AccessibilityMode`; `sync_active_flag` samples them at frame start; the send rule checks the platform flag at start and end; `Off` masks only the platform source and sends one root-only tree to an exposed adapter (`end_platform_frame`), leaving `Off` sends a full tree; `new_inaccessible` refuses every source and yields a disabled guard; the first guard forgets a stale tree and forces a refresh (deferred to after the draw when started mid-draw), the last drop requests a frame; `a11y_tree` reads `A11yDebug`'s retained update. The wasm gate around `a11y_init` is gone, the web host exports `startA11yInspection`/`a11yTree` and the lane B spec reads the buttons; the `accessibility` features gate `accesskit_macos/windows/unix` cleanly with `wayland`/`x11` no longer pulling `accesskit_unix`. The mobile adapter cargo-tree half of ACT-5 is deferred to s05b's planned check, which is consistent with the plan. Two minor test gaps keep the review failed: the platform half of the mid-frame send rule (S02-F1) and builder-over-env precedence (S02-F2) are not exercised by the check's test group. Outside s02's criteria: commit 756f8f2 also deletes `crates/gpui/tests/devtools_snapshot_tree.rs` while the devtools snapshot API it covered still exists (removal belongs to s09); the coordinator should confirm that was intended.",
+      "findingIds": [
+        "S02-F1",
+        "S02-F2"
+      ],
+      "recordedAt": "2026-10-16T16:41:17Z",
+      "recordHashes": {
+        "gpux:docs/measurements/a11y-devtools.md": "406c3678b07a71e25202104191caf50da6b0607e4acec9c01ec1ff77949d2e90",
+        "gpux:docs/measurements/screen-reader-walkthrough.md": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "s03-tree": {
+      "reviewerId": "reviewer-s03-0782d5b8",
+      "snapshotId": "332f8bd4ba22144cfb3de6a8e55099cf38898ab4501af28cec84057331a83829",
+      "criterionIds": [
+        "TREE-1",
+        "TREE-2",
+        "TREE-3",
+        "TREE-4",
+        "TREE-5"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window/a11y.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TREE-1",
+            "TREE-2",
+            "TREE-3",
+            "TREE-4",
+            "TREE-5"
+          ],
+          "sha256": "538363ce5aee9495c59911adc654e81e717bec51fdc8424c4a2443841258de0d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/element.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TREE-1",
+            "TREE-2",
+            "TREE-3",
+            "TREE-4"
+          ],
+          "sha256": "160b0470b951c28bb29888467eced37e500bedcc70d9e2f5c48ccce6ea358d72"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/text.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TREE-1"
+          ],
+          "sha256": "1edb44b5ef9d821a3e7fb6787eab9812059bd8983d98364bc2f66c7c9d344ba0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TREE-4",
+            "TREE-5"
+          ],
+          "sha256": "099c2c38498c957a16bdf0f05e4d9d1bd3ca8b45373d29b5cea5ac9fa3ae9ef3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TREE-3",
+            "TREE-5"
+          ],
+          "sha256": "23ed534db6bbd1142e29aaae8396c05eef441487be89fa99b048af2d26afe189"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/element.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TREE-1",
+            "TREE-4"
+          ],
+          "sha256": "a7dbad961d83db807e33457332b9abf9ecc9e19849f5728005681d7b86b12c70"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/a11y_text_leaves.rs",
+          "kind": "test",
+          "criterionIds": [
+            "TREE-1"
+          ],
+          "sha256": "63aedf98ef22df2678b04ef4a99aba667a3a1bede8180a25e4fa9f001d5a7348"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/a11y_inspection_tree.rs",
+          "kind": "test",
+          "criterionIds": [
+            "TREE-2",
+            "TREE-3"
+          ],
+          "sha256": "4d6e18ac749537525bcd8db2008411499605abd834eff44f9b2885f9a2f56aff"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/a11y_relations.rs",
+          "kind": "test",
+          "criterionIds": [
+            "TREE-4"
+          ],
+          "sha256": "e89f9924707013e889f24b76b23e0199e395f729df886b530cd8e0f0b5386e28"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/a11y_actions.rs",
+          "kind": "test",
+          "criterionIds": [
+            "TREE-5"
+          ],
+          "sha256": "777cdf98d98c1514b9d438f7752feecc4c12c63a70164fa60cf83d17ccdae7cc"
+        }
+      ],
+      "deltaSummaryMarkdown": "Inspected bcc1a5a. F1: `text_ordinals` is `Option<u32>`; containers set `None` and leaves are numbered under the nearest non-container (`rposition`), rollback/checkpoint use the same owner; the equal-view test now compares node ids and focus id with an `After` leaf after the container (my earlier probe case). F2: `scroll_a11y_node_into_view` clamps to the context's per-axis max, uses `ScrollHandle::scroll_to` for handles, writes untracked offsets plus `note_scrolled_by_id` (same bookkeeping as `note_scrolled`, keyed by the global id `painted_container` remembers), notifies the painting views and no longer calls `refresh()`; new test checks a cached sibling view is not re-rendered. F3: value is the display projection and `PerGrapheme` yields `Role::PasswordInput`; new test asserts only the mask is exposed. F4: Click falls back only when the last tree's node advertises Click (`last_tree` is captured in release builds too), Blur returns false with nothing focused; test asserts both on `Inert`. check --sprint s03-tree passed 4/4 at this snapshot.",
+      "reattestedFrom": "7774846e724fb89230bd49f1475d01911ccd52ac044bed5b5f0b57fbc9b1081e",
+      "summaryMarkdown": "TREE-1/3/4 behave as specified apart from the findings: Label leaves for `&str`/`SharedString`/`StyledText` with per-parent ordinals and AccessKit name-from-contents, `InteractiveText`/`Text` with ids keep their own Label nodes, the id map exists only while inspecting, relations resolve in order and drop unknown ids, custom actions are listed and dispatched by id, and `perform_a11y_action` shares the adapter's dispatch path. Failed on four findings: leaf ids change when inspection toggles (breaks TREE-2's equal screen-reader view; confirmed with a removed probe test), ScrollIntoView forces a whole-window refresh and writes untracked offsets directly, masked text fields leak their source text, and the Click/Blur fallbacks return true without a handler.",
+      "findingIds": [
+        "S03-F1",
+        "S03-F2",
+        "S03-F3",
+        "S03-F4"
+      ],
+      "recordedAt": "2026-10-16T16:59:02Z",
+      "recordHashes": {
+        "gpux:docs/measurements/a11y-devtools.md": "406c3678b07a71e25202104191caf50da6b0607e4acec9c01ec1ff77949d2e90",
+        "gpux:docs/measurements/screen-reader-walkthrough.md": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "s04-fast": {
+      "reviewerId": "reviewer-s04-q7m2x9",
+      "snapshotId": "a1d17b35e1af05ed8adecc3fa5469f7179e6500b20d26126ac7d6707a0a7861e",
+      "criterionIds": [
+        "FAST-1",
+        "FAST-2",
+        "FAST-3"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/verify.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FAST-1"
+          ],
+          "sha256": "38b5d238aa25f1f7c2c445cbfce781a80301392305e4b21567bf3652661d72cb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window/a11y.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FAST-1",
+            "FAST-2",
+            "FAST-3"
+          ],
+          "sha256": "b5748caed7a49df682f0616d4854d2ea207840e082c27c589d911632f04cd757"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FAST-2"
+          ],
+          "sha256": "23ed534db6bbd1142e29aaae8396c05eef441487be89fa99b048af2d26afe189"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/retained.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FAST-2"
+          ],
+          "sha256": "fa3e5993ddcf29d5bf295bff869480137592736c1900f8a7dbe7e0bc04381b7d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/splice.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FAST-2"
+          ],
+          "sha256": "e146fec36e1e5e81678d23c16d254c8d0c365cff158e0356481a5b0b1179fb74"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/view.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FAST-2"
+          ],
+          "sha256": "03d246d80fea944420234fa48613f90e63f84db2e145ff6971ac3bafd082d012"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/stats.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FAST-2"
+          ],
+          "sha256": "50592419148fdb3f704ad229b20edf07128b86ccaece7579eb8b600fbb307b68"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/reuse.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FAST-3"
+          ],
+          "sha256": "09c0c1c2eb662df5fba59783622949f98360ab72a0ccc2385eb499880c092173"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FAST-3"
+          ],
+          "sha256": "e73b9934b482ef20bf7c11db388437013b78ab5adeb620a2ae28dc9dd1e1fe4a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FAST-3"
+          ],
+          "sha256": "d585bcffe754f92b3d3257763fd5bafdef40b2aabcbeac83ef03c97788568371"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/a11y_describe.rs",
+          "kind": "test",
+          "criterionIds": [
+            "FAST-1"
+          ],
+          "sha256": "28798dd0f3fa769d2aa18df05cbcf9dfc9013b6bfd67a24e1e2c7b849c3ce2f6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/a11y_retention.rs",
+          "kind": "test",
+          "criterionIds": [
+            "FAST-2"
+          ],
+          "sha256": "3974c908fb55ad15b9d81b61b71eb819b2264ec19b9ba4ec6ac855a1ce58f930"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/oracle_support.rs",
+          "kind": "test",
+          "criterionIds": [
+            "FAST-1",
+            "FAST-2"
+          ],
+          "sha256": "08f179046f346e8adac6eb485dcaaa4c0bc15b3042740fb57233fcb9f166df13"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_a11y_layers.rs",
+          "kind": "test",
+          "criterionIds": [
+            "FAST-3"
+          ],
+          "sha256": "91a0dd38c7e7f25b6c915ce9be2d749a3efbcf2b6e0ceb7389d45d48116ab010"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/fast_mode_a11y.rs",
+          "kind": "test",
+          "criterionIds": [
+            "FAST-3"
+          ],
+          "sha256": "765cedc8c953cbc66e512c61168923e2b1e6d9281ef75733f8b3de9a866d2d65"
+        }
+      ],
+      "deltaSummaryMarkdown": "Inspected 61e623f. `A11y::open_bounds` is pushed in `push_element` for hidden and shown nodes and popped by `pop_node` into the `Push` event; the only callers (`element.rs` prepaint and `A11y::replay`) push and pop it in step, `begin_frame` clears it, and `set_visual_bounds` updates the open entry and a shown node's `node_bounds`. New lane C `a_list_of_controls_carries_where_actions_reach_its_rows` (Content::Controls: id'd focusable Button rows with click and Increment handlers) compares the whole renumbered a11y description incl. focusables, listeners and `a11y bounds ... scroll` lines through a scroll down and back; it fails at step 3 when `pop_node` reads the shown-only `node_bounds` again (seeded, restored). New `a_reused_view_carries_its_active_descendant_relations_and_synthetic_children` fails when the ActiveDescendant replay arm is skipped (seeded, restored). Both groups pass at the current snapshot (lane C 5/5, a11y_retention 9/9).",
+      "reattestedFrom": "581ef7d259206baf81462d3e9baacc4aa78cc5e319d49475b18bc9872bda26df",
+      "summaryMarkdown": "The event-log design is sound and integrated on every reuse path: `reuse_prepaint`/`reuse_paint` replay events and move listeners, retained shifted indices and splice stretches carry `a11y_events_index`/`a11y_listeners_index`, `transact` checkpoints and rolls back, the frame swap double-buffers events and listeners, a source turning on forces a full draw, the view/retained/layer/verify bypasses and the `Accessibility` bypass reason are gone, and shadow verification builds its own tree (running `check-fast-a11y-describe` with `--features diagnostics` is right, since the shadow test only exists there). Seeding a dropped `replay_offset` fails all four lane C tests. One real defect: list rows first prepainted while held off screen replay with zero-size action bounds once shown (S04-F1), which the lane C group cannot see because it compares only AccessKit node fields over rows without ids. The active-descendant, relation and synthetic-child replay arms have no test (S04-F2).",
+      "findingIds": [
+        "S04-F1",
+        "S04-F2"
+      ],
+      "recordedAt": "2026-10-16T17:22:12Z",
+      "recordHashes": {
+        "gpux:docs/measurements/a11y-devtools.md": "406c3678b07a71e25202104191caf50da6b0607e4acec9c01ec1ff77949d2e90",
+        "gpux:docs/measurements/screen-reader-walkthrough.md": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "s05-queries": {
+      "reviewerId": "reviewer-s05-k7q2m",
+      "snapshotId": "d3533f87a4edc3c511694463f9bb08dbb5deae37c6bbb1576cc565c994d1e7ab",
+      "criterionIds": [
+        "QRY-1",
+        "QRY-2",
+        "QRY-3"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/semantic_query.rs",
+          "kind": "source",
+          "criterionIds": [
+            "QRY-1",
+            "QRY-2"
+          ],
+          "sha256": "89048cc62fd153fe53c49686f50d702eea287eb6f26f7a898fbe73d6cb01a59d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window/a11y/roles.rs",
+          "kind": "source",
+          "criterionIds": [
+            "QRY-1"
+          ],
+          "sha256": "3694d9a3d579e07f01ad594164396aae8ed9fedeae123e9511ced1fe6764845a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "QRY-1"
+          ],
+          "sha256": "ea039e223816282b6550cbf1822df2a39260400e80fdadbcc3c987bef71bde37"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/semantic_query/locator.rs",
+          "kind": "source",
+          "criterionIds": [
+            "QRY-2"
+          ],
+          "sha256": "1255be83e7fdc79df91dafcf501eaa554f6526f0d1e191761d835ee510c4f8db"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/app/test_context.rs",
+          "kind": "source",
+          "criterionIds": [
+            "QRY-2"
+          ],
+          "sha256": "bbb66c3f7c6e97ce5e8e07d2884e24a31b2508e630a6b8f292b983d11877520f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/evaluate.rs",
+          "kind": "source",
+          "criterionIds": [
+            "QRY-3"
+          ],
+          "sha256": "368a4508a1cec4e8b60d5b6971dca57443a29d155b3e11b08069031541369fce"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scene.rs",
+          "kind": "source",
+          "criterionIds": [
+            "QRY-3"
+          ],
+          "sha256": "730bb12db807231db4fc005425ad9ebe5dd99001f1e09c7cc7b1a7478d0526be"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scenes/common.rs",
+          "kind": "source",
+          "criterionIds": [
+            "QRY-3"
+          ],
+          "sha256": "6476453958ee52c903baea7dc6aaaa6afb5ed7e41331df76f6f279f1f47a5653"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scenes/semantics.rs",
+          "kind": "source",
+          "criterionIds": [
+            "QRY-3"
+          ],
+          "sha256": "0ff34614a6476719191277260570dcb76dfab9c6aae1afff6a4fb05a5c502e7c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/app_host.rs",
+          "kind": "source",
+          "criterionIds": [
+            "QRY-3"
+          ],
+          "sha256": "b7778102a9d0ff31d5963181b0ebecbb3646bd1b092254c62a722f66d02aa07b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/test_host.rs",
+          "kind": "source",
+          "criterionIds": [
+            "QRY-3"
+          ],
+          "sha256": "925bcefbc98a78b2d753941e0ea1186cab9e34895403b4d5069e18f2466e6bec"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/web_host/bridge.rs",
+          "kind": "source",
+          "criterionIds": [
+            "QRY-3"
+          ],
+          "sha256": "db9f4f61b1ed62e0a392afae00c61c6da340e798d7a16c88fbffc513b4601f4a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "QRY-3"
+          ],
+          "sha256": "ef49dabf60752f5917b4698b500ba56726925f91ae75d1e3512c0a1dfe40e7a5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/semantic_query_accesskit.rs",
+          "kind": "test",
+          "criterionIds": [
+            "QRY-1",
+            "QRY-2"
+          ],
+          "sha256": "6bd4761a05ac5772d555b0f3cdfc2c3be519797e000e61f458f585c964b13196"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/semantic_locators.rs",
+          "kind": "test",
+          "criterionIds": [
+            "QRY-2"
+          ],
+          "sha256": "2ded493093a625ca80480fe68765d01143eee072e779f8ecc02a2a8a4fb15430"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/test_platform_semantics_fidelity.rs",
+          "kind": "test",
+          "criterionIds": [
+            "QRY-2"
+          ],
+          "sha256": "4da12242338e60dd9a983fbef13f2d1dcb62633583c3eb6f80b12105398cd054"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/ignored_hitbox_semantics.rs",
+          "kind": "test",
+          "criterionIds": [
+            "QRY-2"
+          ],
+          "sha256": "ce218a3cd9f696f3d9cae0ef82bef988b6309408c00344afe0959e64f8a7761e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/conformance_accessibility.rs",
+          "kind": "test",
+          "criterionIds": [
+            "QRY-3"
+          ],
+          "sha256": "5ee1a1edf9a4c8e86d5ac5164d8eef62e96ab479f5fb9f9e1699a830c650d391"
+        }
+      ],
+      "deltaSummaryMarkdown": "447a548 replaces the devtools source-string grep in `ignored_hitbox_semantics.rs` with a real test. An `IgnorePointer` element prepaints a `Role::Group` \"Detector\" under `with_subtree_hitbox_behavior(HitboxBehavior::Ignore)`, above a \"Below\" button. The test locates the detector through `semantic_query`, checks its window-pixel bounds (10, 10, 120x60 at scale 2), and checks that a locator click reaches Below and not the detector. The test passes. I seeded the mutation myself (hit testing no longer skipping `Ignore` hitboxes) and the test fails; the file is restored. No other files changed. S05-F1 is resolved.",
+      "reattestedFrom": "a1d17b35e1af05ed8adecc3fa5469f7179e6500b20d26126ac7d6707a0a7861e",
+      "summaryMarkdown": "Failed on one QRY-2 gap. QRY-1 is met: `Query` resolves over an `accesskit_consumer` tree built from `Window::a11y_tree` plus the id map. There is one role table (`aria_role` / `query_role_name`). `type=` fails with an explicit message, the state terms and `view=screen-reader` (filtered through `common_filter`, ancestors included) work, and the module is gated on `test-support`/`semantic-query` with `accesskit_consumer` optional. QRY-2 is mostly met: locators start an inspection guard that forces a full redraw, bounds are in window pixels (tested at scale 2), and `semantic_locators` and `test_platform_semantics_fidelity` pass on the new tree. `semantic_query_accesskit` also passes under `--release`, which covers the nesting check that replaced `devtools_snapshot_tree`. The gap is `ignored_hitbox_semantics`, which was never migrated (S05-F1). QRY-3 is met: `Area::Accessibility`, a `Role::Status` status helper with a value, no devtools annotations left in the scenes, `semantic-query` in the manifest, every host reading `evaluate::snapshot`, and the new `accessibility` scene passes on the test host.",
+      "findingIds": [
+        "S05-F1"
+      ],
+      "recordedAt": "2026-10-16T17:32:32Z",
+      "recordHashes": {
+        "gpux:docs/measurements/a11y-devtools.md": "406c3678b07a71e25202104191caf50da6b0607e4acec9c01ec1ff77949d2e90",
+        "gpux:docs/measurements/screen-reader-walkthrough.md": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
     }
   },
   "checkpoints": {
@@ -378,6 +1400,51 @@
       },
       "reviewHash": "d71f8e4a54871fe93e85feb8ea6c06e3bb7be33836fb12e78d9a901b7a6843e0",
       "recordedAt": "2026-10-16T16:01:52Z"
+    },
+    "s01a-accesskit-025": {
+      "snapshotId": "2babf1937341d49e2ec68f4605333a2ac626708bfeb329eeaf0484e0af0daa6a",
+      "commits": {
+        "gpux": "4d5a3d7b3e5a6bbe83dbf20d76aa19ecc99e19fe",
+        "rayx": "4ee806e9999ff02c2d0a7fcc4be0379a036f10a7"
+      },
+      "reviewHash": "774c4df80dc63676b3078678745997690dc09e00a2c640fa508b474db46fe5fb",
+      "recordedAt": "2026-10-16T16:05:48Z"
+    },
+    "s02-activation": {
+      "snapshotId": "7774846e724fb89230bd49f1475d01911ccd52ac044bed5b5f0b57fbc9b1081e",
+      "commits": {
+        "gpux": "05cbecc561646fa1790fc1252ae9c47a6816a5e7",
+        "rayx": "4ee806e9999ff02c2d0a7fcc4be0379a036f10a7"
+      },
+      "reviewHash": "e2dadc8b27269fac5cbdead72804460e380ed144b3fd5128f3951210fec72cc8",
+      "recordedAt": "2026-10-16T16:42:00Z"
+    },
+    "s03-tree": {
+      "snapshotId": "332f8bd4ba22144cfb3de6a8e55099cf38898ab4501af28cec84057331a83829",
+      "commits": {
+        "gpux": "bcc1a5af1d58b843573f0a4803f489a0addda3cc",
+        "rayx": "4ee806e9999ff02c2d0a7fcc4be0379a036f10a7"
+      },
+      "reviewHash": "07404064b87d096eef6a3ffd421ea30311da858617db8fc484973da41f0cfff8",
+      "recordedAt": "2026-10-16T17:00:16Z"
+    },
+    "s04-fast": {
+      "snapshotId": "a1d17b35e1af05ed8adecc3fa5469f7179e6500b20d26126ac7d6707a0a7861e",
+      "commits": {
+        "gpux": "61e623feae9f7e73aff014f05de0e42b78a82671",
+        "rayx": "4ee806e9999ff02c2d0a7fcc4be0379a036f10a7"
+      },
+      "reviewHash": "985f6c70c6d02bd8771dbbdff9556571532dbf5f4f9e73b06d597e84d07deca6",
+      "recordedAt": "2026-10-16T17:22:46Z"
+    },
+    "s05-queries": {
+      "snapshotId": "d3533f87a4edc3c511694463f9bb08dbb5deae37c6bbb1576cc565c994d1e7ab",
+      "commits": {
+        "gpux": "447a548e1176ef5709dac27c26c51e7d39053fbc",
+        "rayx": "4ee806e9999ff02c2d0a7fcc4be0379a036f10a7"
+      },
+      "reviewHash": "fde0bbff9d057e6c970be9a636be3a0d7a4d3d31915113735f6667cedc2bccf2",
+      "recordedAt": "2026-10-16T17:32:48Z"
     }
   },
   "findings": [
@@ -466,9 +1533,191 @@
           "symbol": "a_property_cleared_and_set_again_holds_its_new_value"
         }
       ]
+    },
+    {
+      "id": "S02-F1",
+      "criterionIds": [
+        "ACT-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Platform half of the mid-frame rule is untested.** Expected (ACT-1, d-activation-sources invariant): updates reach `PlatformWindow::a11y_tree_update` only when the platform flag covered the frame's start *and* end, and the `a11y_activation` group can fail if either half is dropped. Observed: `A11y::platform_covers_frame_end` (`crates/gpui/src/window/a11y.rs`) does check the live flag at frame end, but every platform activation/deactivation in `crates/gpui/tests/a11y_activation.rs` happens between frames; the only mid-frame switch (`a_source_switched_during_a_frame_takes_effect_on_the_next`) changes the mode, which by design is sampled at frame start. Replacing the body with `!self.shadow && self.platform_this_frame` (or reading only the end-of-frame flag) passes the whole group. Repair: add a test in the `a11y_activation` group (selectable by that name) that flips the platform flag during a frame both ways - deactivation inside render (frame built, nothing sent, nothing sent next frame) and activation inside render (nothing sent for that frame, full tree on the activation's refresh). Either expose a test-support hook reachable from render (e.g. a `TestAppContext`/`Window` test helper that calls the stored `A11yCallbacks` deactivation/activation) or add in-crate unit tests in `a11y.rs` named `a11y_activation_*` that drive `sync_active_flag` / `platform_covers_frame_end` / `end_platform_frame` with a controlled `Arc<AtomicBool>`, and include them in `check-a11y-activation`'s selection. Seed the mutation above to prove the test fails.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/a11y_activation.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/app/test_context.rs"
+        }
+      ],
+      "boundaryId": "s02-activation"
+    },
+    {
+      "id": "S02-F2",
+      "criterionIds": [
+        "ACT-2"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Builder-over-variable precedence is not proven by the check's group.** Expected (ACT-2, check-a11y-activation description \"GPUX_ACCESSIBILITY values and builder precedence\"): a test shows `Application::with_accessibility_mode` wins over `GPUX_ACCESSIBILITY`. Observed: the child-process test `child_reads_the_environment` only shows that a later `App::set_accessibility_mode` wins; the builder is tested only by the in-crate unit test `a11y_activation_builder_sets_the_application_mode` (`crates/gpui/src/window/a11y.rs`), which runs with the variable unset and is not run by `cargo test -p gpux --test a11y_activation`. Repair: in the child process (variable set, e.g. `always`), build an application with `with_accessibility_mode(AccessibilityMode::Off)` on the test platform and assert its mode is `Off` (add a small test-support accessor if `Application` exposes no mode getter), or move the builder test under the env-child harness; make `check-a11y-activation` run it (or add its `--lib a11y_activation` selection to the check).",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/a11y_activation.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/app.rs"
+        }
+      ],
+      "boundaryId": "s02-activation"
+    },
+    {
+      "id": "S03-F1",
+      "boundaryId": "s03-tree",
+      "criterionIds": [
+        "TREE-1",
+        "TREE-2"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Text-leaf ids change when inspection starts or stops.** Expected (TREE-2, d-text-leaves): the screen-reader view of a frame with inspection containers equals the view without them, and a leaf id changes only when the order of the text changes. Observed: `A11yNodeBuilder::push_text_leaf` hashes `ids_stack.last()` and the ordinal in `text_ordinals.last()`, and `push` gives every inspection `GenericContainer` its own stack entry and ordinal scope, so every leaf under or after an id-only element gets a different id while inspecting. A probe (root view > `div().id(\"box\").child(\"Inside\")` + `\"After\"`, platform source on) gave `After` #8891427454842729713 / `Inside` #9369559791910956854 without inspection and #12541788937870955646 / #2105994981808584525 with it. AccessKit adapters key platform objects by NodeId, so an agent starting inspection replaces every such leaf under a running screen reader. `screen_readers_see_the_same_tree_with_and_without_containers` compares only role/label/value, so it cannot see this. Repair: derive a leaf's id and ordinal from the nearest non-container node (containers do not open an ordinal scope; keep the owner id and counter on a separate stack that skips containers), keep the leaf's tree parent as is, and make the screen-reader-view test compare node ids (and focus id) of the filtered tree, plus a leaf after an id-only sibling.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/a11y_inspection_tree.rs",
+          "symbol": "screen_readers_see_the_same_tree_with_and_without_containers"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window/a11y.rs",
+          "symbol": "A11yNodeBuilder::push_text_leaf"
+        }
+      ]
+    },
+    {
+      "id": "S03-F2",
+      "boundaryId": "s03-tree",
+      "criterionIds": [
+        "TREE-5"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**ScrollIntoView is not an ordinary scroll.** Expected (d-actions invariant, positioning-scroll rules): offsets are published only where scroll owners publish them today, so scroll layers see an ordinary scroll. Observed: `Window::scroll_a11y_node_into_view` writes a handle-less div's `Rc<RefCell<Point>>` directly (no `fast::layers::invalidate::note_scrolled`, no owner notify, unclamped) and ends with `self.refresh()`, which sets `refreshing` and draws the whole window from scratch, dropping every scroll layer's record (`policy::forget_content`) and bypassing view/paint retention on every ScrollIntoView, for tracked handles too (`ScrollHandle::scroll_to` already bumps `fast_version`). The test passes only because of the full refresh. Repair: for handles rely on `scroll_to` plus a plain frame request (dirty the window / notify the owner view without `refresh`); for handle-less divs record the owner view and fast container with the scroll target and go through the wheel listener's path (`note_scrolled` + `cx.notify(owner)`, clamped to the scroll max); add a fast-mode test (`fast_mode_a11y` or `a11y_actions`) asserting a ScrollIntoView keeps the scroll layer (no `forget_content`, ordinary-scroll counters) and that the frame equals the from-scratch oracle.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/a11y_actions.rs",
+          "symbol": "scroll_into_view_redraws_only_what_scrolled"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "symbol": "Window::scroll_a11y_node_into_view"
+        }
+      ]
+    },
+    {
+      "id": "S03-F3",
+      "boundaryId": "s03-tree",
+      "criterionIds": [
+        "TREE-1",
+        "TREE-4"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Masked text fields expose their plain text.** Expected: a field drawn with `EditableTextDisplayTransform::PerGrapheme` (password masking) exposes no source text to screen readers or inspection (the tree feeds the devtools sidecar). Observed: `EditableText::render` (`editable_text/element.rs`) sets `aria_value(state.text())` with role `TextInput`/`MultilineTextInput` regardless of `display_transform`, so the secret is in `accesskit::Node::value`, in `Window::a11y_tree`, and in semantic queries' value matching. Repair: when the transform is `PerGrapheme`, use `Role::PasswordInput` and either omit the value or set the masked display text (one mask per grapheme); for `Projected`, decide and document whether the value is the projection; add a test group case asserting a masked field's node carries no source text.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/a11y_text_leaves.rs",
+          "symbol": "a_masked_text_field_exposes_only_its_mask"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/element.rs",
+          "symbol": "EditableText::render"
+        }
+      ]
+    },
+    {
+      "id": "S03-F4",
+      "boundaryId": "s03-tree",
+      "criterionIds": [
+        "TREE-5"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Requests without a handler still act and return true.** Expected (TREE-5): a request without a handler does nothing and returns false. Observed: in `Window::handle_a11y_action` the Click fallback synthesizes a mouse down/up at the centre of any node with recorded bounds and returns true, even for a node that advertises no Click (e.g. the test's `Inert` Label), and can fire whatever click handler lies under it; `Blur` returns true when nothing is focused. Repair: synthesize Click only for a node whose last-frame node advertises `Action::Click` (else return false), return false from Blur when nothing is focused, and add the `Inert` Click case to `handlers_run_through_perform_a11y_action`.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/a11y_actions.rs",
+          "symbol": "handlers_run_through_perform_a11y_action"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "symbol": "Window::handle_a11y_action"
+        }
+      ]
+    },
+    {
+      "id": "S04-F1",
+      "criterionIds": [
+        "FAST-3"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved in 61e623f: hidden nodes' bounds travel on `open_bounds` into their `Push` event, so rows a list layer held off screen keep their action bounds when shown; guarded by the lane C controls test.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_a11y_layers.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window/a11y.rs"
+        }
+      ],
+      "boundaryId": "s04-fast"
+    },
+    {
+      "id": "S04-F2",
+      "criterionIds": [
+        "FAST-2"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved in 61e623f: a reused/spliced view with an active descendant, a labelled-by relation and synthetic children is compared with a from-scratch window.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/a11y_retention.rs"
+        }
+      ],
+      "boundaryId": "s04-fast"
+    },
+    {
+      "id": "S05-F1",
+      "status": "resolved",
+      "criterionIds": [
+        "QRY-2"
+      ],
+      "descriptionMarkdown": "**Expected:** QRY-2 and task t12 list `ignored_hitbox_semantics` among the suites moved to the new tree: it should prove on the AccessKit tree that an element whose hitbox is `HitboxBehavior::Ignore` (out of hit testing) still keeps its accessibility node, which is the behaviour RayX's pointer detectors rely on.\n\n**Observed:** `crates/gpui/tests/ignored_hitbox_semantics.rs` is unchanged since 41efd38 (before the epic). It is still an `include_str!` grep of `window.rs` for devtools strings (`DevtoolsPointerAction`, `with_pointer_semantics_suppressed`, `semantics.pointer_actions.clear()`). It reads no tree, so it proves nothing about the new tree, and it will break or be deleted when decision 5 removes pointer actions. Nothing else checks that ignored hitboxes keep their AccessKit nodes.\n\n**Repair:** Rewrite `ignored_hitbox_semantics.rs` as a behavioural test. Render an element with an id, a role and a label inside a custom element that inserts a `HitboxBehavior::Ignore` hitbox over it. Locate it with `semantic_query` (role/name/id, bounds in window pixels). Assert that a locator click at its bounds reaches whatever is under it, not the ignored hitbox. Drop the devtools source-string asserts. Seed the failure (skip the node for ignored hitboxes) to show the test can fail.",
+      "severity": "major",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/ignored_hitbox_semantics.rs"
+        }
+      ],
+      "boundaryId": "s05-queries"
     }
   ],
-  "handoffMarkdown": "",
+  "handoffMarkdown": "Implemented in a811bc1/0b4f178 (built with s02-s05 in a development worktree).",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",

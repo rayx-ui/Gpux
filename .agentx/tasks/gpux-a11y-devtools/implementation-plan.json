@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-a11y-devtools",
-  "revision": 5,
+  "revision": 6,
   "title": "gpux accessibility-first: AccessKit as the one semantic tree for screen readers on every platform, gpux-devtools and its MCP, RayX on both",
   "validationMode": "sprint",
   "repositories": [
@@ -380,6 +380,8 @@
         "test",
         "-p",
         "gpux",
+        "--features",
+        "diagnostics",
         "--lib",
         "fast::tests::a11y_describe"
       ],
