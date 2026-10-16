@@ -186,8 +186,8 @@ With `scroll_layers` on (it needs view retention), a scrolling `div` whose offse
 frames in a row paints its content once into a layer: a scene in content space, cut into tiles
 of 512 device pixels, covering the viewport and two viewports on either side. Frames that only
 scroll it are then drawn from those tiles, moved by the offset, without prepainting or painting
-the content. `uniform_list` and `list` get layers of their own, with a record per row (see
-[Virtual lists](#virtual-lists)).
+the content. `uniform_list`, `list` and a vertical `virtual_list` get layers of their own, with a
+record per row (see [Virtual lists](#virtual-lists)).
 
 A window runs scroll layers only where its renderer rasterizes their tiles
 (`PlatformWindow::rasterizes_layer_tiles`); in any other window the switch normalizes to off.
@@ -284,19 +284,22 @@ differ in its last bits. Pixel equality is the renderers' tests' to show.
 
 ### Virtual lists
 
-A `uniform_list` or a `list` renders only the rows it shows. Its layer holds those and the rows
-around them, each painted once at its place and kept by row with everything it handed the
-frame: its part of the layer's scene, the hashes of the tiles it reaches, its hitboxes, the
-hovers it was painted by, its prepaint and paint records, its layout keys and what it read. The
-layout nodes of the rows the list shows stay claimed; those of the rows it does not show linger
-as the nodes of any row a list no longer lays out do: for up to 240 frames, the most recently
-claimed first, and no more of them than half the nodes the frame's rows claim (at least 256).
-A frame that only scrolls the list renders the rows the layer lacks and no other:
+A `uniform_list`, a `list` or a `virtual_list` renders only the rows it shows. Its layer holds
+those and the rows around them, each painted once at its place and kept by row with everything it
+handed the frame: its part of the layer's scene, the hashes of the tiles it reaches, its hitboxes,
+the hovers it was painted by, its prepaint and paint records, its layout keys and what it read. The
+layout nodes of the rows the list shows stay claimed; those of the rows it does not show linger as
+the nodes of any row a list no longer lays out do: for up to 240 frames, the most recently claimed
+first, and no more of them than half the nodes the frame's rows claim (at least 256). A frame that
+only scrolls the list renders the rows the layer lacks and no other:
 
-- the rows the scroll brings within reach. A `uniform_list` holds `ceil(0.5 · viewport / item)`
-  rows on either side of those it shows. A `list` holds half a viewport of rows on either side
-  when it is first painted, only the rows it shows after a change of its content painted them
-  again, and half a viewport again on the next frame that keeps them. A list's layer is
+- the rows the scroll brings within reach, `LIST_OVERSCAN_VIEWPORTS` of a viewport (0.15) on
+  either side. A `uniform_list` holds `ceil(0.15 · viewport / item)` rows on either side of those
+  it shows. A `virtual_list` holds the rows that lie within 0.15 of a viewport above and below the
+  viewport, found through its `OrderedExtentIndex`, besides the rows it mounts (its visible range
+  and its own `overscan`). A `list` holds 0.15 of a viewport of rows on either side when it is
+  first painted, only the rows it shows after a change of its content painted them again, and
+  0.15 of a viewport again on the next frame that keeps them. A list's layer is
   extended by as many rows a frame whatever it holds, so a wider overscan would only hold more
   memory (`LIST_OVERSCAN_VIEWPORTS`); rows past it are dropped a batch at a time, once they are
   more than a quarter of the rows the layer is to hold;
@@ -367,9 +370,48 @@ Two things keep all that true where rows reach outside the room their list gives
   The frame that finds such a row draws the rows the list shows and no other.
 
 A list goes without a layer, counted `ineligible`, when it has rows that stick to its top
-(`ListState::with_sticky_items`, `UniformList::sticky_items`), is a uniform list drawn bottom up
-(`y_flipped`), has rows holding what no tile can (see the reasons above), or lies over no
-opaque background.
+(`ListState::with_sticky_items`, `UniformList::sticky_items`, `VirtualList::sticky_rows`), is a
+uniform list drawn bottom up (`y_flipped`), is a horizontal `virtual_list` (`h_virtual_list`),
+has rows holding what no tile can (see the reasons above), or lies over no opaque background.
+
+A `virtual_list` knows each item's size up front. Its layer places row `n` at the list's own
+origin for it (`origins[n]`, the gaps before it included), never by a sum from another row, and
+a row the layer holds lands where a new layout puts it after the sizes, their count or the gap
+change. The item it renders to measure its cross-axis size is measured once and kept while the
+frame only scrolls the layer (`lists::measure_item`): the frame takes in the offsets published
+since the last one before it decides, so that a wheel on the list's own handle counts as the
+scroll it is, and it reaches the element states measuring the item reached, as measuring it again
+would. Its `on_rendered_range` listener runs on every frame the list is drawn, composited frames
+included, before any row is rendered, with the mounted, clamped, overscanned range a frame drawn
+without layers publishes; rows stuck to an edge never widen it.
+
+A `virtual_list` scrolled by another element has no list layer and calls none of the list hooks:
+it is no scroll container of its own. A `SynchronizedOffset` list applies the offset of the
+element driving it. A `ParentViewport` list lies in its parent's flow, at its whole content
+extent, and is part of its parent `div`'s content and layer. It takes the parent's viewport from
+the content mask as it is without a layer (`paint::unlayered_content_mask`): while the parent's
+layer paints, the mask is the region the layer paints, and the metrics the list publishes
+(`parent_viewport_primary_size`, `parent_viewport_scroll_offset`,
+`parent_viewport_max_scroll_offset`), its range and the rows it renders are the viewport's. The
+list reads the parent's offset, so the parent's layer is painted again on every frame the parent
+scrolls, until it is demoted, and composites only at the offset it was painted at; keeping that
+layer promoted is a follow-up.
+
+Over 60 wheel frames of 15 px on 10,000 rows in a 100 px list (the harness of
+`fast::tests::virtual_list_layers::rows`, the test platform at scale 1, the shipped overscan), a
+frame paints 2.17 primitives on average for a `virtual_list` of rows 16 to 28 px tall and for one
+of 20 px rows, as for a `uniform_list` of the same 20 px rows. It renders 0.80 and 0.87 rows and
+keeps 6.9 and 7.6 (the `uniform_list` 0.87 and 7.8), and its row closure runs for those rows alone
+(the `uniform_list`'s also renders its first row to measure it, 1.87 rows a frame). The group
+itself runs at the test overscan of half a viewport. The planning measurement (2026-10-16, before
+the list had a layer) found 21 primitives and 25 rows a frame for RayX's lists, against 5 to 6
+primitives and 0 to 2 rows for `uniform_list` and `list`.
+
+An edge that lies on exactly half a device pixel can round one pixel apart in a frame shown from a
+layer and in a frame drawn from scratch, once the layer moved it across the window's origin: the
+rounding goes half toward zero, which a whole-pixel move does not preserve across zero. This holds
+for any layer (a padded `uniform_list` at 4.25 px and scale 2 shows it); the list layer groups keep
+their edges off exact halves.
 
 `FastStats::list_rows_rendered` and `list_rows_kept` count the rows rendered into list layers
 and the rows kept without rendering. `Window::describe_rendered_frame` describes a frame shown
@@ -380,7 +422,8 @@ finds by its focus, a listener that listens or an input handler is told, and the
 from the one drawn without the layer. At a fractional scale factor the hitboxes carried with a
 row lie a few units in the last place from where laying the row out afresh puts them.
 
-The `fast::tests::list_layers` group checks all of it against a window drawing from scratch:
+The `fast::tests::list_layers` and `fast::tests::virtual_list_layers` groups check all of it
+against a window drawing from scratch:
 what is rendered on each kind of frame, the frames' quads at scale factors 1 and 1.25, and
 whole frame descriptions over random histories of wheel turns, pointer moves and clicks. The
 layers oracle runs its histories over a uniform list and a list (`list_layers::oracle`), and
