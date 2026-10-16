@@ -118,8 +118,13 @@ Caveats:
 - The iOS Simulator runs on the Mac's GPU and CPU, so its numbers describe the Simulator, not a phone.
 - In the browser, the CPU figure is Chrome's main-thread task time. That includes the browser's own
   work and excludes the WASM worker threads.
-- GPU execution time is not measured on any target. A frame the GPU cannot finish in time shows up
-  as a lower frame rate.
+- GPU execution time (`gpu_ms`, Metal command buffer start to end) is measured on macOS only. On the
+  other targets a frame the GPU cannot finish in time shows up as a lower frame rate.
+- CPU time per frame depends on the clock the core runs at, and a frame that needs less work runs at a
+  lower clock: on an Apple M-series Mac the same main-thread work reads about 2.9 ms with the clusters idle
+  and 1.0 ms with them busy. A build that does less work can therefore read as slower. To compare two
+  builds, alternate their binaries and run with `--hold-clocks 3` (or run three `yes >/dev/null`
+  processes beside them), which keeps the clocks up; allocation counts, bytes and heap do not depend on it.
 
 ## Adding a scenario
 

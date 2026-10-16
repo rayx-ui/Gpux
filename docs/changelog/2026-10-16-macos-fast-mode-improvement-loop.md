@@ -2,7 +2,7 @@
 
 Branch `perf/agentx-macos-loop` (worktree `Gpux-agentx-loop`), 70 commits since the opening state: **local only, not pushed or merged, native macOS only**
 (Apple M5, macOS 26.6.2, Metal, 120 Hz). Four AgentX improvement-loop runs, 31 experiments plus 4 baselines: 19 kept, 12 reverted (one kept experiment, two drawables, was undone by a later one).
-The user stopped the loop during experiment 3 of part 4; that experiment was reverted untested. About 35 of the 50 iterations were used.
+The user stopped the loop during experiment 3 of part 4; that experiment was reverted untested. Part 5 then investigated the two apparent regressions and found the clock effect described below. About 35 of the 50 iterations were used.
 
 ## 1. How the numbers were taken
 
@@ -11,6 +11,14 @@ before any loop change) with the **final state** (this branch's head, `bcdcf81`)
 **alternated in one session** (old, new, old, new...) so frequency and thermal drift hit both alike: 15 scenarios, fast mode off and on,
 3 repetitions each, 600 measured frames after 120 warm-up frames. Cells are the median of the three. Raw data:
 [benchmark/results/2026-10-16-opening-vs-final/](../../benchmark/results/2026-10-16-opening-vs-final/) (summary.json, 180 result files).
+
+**Clock state matters, and part 5 of the loop found it.** The tables of sections 2 and 6 were first taken with the CPU clusters idle,
+which made two fast-on scenarios look 21% slower than the opening. A frame that needs less work runs at a lower clock, so its thread
+takes more CPU time per unit of work (the same `scroll-data-table` main-thread work reads 2.9 ms with the clusters idle and 1.0 ms with
+three busy processes beside it). The comparison was therefore repeated with `run.py --hold-clocks 3`, which keeps the clocks up
+([benchmark/results/2026-10-16-opening-vs-final-held-clocks/](../../benchmark/results/2026-10-16-opening-vs-final-held-clocks/), same 180 runs).
+The held-clock numbers measure the work and are the ones to read; the idle-clock numbers are kept because they are what an unloaded
+machine shows, and they understate the gains. Allocations, bytes and heap do not depend on the clock.
 
 Caveats that apply to every table:
 - `main_cpu_ms` is thread CPU time. On this machine it moves with pacing and the CPU's frequency choice (the same build read 1.8 or 2.6 ms
@@ -23,8 +31,10 @@ Caveats that apply to every table:
 
 | | Fast mode off | Fast mode on |
 |---|---|---|
-| CPU per frame, geometric mean over 15 scenarios | **-12%** | **-14%** |
-| `Window::draw` median, geometric mean | -11% | -18% |
+| CPU per frame, geometric mean over 15 scenarios, clocks held | **-17%** | **-31%** |
+| CPU per frame, same, clocks idle (understates) | -12% | -14% |
+| `Window::draw` median, geometric mean, clocks held | -17% | -34% |
+| `Window::draw` median, same, clocks idle | -11% | -18% |
 | Heap allocations per frame, geometric mean | **-26%** | **-64%** |
 | Bytes allocated per frame, geometric mean | -21% | -23% |
 | Peak live Rust heap, geometric mean | -12% | -14% |
@@ -40,14 +50,12 @@ Largest wins (before > after):
 - `tree-toggle`, fast on: CPU -17%, `Window::draw` -23%, allocations -45%, peak heap 37.7 > 26.5 MB (-30%).
 - Peak Rust heap fell 10-30% in 10 of 15 scenarios with fast mode on, and 3-8% in four more (`scroll-data-table` 48.7 > 39.0, `hover-grid` 62.7 > 49.4).
 
-**Not a gain, found by this comparison:** two fast-on scenarios are slower in CPU than the opening state, consistently across all three
-repetitions: `scroll-data-table` (2.94 > 3.54 ms, +21%; `Window::draw` p50 +7%) and `dashboard-one-panel` (2.83 > 3.43 ms, +21%; draw +11%).
-The data-table cost is known and was accepted at the time: keeping sized Core Text fonts speeds text-relabel by 40% and costs the
-data-table about 10% (experiment 13 of part 1, a same-binary check), and the shorter list overscan makes lists render more rows while
-scrolling in exchange for 13% less heap. The `dashboard-one-panel` regression is **unexplained**: I did not bisect it. A later check that
-the closing build of part 3 and the final build are equal (both about 3.0-3.5 ms there) shows it entered earlier. Treat it as an open item.
-Also with fast mode on, `animated-dots` (+1%), `text-log-stream` draw (+4%) and, with it off, `text-typing` draw (+12%, CPU -2%) did not improve.
-
+**With the clocks held, every scenario improved and none regressed** (section 6, held-clock tables): geometric mean CPU per frame
+**-17% off / -31% on**, `Window::draw` median -17% / -34%, 95th percentile -17% / -34%. Largest, fast on: `scroll-div-cards` CPU
+5.06 > 1.20 ms (-76%, draw -82%), `text-relabel` -46%, `hover-grid` -38%, `dashboard-all-panels` -36%, `table-stream` -35%,
+`scroll-data-table` -31% (draw -36%), `dashboard-one-panel` -28%, `dashboard-clock` -28%. The idle-clock run had shown
+`scroll-data-table` (+21%) and `dashboard-one-panel` (+21%) as slower: that was the clock effect, not a regression, and part 5 of the
+loop recorded it as such. Only `scroll-variable-list` fast on is flat to slightly up in draw (0.07 > 0.08 ms, at the measurement floor).
 
 ## 3. What changed (all kept changes, in order)
 
@@ -96,7 +104,7 @@ deciding "emoji" once per glyph run in the Core Text shaper (0%); halving the sh
 | Scroll-layer memory | Peak heap down 11-22% on the scroll scenarios (list overscan, lazy element data). Footprint with fast mode on is still 1.30-1.46x the footprint with it off, and 3-7% lower than at the opening: the remainder is the visible tile textures (private Metal storage, about the window area) and the three drawables, which a `malloc_history` check confirmed are not Rust heap. |
 | Spliced frame copy cost | `dashboard-clock` fast on: allocations -93%, draw p50 -20% (2.97 > 2.38 ms here; 1.4 ms in a quieter session). The 1 ms target is **not met**: the work left is about 0.9 us per retained element across claiming, copying records and replaying primitives. |
 | Skip layout and prepaint in composited scroll layers | Done for layout (`f7a22c7`): div-cards draw p50 4.5 > 2.1 ms (target 2 ms, **met within noise**). Prepaint is still needed. |
-| scroll-data-table with fast mode | **Worse**: CPU +21% against the opening (see section 2); heap and footprint are better (-20% / -7%). |
+| scroll-data-table with fast mode | Clocks held: CPU 0.83 > 0.58 ms (-31%), draw -36%, heap -20%, footprint -7%. (An idle-clock run had read +21%; that was the clock effect.) |
 | Adaptive layout retention | text-relabel, hover-grid, tree-toggle all improved a lot (-43%, -31%, -17% CPU). |
 | text-typing on macOS | Fast on: CPU -7%, allocations -51%; off: unchanged. |
 | Hover granularity | **Not done, and it is a design limit**: splicing reuses per nested view, so a hover inside one view (hover-grid's 1,600 cells) builds that whole view again. Per-cell views would splice; element-level reuse inside a view was not attempted. |
@@ -105,6 +113,73 @@ deciding "emoji" once per glyph run in the Core Text shaper (0%); halving the sh
 | Benchmark coverage (GPU time) | Added `gpu_ms` to the JSON and the report (macOS). Lanes B-G (web, Android, iOS, real GPUs) were not run. |
 
 ## 6. Full results
+
+### Clocks held (`--hold-clocks 3`), the work compared
+
+### CPU per frame, clocks held (`main_cpu_ms`, mean, ms)
+
+| Scenario | Fast mode off: before > after | Change | Fast mode on: before > after | Change |
+|---|---|---|---|---|
+| animated-dots | 1.05 > 0.88 | -17% | 1.12 > 0.93 | -18% |
+| dashboard-all-panels | 7.23 > 5.19 | -28% | 6.73 > 4.32 | -36% |
+| dashboard-clock | 4.14 > 3.59 | -13% | 0.43 > 0.31 | -28% |
+| dashboard-one-panel | 4.24 > 3.65 | -14% | 0.68 > 0.49 | -28% |
+| effects-cards | 2.99 > 2.61 | -13% | 0.39 > 0.32 | -18% |
+| hover-grid | 7.52 > 5.50 | -27% | 6.85 > 4.28 | -38% |
+| scroll-data-table | 1.84 > 1.55 | -16% | 0.83 > 0.58 | -31% |
+| scroll-div-cards | 14.10 > 12.35 | -12% | 5.06 > 1.20 | -76% |
+| scroll-uniform-list | 0.63 > 0.54 | -13% | 0.26 > 0.21 | -20% |
+| scroll-variable-list | 0.41 > 0.38 | -7% | 0.18 > 0.17 | -3% |
+| table-stream | 2.76 > 2.29 | -17% | 1.04 > 0.68 | -35% |
+| text-log-stream | 0.85 > 0.77 | -9% | 0.90 > 0.80 | -11% |
+| text-relabel | 12.00 > 6.94 | -42% | 11.54 > 6.29 | -46% |
+| text-typing | 0.97 > 0.92 | -5% | 0.45 > 0.40 | -11% |
+| tree-toggle | 4.18 > 3.64 | -13% | 3.93 > 2.83 | -28% |
+| **geometric mean** | | **-17%** | | **-31%** |
+
+### `Window::draw` median, clocks held (ms)
+
+| Scenario | Fast mode off: before > after | Change | Fast mode on: before > after | Change |
+|---|---|---|---|---|
+| animated-dots | 0.96 > 0.78 | -19% | 1.03 > 0.83 | -19% |
+| dashboard-all-panels | 7.03 > 5.01 | -29% | 6.52 > 4.16 | -36% |
+| dashboard-clock | 3.98 > 3.45 | -13% | 0.39 > 0.27 | -31% |
+| dashboard-one-panel | 4.07 > 3.51 | -14% | 0.63 > 0.44 | -30% |
+| effects-cards | 2.85 > 2.49 | -13% | 0.35 > 0.27 | -21% |
+| hover-grid | 6.91 > 5.17 | -25% | 6.22 > 3.99 | -36% |
+| scroll-data-table | 1.74 > 1.46 | -16% | 0.63 > 0.40 | -36% |
+| scroll-div-cards | 13.66 > 12.03 | -12% | 4.52 > 0.81 | -82% |
+| scroll-uniform-list | 0.57 > 0.49 | -13% | 0.19 > 0.12 | -37% |
+| scroll-variable-list | 0.36 > 0.34 | -7% | 0.07 > 0.08 | +28% |
+| table-stream | 2.67 > 2.21 | -17% | 1.00 > 0.63 | -37% |
+| text-log-stream | 0.79 > 0.72 | -9% | 0.84 > 0.73 | -12% |
+| text-relabel | 11.84 > 6.78 | -43% | 11.38 > 6.07 | -47% |
+| text-typing | 0.91 > 0.86 | -6% | 0.39 > 0.35 | -12% |
+| tree-toggle | 4.07 > 3.57 | -12% | 3.09 > 2.02 | -35% |
+| **geometric mean** | | **-17%** | | **-34%** |
+
+### `Window::draw` 95th percentile, clocks held (ms)
+
+| Scenario | Fast mode off: before > after | Change | Fast mode on: before > after | Change |
+|---|---|---|---|---|
+| animated-dots | 1.00 > 0.82 | -18% | 1.06 > 0.90 | -16% |
+| dashboard-all-panels | 7.28 > 5.19 | -29% | 6.72 > 4.33 | -36% |
+| dashboard-clock | 4.05 > 3.50 | -14% | 0.42 > 0.30 | -29% |
+| dashboard-one-panel | 4.14 > 3.59 | -13% | 0.67 > 0.48 | -29% |
+| effects-cards | 2.90 > 2.56 | -12% | 0.39 > 0.32 | -18% |
+| hover-grid | 7.16 > 5.37 | -25% | 6.43 > 4.05 | -37% |
+| scroll-data-table | 1.87 > 1.54 | -18% | 0.83 > 0.50 | -40% |
+| scroll-div-cards | 14.06 > 12.35 | -12% | 4.68 > 0.90 | -81% |
+| scroll-uniform-list | 0.61 > 0.52 | -15% | 0.26 > 0.17 | -33% |
+| scroll-variable-list | 0.46 > 0.42 | -10% | 0.23 > 0.18 | -21% |
+| table-stream | 2.72 > 2.25 | -17% | 1.09 > 0.71 | -35% |
+| text-log-stream | 0.81 > 0.75 | -8% | 0.87 > 0.80 | -8% |
+| text-relabel | 12.14 > 7.04 | -42% | 11.64 > 6.34 | -46% |
+| text-typing | 0.95 > 0.90 | -5% | 0.46 > 0.39 | -14% |
+| tree-toggle | 4.36 > 3.81 | -13% | 5.40 > 4.16 | -23% |
+| **geometric mean** | | **-17%** | | **-34%** |
+
+### Clocks idle, as first measured (understates the CPU gains; allocation, heap and footprint tables do not depend on the clock)
 
 ### CPU per frame on the main thread (`main_cpu_ms`, mean, ms)
 

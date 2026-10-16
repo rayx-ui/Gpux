@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "id": "7967fcbe-6fb9-4d62-af23-198745cbce85",
+  "loopId": "55fed546-f57a-4f71-939f-001f39b97557",
+  "index": 2,
+  "type": "hypothesis",
+  "name": "Hold the CPU clocks while benchmarking",
+  "slug": "hold-the-cpu-clocks-while-benchmarking",
+  "path": "2026-10-16-02-hold-the-cpu-clocks-while-benchmarking.json",
+  "createdAt": "2026-10-16T12:06:43Z",
+  "startedAt": "2026-10-16T12:06:43Z",
+  "finishedAt": null,
+  "state": "running",
+  "status": "",
+  "checkpointCommit": "3143e55a8fc19844d3fb6a6897585d9ae50359c9",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 3143e55a8fc19844d3fb6a6897585d9ae50359c9",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "3143e55a8fc19844d3fb6a6897585d9ae50359c9",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 3143e55a8fc19844d3fb6a6897585d9ae50359c9",
+      "status": ""
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "The +21% CPU of scroll-data-table and dashboard-one-panel with fast mode on against the opening state is not more work. A bisect over six kept commits showed no single step and no regression for dashboard-one-panel at all, the sample profile of the 'slower' build held fewer main-thread samples than the faster one (857 against 1,048), and main_cpu_ms is thread CPU time, which grows when the core runs at a lower clock for lighter frames.",
+  "measurementPlanMarkdown": "Run the opening binary and the final binary alternated with three busy processes beside them so the clusters stay clocked up, over all 15 scenarios, fast off and on, 3 repetitions. Add a --hold-clocks option to run.py so the benchmark can do it and document the caveat.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "scroll-data-table fast on CPU (clocks idle > held)",
+      "before": "2.94 > 3.54 ms idle (+21%)",
+      "after": "0.83 > 0.58 ms held",
+      "delta": "-31% held",
+      "source": "final-ab2"
+    },
+    {
+      "metric": "dashboard-one-panel fast on CPU",
+      "before": "2.83 > 3.43 ms idle (+21%)",
+      "after": "0.68 > 0.49 ms held",
+      "delta": "-28% held",
+      "source": "final-ab2"
+    },
+    {
+      "metric": "geometric mean CPU over 15 scenarios, fast off / on",
+      "before": "-12% / -14% idle",
+      "after": "-17% / -31% held",
+      "delta": "",
+      "source": "final-ab2"
+    },
+    {
+      "metric": "geometric mean Window::draw p50, fast off / on",
+      "before": "-11% / -18% idle",
+      "after": "-17% / -34% held",
+      "delta": "",
+      "source": "final-ab2"
+    }
+  ],
+  "reportMarkdown": "With the clocks held every scenario improved against the opening state and none regressed; the earlier idle-clock comparison understated the gains and invented two regressions. The same main-thread work read 2.9 ms idle and 1.0 ms held on the data table. run.py gained --hold-clocks N (busy processes for the desktop runs, recorded in meta.json), tested end to end, and the README documents the caveat. The changelog and the memory rules are corrected.",
+  "decisionMarkdown": "Keep. No product code changed: the 'regressions' were a measurement artifact, and the fix is the measurement.",
+  "notes": ""
+}

@@ -28,8 +28,8 @@
     "successfulAttemptRequiresCommitBeforeNextExperiment": true,
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
-  "currentExperimentId": null,
-  "nextExperimentIndex": 2,
+  "currentExperimentId": "7967fcbe-6fb9-4d62-af23-198745cbce85",
+  "nextExperimentIndex": 3,
   "experiments": [
     {
       "id": "fa8f04dc-52c2-4a0c-a819-fbc7d5db0977",
@@ -41,6 +41,17 @@
       "finishedAt": "2026-10-16T11:50:08Z",
       "state": "done",
       "status": "success"
+    },
+    {
+      "id": "7967fcbe-6fb9-4d62-af23-198745cbce85",
+      "index": 2,
+      "type": "hypothesis",
+      "name": "Hold the CPU clocks while benchmarking",
+      "path": "2026-10-16-02-hold-the-cpu-clocks-while-benchmarking.json",
+      "startedAt": "2026-10-16T12:06:43Z",
+      "finishedAt": null,
+      "state": "running",
+      "status": ""
     }
   ]
 }
