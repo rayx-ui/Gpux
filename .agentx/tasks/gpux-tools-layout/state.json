@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-tools-layout",
-  "revision": 25,
+  "revision": 27,
   "planRevision": 3,
   "specHashes": {
     "requirements": "c4e870158158b3614af43ed0b0729d299545e62ec1129cdad96f379b63827087",
@@ -1373,7 +1373,7 @@
           "criterionIds": [
             "DOCS-4"
           ],
-          "sha256": "8930ac9e65df4a33d62c6502a380e5f979369079e6937c43444fdca156751dfa"
+          "sha256": "74faf35f6f7f40222088b51f13e33f9b291f06f02dd6d4f72e4e576c02830fef"
         },
         {
           "repositoryId": "gpux",
@@ -1399,9 +1399,13 @@
           "sha256": "9835d38da719da7d15fa7d5aa20200a277369c0c761dbcd90b7b0e8d626b1bf6"
         }
       ],
+      "deltaSummaryMarkdown": "I inspected 9328c8f and 03244f5 (`git diff 7b5caf4 HEAD -- .agentx/memory`). Each changes one line, and only in the promoted decision `2026-10-16-repository-validation-test-tooling-layout.md`. Reasoning now reads \"Two homes, split by role\" and says `tools/` holds Rust workspace crates (`testkit`, `perf`) and non-crates (`browser`, `android`, `ios`). That matches the CLAUDE.md/AGENTS.md Crate Layout rule and the tree, which resolves F-FINAL-DECISION-RUST-CRATE-SPLIT. Context now describes the old locations without naming the forbidden paths and points to the epic's own records for them. The facts stay correct, and the change fixes a real guard failure that existed once the file was tracked. All relative links in the decision resolve. I reran `cargo test -p gpux-testkit --test repository_layout` on HEAD: 11 passed. No other memory, INDEX or source file changed, and the product snapshot is unchanged (a84fe07e...), so the earlier final verification stands.",
+      "reattestedFrom": "a84fe07ea8f5949dda2b119ef526554dcf114e63e54ecf0e81836861ab1c64fc",
       "summaryMarkdown": "Passed. The integrated diff d68dda0..HEAD moves every folder with history (1302 pure renames; renamed sources change only paths, names and the `CONFORMANCE_PACKAGE` constant), keeps lane content, specs, pnpm-lock, fixtures, goldens and historical records byte-identical, leaves vendor/wgpu and all other epics' records untouched, and changes no crate under crates/ outside the two gpux_tests_* crates except the one gpux-written doc comment in crates/gpui/src/fast/layers/paint.rs. The root workspace lists crates/gpux_tests_conformance, tools/testkit and tools/perf and not the benchmark, which keeps its own [workspace], publish = false and sibling path dependencies; gpux-testkit keeps its manifest shape and cargo package --workspace passed. Protocol identifiers are unchanged and asserted. The final check --epic passed all 16 checks at this snapshot (testkit package 145 tests, guard 11, canary 3, ios build); I reran the guard group (11 passed) and an independent stale-reference grep, memory/doc link resolution and a RayX grep, all clean. The 822cb56 needless_return removal is behaviour-neutral on both cfg branches in a file the epic moved and is an acceptable alternative to leaving the static gate failing. BENCH-3 evidence (17:49-17:52, uncommitted sprint-1 tree, both configs, report written, results removed from the crate) is accepted. Non-blocking note for the owner: the moved historical crates/gpux_tests_benchmark/LOOP-2026-10-16.md keeps its `../docs/changelog/...` link, which no longer resolves from the new folder; the scope requires these records to move unchanged, so this is a consequence of that decision, not a defect. The six sprint findings (F-S01-LEFTOVER-OLD-FOLDERS, F-S01-ANDROID-MANIFEST-WIRING, s02-lane-b-merge-reports-depth, s02-zed-preserve-list-incomplete, s02-layout-rule-every-rust-crate, s02-packaging-state-benchmark-exemption) were re-verified in the integrated tree and stay resolved; no new finding.",
-      "findingIds": [],
-      "recordedAt": "2026-10-16T16:38:27Z"
+      "findingIds": [
+        "F-FINAL-DECISION-RUST-CRATE-SPLIT"
+      ],
+      "recordedAt": "2026-10-16T16:50:32Z"
     }
   },
   "checkpoints": {
@@ -1544,6 +1548,28 @@
         }
       ],
       "boundaryId": "s02-references"
+    },
+    {
+      "id": "F-FINAL-DECISION-RUST-CRATE-SPLIT",
+      "boundaryId": "final",
+      "criterionIds": [
+        "DOCS-4",
+        "DOCS-3"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved in 9328c8f. The promoted decision's Reasoning says the two homes are split by role and that `tools/` holds both Rust workspace crates (`testkit`, `perf`) and non-crates (`browser`, `android`, `ios`), matching CLAUDE.md/AGENTS.md. 03244f5 also removed the old paths from its Context line, which the layout guard forbids in tracked live memory. Guard group 11/11 passed on HEAD.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-16-repository-validation-test-tooling-layout.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/repository_layout.rs",
+          "symbol": "no_live_file_names_an_old_location"
+        }
+      ]
     }
   ],
   "handoffMarkdown": "",
