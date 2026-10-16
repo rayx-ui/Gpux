@@ -28,8 +28,8 @@
     "successfulAttemptRequiresCommitBeforeNextExperiment": true,
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
-  "currentExperimentId": null,
-  "nextExperimentIndex": 2,
+  "currentExperimentId": "67a8ac7f-614f-42ca-905e-226dd820b2df",
+  "nextExperimentIndex": 3,
   "experiments": [
     {
       "id": "ddc0da9b-11bf-491e-a966-4a6997d6aca0",
@@ -42,6 +42,17 @@
       "state": "done",
       "status": "success",
       "resultCommit": "155dc470d054c2a85582f8589ef380b1cf968f80"
+    },
+    {
+      "id": "67a8ac7f-614f-42ca-905e-226dd820b2df",
+      "index": 2,
+      "type": "hypothesis",
+      "name": "Interactivity listeners allocated on first use",
+      "path": "2026-10-16-02-interactivity-listeners-allocated-on-first-use.json",
+      "startedAt": "2026-10-16T01:55:53Z",
+      "finishedAt": null,
+      "state": "running",
+      "status": ""
     }
   ]
 }
