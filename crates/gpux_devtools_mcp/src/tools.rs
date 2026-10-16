@@ -102,9 +102,9 @@ pub fn builtin() -> Vec<Value> {
         tool(
             "gpux_input",
             "Synthesize input",
-            "Synthesize platform input at a ref's bounds or a point: click, hover, drag, longPress, pinch, wheel, type, press, mouseDown, mouseUp, mouseMove.",
+            "Synthesize platform input at a ref's bounds or a point: click, tap (a touch), hover, drag, longPress, pinch, wheel, type, press, mouseDown, mouseUp, mouseMove.",
             target_properties(json!({
-                "kind": { "type": "string", "enum": ["click", "hover", "drag", "longPress", "pinch", "wheel", "type", "press", "mouseDown", "mouseUp", "mouseMove"] },
+                "kind": { "type": "string", "enum": ["click", "tap", "hover", "drag", "longPress", "pinch", "wheel", "type", "press", "mouseDown", "mouseUp", "mouseMove"] },
                 "ref": { "type": ["string", "null"] },
                 "x": { "type": ["number", "null"] },
                 "y": { "type": ["number", "null"] },

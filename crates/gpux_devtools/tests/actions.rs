@@ -299,6 +299,17 @@ fn input_presses_moves_and_releases_apart() {
 }
 
 #[test]
+fn input_taps_with_a_touch() {
+    let mut cx = TestAppContext::single();
+    let (log, _guard) = gestures(&mut cx);
+    let pad = reference(&mut cx, "name=Pad");
+    request(&mut cx, "input", json!({"kind": "tap", "ref": pad})).unwrap();
+    cx.run_until_parked();
+    // The touch recognizer turns the short touch into a press and release at the pad's center.
+    assert_eq!(without_hover(&log), ["down 20", "up 20"]);
+}
+
+#[test]
 fn input_hovers_a_node() {
     let mut cx = TestAppContext::single();
     let (log, _guard) = gestures(&mut cx);

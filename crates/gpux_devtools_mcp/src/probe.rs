@@ -19,9 +19,19 @@ pub struct Probed {
     pub reference: String,
 }
 
-/// Waits up to `patience` for an app to connect, then snapshots its first window, finds the
-/// button named `button` and taps it with a synthesized click.
+/// Waits up to `patience` for an app to connect, then snapshots its last window, finds the
+/// button named `button` and presses it with a synthesized click.
 pub fn tap_button(registry: &Registry, button: &str, patience: Duration) -> Result<Probed, String> {
+    press_button(registry, button, "click", patience)
+}
+
+/// [`tap_button`] with the input `kind` (`click`, or `tap` for a touch).
+pub fn press_button(
+    registry: &Registry,
+    button: &str,
+    kind: &str,
+    patience: Duration,
+) -> Result<Probed, String> {
     let start = Instant::now();
     let app = loop {
         if let Some(app) = registry.apps().into_iter().next() {
@@ -64,7 +74,7 @@ pub fn tap_button(registry: &Registry, button: &str, patience: Duration) -> Resu
             "the snapshot does not show the button:\n{snapshot}"
         ));
     }
-    ask("input", json!({ "kind": "click", "ref": reference }))?;
+    ask("input", json!({ "kind": kind, "ref": reference }))?;
     Ok(Probed {
         app,
         snapshot,
@@ -73,15 +83,16 @@ pub fn tap_button(registry: &Registry, button: &str, patience: Duration) -> Resu
     })
 }
 
-/// [`tap_button`], then waits up to `patience` for `effect`, a semantic query, to match in the
-/// window: the tap's effect, as the app's tree shows it.
-pub fn tap_button_until(
+/// [`press_button`], then waits up to `patience` for `effect`, a semantic query, to match in
+/// the window: the press's effect, as the app's tree shows it.
+pub fn press_button_until(
     registry: &Registry,
     button: &str,
+    kind: &str,
     effect: &str,
     patience: Duration,
 ) -> Result<Probed, String> {
-    let probed = tap_button(registry, button, patience)?;
+    let probed = press_button(registry, button, kind, patience)?;
     let timeout = patience.as_millis() as u64;
     registry
         .request(
@@ -90,6 +101,26 @@ pub fn tap_button_until(
             json!({ "window": probed.window, "query": effect, "timeoutMs": timeout }),
             REQUEST_TIMEOUT + patience,
         )
-        .map_err(|error| format!("after the tap: {error}"))?;
+        .map_err(|error| {
+            // What the window shows, to tell a missed tap from a tree that did not update.
+            let shown = registry
+                .request(
+                    probed.app.connection,
+                    "snapshot",
+                    json!({ "window": probed.window, "bounds": true }),
+                    REQUEST_TIMEOUT,
+                )
+                .map(|snapshot| {
+                    snapshot["snapshot"]
+                        .as_str()
+                        .unwrap_or_default()
+                        .to_string()
+                })
+                .unwrap_or_else(|error| error.to_string());
+            format!(
+                "after the tap at ref {}: {error}; the window shows\n{shown}",
+                probed.reference
+            )
+        })?;
     Ok(probed)
 }

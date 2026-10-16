@@ -341,6 +341,8 @@ fn mouse_move(window: &mut Window, cx: &mut App, at: Point<Pixels>, pressed: Opt
 }
 
 fn click(window: &mut Window, cx: &mut App, at: Point<Pixels>, button: MouseButton, count: usize) {
+    // A pointer reaches what it clicks first.
+    mouse_move(window, cx, at, None);
     for count in 1..=count.max(1) {
         mouse_down(window, cx, at, button, count);
         mouse_up(window, cx, at, button, count);
@@ -391,7 +393,7 @@ fn flush(window: &mut Window, cx: &mut App) {
 }
 
 /// `input`: synthesizes input through the window's dispatch methods, the paths platform input
-/// takes. `kind` is `click` (with `button` and `count`), `hover`, `mouseMove`, `mouseDown`,
+/// takes. `kind` is `click` (with `button` and `count`), `tap` (a touch), `hover`, `mouseMove`, `mouseDown`,
 /// `mouseUp`, `drag` (to `toRef` or `toX`/`toY`), `longPress` (`durationMs`), `pinch`
 /// (`scale`), `wheel` (`deltaX`/`deltaY`), `type` (`text`, clicking `ref` first when given and
 /// clearing the field first with `replace`) or `press` (`keys`: `["cmd-a", "backspace"]`, or
@@ -410,6 +412,10 @@ pub fn input(cx: &mut App, params: Value) -> Task<Outcome> {
             "click" => {
                 let count = params.get("count").and_then(Value::as_u64).unwrap_or(1) as usize;
                 click(window, cx, at_or_center, button(&params), count);
+            }
+            "tap" => {
+                touch(window, cx, at_or_center, TouchPhase::Started);
+                touch(window, cx, at_or_center, TouchPhase::Ended);
             }
             "hover" | "mouseMove" => mouse_move(window, cx, at_or_center, None),
             "mouseDown" => mouse_down(window, cx, at_or_center, button(&params), 1),
