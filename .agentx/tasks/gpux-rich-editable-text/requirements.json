@@ -1,0 +1,174 @@
+{
+  "schemaVersion": 7,
+  "epicId": "gpux-rich-editable-text",
+  "scopeMarkdown": "Make gpux's one editable element, `EditableText` over `EditableTextState`, a rich text editor from the start. The owner decided this on 2026-10-17, choosing **one element whose capabilities grow in layers**, not separate plain and rich elements. A plain field is a rich field with no formatting and pays nothing for it. The epic covers:\n\n- stored character formatting;\n- font size, letter spacing and baseline shift per run in the shared text system;\n- rows of different heights;\n- paragraph formatting: alignment including justify, indents, spacing, line height and lists;\n- inline objects;\n- a rich (HTML) clipboard.\n\n## Order and sibling epic\n\nThe owner also decided:\n- **Two epics, run one after the other** in the `editable-text` worktree set (`~/.worktrees/editable-text/{Gpux,RayX,...}`, branch `feature/editable-text`). This epic runs first.\n- **`gpux-platform-text-input` runs second.** It covers platform text input on iOS, Android and the web, touch editing, and an opt-in native field for credentials. It builds on this epic's selection geometry.\n- **Rejected options:** native text fields as the default, and two separate elements.\n\n## Starting point (origin/main 0eb1c1d; RayX origin/master 4ee806e9)\n\n**Text system: one size per line.**\n- `PlatformTextSystem::layout_line(text, font_size, runs)` takes one size per line (`crates/gpui/src/platform.rs` ~1527).\n- `FontRun` is `{len, font_id}` and `ShapedRun` is `{font_id, glyphs}`. `LineLayout` has one `font_size`, `ascent` and `descent` (`crates/gpui/src/text_system/line_layout.rs`).\n- `TextRun` has no size, spacing or shift.\n- Letter spacing is one value per line, applied after shaping (`apply_letter_spacing_to_layout`).\n\n**Text system: what already works per glyph.**\n- Glyph rasterization keys (`RenderGlyphParams`) carry a size per glyph.\n- Hit testing reads only x positions.\n- `glyph.position.y` is already applied at paint.\n\n**Text system: what assumes one size.**\n- the platform shapers: CoreText on macOS and iOS, cosmic-text on Linux, Windows and Android, and the web's cosmic with canvas fallback;\n- the four font-run merge loops in `text_system.rs`;\n- line ascent and descent;\n- four `layout.font_size` reads in `paint_line`.\n\n**Editable text.**\n- Formatting is revision-bound `EditableTextStyleRuns` of `HighlightStyle`, dropped on every edit (`invalidate_style_runs`). RayX's rich text editor diffs the text after each change and installs the runs again.\n- `HighlightStyle` has no family, size or spacing, and `TextAlign` is only Left, Center and Right.\n- History stores whole-text states (`history.rs`), and undo/redo replace the whole buffer.\n- `TextLayoutMap` assumes one `line_height` everywhere: content height, hit testing, IME rectangles, the caret, selection quads, vertical and page movement, reveal, auto-scroll and the visible-row window.\n- Multi-line center/right alignment is inconsistent: paint aligns each visual row, but caret, selection and hit testing use one offset from the widest row.\n\n**Clipboard: what exists.**\n- The clipboard holds text, image or file paths only (`ClipboardEntry`, not `#[non_exhaustive]`).\n- RayX builds `ClipboardString` literals (`rayx_components_document/src/clipboard/mod.rs:526`).\n\n**Clipboard: per-platform gaps.**\n- The iOS clipboard reads a Rust string that is not NUL-terminated (`crates/gpui_mobile/src/ios/platform.rs:338`).\n- Android's clipboard is an in-process stub.\n- The workspace has no HTML dependency.\n\n**RayX constraints.**\n- RayX destructures `EditableTextEvent::Changed` irrefutably at eight sites. Adding a variant or a field breaks RayX.\n- RayX matches `TextAlign` exhaustively (`charts/plot/label.rs:133`).\n- RayX has one exhaustive `TextRun` literal (`charts/plot/label.rs:21-28`).\n\n## Boundaries\n\n**Policy stays with consumers.** gpux owns neutral editing: buffer, formatting storage, layout, paragraphs and lists, objects and the clipboard codec. Consumers keep their own:\n- toolbars and keyboard shortcuts for formatting;\n- documents and block structure;\n- Markdown;\n- collaboration;\n- RayX's operation and undo-history services.\n\nThe text rule against gutters, folds, search and diagnostics in the layout files still holds. List markers are paragraph formatting, not editor gutters.\n\n**Read-only rich text uses `EditableText` in `ReadOnly` mode.** `Text`/`StyledText` get per-run metrics through `TextRun`, but keep a uniform line height and single-font truncation (`LineWrapper`).\n\n**Out of scope:**\n- RayX adopting the new API. It is RayX's own follow-up epic; this epic only keeps RayX compiling.\n- bidirectional text;\n- tables;\n- spell checking;\n- collaborative attribute merging.\n\n## Owner-dependent acceptance\n\nNone. Every criterion is proved by gpux's own lanes on the Mac (lanes A, B, C, D, E and F) and by the pull request's CI for Windows and Linux.\n\n## Defaults recorded instead of open product decisions\n\n**Lists:**\n- The list indent step is 24 px per level.\n- Bullets cycle •, ◦, ▪ by level.\n- Numbers use 1., a., i. by level.\n\n**Inline objects:** they are owner-rendered elements with a text and HTML fallback.\n\n**Rich paste:** it is off by default, so plain fields stay plain.\n\n**HTML codec:**\n- The size cap is 4 MiB; anything larger is pasted as plain text.\n- Headings `h1` to `h6` are pasted as bold paragraphs with sizes 2, 1.5, 1.17, 1, 0.83 and 0.67 times the base size.\n",
+  "constraintsMarkdown": "- **Plain path unchanged.** Text with no metrics, no stored formatting and no style runs keeps today's layouts byte for byte, takes the single-row splice path, and shapes no more than today.\n- **Text rules** (`.agentx/memory/knowledge/gpui/text/rules.md`):\n  - the prehashed line-layout key contract;\n  - the shared font-run scratch pool;\n  - decoration runs independent of shaping keys;\n  - the policy-neutral boundary;\n  - `set_view_id` for the backing entity;\n  - manual scroll preserved.\n- **Fast mode** frames stay equal to frames drawn from scratch. Any new field that changes shaping is part of the fast-mode text carry identity (`fast/text.rs` `shapes_as`).\n- **Additive public API.** `EditableTextEvent`, `TextAlign`, `ClipboardString` and every editable-text item RayX uses keep their shape. New formatting events use a new type.\n- **TextRun.** The new `TextRun` field is the one source-level change: struct literals need `..Default::default()`. RayX's one literal gets that paired change, which compiles before and after.\n- **Provenance.** Zed closure files keep provenance discipline: record the gpux-local patch surface in the closure-update checklist.\n- **Dependencies** come from crates.io only (no git or `[patch]`), and every crate still packages.\n- **Tests.**\n  - Each behavior gets its own new test group (`crates/gpui/tests/<group>.rs`, a platform crate's named test module, a conformance scene naming its lanes, a lane check, or a `tools/browser/specs` title prefix).\n  - Sprint checks select exactly those groups.\n  - Runtime proof runs in gpux's lanes through `gpux-testkit`. RayX checks prove only the consumer.\n- **iOS and Metal runtime work** is closed only by lane F and lanes C/D on a Mac.\n- **Diagnostics** go to the ignored `artifacts-temp/`.\n",
+  "requirements": [
+    {
+      "id": "RUN",
+      "title": "Per-run font size, letter spacing and baseline shift in the text system",
+      "descriptionMarkdown": "One line can mix font sizes, letter spacing and baseline shifts on every platform text system, and paint them correctly.",
+      "criteria": [
+        {
+          "id": "RUN-1",
+          "descriptionMarkdown": "**What `TextRun` carries.** `TextRun` gets per-run metrics: font size, letter spacing in pixels, and baseline shift (positive is up). An unset metric uses the line's value, and `TextRun::default()` behaves as today.\n\n**Runs stay separate.** Runs that differ only in these metrics remain separate font runs through:\n- the four merge loops in `text_system.rs`;\n- the line-layout cache keys, where the prehashed contract still holds;\n- fast mode's text carry (`shapes_as`).\n\n**The `LineLayout` that results:**\n- reports each run's size on its `ShapedRun`;\n- advances glyph x positions by each run's own metrics;\n- applies letter spacing per run, in the shared post-pass after shaping;\n- moves the glyphs of a shifted run vertically;\n- takes ascent and descent as the maxima over runs, including shifted extents.\n\n**Hit testing stays consistent** across runs of different sizes: `index_for_x`, `x_for_index` and `closest_index_for_x`.\n\n**No metrics, no change.** A line whose runs carry no metrics gets exactly today's layout: glyph positions, width, ascent, descent and cache behavior.\n\n**Test text systems.** The test platform's text systems honor per-run size: `NoopTextSystem`, `GlyphBoxTextSystem` and the text-carry test system.\n\nNew group `crates/gpui/tests/text_run_metrics.rs`.",
+          "verification": "automated"
+        },
+        {
+          "id": "RUN-2",
+          "descriptionMarkdown": "**CoreText shapes each run at its own size**, on macOS (`MacTextSystem`) and iOS (`IosTextSystem`):\n- Output glyph runs map back to input runs by string index. The read-back font is not usable, because the ligature-break trick shapes alternate runs at `size.next_up()`.\n- Runs with the same font but different sizes are not merged.\n- Fallback-font glyphs keep their run's size.\n- Ascent and descent come from each run's sized font.\n\n**Tests:**\n- macOS: new test module `run_metrics` in `gpux-macos`.\n- iOS: lane F check `text-run-metrics-ios` lays out a mixed-size line through `WindowTextSystem` and asserts per-run sizes, increasing x, and an ascent at least the larger run's.",
+          "verification": "automated"
+        },
+        {
+          "id": "RUN-3",
+          "descriptionMarkdown": "**cosmic-text** (`CosmicTextSystem`, used by Linux, Windows and Android):\n- shapes each span at its run's size through `Attrs::metrics`;\n- splits output runs on font and size together;\n- gives correct per-glyph sizes and positions when the size changes inside a word.\n\n**The web text system** measures and rasterizes canvas-fallback glyphs at the candidate run's size, not the line's.\n\nNew test module `run_metrics` in `gpux-wgpu-renderer`.",
+          "verification": "automated"
+        },
+        {
+          "id": "RUN-4",
+          "descriptionMarkdown": "**Paint follows each run's metrics.**\n- Each glyph is drawn at its run's size and shift.\n- `paint_line` reads the run's size for glyphs, emoji and the bounding boxes used for culling and decoration edges.\n- Backgrounds cover the row.\n- Strikethrough sits at each run's own middle. Underline sits at the line's underline position.\n\n**New conformance scene `rich-text-runs`**, run in lanes A, B, C, E and F. It shows one line mixing 12, 16 and 28 px runs, a superscript, a subscript, and a letter-spaced run. Its probes check that:\n- the 28 px run's ink is taller than the 12 px run's;\n- unshifted runs share one baseline;\n- the superscript's ink is above the baseline run's x-height;\n- the subscript's ink extends below the baseline;\n- the letter-spaced run is wider than the same text unspaced.",
+          "verification": "automated"
+        }
+      ]
+    },
+    {
+      "id": "ATTR",
+      "title": "Stored character formatting",
+      "descriptionMarkdown": "`EditableTextState` owns character formatting that moves with edits, undoes with them and renders through the text system.",
+      "criteria": [
+        {
+          "id": "ATTR-1",
+          "descriptionMarkdown": "**What is stored.** `EditableTextState` stores character formatting as spans over byte ranges. The fields of `TextAttributes` are:\n- font family, weight, style and size;\n- letter spacing and baseline shift;\n- color and background;\n- underline and strikethrough;\n- link target;\n- an opaque owner tag.\n\nEvery field is optional; an unset field uses the element's text style. Spans stay normalized: no empty spans, and adjacent equal spans merged.\n\n**Spans move with every edit,** through the single edit path (`apply_buffer_edit`):\n- an insertion inside a span extends it;\n- a deletion shrinks or removes spans;\n- replaced text takes the typing attributes.\n\nThis covers:\n- typing, `replace_selection`, and `replace_utf16_range` (platform input);\n- IME `replace_and_mark` and `unmark`;\n- paste, cut, every delete, and newline;\n- `rewrite_current_edit` and `reset`.\n\n**API:**\n- apply a patch that sets or clears individual fields over a range;\n- read the attributes at an offset;\n- get a field's on/off/mixed state over a range;\n- an `AttributedText` snapshot (text, spans, paragraph formats, objects) and a setter that replaces everything.\n\nNew group `crates/gpui/tests/editable_text_attributes.rs`.",
+          "verification": "automated"
+        },
+        {
+          "id": "ATTR-2",
+          "descriptionMarkdown": "**Where inserted text gets its attributes.** Text inserted at a caret takes the attributes of the character before it. At a paragraph start it takes the character after it; in an empty paragraph, the paragraph's last attributes.\n\n**Explicit typing attributes.** `set_typing_attributes` (for example, bold toggled with no selection) applies to the next insertion. It is discarded when the caret moves or focus changes.\n\n**IME composition** takes the typing attributes for its whole life and keeps them on commit.\n\n**Links and tags** are never extended by typing at their end: their end is exclusive.\n\nNew group `editable_text_typing_attributes.rs`.",
+          "verification": "automated"
+        },
+        {
+          "id": "ATTR-3",
+          "descriptionMarkdown": "**Undo and redo restore formatting.**\n- History entries keep spans, paragraph formats and objects with the text, shared rather than copied per keystroke.\n- An attribute change over a range is its own undo step, never merged into typing.\n- Typing still coalesces under typing attributes.\n- Undoing an edit restores the exact spans.\n\n**Revisions.**\n- A formatting-only change does not bump the buffer revision. It bumps a separate format revision.\n- `EditableTextEvent` is unchanged. A new event type reports formatting-only changes.\n\nNew group `editable_text_format_history.rs`.",
+          "verification": "automated"
+        },
+        {
+          "id": "ATTR-4",
+          "descriptionMarkdown": "**Rendering stored attributes.**\n- Family, weight, style, size, letter spacing and baseline shift become shaping runs.\n- Color, background, underline and strikethrough become paint runs.\n- The owner's revision-bound `EditableTextStyleRuns` (syntax highlighting, search hits) still apply on top for the paint fields they set.\n\n**Plain fields pay nothing.** A field with no stored attributes and no style runs takes today's path, including the single-row splice, with identical layout and shaping counts (`TextLayoutCacheStats`).\n\n**Incremental shaping.** Typing in formatted text reshapes only the edited row; unchanged rows are cache hits.\n\n**Tests:**\n- group `editable_text_attribute_layout.rs`;\n- new scene `editable-rich-attributes` (lanes A, B and C): bold, italic, size, color, background, superscript and subscript in one field, with probes.",
+          "verification": "automated"
+        }
+      ]
+    },
+    {
+      "id": "ROW",
+      "title": "Rows of different heights",
+      "descriptionMarkdown": "Editable layout and every geometry consumer handle visual rows with their own heights, baselines and alignment.",
+      "criteria": [
+        {
+          "id": "ROW-1",
+          "descriptionMarkdown": "**Each visual row has its own height and baseline in `TextLayoutMap`.** A row's height is the largest of:\n- the paragraph's line height (the element line height times the paragraph's multiplier);\n- its tallest run's natural line height, times the multiplier;\n- its tallest inline object.\n\nParagraph spacing comes before the first row and after the last. Every run in a row shares one baseline.\n\n**Every geometry consumer uses per-row tops and heights:**\n- content height and the single-line element's height;\n- `position_for_index`, `index_for_position`, `visual_row_range` and `position_for_display`;\n- hit testing and the IME `bounds_for_range`;\n- the caret rectangle, as tall as the run at the caret;\n- `editable_text_selection_quads`, per row;\n- vertical movement, which keeps the preferred x;\n- page up and page down, by viewport height rather than a row count;\n- caret reveal, drag auto-scroll, and the visible-row window.\n\n**Uniform rows match today's results exactly.**\n\nNew group `editable_text_variable_rows.rs`.",
+          "verification": "automated"
+        },
+        {
+          "id": "ROW-2",
+          "descriptionMarkdown": "**One alignment offset per visual row.** Caret, selection, hit testing and IME geometry use each visual row's own alignment offset: the one paint uses.\n\n**The bug this fixes:** today, center- or right-aligned multi-line fields offset geometry by the widest row.\n\n**Test:** new group `editable_text_row_alignment.rs`, proven to fail against the old code. It uses a centered paragraph whose two rows differ in width.",
+          "verification": "automated"
+        }
+      ]
+    },
+    {
+      "id": "PARA",
+      "title": "Paragraph formatting",
+      "descriptionMarkdown": "Paragraphs carry alignment, indents, spacing, line height and list items, and move with edits.",
+      "criteria": [
+        {
+          "id": "PARA-1",
+          "descriptionMarkdown": "**What is stored.** `ParagraphFormat` attaches to paragraphs, the text between hard line breaks. A single-line field has one paragraph. Its fields are:\n- alignment;\n- first-line, leading and trailing indent;\n- spacing before and after;\n- line-height multiplier;\n- default letter spacing;\n- list item.\n\n**How formats move with edits:**\n- splitting a paragraph gives both halves its format;\n- joining keeps the first paragraph's format;\n- deleting across paragraphs keeps the first one's;\n- pasted plain multi-line text takes the format of the paragraph it lands in;\n- undo restores formats;\n- `AttributedText` carries them.\n\n**API:** set, read and clear the format of the paragraphs a range touches.\n\nNew group `editable_text_paragraphs.rs`.",
+          "verification": "automated"
+        },
+        {
+          "id": "PARA-2",
+          "descriptionMarkdown": "**Alignment values:** left, center, right and justify, as a new paragraph-level enum; `TextAlign` is unchanged. Unset means the element's `text_align`.\n\n**How justify works:**\n- It widens inter-word spaces so every row ends at the trailing indent.\n- The paragraph's last row is left-aligned, and so is any row with one word.\n- Caret, selection, hit testing and IME geometry follow the justified positions.\n\nNew group `editable_text_paragraph_alignment.rs`.",
+          "verification": "automated"
+        },
+        {
+          "id": "PARA-3",
+          "descriptionMarkdown": "**Indents:**\n- The first row starts at leading indent plus first-line indent. A negative first-line indent is a hanging indent, clamped at the field's edge.\n- Other rows start at the leading indent.\n- Every row wraps at the field width minus the trailing indent.\n\n**Spacing, line height and letter spacing:**\n- Spacing before and after adds vertical space outside the rows.\n- The multiplier scales the paragraph's rows.\n- The paragraph's default letter spacing applies to runs that set none.\n\n**Tests:**\n- group `editable_text_paragraph_spacing.rs`;\n- new scene `editable-paragraphs` (lanes A, B and C): centered, right-aligned, justified, indented, hanging-indent and spaced paragraphs, with probes.",
+          "verification": "automated"
+        }
+      ]
+    },
+    {
+      "id": "LIST",
+      "title": "Lists",
+      "descriptionMarkdown": "Paragraphs can be bullet, numbered, checkbox or custom-marker list items with nesting, painted markers and the expected editing.",
+      "criteria": [
+        {
+          "id": "LIST-1",
+          "descriptionMarkdown": "**List item settings.** A paragraph's list item has:\n- a kind: bullet, numbered (with a start number), checkbox (with a checked state), or a custom marker string;\n- a nesting level.\n\n**Layout:**\n- The leading indent grows by a per-level step: 24 px by default, settable on the state.\n- The marker paints right-aligned in the space before the item's first row, on its baseline, with the size and color of the item's first character.\n\n**Markers:**\n- Bullets cycle •, ◦, ▪ by level.\n- Numbered items format as 1., a., i. by level.\n- **Numbering:** a numbered item counts the consecutive numbered items at its level. Deeper items in between do not break the count; a non-list paragraph, or a different kind at that level, restarts it.\n- A checkbox item paints a box showing its state. A click or tap on the box toggles it, as an undoable format change.\n\n**Markers are not text.** Caret, selection, IME `text_for_range`, `text()` and plain-text copy never include them.\n\n**Tests:**\n- group `editable_text_lists.rs`;\n- new scene `editable-lists` (lanes A, B and C).",
+          "verification": "automated"
+        },
+        {
+          "id": "LIST-2",
+          "descriptionMarkdown": "**List editing defaults.** Each is also a public state method, so an owner's own key bindings can call it, and owners can switch them off per state. Each is one undo step:\n- **Enter in a non-empty item** splits it into two items.\n- **Enter in an empty item** ends the list: the paragraph loses its list format instead of getting a line break.\n- **Backspace at the start of an item** removes its list format before any join.\n- **Tab and Shift-Tab in an item** raise and lower its level. Shift-Tab at level 0 removes the list format.\n- **Tab outside a list** propagates, as today.\n\nNew group `editable_text_list_editing.rs`.",
+          "verification": "automated"
+        }
+      ]
+    },
+    {
+      "id": "OBJ",
+      "title": "Inline objects",
+      "descriptionMarkdown": "Owners embed elements inline in text: chips, mentions, images.",
+      "criteria": [
+        {
+          "id": "OBJ-1",
+          "descriptionMarkdown": "**Insertion.** An owner inserts an inline object at a range. The buffer gets one U+FFFC character carrying an object attribute:\n- the owner key;\n- width, height and baseline offset;\n- a text fallback;\n- an optional trusted HTML fallback.\n\n**Layout:**\n- The object reserves exactly its width, replacing the placeholder glyph's advance.\n- Its height and baseline offset count in the row's height.\n- It is never split across rows, and a row may break before or after it.\n\n**Editing.** Caret, selection, deletion, undo and attribute changes treat it as one character.\n\n**Text and export:**\n- IME `text_for_range` and `text()` contain U+FFFC.\n- Plain-text copy writes each object's text fallback.\n- HTML copy writes its HTML fallback, or else its escaped text fallback.\n- `AttributedText` carries objects.\n\nNew group `editable_text_inline_objects.rs`.",
+          "verification": "automated"
+        },
+        {
+          "id": "OBJ-2",
+          "descriptionMarkdown": "**Painting.** The element paints each visible object by asking an owner-supplied renderer for the element of its key. It places that element in the object's box, as a child clipped by the field.\n\n**Pointer events** over an object reach that element's listeners first. They fall back to text selection when it does not handle them.\n\n**No renderer.** An object without a renderer still reserves its space but paints nothing.\n\n**Tests:**\n- group `editable_text_inline_render.rs`;\n- new scene `editable-inline-objects` (lanes A, B and C): a colored chip and an image-sized box inside text. A click on the chip is handled by the chip.",
+          "verification": "automated"
+        }
+      ]
+    },
+    {
+      "id": "CLIP",
+      "title": "Rich clipboard",
+      "descriptionMarkdown": "Formatted text copies and pastes as HTML on every platform, through a safe HTML codec.",
+      "criteria": [
+        {
+          "id": "CLIP-1",
+          "descriptionMarkdown": "**New clipboard entry.** `ClipboardEntry` gains an HTML entry, carried beside the plain-text entry of the same item:\n- `ClipboardItem::new_string_with_html` writes both;\n- `ClipboardItem::html()` reads it;\n- `ClipboardItem::text()` never returns HTML.\n\n**Every platform writes and reads both:**\n- **macOS:** `NSPasteboardTypeHTML` and plain text in one write.\n- **Windows:** the registered \"HTML Format\" with the CF_HTML header.\n- **Wayland:** `text/html` offered, with `send` dispatching on the MIME type.\n- **X11:** the `text/html` target.\n- **Web:** `text/html` in the copy event; `navigator.clipboard.write` with a `ClipboardItem` holding both types; `text/html` in the paste event.\n- **iOS:** `public.html` and plain text through `UIPasteboard` items. This also fixes the read of a string that is not NUL-terminated.\n- **Android:** a real `ClipboardManager` through JNI on the UI thread, with `ClipData.newHtmlText`. It replaces the in-process stub, plain text included.\n- **Test platform.**\n\nA clipboard holding no HTML reads as today.\n\n**Tests:**\n- lane A group `clipboard_html.rs`;\n- lane D check `platform-clipboard-html` (macOS locally; Windows and X11 in the pull request's CI);\n- lane B spec titles `clipboard: html ...`;\n- lane E check `clipboard-android`;\n- lane F check `clipboard-ios`.",
+          "verification": "automated"
+        },
+        {
+          "id": "CLIP-2",
+          "descriptionMarkdown": "**An HTML codec in gpux converts `AttributedText` to HTML and back.**\n\n**Serialization emits:**\n- `<p>` with alignment, indents and spacing as inline CSS;\n- `<ul>`, `<ol start>` and `<li>` nested by level. Checkbox lists are marked with a `data-` attribute and their checked state.\n- `<b>`, `<i>`, `<u>`, `<s>`, `<sup>`, `<sub>` and `<a href>`;\n- `<span style>` for family, size, color, background and letter spacing;\n- objects as their HTML fallback, or escaped text fallback;\n- escaped text.\n\n**Parsing accepts:**\n- its own output; a round trip is equal.\n- the common subset from browsers, Google Docs, Word and Pages:\n  - `strong`, `em`, `b`, `i`, `u`, `s`, `strike`, `del`, `sup`, `sub`, `code`, `a`, `span style` and `font`;\n  - `p`, `div` and `br`;\n  - `h1` to `h6`, as bold paragraphs on the size scale in the scope;\n  - `ul`, `ol` and `li`;\n  - `img`, as its `alt` text.\n\n**Safety:**\n- It never fetches, loads or executes anything.\n- It drops `script`, `style`, `head` and comments, and decodes entities.\n- Above the 4 MiB cap it falls back to the plain-text entry.\n\n**Dependency.** The tokenizer is a crates.io dependency, and the workspace still packages.\n\nNew group `editable_text_html.rs`.",
+          "verification": "automated"
+        },
+        {
+          "id": "CLIP-3",
+          "descriptionMarkdown": "**Copy and cut.** `EditableText` writes plain text plus HTML when the selection holds any stored formatting, paragraph format, list or object. Otherwise it writes plain text only, as today.\n\n**Paste:**\n- With rich paste accepted, the HTML's formatting is inserted. It is a per-state switch, off by default, so plain fields stay plain.\n- Otherwise plain text is inserted.\n- Every paste is its own undo step, never merged into typing. This includes platform-driven pastes through the input handler, which gets an item-aware paste whose default keeps today's behavior.\n- Single-line fields flatten paragraphs.\n\nNew group `editable_text_rich_clipboard.rs`.",
+          "verification": "automated"
+        }
+      ]
+    },
+    {
+      "id": "API",
+      "title": "Compatibility and documentation",
+      "descriptionMarkdown": "Additions stay additive for gpux's consumers, and the rich model is documented.",
+      "criteria": [
+        {
+          "id": "API-1",
+          "descriptionMarkdown": "**What keeps compiling unchanged.** Every public item RayX uses keeps compiling with the same meaning:\n- editable text: constructors and methods, irrefutable `EditableTextEvent::Changed` destructuring, `TextLayoutMap` and geometry accessors;\n- `TextRun { .., ..Default::default() }`;\n- `ClipboardString` literals;\n- exhaustive `TextAlign` matches.\n\n**Proof:**\n- new gpux group `editable_text_api_compat.rs` exercises these uses;\n- in the sibling RayX worktree, after the paired change (RayX's one exhaustive `TextRun` literal gets `..Default::default()`), the RayX packages that use text, editable text and the clipboard pass `cargo check --all-targets`.",
+          "verification": "automated"
+        },
+        {
+          "id": "DOC-1",
+          "descriptionMarkdown": "**Documentation:**\n- **New `docs/editable-text.md`** describes the editing model:\n  - character formatting, paragraphs, lists and inline objects;\n  - typing attributes, history, the rich clipboard and its HTML subset;\n  - the policy-neutral boundary.\n- **Closure-update checklist** (`.claude/skills/gpux/references/update-from-zed-gpui-closure.md`): add the rule to preserve per-run metrics through `TextRun`, `FontRun`, `ShapedRun`, every platform text system, the merge loops, cache keys, the fast-mode text carry and paint.\n\nVerified by review.",
+          "verification": "manual"
+        }
+      ]
+    }
+  ]
+}

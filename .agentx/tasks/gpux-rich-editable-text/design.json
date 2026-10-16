@@ -1,0 +1,491 @@
+{
+  "schemaVersion": 7,
+  "epicId": "gpux-rich-editable-text",
+  "decisions": [
+    {
+      "id": "d-run-metrics",
+      "requirementIds": [
+        "RUN"
+      ],
+      "descriptionMarkdown": "**The new types:**\n- `TextRun` gets one new field, `metrics: RunMetrics`: an optional font size, an optional letter spacing, and a baseline shift. Its default means \"inherit from the line\".\n- `FontRun` gains the resolved `font_size`, `letter_spacing` and `baseline_shift`. Its derived `Hash` and `Eq` then put them in all four line-layout cache keys.\n- `ShapedRun` gains `font_size`.\n\n**Shaping:**\n- `PlatformTextSystem::layout_line(text, font_size, runs)` keeps its signature. The line size is the default, and implementations honor `run.font_size`:\n  - CoreText: a `CTFont` sized per run, with output mapped back by string index;\n  - cosmic: `Attrs::metrics` per span;\n  - the test systems: em width at the run's size.\n- Letter spacing and baseline shift stay out of the platforms. One shared post-pass applies them: the generalized `apply_letter_spacing_to_layout`, mapping `glyph.index` back to the input runs. It shifts `glyph.position.y` and folds shifted extents into ascent and descent.\n- The merge loops in `text_system.rs` and `fast/text.rs` `shapes_as` compare the new fields.\n\n**Paint** reads `run.font_size` where it read `layout.font_size`.",
+      "invariantsMarkdown": "- Runs without metrics produce exactly today's `LineLayout`.\n- The prehashed key contract and the font-run scratch pool are kept.\n- One post-pass, so spacing and shift are identical on every platform.",
+      "rationaleMarkdown": "**Why this layer:**\n- Rasterization keys, hit testing and glyph y positions already work per glyph. The single-size assumption sits only in the shapers, the merge loops, line metrics and four paint reads, so this is the smallest coherent change.\n- Keeping `layout_line`'s signature avoids touching seven implementations' call contracts.\n- Applying spacing and shift after shaping keeps platforms consistent. CoreText kerning attributes and cosmic's em-based spacing would diverge.\n\n**The riskiest parts:**\n- CoreText run mapping under the `next_up` ligature trick;\n- cosmic shaping across a size boundary inside a word (`Attrs::compatible` ignores metrics);\n- struct-literal churn: 44 `FontRun`, 19 `ShapedRun` and 17 `TextRun` literals in gpux, plus RayX's one `TextRun` literal.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/text_system.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/text_system/line_layout.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/text_system/line.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/text.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/glyphs.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_macos/src/text_system.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/ios/text_system.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/cosmic_text_system.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/text_system.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/upstream-sync/2026-08-07-repository-upstream-sync-self-contained-upstream-provenance.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-oracle.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/mobile/2026-10-07-platform-mobile-ios-lane-f.md"
+        }
+      ]
+    },
+    {
+      "id": "d-attribute-store",
+      "requirementIds": [
+        "ATTR",
+        "API"
+      ],
+      "descriptionMarkdown": "**Storage.**\n- `EditableTextState` owns an attribute span set: sorted, non-overlapping ranges of `Arc<TextAttributes>`. It also owns a paragraph-format table and inline-object attributes.\n- The span set is created on first use, so a plain field allocates nothing.\n\n**Remapping and typing attributes.**\n- Remapping replaces `invalidate_style_runs` at the single edit choke point, `apply_buffer_edit`, using the `(range, replacement_len)` it already derives.\n- `replace_byte_range` and `apply_edit` assign typing attributes to the inserted range.\n- Whole-buffer paths (undo and redo, `rewrite_current_edit`) restore attributes from history instead of remapping.\n\n**History.** `HistoryState` gains the `Arc`-shared formatting, and a new edit kind for formatting changes.\n\n**Revisions and events.**\n- A `format_revision` counter is separate from the buffer revision.\n- A new event type reports formatting changes; the entity implements `EventEmitter` for both types. `EditableTextEvent` is unchanged.\n\n**Snapshot.** `AttributedText` is the snapshot type for owners and for the HTML codec. Its fields are public, so owners can serialize it.",
+      "invariantsMarkdown": "- Every buffer mutation passes through the remap.\n- Spans are always normalized and within the buffer.\n- No formatting means no allocation and today's code paths.",
+      "rationaleMarkdown": "**Prior art.** Every platform editor keeps attributes in the editable state: `NSAttributedString` on `UITextView`, `Spannable` on `EditText`, `AnnotatedString` in Compose, `TextSpan` in Flutter. RayX currently re-derives runs by diffing text after each change.\n\n**Why the API must not change shape.** RayX destructures `EditableTextEvent::Changed` irrefutably at eight sites. That is why formatting events need their own type.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/state.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/history.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/style_runs.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/event.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/mod.rs"
+        }
+      ],
+      "memoryDecisionRefs": []
+    },
+    {
+      "id": "d-attribute-rendering",
+      "requirementIds": [
+        "ATTR"
+      ],
+      "descriptionMarkdown": "**Where attributes go when a row is shaped:**\n- **Shaping runs** (`shape_runs_for_line`): stored family, weight, style, size, letter spacing and shift. They become `TextRun`s with `RunMetrics` and fonts.\n- **Paint-time decoration runs:** color, background, underline and strikethrough, merged with the owner's `EditableTextStyleRuns`. Owner runs win for the paint fields they set.\n\n**The row cache key** (`RowLayoutKey`) gains the run metrics and family, so paint-only changes still reuse shaping.\n\n**The single-row splice** still applies when there is no formatting.",
+      "invariantsMarkdown": "- Paint-only attribute changes never reshape.\n- Unchanged rows are cache hits.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/layout_map.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/layout_cache.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/element.rs"
+        }
+      ],
+      "memoryDecisionRefs": []
+    },
+    {
+      "id": "d-variable-rows",
+      "requirementIds": [
+        "ROW"
+      ],
+      "descriptionMarkdown": "**Per-row metrics.** `TextLayoutMap` keeps a per-visual-row table: top, height, baseline, alignment offset and justification data. Prefix sums let a binary search answer y-to-row.\n\n**Who uses the table.** Every consumer listed in ROW-1 reads it, and so does the element's per-visual-row paint, with each row's own baseline. Uniform `line_height` arithmetic is removed from:\n- `layout_map.rs`, `geometry.rs`, `state.rs` and `element.rs`;\n- the selection quads.\n\n**Alignment offsets** are computed per row with the same function paint uses. That fixes the widest-row bug.",
+      "invariantsMarkdown": "- Uniform rows reproduce today's geometry.\n- One table answers paint, hit testing, the caret, selection, IME and scrolling.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/layout_map.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/geometry.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/state.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/element.rs"
+        }
+      ],
+      "memoryDecisionRefs": []
+    },
+    {
+      "id": "d-paragraphs",
+      "requirementIds": [
+        "PARA",
+        "LIST"
+      ],
+      "descriptionMarkdown": "**Storage.** Paragraph formats live in a table indexed by paragraph. It is remapped in the same edit path:\n- an inserted line break splits an entry into two copies;\n- a deleted break keeps the first entry.\n\n**Types.** A new paragraph-alignment enum (`Left`, `Center`, `Right`, `Justify`) leaves `TextAlign` untouched.\n\n**Wrapping with indents.** The first row's available width differs from the others' (first-line indent). Each paragraph is shaped once, and wrap boundaries are computed from glyph positions against the first-row width and the remaining-row width.\n\n**Justify** is stored as per-row extra advance at inter-word spaces. Both paint and geometry read it.\n\n**Lists.** A list item is a field of the paragraph format. Markers are painted by the element from layout data (kind, level and computed ordinal); they are never inserted into the buffer.\n\n**List editing** lives in public `EditableTextState` methods, which the key table calls, behind a per-state switch.\n\n**Naming.** List markers paint in the leading indent and are named as list markers. They are paragraph formatting the owner chose for gpux (2026-10-17), not code-editor gutters, which stay in consumer crates.",
+      "invariantsMarkdown": "- Markers never enter the buffer, IME text or plain-text export.\n- The list editing defaults are reachable without the built-in key table.",
+      "rationaleMarkdown": "**Why one buffer.** One buffer with paragraph formats matches TextKit, Android spans and ProseMirror's flat model. It lets one `EditableText` hold a multi-paragraph rich document. RayX's one-editor-per-block document keeps working and can adopt it later.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/layout_map.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/element.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/state.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/text_system/line_layout.rs"
+        }
+      ],
+      "memoryDecisionRefs": []
+    },
+    {
+      "id": "d-inline-objects",
+      "requirementIds": [
+        "OBJ"
+      ],
+      "descriptionMarkdown": "**Storage.** An inline object is an attribute on a U+FFFC character, so it moves, undoes and copies with the spans.\n\n**Layout.** After shaping, a pass sets the placeholder's advance to the object's width, the way letter spacing is applied, and adds its ascent and descent to the row. Wrapping treats it as an unbreakable word.\n\n**Painting.** `EditableText` takes an owner renderer, `inline_object_renderer(key -> AnyElement)`. The paint element lays out, prepaints and paints those child elements at their boxes, inside its content mask.",
+      "invariantsMarkdown": "- An object is exactly one character for every editing operation.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/element.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/layout_map.rs"
+        }
+      ],
+      "memoryDecisionRefs": []
+    },
+    {
+      "id": "d-clipboard-html",
+      "requirementIds": [
+        "CLIP"
+      ],
+      "descriptionMarkdown": "**HTML is a new entry type,** `ClipboardEntry::Html`, stored beside the plain-text entry. It is not a field on `ClipboardString`: RayX builds `ClipboardString` literals, and `ClipboardItem::text()` concatenates string entries. The Windows exhaustive match is updated.\n\n**Platform backends** write and read both representations in one clipboard transaction:\n- **Android:** a real JNI `ClipboardManager` on the UI thread.\n- **iOS:** `UIPasteboard` items, which also fixes the NUL read.\n\n**The codec** lives in `crates/gpui/src/elements/editable_text/` (`html.rs`). It uses the `html5ever` tokenizer from crates.io, which is spec-compliant and builds on wasm32 and mobile; there is no tree builder. A gpux mapping of the HTML subset sits on top.\n\n**Rich paste and platform pastes.** Rich paste is a per-state switch, off by default. `InputHandler` gains an item-aware paste whose default calls today's `paste`.",
+      "invariantsMarkdown": "- No network, loading or script.\n- Bounded input size.\n- Plain-only items behave exactly as today.",
+      "rationaleMarkdown": "**Why an HTML subset.** Every platform offers HTML beside plain text on its clipboard. Browsers, office suites and RayX can then exchange formatted text without a private format.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_macos/src/pasteboard.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_windows/src/clipboard.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_linux/src/linux/wayland/clipboard.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_linux/src/linux/x11/clipboard.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/platform.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/events.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/ios/platform.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/platform.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.toml"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-crates-io-packaging.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/web/2026-10-07-platform-web-browser-lane-b.md"
+        }
+      ]
+    },
+    {
+      "id": "d-proof-and-pairing",
+      "requirementIds": [
+        "RUN",
+        "ATTR",
+        "ROW",
+        "PARA",
+        "LIST",
+        "OBJ",
+        "CLIP",
+        "API"
+      ],
+      "descriptionMarkdown": "**Proof:**\n- Behavior is proved by new groups in `crates/gpui/tests` and named platform test modules.\n- Pixels are proved by new conformance scenes, each naming its lanes: `rich-text-runs`, `editable-rich-attributes`, `editable-paragraphs`, `editable-lists` and `editable-inline-objects`. Each new `Area` gets a scene, which keeps catalog coverage complete.\n- Platform clipboards are proved by lane D, B, E and F checks.\n- Lane A parity, lane C fast-mode parity and the full lanes run in the pull request's CI.\n\n**RayX pairing.** RayX compiles in the sibling RayX worktree (`../RayX`, branch `feature/editable-text`), whose `../Gpux` is this worktree. The paired RayX change is limited to compatibility: its `TextRun` literal gets `..Default::default()`.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/scenes/mod.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/scene.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/platform_checks.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-test-lanes.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-gpux-owns-runtime-proof.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-gpux-testkit.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-13-repository-validation-fast-mode-proof-and-timing.md"
+        }
+      ]
+    }
+  ],
+  "memoryDecisionsConsidered": [
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-effects/2026-07-06-gpui-frame-effects-frame-effects-elements.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-effects/2026-07-07-gpui-frame-effects-frame-family-naming.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-06-29-gpui-frame-pipeline-unclipped-deferred-overlays.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-07-24-gpui-frame-pipeline-cached-thermal-frame-throttling.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-05-gpui-frame-pipeline-frame-demand-follow-up.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-switches.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-scroll-layers.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-window-composition.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/input/2026-10-05-gpui-input-upstream-input-model.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-30-gpui-layout-style-registry-taffy-0-14.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-conditional-prepaint-style-recompute.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-disable-taffy-content-size.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-frame-bounded-prepaint-style-handoff.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-measured-layout-invalidation.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-request-style-handoff.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-text-measurement-scope.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-fixed-sticky-positioned-scene-order.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-fixed-sticky-positioning.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-nested-scroll-wheel-propagation.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-06-gpui-positioning-scroll-fixed-containing-block.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-opaque-scroll-capture-owner.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-sticky-hierarchy-traversal-order.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-universal-sticky-push-out.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-08-21-gpui-positioning-scroll-immediate-scrollbar-publication.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/desktop/2026-07-08-platform-desktop-windows-wgpu-dx12-policy.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/desktop/2026-07-08-platform-desktop-windows-wgpu-dxgi-scaling.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/mobile/2026-10-07-platform-mobile-android-lane-e.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-06-24-platform-web-multithreaded-wasm.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-06-29-platform-web-wasm-svg-asset-loading.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-07-01-platform-web-html-island-url-opt-in.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-07-02-platform-web-html-island-canonical-roots.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-07-03-platform-web-html-element-dom-overlay.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-07-03-platform-web-html-element-fit-styles-wheel.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-08-31-platform-web-explicit-wasm-constructors.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/renderer/wgpu/2026-07-04-renderer-wgpu-shader-effects-backend-capabilities.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/renderer/wgpu/2026-08-07-renderer-wgpu-browser-backend-fallback.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/renderer/wgpu/2026-09-30-renderer-wgpu-srgb-compositing.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/renderer/wgpu/2026-10-13-renderer-wgpu-transformed-sprites-filtered-by-hand.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/renderer/wgpu/2026-10-14-renderer-wgpu-noncompliant-adapter-variable.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/agentx-memory/2026-10-05-repository-agentx-memory-taxonomy-transplant.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-drop-z-crates.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-gpux-wgpu-fork.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-local-gpu-lane-g.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-14-repository-validation-wgpu-desktop-perf-4.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-14-repository-validation-wsl-gpu-lanes-c-d.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-16-repository-validation-test-tooling-layout.md"
+    }
+  ]
+}

@@ -1,0 +1,1867 @@
+{
+  "schemaVersion": 7,
+  "epicId": "gpux-platform-text-input",
+  "revision": 1,
+  "title": "Platform text input and touch editing for EditableText on iOS, Android and the web, plus an opt-in native credential field",
+  "validationMode": "sprint",
+  "repositories": [
+    {
+      "id": "gpux",
+      "path": ".",
+      "role": "execution"
+    },
+    {
+      "id": "rayx",
+      "path": "../RayX",
+      "role": "reference"
+    }
+  ],
+  "boundaries": {
+    "repositoryIds": [
+      "gpux"
+    ],
+    "forbiddenPaths": [
+      "gpux:.agentx/tasks/frame-effects-navigation-transitions/**",
+      "gpux:.agentx/tasks/frame-family-component-transitions/**",
+      "gpux:.agentx/tasks/gpux-cross-platform-test-lanes/**",
+      "gpux:.agentx/tasks/gpux-fast-mode/**",
+      "gpux:.agentx/tasks/gpux-faster-test-lanes/**",
+      "gpux:.agentx/tasks/gpux-fixed-sticky-positioning/**",
+      "gpux:.agentx/tasks/gpux-text-rendering-quality-performance/**",
+      "gpux:.agentx/tasks/gpux-tools-layout/**",
+      "gpux:.agentx/tasks/gpux-wgpu-platform-renderers/**",
+      "gpux:.agentx/tasks/high-quality-wasm-text-rendering/**",
+      "gpux:.agentx/tasks/html-element-dom-overlay/**",
+      "gpux:.agentx/tasks/html-island-wasm/**",
+      "gpux:.agentx/tasks/keyed-sticky-stacking/**",
+      "gpux:.agentx/tasks/macos-only-metal-port-and-ci-repair/**",
+      "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**",
+      "gpux:.agentx/tasks/gpux-rich-editable-text/**",
+      "gpux:.agentx/experiments/**",
+      "gpux:docs/changelog/2026-09-01-gpux-performance-improvement-sprint.md",
+      "gpux:docs/changelog/2026-10-16-macos-fast-mode-improvement-loop.md",
+      "gpux:ToFix/**",
+      "gpux:vendor/wgpu/**"
+    ]
+  },
+  "checks": [
+    {
+      "id": "check-b-config",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "CFG-1"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/text_input_configuration.rs`: the new fields and defaults, the state API, forwarding while focused, secure overrides.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "text_input_configuration"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-b-state-sync",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "CFG-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/text_input_state_sync.rs`: handler overrides, coalesced state changes without echoes, caret coordinate invalidation.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "text_input_state_sync"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 7
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-b-soft-return",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "CFG-3"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/text_input_soft_return.rs`: enter through the keymap first, multi-line newline fallback, single-line nothing.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "text_input_soft_return"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-b-reveal",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "CFG-4"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/text_input_reveal.rs`: reveal on focus, on inset growth and after edits, innermost-first ancestor scrolling, no scroll when visible, opt-out.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "text_input_reveal"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-b-ios-build",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "IOS-1"
+      ],
+      "descriptionMarkdown": "`gpux-mobile` type-checked for iOS.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-mobile",
+        "--target",
+        "aarch64-apple-ios"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui_mobile/**",
+        "crates/gpui_wgpu/**",
+        "crates/gpui_apple/**"
+      ]
+    },
+    {
+      "id": "check-b-ios-keyboard",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "IOS-1"
+      ],
+      "descriptionMarkdown": "New lane F check `text-input-ios-keyboard`: keyboard on focus, kept across fields, traits from configuration, legacy order.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "f",
+        "--grep",
+        "text-input-ios-keyboard"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-b-ios-protocol",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "IOS-2"
+      ],
+      "descriptionMarkdown": "New lane F check `text-input-ios-protocol`: UITextInput methods and geometry on the live view.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "f",
+        "--grep",
+        "text-input-ios-protocol"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-b-ios-interaction",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "IOS-3"
+      ],
+      "descriptionMarkdown": "New lane F check `text-input-ios-interaction`: the interaction attached, the frame tracking the field, no double caret, outside taps reaching GPUI.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "f",
+        "--grep",
+        "text-input-ios-interaction"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-b-ios-keys",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "IOS-4"
+      ],
+      "descriptionMarkdown": "New lane F check `text-input-ios-keys`: hardware presses through the press handler.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "f",
+        "--grep",
+        "text-input-ios-keys"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-b-ios-inset",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "IOS-4"
+      ],
+      "descriptionMarkdown": "New lane F check `text-input-ios-inset`: the software keyboard's inset and the caret revealed.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "f",
+        "--grep",
+        "text-input-ios-inset"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-b-android-build",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "AND-1"
+      ],
+      "descriptionMarkdown": "`gpux-mobile`'s embedded host type-checked for Android.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-mobile",
+        "--target",
+        "x86_64-linux-android"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui_mobile/**",
+        "crates/gpui_wgpu/**",
+        "crates/gpui_apple/**"
+      ]
+    },
+    {
+      "id": "check-b-android-native-build",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "AND-1"
+      ],
+      "descriptionMarkdown": "`gpux-mobile` with `android-native-activity` type-checked for Android.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-mobile",
+        "--target",
+        "x86_64-linux-android",
+        "--features",
+        "android-native-activity"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui_mobile/**",
+        "crates/gpui_wgpu/**",
+        "crates/gpui_apple/**"
+      ]
+    },
+    {
+      "id": "check-b-android-keyboard",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "AND-1"
+      ],
+      "descriptionMarkdown": "New lane E check `text-input-android-keyboard`: keyboard shown on focus, EditorInfo from configuration, GPUI active.",
+      "argv": [
+        "bash",
+        "-c",
+        "ANDROID_HOME=$HOME/Library/Android/sdk JAVA_HOME=/Library/Java/JavaVirtualMachines/microsoft-21.jdk/Contents/Home PATH=/Library/Java/JavaVirtualMachines/microsoft-21.jdk/Contents/Home/bin:$PATH cargo run -p gpux-testkit -- lane e --grep text-input-android-keyboard"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-b-android-connection",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "AND-2"
+      ],
+      "descriptionMarkdown": "New lane E check `text-input-android-connection`: every InputConnection call through JNI against the live connection.",
+      "argv": [
+        "bash",
+        "-c",
+        "ANDROID_HOME=$HOME/Library/Android/sdk JAVA_HOME=/Library/Java/JavaVirtualMachines/microsoft-21.jdk/Contents/Home PATH=/Library/Java/JavaVirtualMachines/microsoft-21.jdk/Contents/Home/bin:$PATH cargo run -p gpux-testkit -- lane e --grep text-input-android-connection"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-b-android-keys",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "AND-3"
+      ],
+      "descriptionMarkdown": "New lane E check `text-input-android-keys`: hardware and `adb shell input` keys with the view focused.",
+      "argv": [
+        "bash",
+        "-c",
+        "ANDROID_HOME=$HOME/Library/Android/sdk JAVA_HOME=/Library/Java/JavaVirtualMachines/microsoft-21.jdk/Contents/Home PATH=/Library/Java/JavaVirtualMachines/microsoft-21.jdk/Contents/Home/bin:$PATH cargo run -p gpux-testkit -- lane e --grep text-input-android-keys"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-b-android-inset",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "AND-3"
+      ],
+      "descriptionMarkdown": "New lane E check `text-input-android-inset`: the IME inset and the caret revealed.",
+      "argv": [
+        "bash",
+        "-c",
+        "ANDROID_HOME=$HOME/Library/Android/sdk JAVA_HOME=/Library/Java/JavaVirtualMachines/microsoft-21.jdk/Contents/Home PATH=/Library/Java/JavaVirtualMachines/microsoft-21.jdk/Contents/Home/bin:$PATH cargo run -p gpux-testkit -- lane e --grep text-input-android-inset"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-b-web-build",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "WEB-1"
+      ],
+      "descriptionMarkdown": "`gpux-web` for wasm32.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-web",
+        "--target",
+        "wasm32-unknown-unknown",
+        "--no-default-features"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui_web/**",
+        "crates/gpui_wgpu/**"
+      ]
+    },
+    {
+      "id": "check-b-web-mirror",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "WEB-1"
+      ],
+      "descriptionMarkdown": "New spec `tools/browser/specs/text-input.spec.ts` titles `text-input: mirror ...`.",
+      "argv": [
+        "bash",
+        "-c",
+        "PATH=/opt/homebrew/opt/node@22/bin:$PATH cargo run -p gpux-testkit -- lane b --grep \"text-input: mirror\""
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-b-web-hints",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "WEB-2"
+      ],
+      "descriptionMarkdown": "Titles `text-input: hints ...`: mirror attributes from the configuration, secure masking.",
+      "argv": [
+        "bash",
+        "-c",
+        "PATH=/opt/homebrew/opt/node@22/bin:$PATH cargo run -p gpux-testkit -- lane b --grep \"text-input: hints\""
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-b-web-viewport",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "WEB-2"
+      ],
+      "descriptionMarkdown": "Titles `text-input: viewport ...`: the IME inset from a shrunk visual viewport and the caret revealed.",
+      "argv": [
+        "bash",
+        "-c",
+        "PATH=/opt/homebrew/opt/node@22/bin:$PATH cargo run -p gpux-testkit -- lane b --grep \"text-input: viewport\""
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-b-touch",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "TCH-1"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/editable_text_touch.rs`: tap, long press, double tap, handle drags and swaps, toolbar toggle, overlay handles, mouse unchanged.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "editable_text_touch"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 8
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-b-toolbar",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "TCH-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/editable_text_toolbar.rs`: applicable actions, visibility rules, the platform hook vs the drawn toolbar.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "editable_text_toolbar"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 6
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-b-android-toolbar",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "TCH-2"
+      ],
+      "descriptionMarkdown": "New lane E check `text-input-android-toolbar`: the floating ActionMode's items and rectangle, an item editing the field.",
+      "argv": [
+        "bash",
+        "-c",
+        "ANDROID_HOME=$HOME/Library/Android/sdk JAVA_HOME=/Library/Java/JavaVirtualMachines/microsoft-21.jdk/Contents/Home PATH=/Library/Java/JavaVirtualMachines/microsoft-21.jdk/Contents/Home/bin:$PATH cargo run -p gpux-testkit -- lane e --grep text-input-android-toolbar"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-b-web-toolbar",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "TCH-2"
+      ],
+      "descriptionMarkdown": "Titles `text-input: toolbar ...`: long press, Copy, Paste into another field, denied paste leaves the field and console clean.",
+      "argv": [
+        "bash",
+        "-c",
+        "PATH=/opt/homebrew/opt/node@22/bin:$PATH cargo run -p gpux-testkit -- lane b --grep \"text-input: toolbar\""
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-b-android-magnifier",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "TCH-3"
+      ],
+      "descriptionMarkdown": "New lane E check `text-input-android-magnifier`.",
+      "argv": [
+        "bash",
+        "-c",
+        "ANDROID_HOME=$HOME/Library/Android/sdk JAVA_HOME=/Library/Java/JavaVirtualMachines/microsoft-21.jdk/Contents/Home PATH=/Library/Java/JavaVirtualMachines/microsoft-21.jdk/Contents/Home/bin:$PATH cargo run -p gpux-testkit -- lane e --grep text-input-android-magnifier"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-b-native-field",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "NAT-1"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/native_text_field.rs`: the state API and the EditableText fallback on the test platform.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "native_text_field"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-b-native-field-ios",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "NAT-2"
+      ],
+      "descriptionMarkdown": "New lane F check `native-field-ios`.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "f",
+        "--grep",
+        "native-field-ios"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-b-native-field-android",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "NAT-3"
+      ],
+      "descriptionMarkdown": "New lane E check `native-field-android`.",
+      "argv": [
+        "bash",
+        "-c",
+        "ANDROID_HOME=$HOME/Library/Android/sdk JAVA_HOME=/Library/Java/JavaVirtualMachines/microsoft-21.jdk/Contents/Home PATH=/Library/Java/JavaVirtualMachines/microsoft-21.jdk/Contents/Home/bin:$PATH cargo run -p gpux-testkit -- lane e --grep native-field-android"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-b-native-field-web",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "NAT-4"
+      ],
+      "descriptionMarkdown": "New spec titles `native-field: ...`.",
+      "argv": [
+        "bash",
+        "-c",
+        "PATH=/opt/homebrew/opt/node@22/bin:$PATH cargo run -p gpux-testkit -- lane b --grep \"native-field: \""
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "final-b-fmt",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [],
+      "descriptionMarkdown": "Formatting of gpux.",
+      "argv": [
+        "cargo",
+        "fmt",
+        "--check"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-b-clippy",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [],
+      "descriptionMarkdown": "Clippy over the gpux packages the epic touches (host targets).",
+      "argv": [
+        "cargo",
+        "clippy",
+        "-p",
+        "gpux",
+        "-p",
+        "gpux-web",
+        "-p",
+        "gpux-mobile",
+        "-p",
+        "gpux-platform",
+        "-p",
+        "gpux-tests-conformance",
+        "--all-targets",
+        "--no-deps",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-b-web-check",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [],
+      "descriptionMarkdown": "The web platform for wasm32.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-web",
+        "--target",
+        "wasm32-unknown-unknown",
+        "--no-default-features"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-b-ios-check",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [],
+      "descriptionMarkdown": "The mobile platform for iOS.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-mobile",
+        "--target",
+        "aarch64-apple-ios"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-b-android-check",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [],
+      "descriptionMarkdown": "The Android embedded host.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-mobile",
+        "--target",
+        "x86_64-linux-android"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-b-android-native-check",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [],
+      "descriptionMarkdown": "The Android NativeActivity host.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-mobile",
+        "--target",
+        "x86_64-linux-android",
+        "--features",
+        "android-native-activity"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-b-package",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [],
+      "descriptionMarkdown": "Every crate still packages (iOS and Android bindings may add crates.io features).",
+      "argv": [
+        "cargo",
+        "package",
+        "--workspace"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "timeoutSeconds": 3600
+    },
+    {
+      "id": "final-b-lane-a",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [],
+      "descriptionMarkdown": "Lane A in full. Left to the pull request's CI.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "a"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 30,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false
+    }
+  ],
+  "finalCheckIds": [
+    "final-b-fmt",
+    "final-b-clippy",
+    "final-b-web-check",
+    "final-b-ios-check",
+    "final-b-android-check",
+    "final-b-android-native-check",
+    "final-b-package",
+    "final-b-lane-a"
+  ],
+  "recordPaths": [
+    "gpux:docs/measurements/text-input-walkthrough.md"
+  ],
+  "sprints": [
+    {
+      "id": "s01-input-core",
+      "title": "Input configuration, state sync, soft Return and reveal",
+      "dependsOn": [],
+      "tasks": [
+        {
+          "id": "t01-config",
+          "title": "TextInputConfiguration fields and EditableTextState configuration",
+          "descriptionMarkdown": "**What to build:**\n- the keyboard kind, content type and secure flag on `TextInputConfiguration`;\n- the `EditableTextState` setter and getter, and its input handler returning the configuration;\n- secure overrides.\n\nNew group `text_input_configuration.rs`.",
+          "criterionIds": [
+            "CFG-1"
+          ],
+          "designIds": [
+            "d-config"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-b-config"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/platform.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/state.rs"
+            }
+          ]
+        },
+        {
+          "id": "t02-state-sync",
+          "title": "Handler overrides, state-change reports and caret coordinates",
+          "descriptionMarkdown": "**Input handler overrides:** `set_selected_text_range`, `text_length_utf16` and `text_input_editable_range` on `EditableTextState`.\n\n**State-change reports.**\n- Tag platform-originated edits.\n- Report `ContentChanged` and `SelectionChanged` at the end of each frame.\n\n**Caret coordinates.** Call `invalidate_character_coordinates` from prepaint.\n\nNew group `text_input_state_sync.rs`.",
+          "criterionIds": [
+            "CFG-2"
+          ],
+          "designIds": [
+            "d-config"
+          ],
+          "dependsOn": [
+            "t01-config"
+          ],
+          "checkIds": [
+            "check-b-state-sync"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/input.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/state.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/element.rs"
+            }
+          ]
+        },
+        {
+          "id": "t03-soft-return",
+          "title": "Soft-keyboard Return through the keymap",
+          "descriptionMarkdown": "**What to build:** the shared `PlatformInputHandler` helper, and its use in the test platform.\n\nNew group `text_input_soft_return.rs`.",
+          "criterionIds": [
+            "CFG-3"
+          ],
+          "designIds": [
+            "d-config"
+          ],
+          "dependsOn": [
+            "t01-config"
+          ],
+          "checkIds": [
+            "check-b-soft-return"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/platform.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window.rs"
+            }
+          ]
+        },
+        {
+          "id": "t04-reveal",
+          "title": "Reveal the focused caret inside scrolling ancestors",
+          "descriptionMarkdown": "**Reveal.** A window-level reveal through the scrolling ancestors' programmatic path. Reuse the a11y epic's `ScrollIntoView` ancestors if that epic has merged.\n\n**When it runs:** on focus, on IME inset growth and after edits, with a per-field opt-out.\n\nNew group `text_input_reveal.rs`.",
+          "criterionIds": [
+            "CFG-4"
+          ],
+          "designIds": [
+            "d-config"
+          ],
+          "dependsOn": [
+            "t02-state-sync"
+          ],
+          "checkIds": [
+            "check-b-reveal"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/div.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/state.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s02-ios-input",
+      "title": "iOS: UITextInput, keyboard on focus, traits, hardware keys and inset",
+      "dependsOn": [
+        "s01-input-core"
+      ],
+      "tasks": [
+        {
+          "id": "t05-ios-keyboard",
+          "title": "Keyboard on focus, traits and legacy order",
+          "descriptionMarkdown": "**What to build:**\n- the `IosWindow` soft-keyboard and configuration hooks;\n- traits from the configuration, with input views reloaded on change;\n- the handler taking text before the legacy callback.\n\nLane F check `text-input-ios-keyboard`.",
+          "criterionIds": [
+            "IOS-1"
+          ],
+          "designIds": [
+            "d-ios-text-input"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-b-ios-build",
+            "check-b-ios-keyboard"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/ios/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/lib.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_tests_conformance/examples/ios_host/checks.rs"
+            }
+          ]
+        },
+        {
+          "id": "t06-ios-protocol",
+          "title": "UITextInput conformance and geometry",
+          "descriptionMarkdown": "**What to build:**\n- the `UITextPosition` and `UITextRange` subclasses;\n- every `UITextInput` method, including marked text and the tokenizer;\n- `inputDelegate` notifications from CFG-2 state changes;\n- geometry from `bounds_for_range` and `character_index_for_point`.\n\nLane F check `text-input-ios-protocol`.",
+          "criterionIds": [
+            "IOS-2"
+          ],
+          "designIds": [
+            "d-ios-text-input"
+          ],
+          "dependsOn": [
+            "t05-ios-keyboard"
+          ],
+          "checkIds": [
+            "check-b-ios-build",
+            "check-b-ios-protocol"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/ios/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/ios/text_input.rs"
+            }
+          ]
+        },
+        {
+          "id": "t07-ios-keys-inset",
+          "title": "Hardware keys and the keyboard inset",
+          "descriptionMarkdown": "**What to build:**\n- `pressesBegan:` and `pressesEnded:` forwarding into the key-event path;\n- keyboard frame notifications feeding `insets().ime`, with `on_insets_changed` and the visual viewport;\n- the testkit disconnecting the Simulator's hardware keyboard for the inset check.\n\nLane F checks `text-input-ios-keys` and `text-input-ios-inset`.",
+          "criterionIds": [
+            "IOS-4"
+          ],
+          "designIds": [
+            "d-ios-text-input",
+            "d-config"
+          ],
+          "dependsOn": [
+            "t05-ios-keyboard"
+          ],
+          "checkIds": [
+            "check-b-ios-build",
+            "check-b-ios-keys",
+            "check-b-ios-inset"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/ios/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/ios/ffi.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tools/testkit/src/ios.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s03-ios-interaction",
+      "title": "iOS: UIKit's selection, loupe and edit menu over the focused field",
+      "dependsOn": [
+        "s02-ios-input"
+      ],
+      "tasks": [
+        {
+          "id": "t08-ios-interaction",
+          "title": "UITextInteraction over the focused field",
+          "descriptionMarkdown": "**Placement.** `PlatformWindow::set_text_input_bounds`, from `Window` when the focused handler's clipped bounds change.\n\n**The interaction:**\n- the input view's frame tracks the field;\n- `UITextInteraction` is attached and removed;\n- `draws_text_selection()`, so `EditableText` skips its own caret and selection;\n- the tint follows the caret color;\n- no touches without focus.\n\nLane F check `text-input-ios-interaction`.",
+          "criterionIds": [
+            "IOS-3"
+          ],
+          "designIds": [
+            "d-ios-text-input"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-b-ios-build",
+            "check-b-ios-interaction"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/ios/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/platform.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/element.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s04-android-input",
+      "title": "Android: InputConnection, keyboard on focus, hardware keys and inset",
+      "dependsOn": [
+        "s01-input-core"
+      ],
+      "tasks": [
+        {
+          "id": "t09-android-host-spike",
+          "title": "Spike: an IME-focusable text input view under NativeActivity and the embedded host",
+          "descriptionMarkdown": "**The spike.** Prove that `GpuxTextInputView` in a gpux panel window receives `onCreateInputConnection` and IME calls on the emulator, under the NativeActivity host and the embedded host.\n\n**Fallback.** If NativeActivity's taken input queue prevents it, take the documented fallback: a view added through `addContentView`.\n\n**Record the result** in the design's rationale through `amend`. No lane check of its own: the result is proved by AND-1's check.",
+          "criterionIds": [],
+          "designIds": [
+            "d-android-input-connection"
+          ],
+          "dependsOn": [],
+          "checkIds": [],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/java/dev/gpux/mobile/Composition.java"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/android/jni.rs"
+            }
+          ],
+          "supportingCriterionIds": [
+            "AND-1"
+          ]
+        },
+        {
+          "id": "t10-android-keyboard",
+          "title": "Text input view, focus handoff, EditorInfo and the keyboard",
+          "descriptionMarkdown": "**What to build:**\n- the Java view and the panel or content placement chosen by the spike;\n- the focus handoff through `nativePanelFocus`;\n- `showSoftInput` and `hideSoftInputFromWindow`;\n- `EditorInfo` from the configuration, honoring the keyboard kind;\n- both feature sets.\n\nLane E check `text-input-android-keyboard`.",
+          "criterionIds": [
+            "AND-1"
+          ],
+          "designIds": [
+            "d-android-input-connection"
+          ],
+          "dependsOn": [
+            "t09-android-host-spike"
+          ],
+          "checkIds": [
+            "check-b-android-build",
+            "check-b-android-native-build",
+            "check-b-android-keyboard"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/android/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/android/jni.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/java/dev/gpux/mobile/Composition.java"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_tests_conformance/examples/android_host/checks.rs"
+            }
+          ]
+        },
+        {
+          "id": "t11-android-connection",
+          "title": "The InputConnection mirror and every IME operation",
+          "descriptionMarkdown": "**What to build:**\n- the `BaseInputConnection` over a versioned `Editable` mirror;\n- versioned operation posting between the UI and GPUI threads;\n- every listed call mapped to the input handler;\n- `updateSelection`, `restartInput` and `updateCursorAnchorInfo` back to the IME.\n\nLane E check `text-input-android-connection`.",
+          "criterionIds": [
+            "AND-2"
+          ],
+          "designIds": [
+            "d-android-input-connection"
+          ],
+          "dependsOn": [
+            "t10-android-keyboard"
+          ],
+          "checkIds": [
+            "check-b-android-build",
+            "check-b-android-native-build",
+            "check-b-android-connection"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/android/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/android/jni.rs"
+            }
+          ]
+        },
+        {
+          "id": "t12-android-keys-inset",
+          "title": "Hardware keys with the view focused and the IME inset",
+          "descriptionMarkdown": "**Keys:**\n- key events from the focused view into GPUI;\n- `ACTION_MULTIPLE` delivered;\n- the handler used before the legacy callback.\n\n**Inset:** the IME inset from window insets, or the visible frame before API 30.\n\nLane E checks `text-input-android-keys` and `text-input-android-inset`.",
+          "criterionIds": [
+            "AND-3"
+          ],
+          "designIds": [
+            "d-android-input-connection",
+            "d-config"
+          ],
+          "dependsOn": [
+            "t10-android-keyboard"
+          ],
+          "checkIds": [
+            "check-b-android-build",
+            "check-b-android-keys",
+            "check-b-android-inset"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/android/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/android/jni.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s05-web-input",
+      "title": "Web: the mirror at the caret, keyboard hints and the viewport inset",
+      "dependsOn": [
+        "s01-input-core"
+      ],
+      "tasks": [
+        {
+          "id": "t13-web-mirror",
+          "title": "Mirror placement at the caret",
+          "descriptionMarkdown": "**What to build:**\n- `update_ime_position` moves and sizes the mirror at the caret, and parks it on blur;\n- the a11y epic's mirror semantics are kept.\n\nSpec `text-input.spec.ts`, titles `text-input: mirror ...`.",
+          "criterionIds": [
+            "WEB-1"
+          ],
+          "designIds": [
+            "d-web-mirror"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-b-web-build",
+            "check-b-web-mirror"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/ime_mirror.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/window.rs"
+            }
+          ]
+        },
+        {
+          "id": "t14-web-hints",
+          "title": "Mirror attributes from the configuration and the viewport inset",
+          "descriptionMarkdown": "**What to build:**\n- `inputmode`, `autocomplete` and secure masking on the mirror;\n- `insets().ime` from `visualViewport`, with the reveal.\n\nTitles `text-input: hints ...` and `text-input: viewport ...`.",
+          "criterionIds": [
+            "WEB-2"
+          ],
+          "designIds": [
+            "d-web-mirror",
+            "d-config"
+          ],
+          "dependsOn": [
+            "t13-web-mirror"
+          ],
+          "checkIds": [
+            "check-b-web-build",
+            "check-b-web-hints",
+            "check-b-web-viewport"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/ime_mirror.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/viewport.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/events.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s06-touch-editing",
+      "title": "Touch editing: handles, toolbar and magnifier",
+      "dependsOn": [
+        "s03-ios-interaction",
+        "s04-android-input",
+        "s05-web-input"
+      ],
+      "tasks": [
+        {
+          "id": "t15-touch-selection",
+          "title": "Touch gestures and selection handles in EditableText",
+          "descriptionMarkdown": "**What to build:**\n- the touch-modality flag on `Window`;\n- long press, tap and double tap;\n- deferred-overlay handles with touch-sized hitboxes;\n- handle drags through `TouchDragEvent` claims, with swapping and auto-scroll;\n- no handles while UIKit draws.\n\nNew group `editable_text_touch.rs`.",
+          "criterionIds": [
+            "TCH-1"
+          ],
+          "designIds": [
+            "d-touch-editing"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-b-touch"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/element.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/state.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/gestures.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window.rs"
+            }
+          ]
+        },
+        {
+          "id": "t16-edit-toolbar",
+          "title": "The edit toolbar on Android and the web",
+          "descriptionMarkdown": "**What to build:**\n- the action model and visibility rules;\n- `PlatformWindow::show_text_edit_menu` and `hide_text_edit_menu`;\n- Android's floating `ActionMode` through JNI;\n- the drawn toolbar where the hook returns false;\n- web paste inside the user activation.\n\n**Tests:**\n- new group `editable_text_toolbar.rs`;\n- lane E check `text-input-android-toolbar`;\n- lane B titles `text-input: toolbar ...`.",
+          "criterionIds": [
+            "TCH-2"
+          ],
+          "designIds": [
+            "d-touch-editing"
+          ],
+          "dependsOn": [
+            "t15-touch-selection"
+          ],
+          "checkIds": [
+            "check-b-toolbar",
+            "check-b-android-toolbar",
+            "check-b-web-toolbar"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/element.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/platform.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/android/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/platform.rs"
+            }
+          ]
+        },
+        {
+          "id": "t17-android-magnifier",
+          "title": "The Android magnifier",
+          "descriptionMarkdown": "**What to build:** `show_text_magnifier` and `hide_text_magnifier`, implemented with `android.widget.Magnifier` on API 28 and later.\n\nLane E check `text-input-android-magnifier`.",
+          "criterionIds": [
+            "TCH-3"
+          ],
+          "designIds": [
+            "d-touch-editing"
+          ],
+          "dependsOn": [
+            "t15-touch-selection"
+          ],
+          "checkIds": [
+            "check-b-android-magnifier"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/android/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/android/jni.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s07-native-field",
+      "title": "Opt-in native credential field",
+      "dependsOn": [
+        "s06-touch-editing"
+      ],
+      "tasks": [
+        {
+          "id": "t18-native-field-core",
+          "title": "NativeTextFieldState, the element and the fallback",
+          "descriptionMarkdown": "**What to build:**\n- `PlatformNativeTextField` and the `PlatformWindow::create_native_text_field` hook;\n- the state entity and the element;\n- the `EditableText` fallback.\n\nNew group `native_text_field.rs`.",
+          "criterionIds": [
+            "NAT-1"
+          ],
+          "designIds": [
+            "d-native-field"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-b-native-field"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/platform.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/mod.rs"
+            }
+          ]
+        },
+        {
+          "id": "t19-native-field-ios",
+          "title": "UITextField in a native surface",
+          "descriptionMarkdown": "**What to build:**\n- the iOS implementation on a composition native surface;\n- traits, styles and sync.\n\nLane F check `native-field-ios`.",
+          "criterionIds": [
+            "NAT-2"
+          ],
+          "designIds": [
+            "d-native-field"
+          ],
+          "dependsOn": [
+            "t18-native-field-core"
+          ],
+          "checkIds": [
+            "check-b-ios-build",
+            "check-b-native-field-ios"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/ios/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/ios/fast/composition.rs"
+            }
+          ]
+        },
+        {
+          "id": "t20-native-field-android",
+          "title": "EditText in a platform-view panel",
+          "descriptionMarkdown": "**What to build:**\n- the Android implementation on a composition native surface;\n- `autofillHints`, `inputType`, styles and sync.\n\nLane E check `native-field-android`.",
+          "criterionIds": [
+            "NAT-3"
+          ],
+          "designIds": [
+            "d-native-field"
+          ],
+          "dependsOn": [
+            "t18-native-field-core"
+          ],
+          "checkIds": [
+            "check-b-android-build",
+            "check-b-native-field-android"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/android/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/android/fast/composition.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/java/dev/gpux/mobile/PlatformViews.java"
+            }
+          ]
+        },
+        {
+          "id": "t21-native-field-web",
+          "title": "An <input> in the html_element overlay",
+          "descriptionMarkdown": "**What to build:**\n- the web implementation, with `gpui_web` owning an `<input>` inside a `<form>` in the overlay root;\n- `autocomplete` and `type`;\n- styles and sync.\n\nTitles `native-field: ...`.",
+          "criterionIds": [
+            "NAT-4"
+          ],
+          "designIds": [
+            "d-native-field"
+          ],
+          "dependsOn": [
+            "t18-native-field-core"
+          ],
+          "checkIds": [
+            "check-b-web-build",
+            "check-b-native-field-web"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/html_element.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/window.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s08-owner-walkthrough",
+      "title": "Owner walkthrough on real keyboards, IMEs and autofill",
+      "dependsOn": [
+        "s07-native-field"
+      ],
+      "tasks": [
+        {
+          "id": "t22-walkthrough",
+          "title": "Owner-run walkthrough",
+          "descriptionMarkdown": "**The owner's part.** The owner runs the OWN-1 walkthrough on their devices and browsers.\n\n**The agent's part:**\n- prepare `docs/measurements/text-input-walkthrough.md` with the checklist and the commands that start each host;\n- record the owner's results as reported.",
+          "criterionIds": [
+            "OWN-1"
+          ],
+          "designIds": [
+            "d-proof"
+          ],
+          "dependsOn": [],
+          "checkIds": [],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "docs/measurements/text-input-walkthrough.md"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

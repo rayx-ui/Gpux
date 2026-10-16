@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 7,
+  "epicId": "gpux-platform-text-input",
+  "scopeMarkdown": "Give gpux's `EditableText` the system keyboard, IME composition and native-feeling editing tools on iOS, Android and the web, including desktop and mobile browsers, plus an opt-in native field for credentials.\n\n**Owner decisions (2026-10-16/17):**\n- Fields stay drawn by gpux and talk to each platform's text-input protocol, the model Flutter and Compose Multiplatform use.\n- Native text fields are an opt-in, for credentials only.\n- The work is two epics, run one after the other in the `editable-text` worktree set (`~/.worktrees/editable-text/Gpux`, branch `feature/editable-text`). **`gpux-rich-editable-text` runs first.** This epic builds on its stored formatting and its per-row selection geometry.\n\n## Starting point (origin/main 0eb1c1d)\n\n**Android:**\n- `PlatformInputHandler` is stored but never called (`crates/gpui_mobile/src/android/window.rs` ~1362).\n- Text reaches apps only through the legacy global callback, fed by NativeActivity key events (`window.rs` ~1702-1755). There is no `InputConnection`, so Gboard's composition, swipe typing and voice cannot work.\n- The keyboard is shown through the NDK `show_soft_input`, which ignores the keyboard type and exists only with `android-native-activity` (`jni.rs` ~1380-1408).\n- The embedded host has no key or text events (`embedded.rs`).\n- The clipboard becomes real in the first epic.\n\n**iOS:**\n- `GPUITextInputView` conforms only to `UIKeyInput` (`crates/gpui_mobile/src/ios/window.rs` ~308-452). It is 1×1 at (0,0).\n- The keyboard appears only through `gpui_mobile::show_keyboard*`, and autocorrect is forced off.\n- The legacy callback receives text before the input handler.\n- There is no `UITextInput` or marked text, so no Japanese, Chinese or Korean composition.\n- `IosWindow` implements none of `show_soft_keyboard`, `hide_soft_keyboard`, `text_input_state_changed`, `set_text_input_configuration` or `insets`.\n- The keyboard height is kept in a global, not in `insets().ime`.\n- The hardware-key FFI is never called.\n\n**Web:**\n- The hidden `<textarea>` IME mirror (`crates/gpui_web/src/ime_mirror.rs`) sits at (0,0), and `update_ime_position` is a no-op (`window.rs` ~1488).\n- The keyboard appears on an editable tap (`events.rs` ~362-424).\n- There are no selection handles or toolbar, and no IME inset.\n\n**Core:**\n- `TextInputConfiguration` has only autocorrect, autocapitalize, suggestions and the input action (`crates/gpui/src/platform.rs` ~2451).\n- `EditableTextState` cannot set a configuration. It does not override `set_selected_text_range`, `text_length_utf16` or `text_input_editable_range`.\n- `TextInputStateChange::{SelectionChanged, ContentChanged}` are never emitted.\n- `invalidate_character_coordinates` is never called by `EditableText`.\n- There is no general way to reveal a rectangle inside scrolling ancestors.\n\n**Lanes:** the IME scene runs only in lanes A, B and C, because hosts cannot drive a platform's input method.\n\n## Coordination with `gpux-a11y-devtools`\n\nThat epic is in progress on `feature/a11y-devtools`. It:\n- moves to AccessKit 0.25, with the iOS and Android adapters;\n- represents the focused editable node on the web through the IME mirror textarea (role, name, value, selection);\n- adds `ScrollIntoView` ancestor scrolling.\n\n**Rules for this epic:**\n- Whichever epic merges second rebases.\n- This epic keeps the a11y epic's IME-mirror contract. It reuses that epic's scrolling-ancestor mechanism when merged, and otherwise builds the shared one the a11y epic can call.\n- Text-field accessibility stays in the a11y epic.\n\n## Out of scope\n\n- desktop IME changes (macOS, Windows TSF, Linux);\n- RayX adopting the work, by mapping its field kinds to input configuration. That is RayX's own follow-up;\n- spell-check UI;\n- drag and drop of text on touch;\n- bidirectional text.\n\n## Owner-dependent acceptance\n\nReal keyboards, IMEs, dictation and password autofill on devices and mobile browsers cannot be driven by the lanes. The owner runs them in the final sprint (`s08-owner-walkthrough`), recorded in `docs/measurements/text-input-walkthrough.md`.\n\n## Defaults recorded instead of open product decisions\n\n**Selection UI:**\n- **iOS** uses UIKit's own selection UI (`UITextInteraction`).\n- **Android and the web** share gpux-drawn selection handles. Android uses the platform floating toolbar (`ActionMode`); the web draws its own toolbar.\n- **The magnifier** is Android-only.\n\n**The native credential field:**\n- It covers single-line username, password and one-time-code fields.\n- The desktop falls back to `EditableText`.\n",
+  "constraintsMarkdown": "- **Input model.** Take Zed's input model unchanged. Touch editing uses `LongPressEvent`, `TouchDragEvent` and ordinary mouse events, and gpux additions sit beside the model (`gpui/input` rules).\n- **Threads:**\n  - Android View and IME calls run on the UI thread; editing runs on the GPUI thread.\n  - UIKit calls run on the main thread.\n  - Cross-thread state uses versioned mirrors, never blocking waits that can deadlock with the UI thread.\n- **Platform rules:**\n  - Keep the IME mirror `pointer-events: none`, and keep the clipboard and paste rules (`platform/web` rules).\n  - Keep composition panels `FLAG_NOT_FOCUSABLE` except while text-taking content holds focus, and announce focus moves to Rust first (`platform/mobile` rules).\n  - Java that gpux calls lives in `crates/gpui_mobile/java` under `dev.gpux.mobile`.\n- **Legacy keyboard API.** The legacy `gpui_mobile` keyboard API keeps working for apps without an input handler: `set_text_input_callback`, `dispatch_text_input`, `show_keyboard*`, `hide_keyboard` and `keyboard_height`. A focused input handler receives text before the legacy callback.\n- **Desktop is unaffected.**\n- **Tests.**\n  - Every behavior gets its own new test group: `crates/gpui/tests/<group>.rs`, a lane E or F check id, or a `tools/browser/specs` title prefix.\n  - Sprint checks select exactly those groups.\n  - Runtime proof runs in gpux's lanes; RayX checks are not gpux's proof.\n- **Lane E** must build with and without `android-native-activity` (the embedded host is the default feature set).\n- **Lane F** is the only proof for iOS runtime work.\n- **Dependencies** come from crates.io only.\n",
+  "requirements": [
+    {
+      "id": "CFG",
+      "title": "Input configuration and the shared input path",
+      "descriptionMarkdown": "What a field asks of the keyboard, how platforms learn about app-driven changes, soft-keyboard Return, and keeping the caret visible.",
+      "criteria": [
+        {
+          "id": "CFG-1",
+          "descriptionMarkdown": "**New configuration fields.** `TextInputConfiguration` gains:\n- `keyboard`: text (the default), number, decimal, phone, email, url or search;\n- `content_type`: none (the default), username, password, new password, one-time code, email, phone, url or name;\n- `secure`: a bool.\n\nThe default stays the current default.\n\n**State API.** `EditableTextState` stores a configuration through a setter and a getter, and its input handler returns it. A change while the field is focused reaches the platform in the same frame, through `Window`'s existing comparison.\n\n**Secure fields** never get suggestions or autocorrect, whatever the other fields say.\n\nNew group `crates/gpui/tests/text_input_configuration.rs`.",
+          "verification": "automated"
+        },
+        {
+          "id": "CFG-2",
+          "descriptionMarkdown": "**Input handler overrides.** `EditableTextState`'s input handler implements:\n- `set_selected_text_range`: a platform-driven selection change lands clamped to character boundaries, makes no history entry, and keeps a marked range valid;\n- `text_length_utf16`;\n- `text_input_editable_range`.\n\n**Notifying the platform.** When an `EditableText`'s text or selection changes, the window reports `TextInputStateChange::ContentChanged` or `SelectionChanged` to the platform, coalesced to once per frame. This covers changes from key bindings, programmatic setters, undo, paste and pointer selection. It never reports edits that came from the platform's own input handler calls.\n\n**IME position.** When the caret's position on screen changes (an edit, a scroll, a layout change), `invalidate_character_coordinates` runs, so the platform's `update_ime_position` gets the caret rectangle.\n\nNew group `crates/gpui/tests/text_input_state_sync.rs`, using the test platform's recorded state changes.",
+          "verification": "automated"
+        },
+        {
+          "id": "CFG-3",
+          "descriptionMarkdown": "**Return from a soft keyboard** arrives as a newline through the input handler:\n- iOS `insertText(\"\\n\")`;\n- Android `commitText` or `performEditorAction`.\n\nIt is first dispatched as the `enter` keystroke through the keymap, as the web already does with `insertLineBreak`. Only when nothing handles it does a multi-line field insert a newline; a single-line field inserts nothing.\n\n**Hardware Enter keys are unchanged.**\n\nNew group `crates/gpui/tests/text_input_soft_return.rs`.",
+          "verification": "automated"
+        },
+        {
+          "id": "CFG-4",
+          "descriptionMarkdown": "**When the caret must be revealed.** A focused `EditableText`'s caret must stay visible after:\n- the field gains focus;\n- the window's IME inset grows;\n- an edit or selection move.\n\nThe visible area is the window's visual viewport minus `insets().ime`.\n\n**How it is revealed.** When the caret rectangle plus a margin falls outside that area, its scrolling ancestors scroll, innermost first, through their ordinary programmatic path (instant), until it is visible:\n- nothing scrolls when it is already visible;\n- an owner can turn this off per field.\n\nNew group `crates/gpui/tests/text_input_reveal.rs`.",
+          "verification": "automated"
+        }
+      ]
+    },
+    {
+      "id": "IOS",
+      "title": "iOS: UITextInput, the keyboard and UIKit's editing tools",
+      "descriptionMarkdown": "The iOS window speaks UITextInput for the focused field and lets UIKit draw its own editing tools.",
+      "criteria": [
+        {
+          "id": "IOS-1",
+          "descriptionMarkdown": "**Keyboard on focus.** `IosWindow` implements `show_soft_keyboard`, `hide_soft_keyboard`, `text_input_state_changed` and `set_text_input_configuration`:\n- Focusing an editable `EditableText` shows the keyboard.\n- Focus moving to another text field keeps the keyboard up, with no hide/show.\n- Blur, disabled and read-only hide it.\n\n**Configuration becomes `UITextInputTraits`:**\n- `keyboardType`;\n- `returnKeyType`, from the input action;\n- `autocorrectionType`, `autocapitalizationType` and `spellCheckingType`;\n- smart quotes and dashes, which follow autocorrect;\n- `textContentType`;\n- `secureTextEntry`.\n\nA change while the view is first responder reloads the input views.\n\n**Legacy order.** A focused input handler receives text before the legacy global callback. Apps without one keep `show_keyboard*` and the callback.\n\nLane F check `text-input-ios-keyboard`.",
+          "verification": "automated"
+        },
+        {
+          "id": "IOS-2",
+          "descriptionMarkdown": "**`GPUITextInputView` conforms to `UITextInput`,** backed by the active input handler.\n\n**Positions and text:**\n- UTF-16 positions and ranges;\n- `textInRange` and `replaceRange:withText:`;\n- `selectedTextRange`, get and set;\n- `insertText`, `deleteBackward`, and `hasText` from the handler;\n- document start and end, position arithmetic and comparison;\n- a `UITextInputStringTokenizer`.\n\n**Composition:** `markedTextRange`, `setMarkedText:selectedRange:` and `unmarkText`.\n\n**Change notifications.** The `inputDelegate` is told about app-driven changes (CFG-2): text and selection will/did change.\n\n**Behavior required:**\n- Japanese kana and Chinese pinyin compose, with the marked range underlined, and commit.\n- Autocorrect and text replacement edit exactly the range given.\n\n**Geometry,** in the view's coordinate space, correct at scale 2 and 3 and inside scrolled content:\n- `firstRectForRange`, `caretRectForPosition` and `selectionRectsForRange`;\n- `closestPositionToPoint` (with and without a range) and `characterRangeAtPoint`.\n\nThey come from `bounds_for_range` and `character_index_for_point`.\n\n**Test:** lane F check `text-input-ios-protocol` drives these methods on the real view, in the host's process, and asserts the field's value, selection and marked range after each call.",
+          "verification": "automated"
+        },
+        {
+          "id": "IOS-3",
+          "descriptionMarkdown": "**The input view covers the focused field.** While an editable field is focused, the input view's frame covers the field's visible bounds every frame they change: scroll, transforms by their bounding box, and clipping to the content mask.\n\n**UIKit's own editing tools.** The view carries a `UITextInteraction` for editable text:\n- a tap in the field places the caret;\n- a double tap selects a word;\n- a long press or drag shows the loupe;\n- selection handles and the edit menu are UIKit's own.\n\n**Touches outside the field** reach GPUI unchanged.\n\n**No double caret.** The field does not paint its own caret and selection while UIKit draws them. UIKit's tint follows the field's caret color.\n\n**Without focus,** the view takes no touches.\n\n**Test:** lane F check `text-input-ios-interaction`:\n- the interaction is attached;\n- the frame matches the field after a scroll;\n- the field reports that it does not paint its caret;\n- a tap outside the field reaches GPUI.\n\nThe real gestures are in the owner walkthrough.",
+          "verification": "automated"
+        },
+        {
+          "id": "IOS-4",
+          "descriptionMarkdown": "**Hardware keyboards.** The input view's `pressesBegan:` and `pressesEnded:` dispatch `KeyDown` and `KeyUp` to GPUI, with modifiers and repeat, so arrows and shortcuts work. Printable characters still arrive exactly once, through `insertText`.\n\n**Keyboard inset.**\n- `UIKeyboardWillChangeFrame` updates `insets().ime`. It is zero when the keyboard is hidden or floating.\n- `on_insets_changed` fires, and `visual_viewport_bounds` excludes the keyboard.\n- `keyboard_height()` keeps working.\n\n**Tests:**\n- lane F check `text-input-ios-keys` calls the press handler with the key codes and modifier flags UIKit delivers (the Objective-C method is a thin forwarder);\n- lane F check `text-input-ios-inset` shows the software keyboard on the Simulator, with the hardware keyboard disconnected by the testkit, and asserts the inset and the reveal.",
+          "verification": "automated"
+        }
+      ]
+    },
+    {
+      "id": "AND",
+      "title": "Android: InputConnection, the keyboard and hardware keys",
+      "descriptionMarkdown": "The focused field gets a real InputConnection on both Android hosts.",
+      "criteria": [
+        {
+          "id": "AND-1",
+          "descriptionMarkdown": "**The host view.** A gpux Java view in `dev.gpux.mobile` hosts an `InputConnection` for the focused `EditableText`, in both the NativeActivity host and the embedded host.\n\n**Focus and the keyboard:**\n- Focusing an editable field gives that view the window focus. The move is announced to Rust first, so GPUI does not pause.\n- The soft keyboard is shown through `InputMethodManager.showSoftInput`.\n- It stays up across fields and hides on blur.\n\n**`EditorInfo` comes from the configuration:**\n- the `inputType` class, variation and flags: text, number, decimal, phone, email, uri, password and visible password; no suggestions; capitalization; multi-line;\n- the `imeOptions` action, plus `IME_FLAG_NO_PERSONALIZED_LEARNING` for secure fields;\n- the initial selection.\n\n**Test:** lane E check `text-input-android-keyboard`. Focusing a field shows the keyboard (reported by the input method service), the `EditorInfo` matches the configuration, and GPUI stays active.",
+          "verification": "automated"
+        },
+        {
+          "id": "AND-2",
+          "descriptionMarkdown": "**The mirror.** The `InputConnection` keeps a versioned mirror of the field's text around the selection. Between round trips, IME reads come from the mirror.\n\n**Calls forwarded to the input handler,** on the GPUI thread, in order, with UTF-16 offsets:\n- `commitText`, `setComposingText`, `setComposingRegion` and `finishComposingText`;\n- `deleteSurroundingText` and its code-point variant;\n- `setSelection`;\n- the text-before-, after- and selected-text getters, and `getExtractedText`;\n- batch edits;\n- `performEditorAction` (CFG-3);\n- `performContextMenuAction` (select all, cut, copy, paste);\n- `sendKeyEvent`.\n\n**Back to the IME:**\n- App-driven changes (CFG-2) call `updateSelection`, and `restartInput` on whole-content replacement.\n- `update_ime_position` calls `updateCursorAnchorInfo`.\n\n**Test:** lane E check `text-input-android-connection` calls these on the live connection through JNI and asserts the field after each. It includes a Japanese composition sequence and a `deleteSurroundingText` across a surrogate pair.",
+          "verification": "automated"
+        },
+        {
+          "id": "AND-3",
+          "descriptionMarkdown": "**Hardware keys.** While the text input view is focused, key events still reach GPUI as `KeyDown` and `KeyUp`: arrows, and shortcuts with ctrl, meta and shift.\n- Printable characters are inserted exactly once.\n- `ACTION_MULTIPLE` text is delivered.\n- When an input handler is active, it is used instead of the legacy callback.\n\n**IME inset.** The window reports its IME inset:\n- from the window insets' `ime` type on API 30 and later, from the visible-frame difference before that;\n- `on_insets_changed` fires;\n- the visual viewport excludes the keyboard;\n- CFG-4 reveals the caret.\n\n**Tests:**\n- lane E check `text-input-android-keys`, driven by `adb shell input`;\n- lane E check `text-input-android-inset`.",
+          "verification": "automated"
+        }
+      ]
+    },
+    {
+      "id": "WEB",
+      "title": "Web: the IME mirror at the caret and keyboard hints",
+      "descriptionMarkdown": "The browser's input method and virtual keyboard follow the focused field.",
+      "criteria": [
+        {
+          "id": "WEB-1",
+          "descriptionMarkdown": "**Mirror placement.** `update_ime_position` places the IME mirror textarea at the focused field's caret rectangle, with the field's font size. It stays transparent and `pointer-events: none`. As a result:\n- desktop IME candidate windows open at the caret;\n- mobile browsers scroll the visual viewport to the field, not to the page top.\n\nOn blur it returns to its idle place.\n\n**a11y contract.** It keeps the a11y epic's role, name, value and selection contract when that is present.\n\n**Test:** `tools/browser/specs/text-input.spec.ts`, titles `text-input: mirror ...`. They compare the mirror's box with the caret after focus, typing and scrolling.",
+          "verification": "automated"
+        },
+        {
+          "id": "WEB-2",
+          "descriptionMarkdown": "**Configuration becomes mirror attributes:**\n- `inputmode`: text, numeric, decimal, tel, email, url or search;\n- `enterkeyhint`;\n- `autocomplete` from the content type: username, current-password, new-password, one-time-code, email, tel, url or name;\n- `autocapitalize`, `autocorrect` and `spellcheck`.\n\n**Secure fields** mask the mirror text and turn suggestions off.\n\n**Touch devices** keep `inputmode=\"none\"` until an editable tap, as today.\n\n**IME inset.** When the virtual keyboard shrinks `visualViewport`, `insets().ime` reports the covered height and CFG-4 reveals the caret.\n\n**Test:** titles `text-input: hints ...` and `text-input: viewport ...`. The keyboard is simulated by shrinking the visual viewport through CDP device metrics.",
+          "verification": "automated"
+        }
+      ]
+    },
+    {
+      "id": "TCH",
+      "title": "Touch editing on Android and the web",
+      "descriptionMarkdown": "Touch selection handles, an edit toolbar and the Android magnifier for gpux-drawn fields.",
+      "criteria": [
+        {
+          "id": "TCH-1",
+          "descriptionMarkdown": "**Touch gestures,** on touch input only. Mouse input keeps today's behavior, and iOS uses UIKit (IOS-3):\n- **Tap:** places the caret.\n- **Long press:** selects the word under it, or shows the toolbar with Paste in empty text, and shows two selection handles.\n- **Double tap:** selects the word.\n- **Dragging a handle:** moves that end of the selection. Handles swap rather than cross, and the field auto-scrolls at its edge.\n- **Tapping the caret handle:** toggles the toolbar.\n\n**Drawing the handles:**\n- They paint in the overlay (deferred), above other content and outside the field's clip.\n- They use the selection color, with a touch target of at least 44 points.\n- They hide while typing and on blur.\n- They are placed from the per-row selection geometry.\n\nNew group `crates/gpui/tests/editable_text_touch.rs`, with simulated touches on the test platform.",
+          "verification": "automated"
+        },
+        {
+          "id": "TCH-2",
+          "descriptionMarkdown": "**Toolbar actions:** Cut, Copy, Paste and Select All. Only applicable actions appear:\n- no Cut or Copy without a selection;\n- no Paste without clipboard text, or in a read-only field;\n- no Cut or Copy in a secure field.\n\n**Platforms:**\n- **Android:** a floating `ActionMode`. Its content rectangle is the selection bounds, invalidated on move, and its items call the same `EditableText` actions.\n- **Web:** a gpux-drawn toolbar in the overlay. Paste reads the clipboard inside the tap's user activation. When the browser denies it, the field stays unchanged and no console error appears.\n\n**When it shows.** The toolbar hides on typing, on scroll start and on blur. It comes back after a handle drag ends.\n\n**Tests:**\n- new group `crates/gpui/tests/editable_text_toolbar.rs` for the action model and visibility;\n- lane E check `text-input-android-toolbar`;\n- lane B titles `text-input: toolbar ...`.",
+          "verification": "automated"
+        },
+        {
+          "id": "TCH-3",
+          "descriptionMarkdown": "**Android magnifier.** While a handle or the caret is dragged, `android.widget.Magnifier` shows the text around it, and hides on release. Below API 28 there is no magnifier, and no error.\n\n**Test:** lane E check `text-input-android-magnifier`.",
+          "verification": "automated"
+        }
+      ]
+    },
+    {
+      "id": "NAT",
+      "title": "Opt-in native credential field",
+      "descriptionMarkdown": "A single-line native field for usernames, passwords and one-time codes, so platform autofill and password managers work.",
+      "criteria": [
+        {
+          "id": "NAT-1",
+          "descriptionMarkdown": "**The element.** `native_text_field` (gpux core), with a `NativeTextFieldState` entity:\n- Value changes, focus and submit (Return) sync both ways.\n- The content type, secure flag and keyboard come from `TextInputConfiguration`.\n\n**Platform hook.** Platforms create the native control through a `PlatformWindow` hook. When there is no native control, the desktop included, the element renders an `EditableText` (masked when secure).\n\nNew group `crates/gpui/tests/native_text_field.rs`: the state API and the fallback on the test platform.",
+          "verification": "automated"
+        },
+        {
+          "id": "NAT-2",
+          "descriptionMarkdown": "**iOS.** A `UITextField` in a window-composition native surface, placed at the element's bounds intersected with its content mask, hidden when the element is not placed, and removed when dropped.\n- `textContentType`, `secureTextEntry`, the keyboard type and the return key come from the configuration.\n- Font, color and placeholder come from the element's text style.\n- gpux overlays draw above it.\n\nLane F check `native-field-ios`.",
+          "verification": "automated"
+        },
+        {
+          "id": "NAT-3",
+          "descriptionMarkdown": "**Android.** An `EditText` in a composition platform-view panel.\n- It is focusable while touched, by the existing rule.\n- `autofillHints` and `inputType` come from the configuration.\n- Font, color and hint come from the text style.\n- It has the same placement and disposal as platform views.\n\nLane E check `native-field-android`.",
+          "verification": "automated"
+        },
+        {
+          "id": "NAT-4",
+          "descriptionMarkdown": "**Web.** An `<input>` inside a `<form>` in the `html_element` DOM overlay, with DOM-owned input.\n- `autocomplete`, `type=\"password\"` and `inputmode` come from the configuration.\n- Its styles come from the text style.\n- `gpui_web` creates and syncs it, value and events included, without trusted HTML strings.\n\nLane B titles `native-field: ...`.",
+          "verification": "automated"
+        }
+      ]
+    },
+    {
+      "id": "OWN",
+      "title": "Owner walkthrough on real keyboards",
+      "descriptionMarkdown": "Behavior only real keyboards, IMEs and autofill can show.",
+      "criteria": [
+        {
+          "id": "OWN-1",
+          "descriptionMarkdown": "**Where the owner runs the conformance hosts (or RayX Lab):**\n- an iPhone or the iOS Simulator with the software keyboard;\n- an Android device or emulator with Gboard;\n- iOS Safari and Android Chrome;\n- desktop Chrome and Safari with a Japanese IME.\n\n**What is recorded for each,** in `docs/measurements/text-input-walkthrough.md`:\n- the keyboard appears on focus with the configured kind and Return key;\n- Japanese kana-to-kanji and Chinese pinyin composition;\n- autocorrect and suggestions on and off;\n- iOS dictation, and Gboard voice and swipe typing;\n- selection handles, loupe or magnifier, and the edit menu or toolbar;\n- password autofill in the native field (iCloud Keychain, Google, the browser's manager);\n- the caret staying visible above the keyboard;\n- anything missing.",
+          "verification": "manual"
+        }
+      ]
+    }
+  ]
+}
