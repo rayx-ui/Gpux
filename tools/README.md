@@ -1,7 +1,7 @@
 # gpux tools
 
-What drives or hosts gpux's tests. The Rust crates under test live in `crates/`; the two
-never-shipped verification crates are
+What drives or hosts gpux's tests. The library crates under test live in `crates/`, beside the
+two verification crates no consumer depends on:
 [`crates/gpux_tests_conformance`](../crates/gpux_tests_conformance) (UI tests: the scene catalog,
 lane targets, goldens and app hosts) and
 [`crates/gpux_tests_benchmark`](../crates/gpux_tests_benchmark/README.md) (the improvement-loop

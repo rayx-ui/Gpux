@@ -152,7 +152,7 @@ pnpm exec playwright install chromium
 ## 5. gpux validation
 
 From `~/rayx/Gpux`, mirroring `.github/workflows/ci.yml`. The excluded crates are the vendored wgpu
-fork, which gpux does not lint or test; the test job also leaves `gpux-conformance` to lanes A and
+fork, which gpux does not lint or test; the test job also leaves `gpux-tests-conformance` to lanes A and
 C (section 6).
 
 ```bash
@@ -163,7 +163,7 @@ cargo fmt --check
 cargo check --workspace --all-targets
 cargo check -p gpux-web --target wasm32-unknown-unknown --no-default-features
 cargo clippy --workspace --all-targets --no-deps $EXCLUDES -- -D warnings
-cargo test --workspace --no-fail-fast $EXCLUDES --exclude gpux-conformance -- --test-threads=1
+cargo test --workspace --no-fail-fast $EXCLUDES --exclude gpux-tests-conformance -- --test-threads=1
 cargo package --workspace
 ```
 
@@ -200,7 +200,7 @@ Under WSLg's compositor the clipboard and hover checks cannot pass, for reasons 
 Lane B (the threaded WASM build in Chromium) needs gpux's own Playwright packages and Chromium:
 
 ```bash
-cd ~/rayx/Gpux/tools-node
+cd ~/rayx/Gpux/tools/browser
 pnpm install --frozen-lockfile
 pnpm exec playwright install chromium
 cd ~/rayx/Gpux
@@ -323,7 +323,7 @@ specs that need opt-in fixtures, add their features to `--features`:
 Things to expect on WSL:
 
 - WebGPU runs on SwiftShader, Chromium's software renderer. WSLg offers hardware OpenGL but no
-  hardware Vulkan. `tools-node/playwright.config.ts` detects WSL and passes
+  hardware Vulkan. `tools/browser/playwright.config.ts` detects WSL and passes
   `--use-angle=swiftshader --use-vulkan=swiftshader`. Without them, WebGPU canvases never reach
   the page or its screenshots.
 - Software rendering is slow. The full suite (two DPR projects, two workers) takes several

@@ -120,7 +120,7 @@ Required baseline:
 - Rust 1.95 or newer (the gpux workspace `rust-version`; `rust-toolchain.toml` pins 1.95.0, like RayX).
 - Nightly Rust plus `rust-src` for multithreaded WASM builds that use `wasm_thread` (`gpux-testkit web build`, lanes B and G).
 - `wasm-bindgen-cli` at the version `Cargo.lock` pins (`0.2.129`); `gpux-testkit web build` refuses any other.
-- Lane B: Node.js 22 or later with `pnpm`, and in `tools-node`: `pnpm install` and `pnpm exec playwright install chromium`.
+- Lane B: Node.js 22 or later with `pnpm`, and in `tools/browser`: `pnpm install` and `pnpm exec playwright install chromium`.
 - iOS/macOS validation: macOS with Xcode 15 or newer and XcodeGen.
 - Android validation: Android SDK, Android NDK r25 or newer, Java/JDK discovery, and `cargo-ndk`. Lane E pins its SDK packages and needs a JDK 21 and the Android Rust targets ([docs/testing.md](../../../../docs/testing.md#lane-e-android)).
 
@@ -144,7 +144,7 @@ Treat a mobile build failure as a gpux renderer regression before confirming Rus
 ```
 
 Check:
-For gpux-only native desktop work, do not require browser or mobile tools. For browser validation (lane B), verify nightly, `rust-src`, the pinned `wasm-bindgen`, `tools-node`'s Playwright, and browser WebGPU/cross-origin isolation setup first, then run `cargo run -p gpux-testkit -- lane b --grep <pattern>`; each lane names a missing prerequisite with the command that installs it.
+For gpux-only native desktop work, do not require browser or mobile tools. For browser validation (lane B), verify nightly, `rust-src`, the pinned `wasm-bindgen`, `tools/browser`'s Playwright, and browser WebGPU/cross-origin isolation setup first, then run `cargo run -p gpux-testkit -- lane b --grep <pattern>`; each lane names a missing prerequisite with the command that installs it.
 
 ## GPUI Concepts
 

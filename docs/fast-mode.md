@@ -424,7 +424,7 @@ compositing path of its own. A platform window says it rasterizes tiles
 - **Browser.** WebGPU and the forced WebGL2 transport draw tiles through the renderer's own
   pipelines (the transport carries full records, tile sprites included). The browser budget
   (32 MB) applies. A container holding HTML islands or elements keeps today's path. The web host
-  (`gpux-conformance`'s `web_host`) takes `?layers=1` or `?layers=0` and sets the shown scene's
+  (`gpux-tests-conformance`'s `web_host`) takes `?layers=1` or `?layers=0` and sets the shown scene's
   `FastMode` to every mechanism or none; under `diagnostics` the window publishes the fast-mode
   counters of the last frame and of the run as `globalThis.__gpuxFastStats`
   (`{ frame, run, tiles }`, the last what the renderer holds, has rasterized and has released).
