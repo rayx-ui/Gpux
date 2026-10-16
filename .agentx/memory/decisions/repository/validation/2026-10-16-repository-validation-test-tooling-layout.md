@@ -18,7 +18,7 @@ agentx:
 
 ## Decision: Test tooling lives in `crates/gpux_tests_*` and `tools/`
 
-### Context: gpux's test and benchmark tooling was spread over six places: `crates/gpux_conformance`, a root `tools-node/`, `tooling/{testkit,perf,android,ios}` and a root `benchmark/` workspace. The owner asked for one predictable place per kind, with pass/fail UI tests and improvement-loop benchmarks distinguishable (2026-10-16).
+### Context: gpux's test and benchmark tooling was spread over six places: the conformance crate (then package `gpux-conformance`), a Node project and a `tooling` folder at the repository root (runner, timer and the two mobile shells), and a root benchmark workspace that the improvement loops drive. The owner asked for one predictable place per kind, with pass/fail UI tests and improvement-loop benchmarks distinguishable (2026-10-16). The epic's own records (`.agentx/tasks/gpux-tools-layout/`) list the old paths.
 
 ### Alternatives considered: Folders only, keeping the `gpux-conformance` and `gpux-benchmark` package names; a `tools/tests/` home for the Rust test crates; splitting the benchmark into `native/` and `wasm/` folders.
 
