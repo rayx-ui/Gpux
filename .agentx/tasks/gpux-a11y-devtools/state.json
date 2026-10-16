@@ -1,16 +1,19 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-a11y-devtools",
-  "revision": 2,
-  "planRevision": 3,
+  "revision": 10,
+  "planRevision": 5,
   "specHashes": {
     "requirements": "576149548596ab4efd6002b4893418950f88808afddc5f295e262a98fb21ea9c",
     "design": "f6eb854ee044f8849782c3d23345766e3f0d07d467a8f9ff7e032e07c8de9deb",
-    "plan": "1e79d389959701753559505362432c2b2ba52d1a5b966fd474ed407abfff7f13"
+    "plan": "b531d36b8c23bfe1b4132860fa1dd5199cd9183a1a0bd6740828bf65a8a84be2"
   },
   "tasks": {
     "t01-baseline": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t02-activation-sources": {
       "status": "pending"
@@ -126,13 +129,121 @@
   },
   "validationBatches": {},
   "checkResults": {},
-  "reviews": {},
+  "reviews": {
+    "s01-baseline": {
+      "reviewerId": "reviewer-s01-baseline-independent",
+      "snapshotId": "2a876e9246a0d4e1fc74d04f5c9892d49b5b87d75519c32856e27d473627eb78",
+      "criterionIds": [
+        "PERF-1"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/measurements/a11y-devtools.md",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-1"
+          ],
+          "sha256": "0cda7335cc0badc90f8660e0e1c96b18d80a80b29dbfcac5e95cbff33d65a312"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-a11y-devtools/wt-b/benchmark/results/before-b/meta.json",
+          "kind": "runtime",
+          "criterionIds": [
+            "PERF-1"
+          ],
+          "sha256": "77dac7d2fc682b646d5c86627307cf2bb0b6f2c9230568c3a39ffa1792a960e1"
+        }
+      ],
+      "deltaSummaryMarkdown": "Inspected the wording-only delta in `docs/measurements/a11y-devtools.md` (setup paragraph and findings bullets); tables unchanged. Each repaired claim re-checked against the tables/raw medians: CPU range 1.93-6.17x, scroll bytes/heap exceptions, latency vsync-step note, dropped repetition stated per log. Residual note (non-blocking): (c)'s sub-millisecond latencies on the list scrolls and `text-typing` are not covered by the 4/8 ms step explanation.",
+      "reattestedFrom": "2a876e9246a0d4e1fc74d04f5c9892d49b5b87d75519c32856e27d473627eb78",
+      "summaryMarkdown": "PERF-1 data and coverage are complete and correct, but the findings prose contradicts the tables in places, so the document fails review until four small wording repairs land. The document records machine (Apple M5, 24 GB, macOS 26.6.2, matching meta.json), Chromium 147.0.7727.15 headed (raw JSON `browser`, `run.mjs headless: false`), commit 58257fe (all three scratch worktrees at HEAD 58257fe; wt-a diff = devtools feature in benchmark/Cargo.toml, wt-c diff = `AtomicBool::new(true)` in Window::new, matching the patches; wt-b clean), and the exact commands (identical to run-baseline.sh / log headers), with `--hold-clocks 3`, `--configs on`, retention/text/scroll on macos and web-webgpu. Tables equal compare.py's output; 50 cells spot-checked against medians of the raw JSON all match; the dropped (a) table-stream r1 is real (32 reports). CPU, GPU (macOS), `Window::draw` p50/p95, latency p50/p95, allocations, bytes, heap and footprint are all reported. No throwaway change is in this worktree (only the doc and AgentX state are modified).",
+      "findingIds": [
+        "s01-perf1-scroll-bytes-claim",
+        "s01-perf1-cpu-range-claim",
+        "s01-perf1-latency-quantization",
+        "s01-perf1-dropped-rep-cause"
+      ],
+      "recordedAt": "2026-10-16T16:01:19Z",
+      "recordHashes": {
+        "gpux:docs/measurements/a11y-devtools.md": "fdf35f455775cdbde7f59f704ad29e9ffcbdaff33a413b54ac4c0862800dacf0",
+        "gpux:docs/measurements/screen-reader-walkthrough.md": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    }
+  },
   "checkpoints": {},
-  "findings": [],
+  "findings": [
+    {
+      "id": "s01-perf1-scroll-bytes-claim",
+      "boundaryId": "s01-baseline",
+      "criterionIds": [
+        "PERF-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Now: three of four scroll scenarios allocate fewer bytes in (c); `scroll-div-cards` 1.15x macOS / 1.14x web; `scroll-variable-list` macOS heap 17.8 -> 19.6 MB. Matches the tables.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/measurements/a11y-devtools.md"
+        }
+      ]
+    },
+    {
+      "id": "s01-perf1-cpu-range-claim",
+      "boundaryId": "s01-baseline",
+      "criterionIds": [
+        "PERF-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Now 1.9-6.2x; macOS (c)/(b) CPU ratios over the fast-mode scenarios are 1.93-6.17.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/measurements/a11y-devtools.md"
+        }
+      ]
+    },
+    {
+      "id": "s01-perf1-latency-quantization",
+      "boundaryId": "s01-baseline",
+      "criterionIds": [
+        "PERF-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Setup paragraph now explains macOS dirty-to-present latency snaps to ~4/8 ms frame steps at 120 Hz, so the (a)/(b) halvings and 1.5x jumps are one step, not work.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/measurements/a11y-devtools.md"
+        }
+      ]
+    },
+    {
+      "id": "s01-perf1-dropped-rep-cause",
+      "boundaryId": "s01-baseline",
+      "criterionIds": [
+        "PERF-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Now states the timeout per log-a.txt, gives the `ps` CPU reading as an observation, and says the cause was not established.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/measurements/a11y-devtools.md"
+        }
+      ]
+    }
+  ],
   "handoffMarkdown": "",
   "protectedPaths": {
     "gpux": {
-      "gpux:.agentx/experiments/**": "4d6e9d6f34b51c6bb0257e4f2f777eb83f05617ce9649c225e686ef2c3ea997a",
+      "gpux:.agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",
       "gpux:.agentx/tasks/frame-effects-navigation-transitions/**": "97cc9f821c990f4d3560b1c4726ede795e7d91f4329839215674e7649efd8747",
       "gpux:.agentx/tasks/frame-family-component-transitions/**": "3987d07e830ea8dadd35abe56c1d8ccc36b8fb2f8feb189a1d6727c14f114ab1",
       "gpux:.agentx/tasks/gpux-cross-platform-test-lanes/**": "c2f120afd8760d4b62f6eacc957881ee595de63049c1a7a20f9a494e83eea033",
@@ -148,6 +259,7 @@
       "gpux:.agentx/tasks/macos-only-metal-port-and-ci-repair/**": "64ecc143e24a8468c3b4e5d28bbc0f65d4fbbddab867d46a44823b1725ff1e5d",
       "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**": "f3f66695ebf53686a0437e18bf587955317994e21eac47d7908641e0281996ce",
       "gpux:ToFix/**": "e72e6c15df92515c9a96c1ef2a6db675ce345e0eb600212658582f156b1beb64",
+      "gpux:benchmark/results/**": "fda69a574a3d60d835127b7455d8db6d7a300a8ce3e3752a3e30a48f2dc96756",
       "gpux:vendor/wgpu/**": "a4c4ab1992f6a0aeeca032fedb82b953741f6d547ac517ef15467c67dffa69e5"
     },
     "rayx": {

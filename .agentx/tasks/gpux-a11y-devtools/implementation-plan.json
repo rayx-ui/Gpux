@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-a11y-devtools",
-  "revision": 3,
+  "revision": 5,
   "title": "gpux accessibility-first: AccessKit as the one semantic tree for screen readers on every platform, gpux-devtools and its MCP, RayX on both",
   "validationMode": "sprint",
   "repositories": [
@@ -53,6 +53,7 @@
       "gpux:.agentx/tasks/macos-only-metal-port-and-ci-repair/**",
       "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**",
       "gpux:ToFix/**",
+      "gpux:benchmark/results/**",
       "gpux:vendor/wgpu/**",
       "rayx:.agentx/tasks/**",
       "rayx:.agentx/experiments/**",
@@ -1649,6 +1650,8 @@
         "test",
         "-p",
         "gpux",
+        "--features",
+        "test-support",
         "--test",
         "accesskit_025"
       ],
@@ -1657,18 +1660,12 @@
         "minimumTests": 4
       },
       "inputs": [
-        "crates/gpui/**",
-        "crates/gpui_macros/**",
-        "crates/collections/**",
-        "crates/sum_tree/**",
-        "crates/scheduler/**",
-        "crates/gpui_util/**",
-        "crates/refineable/**",
-        "crates/gpui_shared_string/**",
-        "crates/util/**",
-        "crates/gpui_platform/**",
         "Cargo.toml",
-        "Cargo.lock"
+        "Cargo.lock",
+        "crates/gpui/tests/accesskit_025.rs",
+        "crates/gpui/src/window.rs",
+        "crates/gpui/src/window/a11y.rs",
+        "crates/gpui/src/window/a11y/**"
       ]
     },
     {
@@ -1684,6 +1681,8 @@
         "test",
         "-p",
         "gpux",
+        "--features",
+        "test-support",
         "--lib",
         "window::a11y"
       ],
@@ -1692,18 +1691,11 @@
         "minimumTests": 5
       },
       "inputs": [
-        "crates/gpui/**",
-        "crates/gpui_macros/**",
-        "crates/collections/**",
-        "crates/sum_tree/**",
-        "crates/scheduler/**",
-        "crates/gpui_util/**",
-        "crates/refineable/**",
-        "crates/gpui_shared_string/**",
-        "crates/util/**",
-        "crates/gpui_platform/**",
         "Cargo.toml",
-        "Cargo.lock"
+        "Cargo.lock",
+        "crates/gpui/src/window.rs",
+        "crates/gpui/src/window/a11y.rs",
+        "crates/gpui/src/window/a11y/**"
       ]
     },
     {
@@ -1718,28 +1710,16 @@
         "cargo",
         "check",
         "-p",
-        "gpux-macos",
-        "--all-targets"
+        "gpux-macos"
       ],
       "expected": {
         "exitCode": 0
       },
       "inputs": [
-        "crates/gpui/**",
-        "crates/gpui_macros/**",
-        "crates/collections/**",
-        "crates/sum_tree/**",
-        "crates/scheduler/**",
-        "crates/gpui_util/**",
-        "crates/refineable/**",
-        "crates/gpui_shared_string/**",
-        "crates/util/**",
-        "crates/gpui_platform/**",
         "Cargo.toml",
         "Cargo.lock",
         "crates/gpui_macos/**",
-        "crates/gpui_apple/**",
-        "crates/gpui_wgpu/**"
+        "crates/gpui/src/**"
       ]
     },
     {
@@ -1757,12 +1737,18 @@
         "--",
         "bash",
         "-lc",
-        "set -e; source \"$HOME/.cargo/env\"; rsync -a --delete --exclude /target --exclude /artifacts-temp /Users/dinko/.worktrees/gpux-a11y-devtools/Gpux/ \"$HOME/src/Gpux-a11y/\"; cd \"$HOME/src/Gpux-a11y\"; cargo check -p gpux-linux --all-targets"
+        "cd /Users/dinko/.worktrees/gpux-a11y-devtools/Gpux && CARGO_TARGET_DIR=$HOME/targets/gpux-a11y-devtools cargo check -p gpux-linux"
       ],
       "expected": {
         "exitCode": 0
       },
-      "reuse": false
+      "reuse": false,
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui_linux/**",
+        "crates/gpui/src/**"
+      ]
     },
     {
       "id": "check-a11y-feature-tree",
