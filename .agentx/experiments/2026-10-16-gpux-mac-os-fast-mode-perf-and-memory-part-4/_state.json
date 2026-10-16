@@ -7,10 +7,10 @@
   "target": "",
   "maxIterations": 18,
   "maxExperiments": 18,
-  "state": "running",
-  "status": "",
+  "state": "done",
+  "status": "stopped",
   "createdAt": "2026-10-16T10:35:32Z",
-  "finishedAt": null,
+  "finishedAt": "2026-10-16T10:49:34Z",
   "lastStableCommit": "bcdcf81a871b079b62e38ded64d78bef0b67124f",
   "repositories": [
     {
@@ -29,7 +29,7 @@
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
   "currentExperimentId": null,
-  "nextExperimentIndex": 3,
+  "nextExperimentIndex": 4,
   "experiments": [
     {
       "id": "da43b412-919f-4f5e-a2c4-7c963e8d2751",
@@ -53,6 +53,17 @@
       "state": "done",
       "status": "success",
       "resultCommit": "bcdcf81a871b079b62e38ded64d78bef0b67124f"
+    },
+    {
+      "id": "c95d8e1b-cae2-44e0-9bb4-04a10ee859a1",
+      "index": 3,
+      "type": "hypothesis",
+      "name": "Let fewer list row layout nodes linger",
+      "path": "2026-10-16-03-let-fewer-list-row-layout-nodes-linger.json",
+      "startedAt": "2026-10-16T10:45:51Z",
+      "finishedAt": "2026-10-16T10:49:34Z",
+      "state": "done",
+      "status": "failure"
     }
   ]
 }
