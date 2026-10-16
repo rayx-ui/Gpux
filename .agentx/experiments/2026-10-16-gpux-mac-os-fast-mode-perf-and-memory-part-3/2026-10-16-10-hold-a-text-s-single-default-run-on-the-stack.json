@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "id": "67b65204-e637-41b7-91d8-8e504010bbc6",
+  "loopId": "5454c93e-ead4-4322-b9fc-ad37cad8bca7",
+  "index": 10,
+  "type": "hypothesis",
+  "name": "Hold a text's single default run on the stack",
+  "slug": "hold-a-text-s-single-default-run-on-the-stack",
+  "path": "2026-10-16-10-hold-a-text-s-single-default-run-on-the-stack.json",
+  "createdAt": "2026-10-16T09:19:17Z",
+  "startedAt": "2026-10-16T09:19:17Z",
+  "finishedAt": null,
+  "state": "running",
+  "status": "",
+  "checkpointCommit": "3a47a6f4e1fc8104e4fac3246894154b98193115",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 3a47a6f4e1fc8104e4fac3246894154b98193115",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "3a47a6f4e1fc8104e4fac3246894154b98193115",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 3a47a6f4e1fc8104e4fac3246894154b98193115",
+      "status": ""
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "TextMeasureInputs::runs() builds a Vec with the one default run whenever a text was not given runs, and shapes_as, decorated_as, update_decoration_runs and the shaping call each ask for it, so a kept text leaf allocated several vectors a frame to compare itself with last frame's.",
+  "measurementPlanMarkdown": "Return an enum that holds the single run in place (Deref to a slice) in place of Cow::Owned(vec). Test it yields one run over the whole text, and the given runs unchanged. Alternate the previous and new binaries three times on text-relabel, dashboard-all-panels and tree-toggle.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "text-relabel allocations per frame / CPU",
+      "before": "25,048 / 6.17",
+      "after": "20,556 / 6.11",
+      "delta": "-18% / -1%",
+      "source": "alt2.sh x3"
+    },
+    {
+      "metric": "dashboard-all-panels allocations per frame / CPU",
+      "before": "21,873 / 4.72",
+      "after": "17,563 / 4.67",
+      "delta": "-20% / -1%",
+      "source": "alt2.sh x3"
+    },
+    {
+      "metric": "tree-toggle allocations per frame / CPU",
+      "before": "14,415 / 3.71",
+      "after": "12,422 / 3.69",
+      "delta": "-14% / -0.5%",
+      "source": "alt2.sh x3"
+    }
+  ],
+  "reportMarkdown": "A large cut in allocations, CPU slightly down; footprint unchanged. The fast:: tests (440) pass, clippy and fmt are clean.",
+  "decisionMarkdown": "Keep.",
+  "notes": ""
+}

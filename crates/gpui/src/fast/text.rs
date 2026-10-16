@@ -11,7 +11,7 @@
 //! Closures are still taken when the frame is cleared: what is kept is the
 //! inputs and the measurement, never the closure.
 
-use std::{borrow::Cow, cmp, hash::Hash, mem, rc::Rc, sync::Arc};
+use std::{cmp, hash::Hash, mem, rc::Rc, sync::Arc};
 
 use collections::FxHashMap;
 
@@ -74,6 +74,24 @@ fn same_font(style: &TextStyle, other: &TextStyle) -> bool {
         && style.font_style == other.font_style
 }
 
+/// The runs a text is shaped with: those it was given, or the one run of its
+/// style over the whole text, held in place instead of in a vector.
+enum Runs<'a> {
+    Given(&'a [TextRun]),
+    Whole([TextRun; 1]),
+}
+
+impl std::ops::Deref for Runs<'_> {
+    type Target = [TextRun];
+
+    fn deref(&self) -> &[TextRun] {
+        match self {
+            Runs::Given(runs) => runs,
+            Runs::Whole(run) => run,
+        }
+    }
+}
+
 impl TextMeasureInputs {
     /// Whether the text truncates, in which case it is shaped from a
     /// rewritten string whose runs no longer line up with these.
@@ -82,10 +100,10 @@ impl TextMeasureInputs {
     }
 
     /// The runs the text is shaped and painted with.
-    fn runs(&self) -> Cow<'_, [TextRun]> {
+    fn runs(&self) -> Runs<'_> {
         match &self.runs {
-            Some(runs) => Cow::Borrowed(runs),
-            None => Cow::Owned(vec![self.text_style.to_run(self.text.len())]),
+            Some(runs) => Runs::Given(runs),
+            None => Runs::Whole([self.text_style.to_run(self.text.len())]),
         }
     }
 
@@ -364,4 +382,40 @@ pub(crate) fn carry_over_line_layouts(previous: &mut FrameCache, current: &mut F
     current.used_wrapped_lines.clear();
     current.used_lines_by_hash.clear();
     current.used_wrapped_lines_by_hash.clear();
+}
+
+#[cfg(test)]
+mod runs_tests {
+    use super::*;
+    use crate::px;
+
+    fn inputs(text: &str, runs: Option<Vec<TextRun>>) -> TextMeasureInputs {
+        TextMeasureInputs {
+            text: SharedString::from(text.to_string()),
+            runs,
+            text_style: TextStyle::default(),
+            font_size: px(14.),
+            letter_spacing: px(0.),
+            line_height: px(20.),
+            layout: TextLayout::default(),
+        }
+    }
+
+    #[test]
+    fn plain_text_is_one_run_over_all_of_it() {
+        let plain = inputs("hello", None);
+        let runs = plain.runs();
+        assert_eq!(runs.len(), 1);
+        assert_eq!(runs[0].len, 5);
+        assert_eq!(runs[0].font, plain.text_style.font());
+    }
+
+    #[test]
+    fn given_runs_are_used_as_they_are() {
+        let given = TextStyle::default().to_run(2);
+        let other = TextStyle::default().to_run(3);
+        let with_runs = inputs("hello", Some(vec![given, other]));
+        let runs = with_runs.runs();
+        assert_eq!(runs.iter().map(|run| run.len).collect::<Vec<_>>(), [2, 3]);
+    }
 }

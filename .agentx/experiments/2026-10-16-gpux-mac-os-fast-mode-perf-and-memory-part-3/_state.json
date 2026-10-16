@@ -28,8 +28,8 @@
     "successfulAttemptRequiresCommitBeforeNextExperiment": true,
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
-  "currentExperimentId": null,
-  "nextExperimentIndex": 10,
+  "currentExperimentId": "67b65204-e637-41b7-91d8-8e504010bbc6",
+  "nextExperimentIndex": 11,
   "experiments": [
     {
       "id": "ddc0da9b-11bf-491e-a966-4a6997d6aca0",
@@ -136,6 +136,17 @@
       "state": "done",
       "status": "success",
       "resultCommit": "e4389190d19b14e05ec5e3b428964d1f7ad2fd93"
+    },
+    {
+      "id": "67b65204-e637-41b7-91d8-8e504010bbc6",
+      "index": 10,
+      "type": "hypothesis",
+      "name": "Hold a text's single default run on the stack",
+      "path": "2026-10-16-10-hold-a-text-s-single-default-run-on-the-stack.json",
+      "startedAt": "2026-10-16T09:19:17Z",
+      "finishedAt": null,
+      "state": "running",
+      "status": ""
     }
   ]
 }
