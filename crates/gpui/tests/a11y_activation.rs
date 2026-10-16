@@ -335,6 +335,8 @@ const CHILD: &str = "GPUX_A11Y_ACTIVATION_ENV_CHILD";
 
 /// Runs `child_reads_the_environment` in a process of its own with `GPUX_ACCESSIBILITY` set to
 /// `value`, so the variable never reaches the other tests' applications.
+// A test may block on its child process: the environment cannot be set for one test alone.
+#[allow(clippy::disallowed_methods)]
 fn run_child(value: &str, expected: &str) {
     let output = std::process::Command::new(std::env::current_exe().unwrap())
         .args(["--exact", "child_reads_the_environment", "--nocapture"])
