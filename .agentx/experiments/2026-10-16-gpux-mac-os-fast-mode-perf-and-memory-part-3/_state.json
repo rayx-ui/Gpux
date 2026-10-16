@@ -11,13 +11,13 @@
   "status": "",
   "createdAt": "2026-10-16T01:54:00Z",
   "finishedAt": null,
-  "lastStableCommit": "09577bbc940fb177d0209a968e00767b4b225be7",
+  "lastStableCommit": "75c4c07c421f5241e2fc41f1625394d0b9ff215f",
   "repositories": [
     {
       "name": "main",
       "path": ".",
       "role": "main",
-      "lastStableCommit": "09577bbc940fb177d0209a968e00767b4b225be7"
+      "lastStableCommit": "75c4c07c421f5241e2fc41f1625394d0b9ff215f"
     }
   ],
   "atomicDiscipline": {
@@ -28,7 +28,7 @@
     "successfulAttemptRequiresCommitBeforeNextExperiment": true,
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
-  "currentExperimentId": "8e5cb53a-a293-4e7b-8b7d-703299abfd96",
+  "currentExperimentId": null,
   "nextExperimentIndex": 6,
   "experiments": [
     {
@@ -85,9 +85,10 @@
       "name": "GPU time per frame in the macOS benchmark",
       "path": "2026-10-16-05-gpu-time-per-frame-in-the-mac-os-benchmark.json",
       "startedAt": "2026-10-16T08:43:29Z",
-      "finishedAt": null,
-      "state": "running",
-      "status": ""
+      "finishedAt": "2026-10-16T08:49:12Z",
+      "state": "done",
+      "status": "success",
+      "resultCommit": "75c4c07c421f5241e2fc41f1625394d0b9ff215f"
     }
   ]
 }

@@ -9,11 +9,11 @@
   "path": "2026-10-16-05-gpu-time-per-frame-in-the-mac-os-benchmark.json",
   "createdAt": "2026-10-16T08:43:29Z",
   "startedAt": "2026-10-16T08:43:29Z",
-  "finishedAt": null,
-  "state": "running",
-  "status": "",
+  "finishedAt": "2026-10-16T08:49:12Z",
+  "state": "done",
+  "status": "success",
   "checkpointCommit": "f7ffb6d1e8afd4d4c93baa5a5ec937b7822f4562",
-  "resultCommit": "",
+  "resultCommit": "75c4c07c421f5241e2fc41f1625394d0b9ff215f",
   "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard f7ffb6d1e8afd4d4c93baa5a5ec937b7822f4562",
   "repositories": [
     {
@@ -21,12 +21,19 @@
       "path": ".",
       "role": "main",
       "checkpointCommit": "f7ffb6d1e8afd4d4c93baa5a5ec937b7822f4562",
-      "resultCommit": "",
+      "resultCommit": "75c4c07c421f5241e2fc41f1625394d0b9ff215f",
       "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard f7ffb6d1e8afd4d4c93baa5a5ec937b7822f4562",
-      "status": ""
+      "status": "success"
     }
   ],
-  "repositoryCommits": [],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "75c4c07c421f5241e2fc41f1625394d0b9ff215f"
+    }
+  ],
   "atomicDiscipline": {
     "oneHypothesisOnly": true,
     "singleImplementationAttempt": true,
