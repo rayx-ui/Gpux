@@ -1,7 +1,7 @@
-//! What tests and assistive technology observe matches what the window paints: devtools
-//! snapshots (and the semantic locators reading them) and accessibility nodes report fixed and
-//! sticky elements at the bounds they paint and hit-test at, and test windows record the
-//! accessibility tree updates a platform adapter would receive.
+//! What tests and assistive technology observe matches what the window paints: the semantic
+//! locators (reading the AccessKit tree) and the accessibility nodes report fixed and sticky
+//! elements at the bounds they paint and hit-test at, and test windows record the accessibility
+//! tree updates a platform adapter would receive.
 
 use gpux::{
     AnyWindowHandle, Context, IntoElement, Render, Role, ScrollHandle, TestAppContext,

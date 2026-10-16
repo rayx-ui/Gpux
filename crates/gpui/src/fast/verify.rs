@@ -576,6 +576,8 @@ pub(crate) fn describe_frame_hit_at(window: &Window, points: &[Point<Pixels>]) -
             .map(|id| told(&told_node, id));
         lines.push(format!("devtools {element:?}"));
     }
+    // The accessibility tree, as a frame drawn from scratch builds it.
+    window.a11y.describe(&mut lines);
     lines
 }
 
@@ -633,8 +635,9 @@ pub fn first_frame_difference(actual: &[String], expected: &[String]) -> Option<
 /// every view and reusing none; what it leaves (element states taken, a
 /// fresh layout) is put back before the retained frame draws. A view is
 /// rendered twice a frame while verifying, so a render with side effects
-/// has them twice. Verifying stops while AccessKit is active, which a frame
-/// reports to, and on frames nothing is drawn from last frame in.
+/// has them twice. While accessibility is active the shadow frame builds its
+/// own tree, which is compared with the retained frame's and never sent to
+/// the platform. Verifying stops on frames nothing is drawn from last frame in.
 #[cfg(feature = "diagnostics")]
 pub(crate) mod retention {
     use std::{mem, rc::Rc};
@@ -697,7 +700,6 @@ pub(crate) mod retention {
         if !window.fast_verify.enabled
             || !window.fast_mode.view_retention()
             || window.refreshing
-            || window.a11y.is_active()
             || cx.has_active_drag()
             || cx.mode.skip_drawing()
         {
@@ -709,11 +711,15 @@ pub(crate) mod retention {
         let refreshing = mem::replace(&mut window.refreshing, true);
         crate::fast::layout::begin_frame(window);
         crate::fast::retained::begin_frame(window, cx);
+        // The shadow builds its own accessibility tree, beside the real frame's.
+        let shadow_a11y = window.a11y.shadow();
+        let a11y = mem::replace(&mut window.a11y, shadow_a11y);
         // Rendering a view leases it; inside a recording that is not an
         // update the retained frame would see.
         let recording = cx.begin_recording_dependencies();
         window.draw_roots(cx);
         cx.finish_recording_dependencies(recording);
+        window.a11y.end_shadow();
         cx.entities.clear_accessed();
         // As a frame drawn is before it is presented.
         window.next_frame.scene.finish();
@@ -730,6 +736,7 @@ pub(crate) mod retention {
                 .collect(),
         };
         mem::swap(&mut window.rendered_frame, &mut window.next_frame);
+        window.a11y = a11y;
 
         // The element states the shadow took go back where the retained
         // frame finds them.

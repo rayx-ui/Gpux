@@ -1161,6 +1161,15 @@ impl StretchCopy {
         if contains_focus {
             window.next_frame.focus = window.focus;
         }
+        // The stretch's accessibility nodes, built again under the nodes the copy is inside
+        // of; a node opened in one stretch is closed in a later one, around the gaps.
+        let scale_factor = window.scale_factor();
+        let focus = window.focus;
+        window.a11y.replay(
+            range.start.a11y_events_index..range.end.a11y_events_index,
+            focus,
+            scale_factor,
+        );
         let rendered = &window.rendered_frame;
         let next = &mut window.next_frame;
         for hitbox in &rendered.hitboxes[range.start.hitboxes_index..range.end.hitboxes_index] {

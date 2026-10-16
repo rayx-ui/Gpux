@@ -75,10 +75,10 @@ pub(crate) mod a11y;
 mod action_target;
 mod prompts;
 
-pub use a11y::A11ySubtreeBuilder;
+pub use a11y::roles::{aria_role, query_role_name};
+pub use a11y::{A11yInspection, A11yRelationQueue, A11ySubtreeBuilder, AccessibilityMode};
 
 use self::a11y::A11y;
-#[cfg(not(target_family = "wasm"))]
 use self::a11y::ROOT_NODE_ID;
 use crate::util::{
     atomic_incr_if_not_zero, ceil_to_device_pixel, floor_to_device_pixel, round_half_toward_zero,
@@ -1169,6 +1169,8 @@ pub(crate) struct PrepaintStateIndex {
     pub(crate) dispatch_tree_index: usize,
     pub(crate) devtools_nodes_index: usize,
     pub(crate) devtools_node_id: usize,
+    /// Where the frame's accessibility events stand (see `window::a11y::A11yEvent`).
+    pub(crate) a11y_events_index: usize,
     pub(crate) accessed_element_states_index: usize,
     pub(crate) pending_element_state_transfers_index: usize,
     pub(crate) line_layout_index: LineLayoutIndex,
@@ -1186,6 +1188,8 @@ pub(crate) struct PaintIndex {
     pub(crate) accessed_element_states_index: usize,
     pub(crate) tab_handle_index: usize,
     pub(crate) line_layout_index: LineLayoutIndex,
+    /// Where the accessibility action handlers painted from here start.
+    pub(crate) a11y_listeners_index: usize,
     /// Where the window-control hitboxes painted from here start: a view
     /// drawn from last frame paints them again with the rest.
     pub(crate) fast_window_control_hitboxes_index: usize,
@@ -2532,6 +2536,10 @@ pub struct Window {
     #[cfg(feature = "profiler")]
     debug_frame_overlay: crate::debug_overlay::DebugFrameOverlay,
     pub(crate) a11y: A11y,
+    /// The inspection test queries hold for the window's life
+    /// (`VisualTestContext::settled_semantic_snapshot`).
+    #[cfg(any(test, feature = "test-support"))]
+    pub(crate) test_inspection: Option<A11yInspection>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -2902,7 +2910,9 @@ impl Window {
         let accessibility_force_disabled = cx.accessibility_force_disabled;
         let a11y_active_flag = Arc::new(AtomicBool::new(false));
 
-        #[cfg(not(target_family = "wasm"))]
+        // Every target sets up the adapter callbacks: a platform without a screen-reader adapter
+        // keeps `a11y_init`'s no-op and never turns the platform source on, while inspection and
+        // `AccessibilityMode::Always` build the tree on every target.
         if !accessibility_force_disabled {
             let mut initial_root_node = accesskit::Node::new(accesskit::Role::Window);
             if let Some(title) = &initial_window_title {
@@ -2925,19 +2935,19 @@ impl Window {
                     Box::new(move || {
                         log::info!("Accessibility activated");
                         active_flag.store(true, SeqCst);
-                        activation_sender.send_blocking(()).log_err();
+                        activation_sender.try_send(()).log_err();
                         Some(initial_tree.clone())
                     })
                 },
                 action: Box::new(move |request| {
-                    action_sender.send_blocking(request).log_err();
+                    action_sender.try_send(request).log_err();
                 }),
                 deactivation: {
                     let active_flag = a11y_active_flag.clone();
                     Box::new(move || {
                         log::info!("Accessibility deactivated");
                         active_flag.store(false, SeqCst);
-                        deactivation_sender.send_blocking(()).log_err();
+                        deactivation_sender.try_send(()).log_err();
                     })
                 },
             });
@@ -3509,8 +3519,11 @@ impl Window {
             inspector: None,
             #[cfg(feature = "profiler")]
             debug_frame_overlay: crate::debug_overlay::DebugFrameOverlay::new(),
+            #[cfg(any(test, feature = "test-support"))]
+            test_inspection: None,
             a11y: A11y::new(
                 a11y_active_flag,
+                cx.accessibility_mode.clone(),
                 accessibility_force_disabled,
                 initial_window_title,
             ),
@@ -5400,6 +5413,7 @@ impl Window {
         let previous_window_active = self.rendered_frame.window_active;
         mem::swap(&mut self.rendered_frame, &mut self.next_frame);
         self.next_frame.clear();
+        self.a11y.swap_frames();
         #[cfg(feature = "diagnostics")]
         crate::fast::verify::retention::check(self, fast_shadow);
         if has_active_screen_effects {
@@ -5452,6 +5466,10 @@ impl Window {
         // schedule another frame here to render the new focus state and dispatch the
         // resulting focus events.
         if self.focus != focus_before_listeners {
+            self.refresh();
+        }
+        // An inspection guard started or dropped during the draw asked for a full frame.
+        if self.a11y.take_refresh_after_frame() {
             self.refresh();
         }
         self.needs_present.set(true);
@@ -5592,9 +5610,15 @@ impl Window {
         self.next_sticky_layout_context_id = 0;
         self.tooltip_bounds.take();
 
-        self.a11y.sync_active_flag();
+        if self.a11y.sync_active_flag() {
+            // Whole-window: the accessibility tree starts this frame, and content drawn from
+            // last frame recorded none to carry.
+            self.refreshing = true;
+        }
         if self.a11y.is_active() {
             self.a11y.begin_frame();
+        } else {
+            self.a11y.clear_frame();
         }
 
         let _inspector_width: Pixels = rems(30.0).to_pixels(self.rem_size());
@@ -5681,12 +5705,11 @@ impl Window {
         #[cfg(any(feature = "inspector", debug_assertions))]
         self.paint_inspector_hitbox(cx);
 
-        // a11y may have been activated/deactivated halfway through the frame
+        // A source may have been switched halfway through the frame: the tree was
+        // built for the sources sampled at its start, and it reaches the platform
+        // adapter only when the platform source covered the frame's start and end.
         let a11y_active_start_of_frame = self.a11y.is_active();
-        self.a11y.sync_active_flag();
-        let a11y_active_end_of_frame = self.a11y.is_active();
-
-        let should_send_a11y_update = a11y_active_start_of_frame && a11y_active_end_of_frame;
+        let should_send_a11y_update = self.a11y.platform_covers_frame_end();
 
         if a11y_active_start_of_frame {
             // Harvest frame metadata for the debug dump while the live window
@@ -5706,6 +5729,16 @@ impl Window {
                 );
                 self.platform_window.a11y_tree_update(tree_update);
             }
+        } else {
+            // No source asked for this frame's tree; a later read must not see an old one.
+            self.a11y.forget_last_tree();
+        }
+        if let Some(root_only) = self
+            .a11y
+            .end_platform_frame(a11y_active_start_of_frame && should_send_a11y_update)
+        {
+            log::debug!("Accessibility is off: sending the adapter only the window's root");
+            self.platform_window.a11y_tree_update(root_only);
         }
         self.debug_assert_scroll_container_context_stack_empty();
     }
@@ -5917,6 +5950,7 @@ impl Window {
             dispatch_tree_index: self.next_frame.dispatch_tree.len(),
             devtools_nodes_index: self.next_frame.devtools_nodes.len(),
             devtools_node_id: self.next_frame.next_devtools_node_id,
+            a11y_events_index: self.a11y.nodes.events.len(),
             accessed_element_states_index: self.next_frame.accessed_element_states.len(),
             pending_element_state_transfers_index: self
                 .next_frame
@@ -5976,6 +6010,15 @@ impl Window {
         if reused_subtree.contains_focus() {
             self.next_frame.focus = self.focus;
         }
+
+        // The accessibility tree of the reused content, built again from what building it
+        // recorded, under the node it sits in now.
+        let scale_factor = self.scale_factor();
+        self.a11y.replay(
+            range.start.a11y_events_index..range.end.a11y_events_index,
+            self.focus,
+            scale_factor,
+        );
 
         // Cached views skip the element lifecycle that normally records these
         // occurrences. Their allocation order is preorder, while completed
@@ -6071,12 +6114,15 @@ impl Window {
             accessed_element_states_index: self.next_frame.accessed_element_states.len(),
             tab_handle_index: self.next_frame.tab_stops.paint_index(),
             line_layout_index: self.text_system.layout_index(),
+            a11y_listeners_index: self.a11y.listeners.len(),
             fast_window_control_hitboxes_index: self.next_frame.window_control_hitboxes.len(),
         }
     }
 
     pub(crate) fn reuse_paint(&mut self, range: Range<PaintIndex>) {
         crate::fast::composition::reuse_starts(self, &range);
+        self.a11y
+            .reuse_listeners(range.start.a11y_listeners_index..range.end.a11y_listeners_index);
         self.next_frame.window_control_hitboxes.extend(
             self.rendered_frame.window_control_hitboxes[range
                 .start
@@ -6795,8 +6841,10 @@ impl Window {
         self.invalidator.debug_assert_prepaint();
         let index = self.prepaint_index();
         let fast_records = self.next_frame.fast_retained.len();
+        let a11y = self.a11y.checkpoint();
         let result = f(self);
         if result.is_err() {
+            self.a11y.rollback(a11y);
             self.next_frame.fast_retained.truncate(fast_records);
             self.next_frame
                 .fast_native_surfaces
@@ -10329,6 +10377,60 @@ impl Window {
         self.a11y.is_active()
     }
 
+    /// Starts the inspection source for this window: while at least one returned guard lives,
+    /// the window builds its accessibility tree on every frame, whether or not assistive
+    /// technology is connected and whatever the [`AccessibilityMode`]. Tests and the devtools
+    /// read it through [`Self::a11y_tree`]. Inspection never reaches the platform's adapter.
+    ///
+    /// The first guard forces a full redraw, so the next frame carries a complete tree;
+    /// dropping the last guard requests a frame so the tree stops. In an application created
+    /// with [`crate::Application::new_inaccessible`] the guard turns nothing on and reports
+    /// [`A11yInspection::accessibility_disabled`].
+    pub fn begin_a11y_inspection(&mut self) -> A11yInspection {
+        let was_active = self.a11y.any_source_on();
+        let (guard, first) = self.a11y.begin_inspection(&self.invalidator);
+        if first {
+            if !was_active {
+                self.a11y.forget_last_tree();
+            }
+            // A full redraw, so content fast mode would reuse is built into the tree too.
+            if self.invalidator.not_drawing() {
+                self.refresh();
+            }
+        }
+        guard
+    }
+
+    /// The last frame's complete accessibility tree while an activation source (the platform's
+    /// assistive technology, inspection or [`AccessibilityMode::Always`]) is on, `None`
+    /// otherwise. Start inspection with [`Self::begin_a11y_inspection`] and draw a frame to
+    /// read a tree without assistive technology.
+    pub fn a11y_tree(&self) -> Option<&accesskit::TreeUpdate> {
+        self.a11y.last_tree()
+    }
+
+    /// While inspecting, the generic container (an element with an id and no role) that holds the
+    /// window's focus, when the focused element is one: containers never take the tree's focus,
+    /// which screen readers see.
+    pub fn a11y_inspection_focus(&self) -> Option<accesskit::NodeId> {
+        self.a11y.container_focus()
+    }
+
+    /// While inspecting, the global element id the node `node` of [`Self::a11y_tree`] belongs to:
+    /// its element's, or for a text leaf or synthetic child its owner's. `None` for the root,
+    /// for nodes of frames built without inspection, and while no source is on.
+    pub fn a11y_element_id(&self, node: accesskit::NodeId) -> Option<&GlobalElementId> {
+        self.a11y.element_id(node)
+    }
+
+    /// While inspecting, every node of [`Self::a11y_tree`] with the global element id it belongs
+    /// to (see [`Self::a11y_element_id`]).
+    pub fn a11y_element_ids(
+        &self,
+    ) -> impl Iterator<Item = (accesskit::NodeId, &GlobalElementId)> + '_ {
+        self.a11y.element_ids()
+    }
+
     /// Debug representation of the last frame's accessibility information.
     pub fn debug_a11y_tree_json(&self) -> Option<String> {
         self.a11y.debug_tree_json()
@@ -10345,65 +10447,132 @@ impl Window {
         action: accesskit::Action,
         listener: impl FnMut(Option<&accesskit::ActionData>, &mut Window, &mut App) + 'static,
     ) {
-        self.a11y
-            .action_listeners
-            .entry(node_id)
-            .or_default()
-            .push((action, Box::new(listener)));
+        self.a11y.add_listener(
+            node_id,
+            crate::window::a11y::A11yListenerAction::Action(action),
+            Box::new(listener),
+        );
     }
 
-    #[cfg(not(target_family = "wasm"))]
-    pub(crate) fn handle_a11y_action(&mut self, request: accesskit::ActionRequest, cx: &mut App) {
-        // Take listeners out temporarily so the closures can borrow Window
-        // mutably, then restore them afterward.
-        if let Some(mut listeners) = self.a11y.action_listeners.remove(&request.target_node) {
-            let extra_data = request.data.as_ref();
-            let mut matched = false;
-            for (action, listener) in &mut listeners {
-                if *action == request.action {
-                    listener(extra_data, self, cx);
-                    matched = true;
-                }
+    /// Registers the handler of the custom accessibility action `id` on a node; see
+    /// [`crate::StatefulInteractiveElement::on_a11y_custom_action`].
+    pub(crate) fn on_a11y_custom_action(
+        &mut self,
+        node_id: accesskit::NodeId,
+        id: i32,
+        listener: crate::window::a11y::A11yActionListener,
+    ) {
+        self.a11y.add_listener(
+            node_id,
+            crate::window::a11y::A11yListenerAction::Custom(id),
+            listener,
+        );
+    }
+
+    /// Performs an AccessKit action request in process, through the same path a platform
+    /// adapter's requests take, and returns whether a handler ran. Tests and the devtools act
+    /// on nodes of [`Self::a11y_tree`] with it; a request for a node or action nothing handles
+    /// does nothing and returns `false`.
+    pub fn perform_a11y_action(&mut self, request: accesskit::ActionRequest, cx: &mut App) -> bool {
+        self.handle_a11y_action(request, cx)
+    }
+
+    pub(crate) fn handle_a11y_action(
+        &mut self,
+        request: accesskit::ActionRequest,
+        cx: &mut App,
+    ) -> bool {
+        use crate::window::a11y::A11yListenerAction;
+        let wanted = if request.action == accesskit::Action::CustomAction {
+            let Some(accesskit::ActionData::CustomAction(id)) = request.data else {
+                return false;
+            };
+            A11yListenerAction::Custom(id)
+        } else {
+            A11yListenerAction::Action(request.action)
+        };
+        // Take each listener out while it runs so it can borrow the window mutably, then
+        // put it back where it was.
+        let matching: Vec<usize> = self
+            .a11y
+            .rendered_listeners
+            .iter()
+            .enumerate()
+            .filter(|(_, entry)| {
+                // A handler of a node the tree does not hold (a list row held off screen)
+                // answers nothing.
+                entry.shown
+                    && entry.node == request.target_node
+                    && entry.action == wanted
+                    && self.a11y.nodes.has_node(entry.node)
+            })
+            .map(|(index, _)| index)
+            .collect();
+        let mut matched = false;
+        for index in matching {
+            let Some(mut listener) = self
+                .a11y
+                .rendered_listeners
+                .get_mut(index)
+                .and_then(|entry| entry.listener.take())
+            else {
+                continue;
+            };
+            listener(request.data.as_ref(), self, cx);
+            matched = true;
+            if let Some(entry) = self.a11y.rendered_listeners.get_mut(index)
+                && entry.listener.is_none()
+            {
+                entry.listener = Some(listener);
             }
-            self.a11y
-                .action_listeners
-                .insert(request.target_node, listeners);
-            if matched {
-                return;
-            }
+        }
+        if matched {
+            return true;
+        }
+        if request.action == accesskit::Action::CustomAction {
+            return false;
         }
 
         // Fall back to built-in action handling.
         match request.action {
             accesskit::Action::Click => {
-                if let Some(bounds) = self.a11y.node_bounds.get(&request.target_node).copied() {
-                    let center = bounds.center();
-                    let mouse_down = PlatformInput::MouseDown(crate::MouseDownEvent {
-                        button: MouseButton::Left,
-                        position: center,
-                        modifiers: Modifiers::default(),
-                        click_count: 1,
-                        first_mouse: false,
-                    });
-                    let mouse_up = PlatformInput::MouseUp(MouseUpEvent {
-                        button: MouseButton::Left,
-                        position: center,
-                        modifiers: Modifiers::default(),
-                        click_count: 1,
-                    });
-                    self.dispatch_event(mouse_down, cx);
-                    self.dispatch_event(mouse_up, cx);
-                }
+                let Some(bounds) = self.a11y.node_bounds.get(&request.target_node).copied() else {
+                    return false;
+                };
+                let center = bounds.center();
+                let mouse_down = PlatformInput::MouseDown(crate::MouseDownEvent {
+                    button: MouseButton::Left,
+                    position: center,
+                    modifiers: Modifiers::default(),
+                    click_count: 1,
+                    first_mouse: false,
+                });
+                let mouse_up = PlatformInput::MouseUp(MouseUpEvent {
+                    button: MouseButton::Left,
+                    position: center,
+                    modifiers: Modifiers::default(),
+                    click_count: 1,
+                });
+                self.dispatch_event(mouse_down, cx);
+                self.dispatch_event(mouse_up, cx);
+                true
             }
             accesskit::Action::Focus => {
                 if let Some(focus_id) = self.a11y.focus_ids.get(&request.target_node).copied()
                     && let Some(handle) = FocusHandle::for_id(focus_id, &cx.focus_handles)
                 {
                     self.focus(&handle, cx);
+                    true
+                } else {
+                    false
                 }
             }
             accesskit::Action::Blur => {
                 self.blur(cx);
+                true
+            }
+            accesskit::Action::ScrollIntoView => {
+                self.scroll_a11y_node_into_view(request.target_node)
             }
             _ => {
                 log::debug!(
@@ -10411,8 +10580,60 @@ impl Window {
                     request.action,
                     request.target_node
                 );
+                false
             }
         }
+    }
+
+    /// Moves the scroll containers around a node of the last frame, innermost first, until
+    /// the node's bounds are visible in each, through each container's ordinary programmatic
+    /// scroll path. Returns whether the node sits in a scroll container.
+    fn scroll_a11y_node_into_view(&mut self, node: accesskit::NodeId) -> bool {
+        use crate::window::a11y::A11yScroll;
+        let (Some(mut bounds), Some(&innermost)) = (
+            self.a11y.node_bounds.get(&node).copied(),
+            self.a11y.node_scroll_targets.get(&node),
+        ) else {
+            return false;
+        };
+        let mut next = Some(innermost);
+        while let Some(index) = next {
+            let Some(target) = self.a11y.scroll_targets.get(index as usize) else {
+                break;
+            };
+            let port = target.scrollport;
+            // How far the content must move so the node's bounds fall inside the scrollport,
+            // preferring its leading edge when it is larger than the port.
+            let delta = |start: Pixels, end: Pixels, port_start: Pixels, port_end: Pixels| {
+                if end - start > port_end - port_start || start < port_start {
+                    port_start - start
+                } else if end > port_end {
+                    port_end - end
+                } else {
+                    px(0.)
+                }
+            };
+            let shift = point(
+                delta(bounds.left(), bounds.right(), port.left(), port.right()),
+                delta(bounds.top(), bounds.bottom(), port.top(), port.bottom()),
+            );
+            if shift != Point::default() {
+                let offset = target.offset + shift;
+                match &target.scroll {
+                    A11yScroll::Handle(handle) => {
+                        handle.scroll_to(offset, crate::ScrollBehavior::Instant);
+                    }
+                    A11yScroll::Offset(cell) => {
+                        *cell.borrow_mut() = offset;
+                    }
+                }
+                bounds.origin += shift;
+            }
+            next = target.parent;
+        }
+        // The owners clamp and publish the requested offsets when they prepaint next.
+        self.refresh();
+        true
     }
 
     /// Toggles the inspector mode on this window.

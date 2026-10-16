@@ -34,10 +34,10 @@
 #[cfg(any(feature = "inspector", debug_assertions))]
 use crate::InspectorElementPath;
 use crate::{
-    A11ySubtreeBuilder, App, ArenaBox, AvailableSpace, Bounds, Context, DevtoolsPropertySetter,
-    DevtoolsSemantics, DevtoolsWritableProperty, DispatchNodeId, ElementId, FocusHandle,
-    InspectorElementId, InteractiveElement, Interactivity, LayoutId, Pixels, Point, Size,
-    StatefulInteractiveElement, Style, StyleRefinement, Styled, Window, util::FluentBuilder,
+    A11yRelationQueue, A11ySubtreeBuilder, App, ArenaBox, AvailableSpace, Bounds, Context,
+    DevtoolsPropertySetter, DevtoolsSemantics, DevtoolsWritableProperty, DispatchNodeId, ElementId,
+    FocusHandle, InspectorElementId, InteractiveElement, Interactivity, LayoutId, Pixels, Point,
+    Size, StatefulInteractiveElement, Style, StyleRefinement, Styled, Window, util::FluentBuilder,
     window::with_element_arena,
 };
 use std::{
@@ -154,6 +154,17 @@ pub trait Element: 'static + IntoElement {
         _builder: &mut A11ySubtreeBuilder,
     ) {
     }
+
+    /// The plain text this element draws, for an element without an id: while the window
+    /// builds its accessibility tree, the text becomes a `Label` leaf under the nearest
+    /// accessibility node, which is how buttons and links get their names from their text.
+    fn a11y_text_leaf(&self) -> Option<&str> {
+        None
+    }
+
+    /// Queues the accessibility relations this element names by `accessibility_id`
+    /// (`aria_labelled_by` and the like); the window resolves them at the end of the frame.
+    fn queue_a11y_relations(&self, _queue: &mut A11yRelationQueue) {}
 
     /// Convert this element into a dynamically-typed [`AnyElement`].
     fn into_any(self) -> AnyElement {
@@ -321,6 +332,14 @@ impl<E: Element> Element for InspectableElement<E> {
         builder: &mut A11ySubtreeBuilder,
     ) {
         self.element.a11y_synthetic_children(prepaint, builder);
+    }
+
+    fn a11y_text_leaf(&self) -> Option<&str> {
+        self.element.a11y_text_leaf()
+    }
+
+    fn queue_a11y_relations(&self, queue: &mut A11yRelationQueue) {
+        self.element.queue_a11y_relations(queue);
     }
 }
 
@@ -660,19 +679,31 @@ impl<E: Element> Drawable<E> {
                 let mut pushed_a11y_node = false;
                 if window.a11y.is_active() {
                     if let Some(global_id) = global_id.as_ref() {
-                        if let Some(role) = self.element.a11y_role() {
+                        // While inspecting, an element with an id and no role becomes a
+                        // generic container, so tests and agents reach its subtree under it.
+                        let role = self.element.a11y_role();
+                        let container = role.is_none() && window.a11y.nodes.is_inspecting();
+                        let role = role.or(container.then_some(accesskit::Role::GenericContainer));
+                        if let Some(role) = role {
                             let node_id = global_id.accesskit_node_id();
                             let mut node = accesskit::Node::new(role);
                             node.set_bounds(a11y_rect(bounds, window.scale_factor()));
                             self.element.write_a11y_info(&mut node);
-                            window.a11y.node_bounds.insert(node_id, bounds);
-                            pushed_a11y_node = window.a11y.nodes.push(node_id, node);
+                            pushed_a11y_node = window
+                                .a11y
+                                .push_element(node_id, node, global_id, container, bounds);
+                            if pushed_a11y_node {
+                                self.element.queue_a11y_relations(
+                                    &mut window.a11y.nodes.relation_queue(node_id),
+                                );
+                            }
                             #[cfg(debug_assertions)]
                             if pushed_a11y_node {
+                                // The root view's own element is pushed before its view is.
                                 let view = window
-                                    .a11y
-                                    .view_type_names
-                                    .get(&window.current_view())
+                                    .rendered_entity_stack
+                                    .last()
+                                    .and_then(|view| window.a11y.view_type_names.get(view))
                                     .copied();
                                 let source_location = self.element.source_location();
                                 window.a11y.nodes.record_node_info(
@@ -686,6 +717,9 @@ impl<E: Element> Drawable<E> {
                                 );
                             }
                         }
+                    } else if let Some(text) = self.element.a11y_text_leaf() {
+                        let rect = a11y_rect(bounds, window.scale_factor());
+                        window.a11y.nodes.push_text_leaf(text, rect);
                     }
                 }
                 let (devtools_node_id, parent_devtools_node_id) = window.push_devtools_node();
@@ -737,9 +771,9 @@ impl<E: Element> Drawable<E> {
                         #[cfg(debug_assertions)]
                         let creator = crate::window::a11y::debug::NodeCreator {
                             view: window
-                                .a11y
-                                .view_type_names
-                                .get(&window.current_view())
+                                .rendered_entity_stack
+                                .last()
+                                .and_then(|view| window.a11y.view_type_names.get(view))
                                 .copied(),
                             element_id: global_id.last().map(|id| format!("{id:?}")),
                             source_location: self.element.source_location(),
@@ -755,7 +789,9 @@ impl<E: Element> Drawable<E> {
                         self.element
                             .a11y_synthetic_children(&mut prepaint, &mut builder);
                     }
-                    window.a11y.nodes.pop();
+                    if let Some(global_id) = global_id.as_ref() {
+                        window.a11y.pop_node(global_id.accesskit_node_id());
+                    }
                 }
 
                 if global_id.is_some() {

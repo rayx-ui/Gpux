@@ -20,6 +20,7 @@ pub struct EditableText {
     selection_color: Option<Color>,
     caret_color: Option<Color>,
     display_transform: EditableTextDisplayTransform,
+    aria_label: Option<SharedString>,
 }
 
 #[allow(missing_docs)]
@@ -31,7 +32,15 @@ impl EditableText {
             selection_color: None,
             caret_color: None,
             display_transform: EditableTextDisplayTransform::Identity,
+            aria_label: None,
         }
+    }
+
+    /// The accessible name of the text field, which screen readers announce and queries match
+    /// by `name`.
+    pub fn aria_label(mut self, label: impl Into<SharedString>) -> Self {
+        self.aria_label = Some(label.into());
+        self
     }
 
     pub fn placeholder_color(mut self, color: Color) -> Self {
@@ -63,6 +72,12 @@ impl RenderOnce for EditableText {
             let state = self.state.read(cx);
             (state.focus_handle(), state.mode(), state.line_mode())
         };
+        // The text field's accessibility node: its text is copied only while the tree is built.
+        let a11y = window.is_a11y_active().then(|| {
+            let state = self.state.read(cx);
+            (state.text(), state.placeholder().to_string())
+        });
+        let entity_id = self.state.entity_id();
 
         let key_state = self.state.clone();
         let down_state = self.state.clone();
@@ -71,6 +86,21 @@ impl RenderOnce for EditableText {
         let scroll_state = self.state.clone();
 
         div()
+            .id(("editable-text", entity_id.as_u64() as usize))
+            .role(match line_mode {
+                EditableTextLineMode::SingleLine => accesskit::Role::TextInput,
+                EditableTextLineMode::MultiLine => accesskit::Role::MultilineTextInput,
+            })
+            .when_some(self.aria_label, |element, label| element.aria_label(label))
+            .when_some(a11y, |element, (text, placeholder)| {
+                element
+                    .aria_value(text)
+                    .when(!placeholder.is_empty(), |element| {
+                        element.aria_placeholder(placeholder)
+                    })
+            })
+            .aria_read_only(mode == super::EditableTextMode::ReadOnly)
+            .aria_disabled(mode == super::EditableTextMode::Disabled)
             .flex()
             .w_full()
             .overflow_hidden()

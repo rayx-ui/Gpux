@@ -1273,11 +1273,17 @@ fn carry_prepaint_rows(window: &mut Window, id: &GlobalElementId) {
     // hides tooltips (spec §7, rule 5).
     let tooltips = layer.rows.last_translation == Some(translation);
     let step = layer.rows.step(translation, scale_factor);
+    let list_key = layer.key.0;
+    let loose_rows = frame.loose.clone();
     let mut rows = mem::take(&mut layer.rows.rows);
     for ix in &carried {
         let Some(row) = rows.get_mut(ix) else {
             continue;
         };
+        // A row the list does not show adds nothing to the accessibility tree; the others
+        // are told row after row.
+        window.a11y.nodes.row = Some((list_key, *ix, loose_rows.contains(ix)));
+        window.a11y.nodes.hidden = !visible.contains(ix);
         let delta = row.delta(translation, scale_factor);
         let element_states = !row.dropped && !leaving.contains(ix);
         if visible.contains(ix) {
@@ -1293,6 +1299,8 @@ fn carry_prepaint_rows(window: &mut Window, id: &GlobalElementId) {
             tooltips,
             element_states,
         );
+        window.a11y.nodes.row = None;
+        window.a11y.nodes.hidden = false;
         let nodes = row.prepaint.start.devtools_nodes_index..row.prepaint.end.devtools_nodes_index;
         for node in &mut window.next_frame.devtools_nodes[nodes] {
             node.fast_row.hidden = !visible.contains(ix);
@@ -1464,6 +1472,12 @@ fn prepainting_frame(window: &mut Window, list: Option<usize>) -> Option<&mut Ro
 /// is not.
 fn begin_row(window: &mut Window, cx: &App, list: Option<usize>, ix: usize, placed: bool) -> bool {
     let start = window.prepaint_index();
+    let list_key = window
+        .fast_layers
+        .painting
+        .as_ref()
+        .and_then(|painting| window.fast_layers.layers.get(&painting.id))
+        .map(|layer| layer.key.0);
     let masks = window
         .fast_layers
         .painting
@@ -1479,6 +1493,7 @@ fn begin_row(window: &mut Window, cx: &App, list: Option<usize>, ix: usize, plac
     // A `list` shows the rows it places itself; the others, and a uniform
     // list's, show where they lie across the viewport.
     frame.open_row_hidden = !placed && !frame.visible.contains(&ix);
+    let (hidden, loose) = (frame.open_row_hidden, frame.loose.contains(&ix));
     // A row is prepainted in the rows' own space, as it is painted (see
     // `rows_region`): what it clips itself to moves with it, and the
     // list's own clip, which does not, is the viewport its hitboxes are
@@ -1491,6 +1506,10 @@ fn begin_row(window: &mut Window, cx: &App, list: Option<usize>, ix: usize, plac
             .content_mask_stack
             .push(ContentMask::rectangular(region));
     }
+    // A row the list does not show adds nothing to the accessibility tree; the others are
+    // told row after row (see `A11yNodeBuilder::row`).
+    window.a11y.nodes.row = list_key.map(|key| (key, ix, loose));
+    window.a11y.nodes.hidden = hidden;
     true
 }
 
@@ -1539,6 +1558,8 @@ fn end_row(window: &mut Window, cx: &App, list: Option<usize>) {
     if mem::take(&mut frame.open_row_masked) {
         window.content_mask_stack.pop();
     }
+    window.a11y.nodes.row = None;
+    window.a11y.nodes.hidden = false;
     if hidden {
         hide_focus(&mut window.next_frame, &(start.clone()..end.clone()));
         note_hidden_hitboxes(

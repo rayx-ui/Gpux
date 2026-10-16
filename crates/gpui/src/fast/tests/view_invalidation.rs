@@ -454,9 +454,10 @@ fn nothing_is_reused_while_the_inspector_picks() {
     assert!(stats.views_bypassed_inspector > 0, "{stats:?}");
 }
 
-/// While AccessKit is active, nothing is drawn from last frame.
+/// While AccessKit is active, views are drawn from last frame as with it off: the
+/// accessibility tree is carried with them.
 #[test]
-fn nothing_is_reused_while_accessibility_is_active() {
+fn views_are_reused_while_accessibility_is_active() {
     let mut pair = board(VIEWS, |_| vec![Reads::Hover]);
     pair.each(|cx, window| {
         cx.activate_accessibility(window);
@@ -465,8 +466,8 @@ fn nothing_is_reused_while_accessibility_is_active() {
     pair.draw("activated");
     pair.update(|_, _, cx| cx.notify());
     let stats = pair.draw("active");
-    assert_eq!(stats.views_reused, 0, "{stats:?}");
-    assert!(stats.views_bypassed_accessibility > 0, "{stats:?}");
+    assert!(stats.views_reused > 0, "{stats:?}");
+    assert_eq!(stats.views_bypassed(), 0, "{stats:?}");
 }
 
 struct Twice {

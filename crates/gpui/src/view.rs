@@ -562,9 +562,6 @@ fn prepaint_view(
                     )
                     && !window.dirty_views.contains(&entity_id)
                     && !window.refreshing
-                    // Accessibility nodes and action listeners are rebuilt
-                    // each frame; cached visual replay does not retain them.
-                    && !window.is_a11y_active()
                 {
                     let prepaint_start = window.prepaint_index();
                     crate::fast::fast_stat!(window.fast_stats.frame, cached_views_replayed += 1);

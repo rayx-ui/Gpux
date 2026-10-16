@@ -2838,6 +2838,7 @@ name = "gpux"
 version = "0.3.0"
 dependencies = [
  "accesskit",
+ "accesskit_consumer",
  "anyhow",
  "async-channel 2.5.0",
  "async-task",

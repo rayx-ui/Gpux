@@ -241,7 +241,6 @@ enum Bypass {
     Refreshing,
     Drag,
     Inspector,
-    Accessibility,
     Duplicate,
 }
 
@@ -279,6 +278,11 @@ impl PrepaintStateIndex {
                 from.devtools_node_id,
                 to.devtools_node_id,
             ),
+            a11y_events_index: shift(
+                self.a11y_events_index,
+                from.a11y_events_index,
+                to.a11y_events_index,
+            ),
             accessed_element_states_index: shift(
                 self.accessed_element_states_index,
                 from.accessed_element_states_index,
@@ -312,6 +316,7 @@ impl PartialEq for PrepaintStateIndex {
             dispatch_tree_index,
             devtools_nodes_index,
             devtools_node_id,
+            a11y_events_index,
             accessed_element_states_index,
             pending_element_state_transfers_index,
             line_layout_index,
@@ -323,6 +328,7 @@ impl PartialEq for PrepaintStateIndex {
             && *dispatch_tree_index == other.dispatch_tree_index
             && *devtools_nodes_index == other.devtools_nodes_index
             && *devtools_node_id == other.devtools_node_id
+            && *a11y_events_index == other.a11y_events_index
             && *accessed_element_states_index == other.accessed_element_states_index
             && *pending_element_state_transfers_index == other.pending_element_state_transfers_index
             && *line_layout_index == other.line_layout_index
@@ -370,6 +376,11 @@ impl PaintIndex {
             line_layout_index: self
                 .line_layout_index
                 .shifted(&from.line_layout_index, &to.line_layout_index),
+            a11y_listeners_index: shift(
+                self.a11y_listeners_index,
+                from.a11y_listeners_index,
+                to.a11y_listeners_index,
+            ),
             fast_window_control_hitboxes_index: shift(
                 self.fast_window_control_hitboxes_index,
                 from.fast_window_control_hitboxes_index,
@@ -392,6 +403,7 @@ impl PartialEq for PaintIndex {
             accessed_element_states_index,
             tab_handle_index,
             line_layout_index,
+            a11y_listeners_index,
             fast_window_control_hitboxes_index,
         } = self;
         #[cfg(any(test, feature = "test-support"))]
@@ -406,6 +418,7 @@ impl PartialEq for PaintIndex {
             && *accessed_element_states_index == other.accessed_element_states_index
             && *tab_handle_index == other.tab_handle_index
             && *line_layout_index == other.line_layout_index
+            && *a11y_listeners_index == other.a11y_listeners_index
             && *fast_window_control_hitboxes_index == other.fast_window_control_hitboxes_index
     }
 }
@@ -671,8 +684,6 @@ fn frame_bypass(window: &mut Window, cx: &App) -> Option<Bypass> {
                 Some(Bypass::Drag)
             } else if window.is_inspector_picking(cx) {
                 Some(Bypass::Inspector)
-            } else if window.a11y.is_active() {
-                Some(Bypass::Accessibility)
             } else if window.refreshing {
                 Some(Bypass::Refreshing)
             } else {
@@ -706,7 +717,6 @@ fn reusable(window: &mut Window, id: &GlobalElementId, cx: &App) -> Option<usize
             Bypass::Refreshing => crate::fast::stats::ViewBypassReason::Refreshing,
             Bypass::Drag => crate::fast::stats::ViewBypassReason::Drag,
             Bypass::Inspector => crate::fast::stats::ViewBypassReason::Inspector,
-            Bypass::Accessibility => crate::fast::stats::ViewBypassReason::Accessibility,
             Bypass::Duplicate => crate::fast::stats::ViewBypassReason::Duplicate,
         });
         return None;
@@ -988,6 +998,12 @@ fn reuse_prepaint(
     // frame building them does not, so that list grows by its own count.
     let mut expected = prepaint_range.end.shifted(&prepaint_range.start, &start);
     expected.pending_element_state_transfers_index = end.pending_element_state_transfers_index;
+    // A frame that builds no accessibility tree replays none of the events the content
+    // recorded; a frame that starts building one is drawn from scratch first, so the nested
+    // records' event ranges are never read until they are recorded again.
+    if !window.a11y.is_active() {
+        expected.a11y_events_index = end.a11y_events_index;
+    }
     let copied_whole = end == expected;
     debug_assert!(
         copied_whole,
@@ -1154,7 +1170,12 @@ fn reuse_paint(window: &mut Window, index: usize) {
     let start = window.paint_index();
     window.reuse_paint(source.clone());
     let end = window.paint_index();
-    let copied_whole = end == source.end.shifted(&source.start, &start);
+    let mut expected = source.end.shifted(&source.start, &start);
+    // See `reuse`: without a tree no accessibility handler is carried.
+    if !window.a11y.is_active() {
+        expected.a11y_listeners_index = end.a11y_listeners_index;
+    }
+    let copied_whole = end == expected;
     debug_assert!(copied_whole, "a reused paint range changed length");
     if copied_whole {
         crate::fast::layers::reuse::follow_paint(window, &source, &start);

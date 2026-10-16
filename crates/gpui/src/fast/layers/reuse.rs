@@ -101,7 +101,10 @@ pub(crate) fn carry_prepaint_records(
         range.end.deferred_draws_index
     );
     let start = window.prepaint_index();
+    // The accessibility nodes the records carry lie where the last frame showed them.
+    window.a11y.replay_offset = step;
     window.reuse_prepaint(range.clone());
+    window.a11y.replay_offset = Point::default();
     let next = &mut window.next_frame;
     // The hitboxes copied are where the content was painted; the layer's
     // stand for them where it is composited.

@@ -20,6 +20,7 @@ workspace = true
 default = ["font-kit", "wayland", "x11", "windows-manifest", "devtools"]
 test-support = [
     "devtools",
+    "semantic-query",
     "collections/test-support",
     "http_client/test-support",
     "wayland",
@@ -37,6 +38,9 @@ inspector = ["gpui_macros/inspector"]
 # by setting `GPUI_LEAK_DETECTION` when building; see `build.rs`.
 leak-detection = []
 font-kit = []
+# Semantic queries over the AccessKit tree (`gpux::semantic_query`), for tests, the conformance
+# hosts and gpux-devtools; plain builds carry no query engine.
+semantic-query = ["dep:accesskit_consumer"]
 # Records the DevKit node of every element each frame (semantics, writable properties, the
 # frame snapshot semantic locators read). Without it nothing is recorded or copied per element.
 devtools = []
@@ -63,6 +67,7 @@ doctest = false
 
 [dependencies]
 accesskit.workspace = true
+accesskit_consumer = { workspace = true, optional = true }
 anyhow.workspace = true
 async-task.workspace = true
 backtrace.workspace = true
@@ -168,6 +173,7 @@ windows = { workspace = true, features = [
 
 
 [dev-dependencies]
+accesskit_consumer.workspace = true
 backtrace.workspace = true
 bench_metrics = { workspace = true, features = ["test-support"] }
 collections = { workspace = true, features = ["test-support"] }

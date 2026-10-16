@@ -278,6 +278,10 @@ impl Element for &'static str {
         None
     }
 
+    fn a11y_text_leaf(&self) -> Option<&str> {
+        Some(self)
+    }
+
     fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
         None
     }
@@ -351,6 +355,10 @@ impl Element for SharedString {
 
     fn id(&self) -> Option<ElementId> {
         None
+    }
+
+    fn a11y_text_leaf(&self) -> Option<&str> {
+        Some(self.as_ref())
     }
 
     fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
@@ -570,6 +578,10 @@ impl Element for StyledText {
 
     fn id(&self) -> Option<ElementId> {
         None
+    }
+
+    fn a11y_text_leaf(&self) -> Option<&str> {
+        Some(self.text.as_ref())
     }
 
     fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {

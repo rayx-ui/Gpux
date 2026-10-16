@@ -153,7 +153,6 @@ pub(crate) fn active(window: &Window, cx: &App) -> bool {
     window.fast_mode.scroll_layers()
         && !window.refreshing
         && !cx.has_active_drag()
-        && !window.a11y.is_active()
         && !window.is_inspector_picking(cx)
 }
 

@@ -1244,6 +1244,26 @@ impl VisualTestContext {
         })
     }
 
+    /// The accessibility tree of the latest frame as queries see it, taken after the executor
+    /// parks and any pending invalidation draws. The first call starts the window's
+    /// inspection, which lasts as long as the window, and draws the frame from scratch, so the
+    /// tree holds every element with an id. `None` when accessibility is disabled
+    /// ([`TestAppContext::disable_accessibility`]).
+    pub fn settled_semantic_snapshot(&mut self) -> Option<crate::semantic_query::SemanticSnapshot> {
+        self.update(|window, _| {
+            if window.test_inspection.is_none() {
+                window.test_inspection = Some(window.begin_a11y_inspection());
+            }
+        });
+        self.run_until_parked();
+        self.update(|window, cx| {
+            if window.invalidator.is_dirty() {
+                window.draw(cx).clear(cx);
+            }
+            crate::semantic_query::SemanticSnapshot::of(window)
+        })
+    }
+
     /// Renders the window's latest frame through its headless renderer and returns the image,
     /// after the executor parks and any pending invalidation draws.
     ///
@@ -1269,11 +1289,11 @@ impl VisualTestContext {
         crate::semantic_query::Locator::new(self, query.into())
     }
 
-    /// The one element `query` identifies in the latest frame.
+    /// The one node `query` identifies in the latest frame's accessibility tree.
     pub fn locate(
         &mut self,
         query: impl Into<crate::semantic_query::Query>,
-    ) -> std::result::Result<crate::DevtoolsElementSnapshot, crate::semantic_query::QueryError>
+    ) -> std::result::Result<crate::semantic_query::SemanticNode, crate::semantic_query::QueryError>
     {
         self.locator(query).resolve()
     }
