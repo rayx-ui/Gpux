@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list",
-  "revision": 74,
+  "revision": 83,
   "planRevision": 6,
   "specHashes": {
     "requirements": "9084aebf4ffae7ee7c8ab434f1a2926f10a92fe3d9c8af4ff6df6e7dd4e37b9b",
@@ -76,11 +76,10 @@
       ]
     },
     "t12-rayx-layers": {
-      "status": "blocked",
+      "status": "done",
       "workerIds": [
         "virtual-list"
-      ],
-      "blockerMarkdown": "Waits on t13: the state views rebuild on scroll frames and demote their layers (plan revision 3 moved t12 after t13); no source written for it yet."
+      ]
     },
     "t13-state-rebuilds": {
       "status": "done",
@@ -179,6 +178,16 @@
         }
       },
       "recordedAt": "2026-10-16T20:16:11Z"
+    },
+    "987568c1de8c5a96963418b385494b9586826bd768d4183e52e0a816b33686ec": {
+      "snapshot": {
+        "specHash": "d404e47cabb0031c3d7b96ad83b5f8adbf57ee9e1f3555886d3ca70f5314753b",
+        "repositories": {
+          "gpux": "28fbc256c304c57f07b0f31577164f3cc7fb4c47f22705c8b57c1f237ee99e86",
+          "rayx": "6760fd3c6087a69623a43744e89e30e142b974ccc4b14b30ccb46f50b02077d1"
+        }
+      },
+      "recordedAt": "2026-10-16T20:22:23Z"
     }
   },
   "checkResults": {
@@ -538,6 +547,23 @@
       "logPath": "artifacts-temp/agentx/gpux-virtual-list/s06-rayx-rebuilds-final-6f4327d45bc1.log",
       "logSha256": "cee49136d838edc7e2bb9d241b22ca54c41fb780f2c9fbca34680dab879425e8",
       "inputsHash": "105eba6f4a3f6a30b7662bb0d3c7368c4314f7f93694c6c418fe10ca429c777c"
+    },
+    "s07-rayx-layers/c-rx-layers/final": {
+      "checkId": "c-rx-layers",
+      "boundaryId": "s07-rayx-layers",
+      "phase": "final",
+      "batchId": "987568c1de8c5a96963418b385494b9586826bd768d4183e52e0a816b33686ec",
+      "definitionHash": "dfbe254aff512d142522d28206126c811be7265d30b992bd86fd4bf9e5a3dff6",
+      "basisHash": "bd43c902c555564921d5668e269ad2e199b882c56b640e56d68420070016839b",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 1.5188,
+      "recordedAt": "2026-10-16T20:22:23Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/s07-rayx-layers-final-bc6dee8c1dea.log",
+      "logSha256": "760afad58a4453def30322ef95d635c1d20ef34b3278af28845ea4414f6f0082",
+      "inputsHash": "9b744ea040c0e715e1386c2217eebfe79293137830ec4d069295c6349c410807"
     }
   },
   "reviews": {
@@ -1085,6 +1111,85 @@
         "s06-F5"
       ],
       "recordedAt": "2026-10-16T20:17:57Z"
+    },
+    "s07-rayx-layers": {
+      "reviewerId": "reviewer-s07-independent",
+      "snapshotId": "987568c1de8c5a96963418b385494b9586826bd768d4183e52e0a816b33686ec",
+      "criterionIds": [
+        "RX-2"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/virtual_list_layers.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-2"
+          ],
+          "sha256": "ff9c28950750f66dab4872ce8f687f837718bbc6049b0442ae90c0e8c5f45546"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/state.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-2"
+          ],
+          "sha256": "e4cf83a4e0693c6007a40864cdac9cd453976d3f2225d3b8dca0bf6ff177b581"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/state/movement.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-2"
+          ],
+          "sha256": "f2fa2218f77edb9ad4f46bbc0c010d2501cdbe1cd3666bdb8522191d6837feb7"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/element.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-2"
+          ],
+          "sha256": "3da77962c54a25fc9d7c4e1005a7e16b74709c50455e38e60987df3bdc8438c8"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/tree/state.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-2"
+          ],
+          "sha256": "20d304992346b106d9d875669cdab1561962add764e7b70faba1f80534d54335"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-2"
+          ],
+          "sha256": "f3bd0b8d4a95101f3ed19001cd83ec9014096c4e7b07249b88be130c42d893bf"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/paint.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-2"
+          ],
+          "sha256": "73f232890e0a69d1411cbef6624ac63d98b6be4a465d3a392bdec6fc04a7b279"
+        }
+      ],
+      "summaryMarkdown": "RX-2 is proved by `virtual_list_layers.rs` (4 tests). The own-scroll ListView (default scrollbar drawn by the state view, answering the s06 note), a ListView with item movement on (every row in its movable-item wrapper), and a TreeBase (default tree item semantics and toggle listeners) each show every one of 60 wheel frames from the list's layer: exactly one composited/repainted frame, at most one repaint, `list_rows_kept > 0` on composited frames, closure rows equal to `list_rows_rendered`, at least 30 rows reached (the scroll happened) and at most 2 rows a frame on average. The sticky-policy ListView is counted ineligible every frame, never composites, and renders a viewport of rows. s07-F1 and s07-F2 are resolved.",
+      "findingIds": [
+        "s07-F1",
+        "s07-F2"
+      ],
+      "recordedAt": "2026-10-16T20:23:02Z"
     }
   },
   "checkpoints": {
@@ -1141,6 +1246,15 @@
       },
       "reviewHash": "b2aa144b6b99c79d6dce77b0ab743c81b6f94df835e5b78faec0a4c7c7f8082a",
       "recordedAt": "2026-10-16T20:18:18Z"
+    },
+    "s07-rayx-layers": {
+      "snapshotId": "987568c1de8c5a96963418b385494b9586826bd768d4183e52e0a816b33686ec",
+      "commits": {
+        "gpux": "2876bb6ab9475954d73cfdc78b738251978c5356",
+        "rayx": "77733880057de4e79fe963cd1cce7e51d9b622d0"
+      },
+      "reviewHash": "ee20e561d533cb5bd056234d0bd307f42169cf5db236661a971e4e7811842fd7",
+      "recordedAt": "2026-10-16T20:23:20Z"
     }
   },
   "findings": [
@@ -1423,6 +1537,38 @@
         }
       ],
       "boundaryId": "s06-rayx-rebuilds"
+    },
+    {
+      "id": "s07-F1",
+      "status": "resolved",
+      "severity": "major",
+      "criterionIds": [
+        "RX-2"
+      ],
+      "descriptionMarkdown": "Resolved: the movable-item wrapper is now exercised by `a_list_view_with_movable_items_composites_from_its_list_layer`, which composites from the list layer.",
+      "regressionRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/virtual_list_layers.rs"
+        }
+      ],
+      "boundaryId": "s07-rayx-layers"
+    },
+    {
+      "id": "s07-F2",
+      "status": "resolved",
+      "severity": "major",
+      "criterionIds": [
+        "RX-2"
+      ],
+      "descriptionMarkdown": "Resolved: `check_composites` ties composited frames to a list layer (`list_rows_kept > 0`), ties closure rows to `list_rows_rendered`, and requires the wheel to bring at least 30 rows into the layer.",
+      "regressionRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/virtual_list_layers.rs"
+        }
+      ],
+      "boundaryId": "s07-rayx-layers"
     }
   ],
   "handoffMarkdown": "Cause isolated by probes: the on_rendered_range listener of ListViewState/TreeStateBase updates the state view while the list draws; gpux counted it as a change, so the view holding the ListView/TreeBase wrapper (which reads the state) rebuilt on every frame the range changed. Not the cause: the wrapper's render-time set_render_item write, nor unchanged-range writes. Fix in gpux: VirtualList calls the listener inside lists::render_items. Separate, by gpux design: a visible RayX Scrollbar reads the offset in prepaint, so the view holding a ListView with its default scrollbar rebuilds every scroll frame; the state view does not.",
