@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/platform/desktop
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-09T04:00:00+02:00
+  updated: 2026-10-17T02:30:00+02:00
   topics:
     - windows
     - dx12
@@ -46,6 +46,8 @@ macOS window composition (`gpui_macos/src/fast/composition.rs`, ported from gpui
 Linux window composition (`gpui_linux/src/fast/composition/`, ported from gpui-fast): on Wayland, GPUI overlays are synchronized `wl_subsurface`s drawn by `new_sharing` renderers and committed before the base, with a `wp_viewport` (only GPUI's own subsurfaces get one); native surfaces are desynchronized subsurfaces handing out `RawWindowHandle::Wayland` that their producer sizes. An overlay's input region is its content (`layer_input_region`), and pointer input on it resolves to its window (`get_input_window`); a leave and enter between a window's surfaces in one `wl_pointer.frame` is a move, not an exit. Placements, geometry and input regions are logged at debug level under `gpux::composition`, which lane D's `composition-wayland-*` checks read. On X11, native surfaces are child windows with the GPUI content above them cut out of their bounding shape (SHAPE), or, under a compositing manager with an ARGB visual, an override-redirect overlay window (transient for the window, typed dropdown menu, input shape = its content) whose crossings with the window are moves; `composition-x11-*` read the server's tree, geometry, shapes and hit testing.
 
 Windows window composition (`gpui_windows/src/fast/composition.rs`, gpux's own): the window keeps its wgpu DX12 HWND flip swap chain (`DXGI_SCALING_NONE`); composition adds a gpux-owned topmost DirectComposition target (`DCompositionCreateDevice2`, `CreateTargetForHwnd(hwnd, true)`) whose root holds native surface visuals (rectangle clip, opacity for visibility, handed out as `IUnknown` for WebView2's `SetRootVisualTarget`) and GPUI overlay visuals whose premultiplied swap chains wgpu creates from `SurfaceTargetUnsafe::CompositionVisual` (`WgpuRenderer::new_sharing_target`). gpux commits after every composed frame, so producer changes show with the next frame. Restacks remove only the visuals gpux nested, never a producer's children. A recovered renderer or `WM_GPUI_GPU_DEVICE_LOST` rebuilds the tree on a new device and calls `compositor_recreated`. `translate_accelerator` leaves key downs of non-GPUI windows (`is_gpui_window`) to them. Visuals take no input: hosts forward it (WebView2 `SendMouseInput`). Lane D's `composition-windows-*` run on CI (`lane D (windows-2025)`, WARP) and read GDI screenshots; the resize spike showed both designs unstretched, the visual-hosted base exposing black until redrawn, so the HWND base stays.
+
+Open follow-up (2026-10-17, gpux-a11y-devtools PERF-2): a macOS window occasionally never draws. Its main thread idles in the AppKit run loop with no `CVDisplayLink` thread, so the window never subscribed to its display's link (`start_display_link` skips a window not reported visible and on a screen and waits for an occlusion or screen change). The epic's benchmark binaries hit it in about 5 of 200 launches, the `58257fe` build without devtools in 0 of 78 and with devtools once; whether the epic changed the rate is unsettled. Evidence: `docs/measurements/a11y-devtools.md` (after the epic), samples under `artifacts-temp/agentx/gpux-a11y-devtools/hang/`.
 
 ## Backlinks
 
