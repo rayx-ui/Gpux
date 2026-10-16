@@ -929,6 +929,7 @@ impl A11y {
             top_children,
             top_ordinal,
             focus,
+            focus_handle: self.nodes.focus_handle,
             active_descendant,
         }
     }
@@ -967,6 +968,7 @@ impl A11y {
             *ordinal = checkpoint.top_ordinal;
         }
         nodes.focus = checkpoint.focus;
+        nodes.focus_handle = checkpoint.focus_handle;
         nodes.active_descendant = checkpoint.active_descendant;
         self.scroll_targets.truncate(checkpoint.scroll_targets);
         self.current_scroll_target = checkpoint.current_scroll_target;
@@ -1046,7 +1048,8 @@ impl A11y {
             // The focused element is properly exposed; reset the dedup so a
             // later focus on a node-less element logs again.
             self.last_focus_without_node = None;
-            self.nodes.set_focus(node_id);
+            let handle = self.focus_ids.get(&node_id).copied();
+            self.nodes.set_focus_by(node_id, handle);
         } else {
             // The element registered a focus handle and an id, but never got a
             // node because it has no role.
@@ -1249,6 +1252,9 @@ pub(crate) struct A11yNodeBuilder {
     /// The node that GPUI considers focused. Note that this may be different to
     /// what is reported to accesskit - see [`Self::active_descendant`]
     focus: Option<NodeId>,
+    /// The focus handle of [`Self::focus`]: nested elements tracking one handle (a control's
+    /// host and the text field inside it) each claim the focus, and the innermost wins.
+    focus_handle: Option<FocusId>,
     /// If a node calls `.aria_active_descendant()`, AND an ancestor is focused,
     /// override it as the focused node. This supports the "active descendant"
     /// pattern, which allows a focused container to act as if a descendant is
@@ -1355,6 +1361,7 @@ pub(crate) struct A11yCheckpoint {
     top_children: usize,
     top_ordinal: u32,
     focus: Option<NodeId>,
+    focus_handle: Option<FocusId>,
     active_descendant: Option<NodeId>,
 }
 
@@ -1405,6 +1412,7 @@ impl A11yNodeBuilder {
             all_nodes: Vec::new(),
             seen_ids: FxHashSet::default(),
             focus: None,
+            focus_handle: None,
             active_descendant: None,
             text_ordinals: SmallVec::new(),
             inspecting: false,
@@ -1729,6 +1737,7 @@ impl A11yNodeBuilder {
         self.ids_stack.push(ROOT_NODE_ID);
         self.nodes_stack.push(root_node);
         self.focus = None;
+        self.focus_handle = None;
         self.active_descendant = None;
         self.container_focus = None;
     }
@@ -1771,8 +1780,17 @@ impl A11yNodeBuilder {
         self.active_descendant = Some(id);
     }
 
+    #[cfg(test)]
     pub(crate) fn set_focus(&mut self, id: NodeId) {
-        if self.focus.is_some() {
+        self.set_focus_by(id, None);
+    }
+
+    /// Reports `id` as focused through the focus handle `handle`. A later claim through the same
+    /// handle (an element nested in another that tracks it) takes over; a claim through another
+    /// handle means two elements both claimed the window's focus.
+    pub(crate) fn set_focus_by(&mut self, id: NodeId, handle: Option<FocusId>) {
+        let same_handle = handle.is_some() && handle == self.focus_handle;
+        if self.focus.is_some() && !same_handle {
             if cfg!(debug_assertions) {
                 panic!("set_focus called more than once in a single frame");
             } else {
@@ -1783,6 +1801,7 @@ impl A11yNodeBuilder {
             }
         }
         self.focus = Some(id);
+        self.focus_handle = handle;
     }
 
     fn finalize(&mut self) -> TreeUpdate {
