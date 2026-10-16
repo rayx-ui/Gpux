@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "id": "fa8f04dc-52c2-4a0c-a819-fbc7d5db0977",
+  "loopId": "55fed546-f57a-4f71-939f-001f39b97557",
+  "index": 1,
+  "type": "baseline",
+  "name": "Baseline Measurement",
+  "slug": "baseline-measurement",
+  "path": "2026-10-16-01-baseline-measurement.json",
+  "createdAt": "2026-10-16T11:50:08Z",
+  "startedAt": "2026-10-16T11:50:08Z",
+  "finishedAt": "2026-10-16T11:50:08Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "f8b588230511f606722abeeafa2bb35d0f16c8b1",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard f8b588230511f606722abeeafa2bb35d0f16c8b1",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "f8b588230511f606722abeeafa2bb35d0f16c8b1",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard f8b588230511f606722abeeafa2bb35d0f16c8b1",
+      "status": "unchanged"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "Baseline: the final state of the previous loop (bcdcf81). The alternated run against the opening state d5cb2e1 (docs/changelog/2026-10-16-macos-fast-mode-improvement-loop.md) shows scroll-data-table fast on at 2.94 > 3.54 ms CPU (+21%, draw p50 +7%) and dashboard-one-panel fast on at 2.83 > 3.43 ms (+21%, draw p50 +11%), in all three repetitions.",
+  "measurementPlanMarkdown": "Reproduce both, bisect by building the kept commits in order, name the change that costs the time, then fix that mechanism alone.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nBaseline metrics are captured and stored so later experiments compare against a known starting point.",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "scroll-data-table fast on CPU",
+      "before": "2.94",
+      "after": "3.54",
+      "delta": "+21%",
+      "source": "benchmark/results/2026-10-16-opening-vs-final"
+    },
+    {
+      "metric": "dashboard-one-panel fast on CPU",
+      "before": "2.83",
+      "after": "3.43",
+      "delta": "+21%",
+      "source": "benchmark/results/2026-10-16-opening-vs-final"
+    }
+  ],
+  "reportMarkdown": "Baseline recorded.",
+  "decisionMarkdown": "Baseline recorded.",
+  "notes": ""
+}

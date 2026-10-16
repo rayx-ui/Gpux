@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "55fed546-f57a-4f71-939f-001f39b97557",
+  "name": "gpux macOS fast-mode regressions, part 5",
+  "objective": "Find and fix why scroll-data-table and dashboard-one-panel use about 21% more main-thread CPU with fast mode on than at the opening state, without losing the loop's other gains",
+  "metric": "main_cpu_ms and Window::draw p50 for scroll-data-table and dashboard-one-panel, fast on, alternated against the opening binary",
+  "target": "both within 5% of the opening state",
+  "maxIterations": 12,
+  "maxExperiments": 12,
+  "state": "running",
+  "status": "",
+  "createdAt": "2026-10-16T11:50:08Z",
+  "finishedAt": null,
+  "lastStableCommit": "f8b588230511f606722abeeafa2bb35d0f16c8b1",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "lastStableCommit": "f8b588230511f606722abeeafa2bb35d0f16c8b1"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "currentExperimentId": null,
+  "nextExperimentIndex": 2,
+  "experiments": [
+    {
+      "id": "fa8f04dc-52c2-4a0c-a819-fbc7d5db0977",
+      "index": 1,
+      "type": "baseline",
+      "name": "Baseline Measurement",
+      "path": "2026-10-16-01-baseline-measurement.json",
+      "startedAt": "2026-10-16T11:50:08Z",
+      "finishedAt": "2026-10-16T11:50:08Z",
+      "state": "done",
+      "status": "success"
+    }
+  ]
+}

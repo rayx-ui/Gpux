@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "currentLoopId": null,
+  "currentLoopId": "55fed546-f57a-4f71-939f-001f39b97557",
   "loops": [
     {
       "id": "a1be1070-037c-491e-bc2c-36c4295bd81f",
@@ -73,6 +73,15 @@
       "finishedAt": "2026-10-16T10:49:34Z",
       "state": "done",
       "status": "stopped"
+    },
+    {
+      "id": "55fed546-f57a-4f71-939f-001f39b97557",
+      "name": "gpux macOS fast-mode regressions, part 5",
+      "path": "2026-10-16-gpux-mac-os-fast-mode-regressions-part-5/",
+      "createdAt": "2026-10-16T11:50:08Z",
+      "finishedAt": null,
+      "state": "running",
+      "status": ""
     }
   ]
 }
