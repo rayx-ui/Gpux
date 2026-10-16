@@ -82,6 +82,8 @@ web-sys = { workspace = true, features = ["console", "Location", "UrlSearchParam
 [target.'cfg(target_os = "android")'.dev-dependencies]
 android-activity = { version = "0.6", default-features = false, features = ["native-activity"] }
 jni = "0.22"
+# The JNI accesskit_android is on, which the screen-reader checks drive its node provider with.
+jni-021 = { package = "jni", version = "0.21.1" }
 gpui_mobile = { workspace = true, features = ["android-native-activity"] }
 libc.workspace = true
 log.workspace = true

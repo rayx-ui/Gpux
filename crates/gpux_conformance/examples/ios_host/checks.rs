@@ -34,11 +34,11 @@ const CONFORMANCE_WIDTH: f32 = 96.432;
 const METRIC_TOLERANCE: f32 = 0.05;
 const SHAPED_TOLERANCE: f32 = 2.;
 
-fn pass(id: &str, detail: impl Into<String>) -> ResultLine {
+pub(crate) fn pass(id: &str, detail: impl Into<String>) -> ResultLine {
     ResultLine::new(Outcome::Pass, id.to_string(), detail.into())
 }
 
-fn fail(id: &str, detail: impl Into<String>) -> ResultLine {
+pub(crate) fn fail(id: &str, detail: impl Into<String>) -> ResultLine {
     ResultLine::new(Outcome::Fail, id.to_string(), detail.into())
 }
 
@@ -46,7 +46,10 @@ fn skip(id: &str, detail: impl Into<String>) -> ResultLine {
     ResultLine::new(Outcome::Skip, id.to_string(), detail.into())
 }
 
-async fn open(cx: &mut AsyncApp, scene: &'static SceneSpec) -> anyhow::Result<AnyWindowHandle> {
+pub(crate) async fn open(
+    cx: &mut AsyncApp,
+    scene: &'static SceneSpec,
+) -> anyhow::Result<AnyWindowHandle> {
     let window = cx.open_window(WindowOptions::default(), |window, cx| {
         // The checks find elements in the window's accessibility tree.
         gpux_conformance::evaluate::keep_inspecting(window);
@@ -57,7 +60,7 @@ async fn open(cx: &mut AsyncApp, scene: &'static SceneSpec) -> anyhow::Result<An
     Ok(window)
 }
 
-fn close(cx: &mut AsyncApp, window: AnyWindowHandle) {
+pub(crate) fn close(cx: &mut AsyncApp, window: AnyWindowHandle) {
     gpux_conformance::evaluate::stop_inspecting(window);
     window
         .update(cx, |_, window, _| window.remove_window())
@@ -69,7 +72,7 @@ async fn sleep(cx: &mut AsyncApp, duration: Duration) {
 }
 
 /// The element `query` matches in the latest frame.
-fn find(
+pub(crate) fn find(
     cx: &mut AsyncApp,
     window: AnyWindowHandle,
     query: &Query,
@@ -84,7 +87,7 @@ fn find(
 }
 
 /// Waits until `done` holds, polling every frame, for at most [`ACTION_TIMEOUT`].
-async fn wait_for(
+pub(crate) async fn wait_for(
     cx: &mut AsyncApp,
     window: AnyWindowHandle,
     mut done: impl FnMut(&mut AsyncApp) -> bool,
@@ -452,6 +455,12 @@ pub async fn platform_checks(cx: &mut AsyncApp) -> Vec<ResultLine> {
     }
     if selected("platform-view-ios") {
         lines.push(crate::platform_views::platform_view(cx).await);
+    }
+    if selected("screen-reader-ios-tree") {
+        lines.push(crate::screen_reader::tree(cx).await);
+    }
+    if selected("screen-reader-ios-activate") {
+        lines.push(crate::screen_reader::activate(cx).await);
     }
     lines
 }

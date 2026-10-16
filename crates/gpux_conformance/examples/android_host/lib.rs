@@ -8,20 +8,26 @@
 //!
 //! - `tap <x> <y>` and `swipe <x1> <y1> <x2> <y2> <ms>`: `adb shell input` in physical pixels;
 //! - `background` and `foreground`: the home key, and the activity relaunched with `am start`;
-//! - `screenshot <n>`: `adb screencap`, written to the app's `files/screens/<n>.png`.
+//! - `screenshot <n>`: `adb screencap`, written to the app's `files/screens/<n>.png`;
+//! - `a11y-dump <n>`: `uiautomator dump` of the screen's accessibility nodes, written to the
+//!   app's `files/a11y/<n>.xml`.
 //!
 //! Pixel steps read the screen through `screenshot`: the GL drivers of Android emulators read
 //! rendered textures back empty, and the screen is what the user sees anyway.
 //!
 //! The run ends with `gpux-conformance-host: done`. Failing pixel steps save their frame under
 //! the app's files directory (`frames/`), which the testkit pulls. The `debug.gpux.scene` and
-//! `debug.gpux.grep` system properties narrow the run like `--scene` and `--grep` elsewhere.
+//! `debug.gpux.grep` system properties narrow the run like `--scene` and `--grep` elsewhere;
+//! `debug.gpux.show` instead shows that scene for a person to use (the screen-reader walkthrough
+//! of `docs/accessibility.md`).
 
 #[cfg(target_os = "android")]
 mod checks;
 #[cfg(target_os = "android")]
 mod composition;
 mod platform_views;
+#[cfg(target_os = "android")]
+mod screen_reader;
 #[cfg(target_os = "android")]
 mod scroll_layers;
 
@@ -162,6 +168,20 @@ mod android {
         if let Err(error) = cx.update(app_host::register_bundled_fonts) {
             log::error!("android_host: could not register the bundled fonts: {error:#}");
         }
+        if let Some(id) = property("debug.gpux.show") {
+            // The screen-reader walkthrough of `docs/accessibility.md`: the scene stays open.
+            match CATALOG.iter().find(|scene| scene.id == id) {
+                Some(scene) => {
+                    if let Err(error) = cx.open_window(WindowOptions::default(), |window, cx| {
+                        cx.new(|cx| app_host::SceneFrame::new(scene, window, cx))
+                    }) {
+                        log::error!("android_host: could not open `{id}`: {error:#}");
+                    }
+                }
+                None => log::error!("android_host: no conformance scene `{id}`"),
+            }
+            return;
+        }
         let _anchor = match cx.open_window(WindowOptions::default(), |_, cx| cx.new(|_| Anchor)) {
             Ok(anchor) => anchor,
             Err(error) => {
@@ -188,6 +208,15 @@ mod android {
         }
         for line in checks::os_checks(cx, &screens).await {
             report(&line);
+        }
+        if selected("screen-reader-android-tree") {
+            report(&crate::screen_reader::tree(cx, data).await);
+        }
+        if selected("screen-reader-android-click") {
+            report(&crate::screen_reader::click(cx).await);
+        }
+        if selected("screen-reader-android-adjust") {
+            report(&crate::screen_reader::adjust(cx).await);
         }
         request("done");
     }

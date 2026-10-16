@@ -554,6 +554,9 @@ pub enum Request {
     Foreground,
     /// `adb screencap`, written to the app's `files/screens/<n>.png`.
     Screenshot(u32),
+    /// `uiautomator dump` of the screen's accessibility nodes, written to the app's
+    /// `files/a11y/<n>.xml`.
+    A11yDump(u32),
     /// The run is over.
     Done,
 }
@@ -596,6 +599,10 @@ pub fn request(line: &str) -> Option<Request> {
             [number] => Some(Request::Screenshot(u32::try_from(*number).ok()?)),
             _ => None,
         },
+        "a11y-dump" => match numbers(words)?.as_slice() {
+            [number] => Some(Request::A11yDump(u32::try_from(*number).ok()?)),
+            _ => None,
+        },
         "done" => Some(Request::Done),
         _ => None,
     }
@@ -628,7 +635,7 @@ pub fn shell_commands(request: &Request) -> Vec<Vec<String>> {
             "-n",
             &format!("{PACKAGE}/{ACTIVITY}"),
         ])],
-        Request::Screenshot(_) | Request::Done => Vec::new(),
+        Request::Screenshot(_) | Request::A11yDump(_) | Request::Done => Vec::new(),
     }
 }
 
@@ -656,7 +663,7 @@ pub fn signed_with_another_key(install_output: &str) -> bool {
 }
 
 /// The ids of the Android platform checks the host reports, in order.
-pub const PLATFORM_CHECKS: [&str; 15] = [
+pub const PLATFORM_CHECKS: [&str; 18] = [
     "android-startup",
     "android-touch-tap",
     "android-touch-pan",
@@ -672,6 +679,9 @@ pub const PLATFORM_CHECKS: [&str; 15] = [
     "scroll-layers-android-timing",
     "platform-view-android",
     "platform-view-android-text",
+    "screen-reader-android-tree",
+    "screen-reader-android-click",
+    "screen-reader-android-adjust",
 ];
 
 /// Every result `android run` expects for `selection`: the platform checks and the lane-E
@@ -911,8 +921,9 @@ fn run_on_device(
     );
     let mut collected = String::new();
     let mut failures = Vec::new();
-    // The host repeats a screenshot request until the file arrives.
+    // The host repeats a screenshot or dump request until the file arrives.
     let mut screenshots = std::collections::HashSet::new();
+    let mut dumps = std::collections::HashSet::new();
     let mut handle = |line: &str| -> bool {
         collected.push_str(line);
         collected.push('\n');
@@ -936,6 +947,16 @@ fn run_on_device(
                 }
                 if let Err(error) = screenshot(&adb, &serial, &logs, number, runner, root) {
                     failures.push(format!("could not take screenshot {number}: {error}"));
+                }
+            }
+            Some(Request::A11yDump(number)) => {
+                if !dumps.insert(number) {
+                    return true;
+                }
+                if let Err(error) = a11y_dump(&adb, &serial, &logs, number, runner, root) {
+                    failures.push(format!(
+                        "could not dump the accessibility nodes {number}: {error}"
+                    ));
                 }
             }
             Some(request) => {
@@ -1074,6 +1095,50 @@ fn pull_frames(
 /// puts it in the app's `files/screens/<number>.png`, where the host waits for it. The file goes
 /// through `/data/local/tmp` and `run-as cp`: adb on Windows reads standard input as text, which
 /// ends a PNG at its signature's 0x1A byte.
+/// `uiautomator dump` of the screen's accessibility nodes, kept in the logs and handed to the
+/// host as its `files/a11y/<number>.xml`.
+fn a11y_dump(
+    adb: &Path,
+    serial: &str,
+    logs: &Path,
+    number: u32,
+    runner: &mut dyn Runner,
+    root: &Path,
+) -> Result<(), String> {
+    let args = |args: &[&str]| -> Vec<String> {
+        ["-s", serial]
+            .iter()
+            .chain(args)
+            .map(|arg| arg.to_string())
+            .collect()
+    };
+    let staged = format!("/data/local/tmp/gpux-a11y-{number}.xml");
+    let local = logs.join("a11y").join(format!("{number}.xml"));
+    std::fs::create_dir_all(logs.join("a11y")).map_err(|error| error.to_string())?;
+    let target = format!("files/a11y/{number}.xml");
+    let partial = format!("{target}.part");
+    for command in [
+        args(&["shell", "uiautomator", "dump", &staged]),
+        args(&["pull", &staged, &local.display().to_string()]),
+        args(&["shell", "chmod", "644", &staged]),
+        args(&["shell", "run-as", PACKAGE, "mkdir", "-p", "files/a11y"]),
+        // Copy under a temporary name and rename, so the host never reads a partial file.
+        args(&["shell", "run-as", PACKAGE, "cp", &staged, &partial]),
+        args(&["shell", "run-as", PACKAGE, "mv", &partial, &target]),
+        args(&["shell", "rm", "-f", &staged]),
+    ] {
+        let invocation = tool_invocation("adb-a11y-dump", adb, command);
+        run_tool(
+            &invocation,
+            adb,
+            root,
+            runner,
+            &logs.join("adb-a11y-dump.log"),
+        )?;
+    }
+    Ok(())
+}
+
 fn screenshot(
     adb: &Path,
     serial: &str,
