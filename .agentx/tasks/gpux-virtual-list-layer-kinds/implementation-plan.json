@@ -1,0 +1,1033 @@
+{
+  "schemaVersion": 7,
+  "epicId": "gpux-virtual-list-layer-kinds",
+  "revision": 3,
+  "title": "Measured leaves kept under view retention, and every VirtualList kind on scroll layers: horizontal, sticky, SynchronizedOffset and ParentViewport lists composite, RayX's parent-viewport invalidation narrowed, timings measured",
+  "validationMode": "sprint",
+  "repositories": [
+    {
+      "id": "gpux",
+      "path": ".",
+      "role": "execution"
+    },
+    {
+      "id": "rayx",
+      "path": "../RayX",
+      "role": "execution"
+    },
+    {
+      "id": "rayx-dtcg",
+      "path": "../RayX.Dtcg",
+      "role": "reference"
+    },
+    {
+      "id": "rayx-reactive",
+      "path": "../RayX.Reactive",
+      "role": "reference"
+    },
+    {
+      "id": "rayx-signalr",
+      "path": "../RayX.SignalR",
+      "role": "reference"
+    }
+  ],
+  "boundaries": {
+    "repositoryIds": [
+      "gpux",
+      "rayx"
+    ],
+    "forbiddenPaths": [
+      "gpux:.agentx/experiments/**",
+      "gpux:.agentx/tasks/frame-effects-navigation-transitions/**",
+      "gpux:.agentx/tasks/frame-family-component-transitions/**",
+      "gpux:.agentx/tasks/gpux-cross-platform-test-lanes/**",
+      "gpux:.agentx/tasks/gpux-fast-mode/**",
+      "gpux:.agentx/tasks/gpux-faster-test-lanes/**",
+      "gpux:.agentx/tasks/gpux-fixed-sticky-positioning/**",
+      "gpux:.agentx/tasks/gpux-text-rendering-quality-performance/**",
+      "gpux:.agentx/tasks/gpux-wgpu-platform-renderers/**",
+      "gpux:.agentx/tasks/high-quality-wasm-text-rendering/**",
+      "gpux:.agentx/tasks/html-element-dom-overlay/**",
+      "gpux:.agentx/tasks/html-island-wasm/**",
+      "gpux:.agentx/tasks/keyed-sticky-stacking/**",
+      "gpux:.agentx/tasks/macos-only-metal-port-and-ci-repair/**",
+      "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**",
+      "gpux:.agentx/tasks/gpux-virtual-list/**",
+      "gpux:vendor/wgpu/**",
+      "gpux:ToFix/**",
+      "gpux:benchmark/results/**",
+      "rayx:.agentx/tasks/**",
+      "rayx:.agentx/experiments/**",
+      "rayx:vendor/**"
+    ]
+  },
+  "checks": [
+    {
+      "id": "c-measured-leaves",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "ML-1"
+      ],
+      "descriptionMarkdown": "New group: retained views holding indefinite measured leaves keep their sizes, per switch combination; the red baseline is the collapse `gpux-virtual-list` recorded.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--test",
+        "retained_measured_leaves"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ],
+      "baselineRequired": true,
+      "baselineExpected": {
+        "exitCode": "nonzero",
+        "failurePattern": "measured leaf collapsed"
+      }
+    },
+    {
+      "id": "c-measured-oracle",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "ML-2"
+      ],
+      "descriptionMarkdown": "New group: the randomized oracle with measured leaves in retained views, and the build counter.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::oracle_measured_leaves"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "c-horizontal",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "HZ-1"
+      ],
+      "descriptionMarkdown": "New group: horizontal composite counters over 60 frames; the horizontal case moved out of `ineligible`.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::virtual_list_layers::horizontal::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "c-horizontal-oracle",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "HZ-2"
+      ],
+      "descriptionMarkdown": "New group: horizontal quads at 1 and 1.25 and random histories.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::virtual_list_layers::horizontal_oracle"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "c-sticky",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "ST-1"
+      ],
+      "descriptionMarkdown": "New group: sticky rows drawn over the layer, top and left edges, levels, stack ids, push-out, hit order.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::virtual_list_layers::sticky::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "c-sticky-oracle",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "ST-2"
+      ],
+      "descriptionMarkdown": "New group: sticky frames and sticky-state events against layers off.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::virtual_list_layers::sticky_oracle"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "c-synchronized",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "SO-1"
+      ],
+      "descriptionMarkdown": "New group: SynchronizedOffset lists driven by a scrolling sibling.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::virtual_list_layers::synchronized"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "c-parent-promoted",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "PV-1"
+      ],
+      "descriptionMarkdown": "New group: a ParentViewport list keeps its parent's layer; metrics, range and frames per frame against layers off.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::virtual_list_layers::parent_promoted"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "c-rx-parent-layers",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "PV-2"
+      ],
+      "descriptionMarkdown": "New RayX group: ListView and TreeView in ParentViewport keep the parent layer and do not rebuild their state view.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_components_core",
+        "--test",
+        "parent_viewport_layers"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_components/**",
+        "crates/rayx_runtime/**",
+        "crates/rayx_theme/**",
+        "crates/rayx_macros/**",
+        "gpux:crates/gpui/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock"
+      ]
+    },
+    {
+      "id": "c-rx-parent-existing",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "PV-2"
+      ],
+      "descriptionMarkdown": "Existing ParentViewport consumer tests, selected on purpose: the proof that narrowing the dependent registration preserves programmatic scroll and mutation behaviour.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_components_core",
+        "--test",
+        "application_configuration_programmatic_scroll_parent_viewport"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 7
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_components/**",
+        "crates/rayx_runtime/**",
+        "crates/rayx_theme/**",
+        "crates/rayx_macros/**",
+        "gpux:crates/gpui/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock"
+      ]
+    },
+    {
+      "id": "c-rx-kinds",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "RXK-1"
+      ],
+      "descriptionMarkdown": "New RayX group: sticky ListView, horizontal ListView, sticky TreeView and DataTable synchronized rows composite.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_components_core",
+        "--test",
+        "virtual_list_layer_kinds"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_components/**",
+        "crates/rayx_runtime/**",
+        "crates/rayx_theme/**",
+        "crates/rayx_macros/**",
+        "gpux:crates/gpui/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock"
+      ]
+    },
+    {
+      "id": "c-attribution",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "TM-1"
+      ],
+      "descriptionMarkdown": "The five new scenarios' attribution tests (named `scroll_virtual_list*`).",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support,bench-support",
+        "--test",
+        "fast_mode_attribution",
+        "scroll_virtual_list"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "c-perf",
+      "repositoryId": "gpux",
+      "kind": "benchmark",
+      "criterionIds": [
+        "TM-2"
+      ],
+      "descriptionMarkdown": "Lane G timing of the fast-mode suite on the owner's Mac (display awake); the report is read and recorded by hand.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "perf",
+        "fast-mode",
+        "--name",
+        "virtual-list"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "reuse": false,
+      "timeoutSeconds": 7200
+    },
+    {
+      "id": "final-fmt",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [],
+      "argv": [
+        "cargo",
+        "fmt",
+        "--check"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-clippy",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [],
+      "argv": [
+        "cargo",
+        "clippy",
+        "-p",
+        "gpux",
+        "-p",
+        "gpux-conformance",
+        "-p",
+        "gpux-platform",
+        "--all-targets",
+        "--no-deps",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-wasm",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [],
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-web",
+        "--target",
+        "wasm32-unknown-unknown",
+        "--no-default-features"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-rx-fmt",
+      "repositoryId": "rayx",
+      "kind": "static",
+      "criterionIds": [],
+      "argv": [
+        "cargo",
+        "fmt",
+        "--check"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-rx-clippy",
+      "repositoryId": "rayx",
+      "kind": "static",
+      "criterionIds": [],
+      "argv": [
+        "cargo",
+        "clippy",
+        "-p",
+        "rayx_components_base",
+        "-p",
+        "rayx_components_core",
+        "-p",
+        "rayx_components_datatable",
+        "--all-targets",
+        "--no-deps",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-rx-check",
+      "repositoryId": "rayx",
+      "kind": "build",
+      "criterionIds": [],
+      "argv": [
+        "cargo",
+        "check",
+        "--workspace",
+        "--all-targets"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-fast-suite",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [],
+      "descriptionMarkdown": "The whole `fast::` lib suite (left to CI).",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 50
+      }
+    },
+    {
+      "id": "final-lane-a",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [],
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "a"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 30,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false
+    },
+    {
+      "id": "final-lane-c",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [],
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "c"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 10,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false
+    }
+  ],
+  "finalCheckIds": [
+    "final-fmt",
+    "final-clippy",
+    "final-wasm",
+    "final-rx-fmt",
+    "final-rx-clippy",
+    "final-rx-check",
+    "final-fast-suite",
+    "final-lane-a",
+    "final-lane-c"
+  ],
+  "sprints": [
+    {
+      "id": "s00-measured-leaves",
+      "title": "Measured leaves keep their size under view retention",
+      "dependsOn": [],
+      "memoryScopes": [
+        "gpux:gpui/layout-style",
+        "gpux:gpui/frame-pipeline"
+      ],
+      "checkIds": [
+        "c-measured-leaves",
+        "c-measured-oracle"
+      ],
+      "tasks": [
+        {
+          "id": "t00-measured-leaves",
+          "title": "Build kept views that hold an indefinite measured leaf",
+          "descriptionMarkdown": "1. Write `crates/gpui/tests/retained_measured_leaves.rs` first, with ML-1's cases and the failure message `measured leaf collapsed`. Start from the recorded `uniform_list` case. Record the red baseline with `check --sprint s00-measured-leaves --phase baseline`.\n2. Implement d-retained-measured-leaves: the mark recorded with a view's layout, the build, and the new counter, added at the end of `FastStats::MECHANISM` with its docs line.\n3. Add the `oracle_measured_leaves` group (ML-2).\n4. Describe the rule in `docs/fast-mode.md`'s view-retention section.\n\nCommit as `fix(gpui): build a kept view whose layout depends on a measured leaf`.",
+          "criterionIds": [
+            "ML-1",
+            "ML-2"
+          ],
+          "designIds": [
+            "d-retained-measured-leaves"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "c-measured-leaves",
+            "c-measured-oracle"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/layout.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/taffy.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s01-horizontal",
+      "title": "Horizontal virtual lists composite",
+      "dependsOn": [
+        "s00-measured-leaves"
+      ],
+      "memoryScopes": [
+        "gpux:gpui/frame-pipeline"
+      ],
+      "checkIds": [
+        "c-horizontal",
+        "c-horizontal-oracle"
+      ],
+      "tasks": [
+        {
+          "id": "t01-axis-slots",
+          "title": "Make begin_virtual_list axis-generic",
+          "descriptionMarkdown": "Implement d-axis-generic-slots. `VirtualList` passes its axis, and `carried` drops the horizontal exclusion.\n\nAdd the `horizontal` group, and move `gpux-virtual-list`'s horizontal `ineligible` case into it, now asserting that the list composites.",
+          "criterionIds": [
+            "HZ-1"
+          ],
+          "designIds": [
+            "d-axis-generic-slots",
+            "d-proof"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "c-horizontal"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/layers/lists.rs"
+            }
+          ]
+        },
+        {
+          "id": "t02-horizontal-oracle",
+          "title": "Prove horizontal frames equal frames drawn from scratch",
+          "descriptionMarkdown": "The `horizontal_oracle` group: quads at 1 and 1.25 and random histories on the x axis. Fix what it finds in the mechanism.",
+          "criterionIds": [
+            "HZ-2"
+          ],
+          "designIds": [
+            "d-axis-generic-slots",
+            "d-proof"
+          ],
+          "dependsOn": [
+            "t01-axis-slots"
+          ],
+          "checkIds": [
+            "c-horizontal-oracle"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s02-sticky",
+      "title": "Sticky rows over a composited layer",
+      "dependsOn": [
+        "s01-horizontal"
+      ],
+      "memoryScopes": [
+        "gpux:gpui/frame-pipeline"
+      ],
+      "checkIds": [
+        "c-sticky",
+        "c-sticky-oracle"
+      ],
+      "tasks": [
+        {
+          "id": "t03-sticky-extra-rows",
+          "title": "Draw sticky candidates as extra rows above the layer",
+          "descriptionMarkdown": "Implement d-sticky-over-layer for `VirtualList` on both axes:\n- candidates are never held;\n- they are rendered and prepainted through the `extra` rows after the layer is composited, in sticky order;\n- they keep positioned hitbox ids and push-out.\n\nAdd the `sticky` group, and move `gpux-virtual-list`'s sticky `ineligible` case into it.",
+          "criterionIds": [
+            "ST-1"
+          ],
+          "designIds": [
+            "d-sticky-over-layer",
+            "d-proof"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "c-sticky"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/layers/lists.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/list.rs"
+            }
+          ]
+        },
+        {
+          "id": "t04-sticky-oracle",
+          "title": "Prove sticky frames and events equal frames drawn from scratch",
+          "descriptionMarkdown": "The `sticky_oracle` group: quads at 1 and 1.25; random histories with nested levels, keyed runs, `when_stuck` and `on_sticky_state_changed` event logs compared against layers off.",
+          "criterionIds": [
+            "ST-2"
+          ],
+          "designIds": [
+            "d-sticky-over-layer",
+            "d-proof"
+          ],
+          "dependsOn": [
+            "t03-sticky-extra-rows"
+          ],
+          "checkIds": [
+            "c-sticky-oracle"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s03-synchronized",
+      "title": "SynchronizedOffset lists composite",
+      "dependsOn": [
+        "s02-sticky"
+      ],
+      "memoryScopes": [
+        "gpux:gpui/frame-pipeline"
+      ],
+      "checkIds": [
+        "c-synchronized"
+      ],
+      "tasks": [
+        {
+          "id": "t05-synchronized-layer",
+          "title": "Give a SynchronizedOffset list its own list layer",
+          "descriptionMarkdown": "Implement d-synchronized-layer, plus the `synchronized` group: a list driven by a scrolling sibling, vertical and horizontal, with counters and a random-history oracle.",
+          "criterionIds": [
+            "SO-1"
+          ],
+          "designIds": [
+            "d-synchronized-layer",
+            "d-proof"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "c-synchronized"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/layers/lists.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/layers/invalidate.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s04-parent-viewport",
+      "title": "A ParentViewport list keeps its parent's layer",
+      "dependsOn": [
+        "s03-synchronized"
+      ],
+      "memoryScopes": [
+        "gpux:gpui/frame-pipeline",
+        "rayx:ui/virtualization"
+      ],
+      "checkIds": [
+        "c-parent-promoted",
+        "c-rx-parent-layers",
+        "c-rx-parent-existing"
+      ],
+      "tasks": [
+        {
+          "id": "t06-parent-promoted",
+          "title": "Paint the painted region, answer metrics and range on composited frames",
+          "descriptionMarkdown": "Implement d-parent-viewport-promotion's gpux side:\n- rows for the painted region, with no offset read while a layer paints;\n- geometry recorded with the handle;\n- metrics answered on read from the parent offset;\n- a composite-frame callback in `fast::layers::reuse` that runs the range listener.\n\nAdd the `parent_promoted` group. A bare list holder needs no dependent view.",
+          "criterionIds": [
+            "PV-1"
+          ],
+          "designIds": [
+            "d-parent-viewport-promotion",
+            "d-proof"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "c-parent-promoted"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/layers/paint.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/layers/reuse.rs"
+            }
+          ]
+        },
+        {
+          "id": "t07-rayx-dependent-registration",
+          "title": "Narrow RayX's dependent-view registration for ParentViewport",
+          "descriptionMarkdown": "Implement d-parent-viewport-promotion's RayX side in ListViewState and TreeState, plus the `parent_viewport_layers` group. The existing ParentViewport tests must keep passing.\n\nCommit in RayX paired with t06's gpux commit. The superseded RayX decision is promoted after the epic: do not edit memory now.",
+          "criterionIds": [
+            "PV-2"
+          ],
+          "designIds": [
+            "d-parent-viewport-promotion"
+          ],
+          "dependsOn": [
+            "t06-parent-promoted"
+          ],
+          "checkIds": [
+            "c-rx-parent-layers",
+            "c-rx-parent-existing"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/state.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_base/src/tree/state.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s05-rayx-kinds",
+      "title": "RayX's lists composite in every kind",
+      "dependsOn": [
+        "s04-parent-viewport"
+      ],
+      "checkIds": [
+        "c-rx-kinds"
+      ],
+      "tasks": [
+        {
+          "id": "t08-rayx-kinds",
+          "title": "Prove sticky, horizontal and synchronized RayX lists composite",
+          "descriptionMarkdown": "The `virtual_list_layer_kinds` RayX group (RXK-1): sticky ListView, horizontal ListView, sticky TreeView, DataTable synchronized rows, and a click on a stuck header. Fix any RayX wrapper that blocks a layer, in RayX.",
+          "criterionIds": [
+            "RXK-1"
+          ],
+          "designIds": [
+            "d-consumer-proof"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "c-rx-kinds"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_datatable/src/state/mod.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/state.rs"
+            }
+          ]
+        }
+      ],
+      "memoryScopes": [
+        "rayx:ui/virtualization"
+      ]
+    },
+    {
+      "id": "s06-bench-scenarios",
+      "title": "Fast-mode bench scenarios for every kind",
+      "dependsOn": [
+        "s05-rayx-kinds"
+      ],
+      "memoryScopes": [
+        "gpux:repository/validation"
+      ],
+      "checkIds": [
+        "c-attribution"
+      ],
+      "tasks": [
+        {
+          "id": "t09-scenarios",
+          "title": "Add the virtual-list scroll scenarios and their attribution",
+          "descriptionMarkdown": "Add the five `scroll-virtual-list*` scenarios to `fast/scenarios/scroll.rs` (TM-1) and list them in `fast_mode_attribution`'s `scenarios!`.",
+          "criterionIds": [
+            "TM-1"
+          ],
+          "designIds": [
+            "d-timings"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "c-attribution"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/scenarios/scroll.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s07-timings-docs",
+      "title": "Lane G timings and documentation (owner-attended)",
+      "dependsOn": [
+        "s06-bench-scenarios"
+      ],
+      "memoryScopes": [
+        "gpux:repository/validation"
+      ],
+      "checkIds": [
+        "c-perf"
+      ],
+      "tasks": [
+        {
+          "id": "t10-timings",
+          "title": "Time every kind on the owner's Mac",
+          "descriptionMarkdown": "Ask the owner to keep the Mac awake (the app's keep-awake request is fine), then run `c-perf`.\n\nRead `artifacts-temp/testkit/perf/virtual-list/fast-mode.md`. Write the results and their reading into `docs/fast-mode.md`'s Measurements, beside `scroll-uniform-list` and `scroll-list` (TM-2). If it cannot run, stop and ask the owner for the criterion's disposition.",
+          "criterionIds": [
+            "TM-2"
+          ],
+          "designIds": [
+            "d-timings"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "c-perf"
+          ]
+        },
+        {
+          "id": "t11-docs",
+          "title": "Describe every kind in fast-mode.md",
+          "descriptionMarkdown": "Update the \"Virtual lists\" section as DOC-1 lists, with the counts from this epic's groups.",
+          "criterionIds": [
+            "DOC-1"
+          ],
+          "designIds": [
+            "d-timings",
+            "d-sticky-over-layer",
+            "d-parent-viewport-promotion"
+          ],
+          "dependsOn": [
+            "t10-timings"
+          ],
+          "checkIds": []
+        }
+      ]
+    }
+  ]
+}
