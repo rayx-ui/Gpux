@@ -9,11 +9,11 @@
   "path": "2026-10-16-01-baseline-measurement.json",
   "createdAt": "2026-10-16T01:54:00Z",
   "startedAt": "2026-10-16T01:54:00Z",
-  "finishedAt": null,
-  "state": "running",
-  "status": "",
+  "finishedAt": "2026-10-16T01:54:01Z",
+  "state": "done",
+  "status": "success",
   "checkpointCommit": "d4ff414c3e976af22a1a01f19bf3d64d90ec9a2c",
-  "resultCommit": "",
+  "resultCommit": "155dc470d054c2a85582f8589ef380b1cf968f80",
   "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard d4ff414c3e976af22a1a01f19bf3d64d90ec9a2c",
   "repositories": [
     {
@@ -21,12 +21,19 @@
       "path": ".",
       "role": "main",
       "checkpointCommit": "d4ff414c3e976af22a1a01f19bf3d64d90ec9a2c",
-      "resultCommit": "",
+      "resultCommit": "155dc470d054c2a85582f8589ef380b1cf968f80",
       "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard d4ff414c3e976af22a1a01f19bf3d64d90ec9a2c",
-      "status": ""
+      "status": "success"
     }
   ],
-  "repositoryCommits": [],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "155dc470d054c2a85582f8589ef380b1cf968f80"
+    }
+  ],
   "atomicDiscipline": {
     "oneHypothesisOnly": true,
     "singleImplementationAttempt": true,
