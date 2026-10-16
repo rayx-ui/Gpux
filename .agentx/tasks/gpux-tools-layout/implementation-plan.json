@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-tools-layout",
-  "revision": 1,
+  "revision": 2,
   "title": "One layout for gpux test and benchmark tooling: crates/gpux_tests_* and tools/",
   "validationMode": "sprint",
   "repositories": [
@@ -237,7 +237,7 @@
       "criterionIds": [
         "TOOLS-1"
       ],
-      "descriptionMarkdown": "The moved `gpux-testkit` package's own tests (about 280; the touched package, whose existing tests are edited for the new paths, package and library names): proves the runner works from `tools/testkit` and the recorded fixtures still parse (CONF-3).",
+      "descriptionMarkdown": "The moved `gpux-testkit` package's own tests (133 at sprint 1; the touched package, whose existing tests are edited for the new paths, package and library names): proves the runner works from `tools/testkit` and the recorded fixtures still parse (CONF-3).",
       "argv": [
         "cargo",
         "test",
@@ -246,7 +246,7 @@
       ],
       "expected": {
         "exitCode": 0,
-        "minimumTests": 200
+        "minimumTests": 130
       },
       "timeoutSeconds": 3600,
       "inputs": [

@@ -26,9 +26,19 @@
         }
       ],
       "sourceRefs": [
-        {"repositoryId": "gpux", "path": "crates/gpux_conformance/Cargo.toml"},
-        {"repositoryId": "gpux", "path": "tooling/testkit/src/gpux_testkit.rs", "symbol": "find_workspace_root"},
-        {"repositoryId": "gpux", "path": "tooling/testkit/src/lanes.rs"}
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/Cargo.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/gpux_testkit.rs",
+          "symbol": "find_workspace_root"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/lanes.rs"
+        }
       ]
     },
     {
@@ -48,9 +58,18 @@
         }
       ],
       "sourceRefs": [
-        {"repositoryId": "gpux", "path": "tooling/testkit/src/android.rs"},
-        {"repositoryId": "gpux", "path": "tooling/testkit/src/ios.rs"},
-        {"repositoryId": "gpux", "path": "Cargo.toml"}
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/android.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/ios.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.toml"
+        }
       ]
     },
     {
@@ -65,9 +84,19 @@
         }
       ],
       "sourceRefs": [
-        {"repositoryId": "gpux", "path": "tooling/testkit/src/web.rs", "symbol": "WebPaths"},
-        {"repositoryId": "gpux", "path": "tools-node/playwright.config.ts"},
-        {"repositoryId": "gpux", "path": "tools-node/fixtures/catalog.ts"}
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/web.rs",
+          "symbol": "WebPaths"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/playwright.config.ts"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/fixtures/catalog.ts"
+        }
       ]
     },
     {
@@ -92,10 +121,22 @@
         }
       ],
       "sourceRefs": [
-        {"repositoryId": "gpux", "path": "benchmark/Cargo.toml"},
-        {"repositoryId": "gpux", "path": "benchmark/run.py"},
-        {"repositoryId": "gpux", "path": "benchmark/web/run.mjs"},
-        {"repositoryId": "gpux", "path": "benchmark/web/index.html"}
+        {
+          "repositoryId": "gpux",
+          "path": "benchmark/Cargo.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "benchmark/run.py"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "benchmark/web/run.mjs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "benchmark/web/index.html"
+        }
       ]
     },
     {

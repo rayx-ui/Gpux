@@ -1,25 +1,37 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-tools-layout",
-  "revision": 0,
-  "planRevision": 1,
+  "revision": 12,
+  "planRevision": 2,
   "specHashes": {
     "requirements": "a2cfc8fcd710618c3339f6bce69f3121f9bcab1d3f579ed85fad28bc5d2cd2cf",
     "design": "b685ab09ad5c982b043092126754eb7d13b35ed7587af8d6d5543428ad406649",
-    "plan": "5cff1325ef6046099e26e3bf0d172ae50945c73b4e40161a54801353318c2819"
+    "plan": "cd59bf23de00865cbda25fb76f70b438f893dfd60a2ca35a61898c6bc6d25b4b"
   },
   "tasks": {
     "t01-conformance-rename": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "b2deecdd-9a47-4d12-b561-16a673be72fa"
+      ]
     },
     "t02-tools-move": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "b2deecdd-9a47-4d12-b561-16a673be72fa"
+      ]
     },
     "t03-browser-move": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "b2deecdd-9a47-4d12-b561-16a673be72fa"
+      ]
     },
     "t04-benchmark-move": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "b2deecdd-9a47-4d12-b561-16a673be72fa"
+      ]
     },
     "t05-ci-docs": {
       "status": "pending"
@@ -31,11 +43,522 @@
       "status": "pending"
     }
   },
-  "validationBatches": {},
-  "checkResults": {},
-  "reviews": {},
-  "checkpoints": {},
-  "findings": [],
+  "validationBatches": {
+    "a14619e0bfc830f5ee5b728bebee54b5964aefc8054d747b5f546c5f3af82f4e": {
+      "snapshot": {
+        "specHash": "a7094d0de53128269bfe26daa02748910ebcf98c6b62f0ec328ecdb1335680f7",
+        "repositories": {
+          "gpux": "ecfe08a6b6f1123589a9d3a17fbeae9f157645b28dc3b146e0c681184390398f"
+        }
+      },
+      "recordedAt": "2026-10-16T15:55:37Z"
+    },
+    "727752466f0f4b85b8fd6d315d25da57785ad5cf81bdd6a016e9cbe6bfb550bd": {
+      "snapshot": {
+        "specHash": "e8e5210d3f72ed36f152eda19e574920b117f813465c7d95a18b7db1ceb5eb97",
+        "repositories": {
+          "gpux": "d51f1c26e0fff1d960d0bca4cfac0570ce01e257d2b3d13d8316c5300a61b9f5"
+        }
+      },
+      "recordedAt": "2026-10-16T16:02:21Z"
+    }
+  },
+  "checkResults": {
+    "s01-moves/c-conf-package/final": {
+      "checkId": "c-conf-package",
+      "boundaryId": "s01-moves",
+      "phase": "final",
+      "batchId": "727752466f0f4b85b8fd6d315d25da57785ad5cf81bdd6a016e9cbe6bfb550bd",
+      "definitionHash": "dbbba8fa8c6d465bfbb8066315bba1b00e7026c1e0591327b0c5b22b452d5e9d",
+      "basisHash": "5ad98384a9259004f0695b99ff448143b242bce55b3bc1f9d47636723ef387bc",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 6,
+      "durationSeconds": 0.2056,
+      "recordedAt": "2026-10-16T16:02:12Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-tools-layout/s01-moves-final-e4f836029f05.log",
+      "logSha256": "e10f48d31885a9729a7b9043d8fbc539416820c3031356b136367eb82479d150",
+      "inputsHash": "14139bf149b7b8eb23cc22b81d7181a39bb0aae7d362cd978e4c647109822bd8"
+    },
+    "s01-moves/c-conf-check/final": {
+      "checkId": "c-conf-check",
+      "boundaryId": "s01-moves",
+      "phase": "final",
+      "batchId": "a14619e0bfc830f5ee5b728bebee54b5964aefc8054d747b5f546c5f3af82f4e",
+      "definitionHash": "dc8a42e7cf8dbdcad78d9a63cfa81133991eeafb54a4803a3bf71f6d33c228d7",
+      "basisHash": "6a03b6a4720d928fe0210518ce1f1fd1ac3c6cdc46b00b6c05541b19282180e7",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 53.4511,
+      "recordedAt": "2026-10-16T15:50:55Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-tools-layout/s01-moves-final-8c6570891a57.log",
+      "logSha256": "979529324bf9b7ab2025908d8d07c66ebb990d485ed1b7489dd9c8a199d62ffc",
+      "inputsHash": "3a4b55c74284c675388c1e57f529eed38ac68825fa5096a431a5ddbdf1e5e6fd"
+    },
+    "s01-moves/c-conf-wasm/final": {
+      "checkId": "c-conf-wasm",
+      "boundaryId": "s01-moves",
+      "phase": "final",
+      "batchId": "a14619e0bfc830f5ee5b728bebee54b5964aefc8054d747b5f546c5f3af82f4e",
+      "definitionHash": "eaea8f63276ba8f1858c9f7e6573b2472f4f4972a6539a362d4462c5c1a69f64",
+      "basisHash": "e395cfb7ace7b72136f39be16f557b5af7dd055159ca7afce2e46cf3f7fecde9",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 24.0756,
+      "recordedAt": "2026-10-16T15:51:19Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-tools-layout/s01-moves-final-f8aca3d1c658.log",
+      "logSha256": "d731e4885f1d5459da2fc8dc854e63db883f3b7d98f7b032878e498e87801c85",
+      "inputsHash": "3a4b55c74284c675388c1e57f529eed38ac68825fa5096a431a5ddbdf1e5e6fd"
+    },
+    "s01-moves/c-conf-lane-a/final": {
+      "checkId": "c-conf-lane-a",
+      "boundaryId": "s01-moves",
+      "phase": "final",
+      "batchId": "a14619e0bfc830f5ee5b728bebee54b5964aefc8054d747b5f546c5f3af82f4e",
+      "definitionHash": "d23610ce5b3edbfd8fb088565a106cc794815d520b80412aed36fc0950781632",
+      "basisHash": "08077be0c929a865414a3036b71558e4d565d1bfad71fb681fcef0fd926f0ce1",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 39,
+      "durationSeconds": 54.9601,
+      "recordedAt": "2026-10-16T15:52:14Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-tools-layout/s01-moves-final-64b6fdc9c7a3.log",
+      "logSha256": "b1dd0861990a12944b6016e0b5189c41952742572113d19f0457b2c37f40e89d",
+      "inputsHash": "3a4b55c74284c675388c1e57f529eed38ac68825fa5096a431a5ddbdf1e5e6fd"
+    },
+    "s01-moves/c-testkit-package/final": {
+      "checkId": "c-testkit-package",
+      "boundaryId": "s01-moves",
+      "phase": "final",
+      "batchId": "727752466f0f4b85b8fd6d315d25da57785ad5cf81bdd6a016e9cbe6bfb550bd",
+      "definitionHash": "f43b00329a37848095374d4bd643419515650d701cf84e364a8ac276224ab873",
+      "basisHash": "3d07661b54ff705211d6bf5a1867b1adcd32278d1a73e0784978c00a76967dfa",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 134,
+      "durationSeconds": 1.0864,
+      "recordedAt": "2026-10-16T16:02:13Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-tools-layout/s01-moves-final-89c4fdd7ed6c.log",
+      "logSha256": "2c8da9eead288f355dfd39def99d56e9d1f351f0319e7e09adc05c095f467b98",
+      "inputsHash": "14139bf149b7b8eb23cc22b81d7181a39bb0aae7d362cd978e4c647109822bd8"
+    },
+    "s01-moves/c-tools-paths/final": {
+      "checkId": "c-tools-paths",
+      "boundaryId": "s01-moves",
+      "phase": "final",
+      "batchId": "727752466f0f4b85b8fd6d315d25da57785ad5cf81bdd6a016e9cbe6bfb550bd",
+      "definitionHash": "ea7003dc4c9af15f97267559190eb78c4e4206e69ccae18707947c87a468c1b6",
+      "basisHash": "f5d7a17c885ddf813201aa0eaebb5b4a327d41a118b1ec3a434664fccf2dc31e",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 0.1892,
+      "recordedAt": "2026-10-16T16:02:13Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-tools-layout/s01-moves-final-13bfdf61943a.log",
+      "logSha256": "8b7a66a05b2a155376857543b9aba8c01627bf8b7e8f895401160c0eff7438a5",
+      "inputsHash": "f25e135e92282f2e2e35465e00041b288fc464aa6403c232cbd286c53ad743d8"
+    },
+    "s01-moves/c-ios-build/final": {
+      "checkId": "c-ios-build",
+      "boundaryId": "s01-moves",
+      "phase": "final",
+      "batchId": "727752466f0f4b85b8fd6d315d25da57785ad5cf81bdd6a016e9cbe6bfb550bd",
+      "definitionHash": "4b14d1e0f9d90ffe495a3a9c8309bcb00424782ccd85dad01fed156bed61d225",
+      "basisHash": "f8194354e1a85b471a589d0932c2cc28fb387b96108bba7526f754a0e8c7114b",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 2.3009,
+      "recordedAt": "2026-10-16T16:02:15Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-tools-layout/s01-moves-final-f6c87b454113.log",
+      "logSha256": "7b7e86e33e4b12d4e6f3956b26ceca4b37dfb9b131e265b752f96ab6735c7cbe"
+    },
+    "s01-moves/c-browser-paths/final": {
+      "checkId": "c-browser-paths",
+      "boundaryId": "s01-moves",
+      "phase": "final",
+      "batchId": "727752466f0f4b85b8fd6d315d25da57785ad5cf81bdd6a016e9cbe6bfb550bd",
+      "definitionHash": "20224b361b1269bcdfeeae07ccb20f1e350ca648c3d455f9c56cca309a6a9f25",
+      "basisHash": "e386796ad3ad78b9655b3f9571f59fc4432b94e976fd3265487051ccbe1739ad",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 0.1945,
+      "recordedAt": "2026-10-16T16:02:16Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-tools-layout/s01-moves-final-acaf0cea02b3.log",
+      "logSha256": "8fb1a78d5da80b34fef8bb7083ed51c8c17533e52351870436b410f5aefd4e36",
+      "inputsHash": "c7a54291ede28b7d71e0f5434aa82a816cf8163eecc707c188305767b10ee79a"
+    },
+    "s01-moves/c-browser-canary/final": {
+      "checkId": "c-browser-canary",
+      "boundaryId": "s01-moves",
+      "phase": "final",
+      "batchId": "727752466f0f4b85b8fd6d315d25da57785ad5cf81bdd6a016e9cbe6bfb550bd",
+      "definitionHash": "671a147efe40b3db721f0cfad1501556cbd3616487e13e834954168f5afc186e",
+      "basisHash": "4d8f00e5c79ca786aca9696af40ef1eb3cead8e0495361aadb3796d7b5bbb96f",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 5.333,
+      "recordedAt": "2026-10-16T16:02:21Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-tools-layout/s01-moves-final-750c4e2d59f0.log",
+      "logSha256": "b38cbc95743b88701bea16839741b129d8cb8b6e241b11468f729bd01c50d2ab"
+    },
+    "s01-moves/c-bench-paths/final": {
+      "checkId": "c-bench-paths",
+      "boundaryId": "s01-moves",
+      "phase": "final",
+      "batchId": "a14619e0bfc830f5ee5b728bebee54b5964aefc8054d747b5f546c5f3af82f4e",
+      "definitionHash": "f392360b9e7d95526baf8e0b01dbecfe1440d80731a3a49830fb3820ed0eb57c",
+      "basisHash": "ee91793808d35d17ddcb4c454359849c52afcb4335770cdd17b6a8f1a6338ca7",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 9,
+      "durationSeconds": 0.2939,
+      "recordedAt": "2026-10-16T15:55:06Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-tools-layout/s01-moves-final-0c2595276141.log",
+      "logSha256": "ae451cd91606a86937299dc575a8abacbda8e609d8025c81a935d77513933420",
+      "inputsHash": "d5fb0007eb272798172ed88499f3478ca2f57f1fbddb183262e63e0e28fed707"
+    },
+    "s01-moves/c-bench-check/final": {
+      "checkId": "c-bench-check",
+      "boundaryId": "s01-moves",
+      "phase": "final",
+      "batchId": "a14619e0bfc830f5ee5b728bebee54b5964aefc8054d747b5f546c5f3af82f4e",
+      "definitionHash": "10733fa51e7ca8b6eca162b6a1e54f9971ba50d494fd8505445c71fd3a3fb7ac",
+      "basisHash": "26bc70428a6528e072621b49ecb8321957e21013359ccc3c3e60db0971017839",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 30.5545,
+      "recordedAt": "2026-10-16T15:55:37Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-tools-layout/s01-moves-final-28ea176c09ec.log",
+      "logSha256": "4adf195190f4bb88f02a8a9ccd5b867bf3f4f7b1da54146c4446985c0becec20",
+      "inputsHash": "9fc6032be0fa22e074d37d3df7534bb70864c370137829e54313ef4d982b944d"
+    }
+  },
+  "reviews": {
+    "s01-moves": {
+      "reviewerId": "reviewer-s01-independent",
+      "snapshotId": "727752466f0f4b85b8fd6d315d25da57785ad5cf81bdd6a016e9cbe6bfb550bd",
+      "criterionIds": [
+        "CONF-1",
+        "CONF-2",
+        "CONF-3",
+        "TOOLS-1",
+        "TOOLS-2",
+        "WEB-1",
+        "BENCH-1",
+        "BENCH-2",
+        "BENCH-3"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "CONF-1",
+            "TOOLS-1"
+          ],
+          "sha256": "6f7e37260b4bfe6c975b874f489583ad1ebf94d49473e52b5c9b986704d68952"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "CONF-1"
+          ],
+          "sha256": "0a48050764043109208d43c7ad7b56ebffee34de4c8c6da14cafcf07999d3476"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "CONF-1",
+            "TOOLS-1"
+          ],
+          "sha256": "7cac29d739bccff2d9ed7314366310a9b2cce7a47ba4c2a48a2cf617342d91d7"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/src/gpux_testkit.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CONF-2"
+          ],
+          "sha256": "673eb969ee72f08c1762032f06736276f92532ad92065bee158d1816d2e16685"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/src/lanes.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CONF-2"
+          ],
+          "sha256": "075dadf330ff7da2cdcbb5c38afde6a69b63c3e19c25fa5c389923390f96a68d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/src/android.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CONF-2",
+            "CONF-3",
+            "TOOLS-2"
+          ],
+          "sha256": "1e4bf0d130e110cd38e51162f501a73dcbb5bd19f9c9a4926344b1349e980845"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/src/ios.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CONF-2",
+            "CONF-3",
+            "TOOLS-2"
+          ],
+          "sha256": "ab37004df388aca9981b10e76ae237aed26a56ec98c389258c8e3b0c80a7b5c9"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/src/web.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CONF-2",
+            "WEB-1"
+          ],
+          "sha256": "6fa28f222111ab6df10c4277b71560d9b79119f5942c954f60f2a4cd61c58a71"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/report.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CONF-3"
+          ],
+          "sha256": "fcc804b68b25d09302ab5497d18258cf40db1da39fc4a76f6688ba268382fba3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/browser/playwright.config.ts",
+          "kind": "source",
+          "criterionIds": [
+            "WEB-1"
+          ],
+          "sha256": "ab23059c666805799dce0ec2585abdefbcfeeb898e3d4e75ca096425cea460e5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/browser/fixtures/catalog.ts",
+          "kind": "source",
+          "criterionIds": [
+            "WEB-1"
+          ],
+          "sha256": "3abe84525512c9666ecde14c74ebd43967ec2a8399c7a053465fa4be9daaa89e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_benchmark/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "BENCH-1",
+            "BENCH-3"
+          ],
+          "sha256": "1f4bd022906f605b7bef86e1a3a4891d1cfddb167a7f9c2fb96dae056fe1a4d7"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_benchmark/run.py",
+          "kind": "source",
+          "criterionIds": [
+            "BENCH-2",
+            "BENCH-3"
+          ],
+          "sha256": "e83a5e5427be74839ad2f60f6c4c52a9750123f26131f7008fabb9edd549d505"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_benchmark/web/index.html",
+          "kind": "source",
+          "criterionIds": [
+            "BENCH-2"
+          ],
+          "sha256": "75c65169c4c64589a5edd83ef2240f0ba99760107f32845a8c5a9cfb228e46b6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_benchmark/web/run.mjs",
+          "kind": "source",
+          "criterionIds": [
+            "BENCH-2"
+          ],
+          "sha256": "e8a1cfef8adf162c0a8436c985420d8b58e686918a5422768f6262504556ebda"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/lane_a.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CONF-1"
+          ],
+          "sha256": "0b445bc775a0bf5db1ceff7f49d874f08efec420258a80b898eaa04db66190c6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/conformance_package.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CONF-2",
+            "CONF-3"
+          ],
+          "sha256": "f276b2dee55af175ded84dfccc1d4663b528172d2d154f174196a2625728af7c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/results.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CONF-3"
+          ],
+          "sha256": "2f0e9aab50f612171beb0edf190f55b5be2bfef9ceef98f06c53793b276bb4a9"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/tools_paths.rs",
+          "kind": "test",
+          "criterionIds": [
+            "TOOLS-1",
+            "TOOLS-2"
+          ],
+          "sha256": "d6acd82702d96ba863cfe70cb9932524b81cd66137d06c7340dceb229dfdc8a1"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/browser_paths.rs",
+          "kind": "test",
+          "criterionIds": [
+            "WEB-1"
+          ],
+          "sha256": "4d81e68c926ed3d3c19d739ebe666e55e2b56a085ee59d5260b3aa629ee8ecac"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_benchmark/tests/test_run_paths.py",
+          "kind": "test",
+          "criterionIds": [
+            "BENCH-1",
+            "BENCH-2"
+          ],
+          "sha256": "859d405593d02a7bfe6cb71f25c88b4b82be61efe2e0b783f4c9c353eafc6c67"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-tools-layout/s01-moves-final-7605c19fc76d.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "TOOLS-2"
+          ],
+          "sha256": "d9490e51b353b7734dcebe78ff8f11f0632b3b9783ac08ebc0e417766806ee8d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-tools-layout/s01-moves-final-7ebb4e80fadf.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "WEB-1"
+          ],
+          "sha256": "011fbc1b5bbe4cdb8620442b73df4c98d50b8c2bcfaf26b091884f664fe514c8"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-tools-layout/bench-smoke.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "BENCH-3"
+          ],
+          "sha256": "d910fab1676f58dbf6b4b9e1e89e85bf5d6813dafb486852ed9a5e3129e49c24"
+        }
+      ],
+      "deltaSummaryMarkdown": "I inspected the repair delta in `tools/testkit/tests/tools_paths.rs` and `tools/testkit/tests/browser_paths.rs`; no implementation source changed. **F-S01-LEFTOVER-OLD-FOLDERS:** `the_shells_moved_out_of_tooling` now requires `git ls-files -- tooling` to be empty and `tools/android/AndroidManifest.xml` and `tools/ios/project.yml` to be tracked. `the_project_is_tools_browser` requires `git ls-files -- tools-node` to be empty. Both still check the new files and folders exist. I reran the earlier failing scenario myself: with ignored `tooling/ios/GpuxConformance.xcodeproj` and `tools-node/node_modules/x` present, `cargo test -p gpux-testkit --test tools_paths --test browser_paths` passed 10/10 (5+5). I then removed the leftovers, and the working tree is unchanged. **F-S01-ANDROID-MANIFEST-WIRING:** `android_build_links_the_moved_manifest` runs the real `android::build` against a fake pinned SDK with a temporary checkout root. Its runner records every invocation and fails at `aapt2-link`. The test asserts that the argument after `--manifest` equals `android::manifest(root)`, so a hard-coded or stale path in `android.rs` would fail it. The current `check --sprint s01-moves` evidence passes, including `c-testkit-package` at 135 tests, `c-ios-build` and the lane B canary.",
+      "reattestedFrom": "b83127ecca2ade4737eb0580ca41589e944598fc6e8ace007c4771da330310d1",
+      "summaryMarkdown": "Inspected the rename and moves against every s01 criterion and design invariant. The source is correct: package/lib/workspace key renamed; all `-p` selectors go through `CONFORMANCE_PACKAGE`; the root probe uses the new folder; `android::manifest`/`ios::spec`/`ios::project` are under `tools/`; `WebPaths::browser` is used; the Playwright and catalog relative paths resolve; the benchmark's path deps, `ROOT`, `RESULTS`, `LIB`, dirty-check exclusion, `index.html` import and `run.mjs` Playwright path are right. No protocol identifier changed: the only `gpux-conformance` lines removed were `-p` selectors, and the fixtures are 100% renames. The only stale references left (docs, CI, skill, `crates/gpui/src/fast/layers/paint.rs` comment) are sprint-2 scope. `cargo fmt --check` and `cargo clippy -p gpux-testkit --all-targets -D warnings` are clean. BENCH-3 is accepted from `bench-smoke.log` and the copied report; the smoke results folder is gone from the crate. The review fails on one major test-robustness defect: two new groups assert that the old folders are absent from the working copy, which fails in existing checkouts that still hold the ignored leftovers. A minor gap: lane E's manifest wiring into `aapt2` is not asserted.",
+      "findingIds": [
+        "F-S01-LEFTOVER-OLD-FOLDERS",
+        "F-S01-ANDROID-MANIFEST-WIRING"
+      ],
+      "recordedAt": "2026-10-16T16:02:57Z"
+    }
+  },
+  "checkpoints": {
+    "s01-moves": {
+      "snapshotId": "727752466f0f4b85b8fd6d315d25da57785ad5cf81bdd6a016e9cbe6bfb550bd",
+      "commits": {
+        "gpux": "c1ed0570efb35be1d00ed85b919a518341726456"
+      },
+      "reviewHash": "e37ac220777aeecec683652e25eb650627e2ae8b4a2f8cd6394ee1ec19145149",
+      "recordedAt": "2026-10-16T16:03:25Z"
+    }
+  },
+  "findings": [
+    {
+      "id": "F-S01-LEFTOVER-OLD-FOLDERS",
+      "criterionIds": [
+        "TOOLS-1",
+        "TOOLS-2",
+        "WEB-1"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Expected:** the new groups prove the old locations are gone from the *tracked* tree, and `cargo test -p gpux-testkit` (TOOLS-1) passes in any checkout of the merged branch.\n\n**Observed:** `tools/testkit/tests/tools_paths.rs::the_old_tooling_folder_is_gone` asserts `!repo/tooling.exists()` and `tools/testkit/tests/browser_paths.rs::the_project_is_tools_browser` asserts `!repo/tools-node.exists()` on the working copy. `git mv` leaves git-ignored generated content behind, so every existing checkout keeps `tooling/ios/GpuxConformance.xcodeproj/` (XcodeGen output) and `tools-node/node_modules/` after pulling. The owner's main checkout (`/Users/dinko/work-private/projects/RayX/Gpux`) has exactly these ignored leftovers today (plus `benchmark/target*`, `benchmark/Cargo.lock`, `benchmark/ios/GpuxBench.xcodeproj`). Reproduced in this worktree: creating the ignored `tools-node/node_modules/x` and `tooling/ios/GpuxConformance.xcodeproj` (then removing them) makes `cargo test -p gpux-testkit --test browser_paths` fail at browser_paths.rs:58, and `tools_paths` fails the same way. So the testkit package suite fails on the owner's checkout after merge until the leftovers are deleted by hand.\n\n**Repair:** assert absence of tracked content, not of the folder: e.g. `git ls-files -- tooling tools-node` is empty (or that tracked marker files such as `tooling/testkit/Cargo.toml`, `tooling/ios/project.yml`, `tools-node/package.json` do not exist), and leave whole-folder layout checks to the sprint-2 layout guard over tracked files. Optionally have sprint-2 docs (t05) tell existing checkouts to delete the ignored leftovers in `benchmark/`, `tooling/` and `tools-node/`. Rerun `c-tools-paths`, `c-browser-paths` and `c-testkit-package` afterwards, then rerun them once with the ignored leftovers present.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/tools_paths.rs",
+          "symbol": "the_shells_moved_out_of_tooling"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/browser_paths.rs",
+          "symbol": "the_project_is_tools_browser"
+        }
+      ],
+      "boundaryId": "s01-moves"
+    },
+    {
+      "id": "F-S01-ANDROID-MANIFEST-WIRING",
+      "criterionIds": [
+        "TOOLS-2"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Expected:** TOOLS-2's new group proves the testkit *uses* `tools/android/AndroidManifest.xml` for lane E, just as it proves `ios build` passes `ios::spec(root)` to XcodeGen.\n\n**Observed:** `tools_paths.rs` checks only the value of `android::manifest(root)` and that the file exists. Nothing asserts that `android::build` passes it to `aapt2 link --manifest`; `android.rs:449` is the only link, and no test catches a hard-coded path or a regression there.\n\n**Repair:** add a test (in `tools_paths.rs`, reusing the `Recording` runner pattern from `tests/android_java.rs::the_java_helper_is_compiled_dexed_and_packaged`) that runs `android::build` on a fake SDK/checkout and asserts the `aapt2-link` invocation's argument after `--manifest` equals `android::manifest(root)`.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/tools_paths.rs",
+          "symbol": "android_build_links_the_moved_manifest"
+        }
+      ],
+      "boundaryId": "s01-moves"
+    }
+  ],
   "handoffMarkdown": "",
   "protectedPaths": {
     "gpux": {
