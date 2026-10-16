@@ -48,6 +48,8 @@ fn skip(id: &str, detail: impl Into<String>) -> ResultLine {
 
 async fn open(cx: &mut AsyncApp, scene: &'static SceneSpec) -> anyhow::Result<AnyWindowHandle> {
     let window = cx.open_window(WindowOptions::default(), |window, cx| {
+        // The checks find elements in the window's accessibility tree.
+        gpux_conformance::evaluate::keep_inspecting(window);
         cx.new(|cx| SceneFrame::new(scene, window, cx))
     })?;
     let window = AnyWindowHandle::from(window);
@@ -56,6 +58,7 @@ async fn open(cx: &mut AsyncApp, scene: &'static SceneSpec) -> anyhow::Result<An
 }
 
 fn close(cx: &mut AsyncApp, window: AnyWindowHandle) {
+    gpux_conformance::evaluate::stop_inspecting(window);
     window
         .update(cx, |_, window, _| window.remove_window())
         .ok();
@@ -70,13 +73,11 @@ fn find(
     cx: &mut AsyncApp,
     window: AnyWindowHandle,
     query: &Query,
-) -> Option<gpux::DevtoolsElementSnapshot> {
+) -> Option<gpux::semantic_query::SemanticNode> {
     window
         .update(cx, |_, window, _| {
-            query
-                .resolve(&window.devtools_frame_snapshot())
-                .ok()
-                .cloned()
+            let snapshot = gpux_conformance::evaluate::snapshot(window).ok()?;
+            query.resolve(&snapshot).ok().cloned()
         })
         .ok()
         .flatten()

@@ -2,8 +2,8 @@
 
 use gpux::prelude::*;
 use gpux::{
-    AnyElement, AnyView, App, Context, DevtoolsSemantics, IntoElement, Render, SharedString,
-    Window, div, semantic_query::Query,
+    AnyElement, AnyView, App, Context, IntoElement, Render, Role, SharedString, Window, div,
+    semantic_query::Query,
 };
 
 /// Probe colors in encoded sRGB.
@@ -47,17 +47,15 @@ pub fn root() -> gpux::Div {
         .text_size(gpux::px(16.))
 }
 
-/// A status line exposing scene state as text for hosts to query.
+/// A status line exposing scene state for hosts to query: a `Role::Status` node whose value is
+/// the text it shows.
 pub fn status(text: impl Into<SharedString>) -> AnyElement {
     let text = text.into();
     div()
         .id("status")
-        .child(text.clone())
-        .devtools_semantics(
-            DevtoolsSemantics::new()
-                .role("status")
-                .value(text.to_string()),
-        )
+        .role(Role::Status)
+        .aria_value(text.clone())
+        .child(text)
         .into_any_element()
 }
 

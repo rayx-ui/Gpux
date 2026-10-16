@@ -65,7 +65,6 @@ const SWIPE_COMPOSITED: u64 = 4;
 fn div_offset(cx: &mut AsyncApp, window: AnyWindowHandle) -> Option<f32> {
     let status = find(cx, window, &Query::role("status"))?;
     status
-        .semantics
         .value?
         .strip_prefix("div ")?
         .split(' ')
@@ -77,13 +76,7 @@ fn div_offset(cx: &mut AsyncApp, window: AnyWindowHandle) -> Option<f32> {
 /// The list's first visible row, from the status line.
 fn list_row(cx: &mut AsyncApp, window: AnyWindowHandle) -> Option<usize> {
     let status = find(cx, window, &Query::role("status"))?;
-    status
-        .semantics
-        .value?
-        .rsplit_once(" list ")?
-        .1
-        .parse()
-        .ok()
+    status.value?.rsplit_once(" list ")?.1.parse().ok()
 }
 
 /// How far the page's container has scrolled: the `div`'s offset, or the list's top row.

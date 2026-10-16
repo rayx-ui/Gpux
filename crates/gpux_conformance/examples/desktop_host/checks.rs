@@ -116,12 +116,15 @@ pub(crate) fn open<V: Render + 'static>(
     build: impl FnOnce(&mut Window, &mut Context<V>) -> V + 'static,
 ) -> anyhow::Result<AnyWindowHandle> {
     let window = cx.open_window(options(title, window_size), |window, cx| {
+        // The checks locate elements in the window's accessibility tree.
+        evaluate::keep_inspecting(window);
         cx.new(|cx| build(window, cx))
     })?;
     Ok(window.into())
 }
 
 pub(crate) fn close_window(cx: &mut AsyncApp, window: AnyWindowHandle) {
+    evaluate::stop_inspecting(window);
     window
         .update(cx, |_, window, _| window.remove_window())
         .ok();
@@ -176,7 +179,7 @@ impl Frame {
 }
 
 fn bounds_of(cx: &mut AsyncApp, window: AnyWindowHandle, id: &str) -> anyhow::Result<[f32; 4]> {
-    let snapshot = window.update(cx, |_, window, _| window.devtools_frame_snapshot())?;
+    let snapshot = window.update(cx, |_, window, _| evaluate::snapshot(window))??;
     let bounds = evaluate::locate(&snapshot, &Query::id(id))?.bounds;
     Ok([bounds.x, bounds.y, bounds.width, bounds.height])
 }

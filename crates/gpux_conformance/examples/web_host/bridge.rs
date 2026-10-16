@@ -62,11 +62,7 @@ impl Bridge {
         let result = self.window.update(cx, |_, window, _| {
             let scale = window.scale_factor();
             // Layout snaps to device pixels, so allow one device pixel at the page's scale.
-            evaluate::expect(
-                &window.devtools_frame_snapshot(),
-                expect,
-                1. / scale.max(1.),
-            )
+            evaluate::expect(&evaluate::snapshot(window)?, expect, 1. / scale.max(1.))
         });
         match result {
             Ok(Ok(())) => None,
@@ -105,8 +101,9 @@ impl Bridge {
             .map_err(|error| format!("bad query {query:?}: {error}"))?;
         let snapshot = self
             .window
-            .update(cx, |_, window, _| window.devtools_frame_snapshot())
-            .map_err(|error| format!("the scene window is gone: {error:#}"))?;
+            .update(cx, |_, window, _| evaluate::snapshot(window))
+            .map_err(|error| format!("the scene window is gone: {error:#}"))?
+            .map_err(|error| format!("{error:#}"))?;
         let element = query
             .resolve(&snapshot)
             .map_err(|error| error.to_string())?;

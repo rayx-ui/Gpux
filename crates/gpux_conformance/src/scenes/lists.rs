@@ -4,7 +4,7 @@ use super::common::*;
 use crate::scene::{Area, Expect, Lane, SceneSpec, Step};
 use gpux::prelude::*;
 use gpux::{
-    AnyView, App, Context, DevtoolsSemantics, IntoElement, ListAlignment, ListState, Render,
+    AnyView, App, Context, IntoElement, ListAlignment, ListState, Render, Role, SharedString,
     Window, div, list, px, semantic_query::Query, uniform_list,
 };
 
@@ -12,9 +12,12 @@ const ALL_LANES: &[Lane] = &[Lane::A, Lane::B, Lane::C, Lane::D, Lane::E, Lane::
 
 fn row(name: String, height: f32) -> impl IntoElement {
     div()
+        .id(SharedString::from(name.clone()))
+        .role(Role::ListItem)
+        // A list item is named by its author, not by its text (as in ARIA).
+        .aria_label(name.clone())
         .h(px(height))
-        .child(name.clone())
-        .devtools_semantics(DevtoolsSemantics::new().role("listitem").name(name))
+        .child(name)
 }
 
 struct Uniform;

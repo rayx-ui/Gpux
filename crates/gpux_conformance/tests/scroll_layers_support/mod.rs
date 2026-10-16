@@ -884,6 +884,12 @@ impl Run {
         Run { window, page }
     }
 
+    /// The window, for tests that read more than its pixels.
+    #[allow(dead_code)]
+    pub fn window(&self) -> AnyWindowHandle {
+        self.window
+    }
+
     pub fn wheel(&self, cx: &TestAppContext, dx: f32, dy: f32) {
         VisualTestContext::from_window(self.window, cx).simulate_event(ScrollWheelEvent {
             position: point(px(WINDOW.0 / 2.), px(WINDOW.1 / 2.)),
