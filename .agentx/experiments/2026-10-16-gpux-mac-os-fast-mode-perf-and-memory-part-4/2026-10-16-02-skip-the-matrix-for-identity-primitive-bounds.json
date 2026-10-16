@@ -9,11 +9,11 @@
   "path": "2026-10-16-02-skip-the-matrix-for-identity-primitive-bounds.json",
   "createdAt": "2026-10-16T10:39:16Z",
   "startedAt": "2026-10-16T10:39:16Z",
-  "finishedAt": null,
-  "state": "running",
-  "status": "",
+  "finishedAt": "2026-10-16T10:44:30Z",
+  "state": "done",
+  "status": "success",
   "checkpointCommit": "c7e7bdf414878c916abf3a08991a8b6e77430f58",
-  "resultCommit": "",
+  "resultCommit": "bcdcf81a871b079b62e38ded64d78bef0b67124f",
   "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard c7e7bdf414878c916abf3a08991a8b6e77430f58",
   "repositories": [
     {
@@ -21,12 +21,19 @@
       "path": ".",
       "role": "main",
       "checkpointCommit": "c7e7bdf414878c916abf3a08991a8b6e77430f58",
-      "resultCommit": "",
+      "resultCommit": "bcdcf81a871b079b62e38ded64d78bef0b67124f",
       "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard c7e7bdf414878c916abf3a08991a8b6e77430f58",
-      "status": ""
+      "status": "success"
     }
   ],
-  "repositoryCommits": [],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "bcdcf81a871b079b62e38ded64d78bef0b67124f"
+    }
+  ],
   "atomicDiscipline": {
     "oneHypothesisOnly": true,
     "singleImplementationAttempt": true,
