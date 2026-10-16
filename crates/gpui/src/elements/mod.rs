@@ -23,6 +23,7 @@ mod svg;
 mod text;
 mod transition_frame;
 mod uniform_list;
+mod virtual_list;
 
 pub use anchored::*;
 pub use animated_frame::*;
@@ -42,6 +43,7 @@ pub use svg::*;
 pub use text::*;
 pub use transition_frame::*;
 pub use uniform_list::*;
+pub use virtual_list::*;
 
 #[cfg(test)]
 mod tests {
