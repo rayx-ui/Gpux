@@ -39,6 +39,8 @@ Options:
 | `--device` | `iPhone 17 Pro` | the iOS Simulator to run on |
 | `--name` | date and time | the results directory under `results/` |
 | `--skip-build` | | reuse the last build |
+| `--accessibility` | unset | gpux's accessibility mode for every run (`auto`, `always`, `off`): `GPUX_ACCESSIBILITY` on the desktop, `?accessibility=` in the browser; `always` builds the tree every frame and each report gives its node count (`a11y_nodes`) |
+| `--hold-clocks` | 0 | run N busy processes beside the desktop runs so the CPU clocks stay up |
 
 Examples:
 
