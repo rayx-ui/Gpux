@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "currentLoopId": null,
+  "currentLoopId": "4d3d6e89-fc50-415a-8ba8-a474f3a51f2e",
   "loops": [
     {
       "id": "a1be1070-037c-491e-bc2c-36c4295bd81f",
@@ -64,6 +64,15 @@
       "finishedAt": "2026-10-16T09:42:23Z",
       "state": "done",
       "status": "stopped"
+    },
+    {
+      "id": "4d3d6e89-fc50-415a-8ba8-a474f3a51f2e",
+      "name": "gpux macOS fast-mode perf and memory, part 4",
+      "path": "2026-10-16-gpux-mac-os-fast-mode-perf-and-memory-part-4/",
+      "createdAt": "2026-10-16T10:35:32Z",
+      "finishedAt": null,
+      "state": "running",
+      "status": ""
     }
   ]
 }

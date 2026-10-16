@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "id": "da43b412-919f-4f5e-a2c4-7c963e8d2751",
+  "loopId": "4d3d6e89-fc50-415a-8ba8-a474f3a51f2e",
+  "index": 1,
+  "type": "baseline",
+  "name": "Baseline Measurement",
+  "slug": "baseline-measurement",
+  "path": "2026-10-16-01-baseline-measurement.json",
+  "createdAt": "2026-10-16T10:35:32Z",
+  "startedAt": "2026-10-16T10:35:32Z",
+  "finishedAt": "2026-10-16T10:35:43Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "c2ad6f9d55dc7c4ff4910bc3eb62eca2a7c3f1de",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard c2ad6f9d55dc7c4ff4910bc3eb62eca2a7c3f1de",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "c2ad6f9d55dc7c4ff4910bc3eb62eca2a7c3f1de",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard c2ad6f9d55dc7c4ff4910bc3eb62eca2a7c3f1de",
+      "status": "unchanged"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "Baseline: the state at the end of part 3.",
+  "measurementPlanMarkdown": "The closing run of part 3 (benchmark/results/2026-10-16-macos-loop-part-3, 3 runs each) is the baseline; changes are judged by alternating binaries.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nBaseline metrics are captured and stored so later experiments compare against a known starting point.",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "allocations per frame, fast on: hover-grid / text-relabel / dashboard-all-panels / tree-toggle",
+      "before": "-",
+      "after": "14,814 / 20,556 / 17,563 / 12,422",
+      "delta": "-",
+      "source": "closing run"
+    },
+    {
+      "metric": "CPU ms, fast on: hover-grid / text-relabel / dashboard-all-panels",
+      "before": "-",
+      "after": "4.56 / 6.10 / 4.64",
+      "delta": "-",
+      "source": "closing run"
+    }
+  ],
+  "reportMarkdown": "Baseline recorded.",
+  "decisionMarkdown": "Baseline recorded.",
+  "notes": ""
+}

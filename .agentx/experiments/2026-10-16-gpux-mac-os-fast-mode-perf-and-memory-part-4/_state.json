@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "4d3d6e89-fc50-415a-8ba8-a474f3a51f2e",
+  "name": "gpux macOS fast-mode perf and memory, part 4",
+  "objective": "Cut per-frame allocations, CPU and memory on native macOS in both fast modes with small, safe changes",
+  "metric": "allocations per frame, main_cpu_ms, footprint",
+  "target": "",
+  "maxIterations": 18,
+  "maxExperiments": 18,
+  "state": "running",
+  "status": "",
+  "createdAt": "2026-10-16T10:35:32Z",
+  "finishedAt": null,
+  "lastStableCommit": "c2ad6f9d55dc7c4ff4910bc3eb62eca2a7c3f1de",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "lastStableCommit": "c2ad6f9d55dc7c4ff4910bc3eb62eca2a7c3f1de"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "currentExperimentId": null,
+  "nextExperimentIndex": 2,
+  "experiments": [
+    {
+      "id": "da43b412-919f-4f5e-a2c4-7c963e8d2751",
+      "index": 1,
+      "type": "baseline",
+      "name": "Baseline Measurement",
+      "path": "2026-10-16-01-baseline-measurement.json",
+      "startedAt": "2026-10-16T10:35:32Z",
+      "finishedAt": "2026-10-16T10:35:43Z",
+      "state": "done",
+      "status": "success"
+    }
+  ]
+}
