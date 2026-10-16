@@ -391,3 +391,30 @@ test('screen-reader: input the IME textarea describes the field, and the window 
   await gpux.click('role=checkbox name=Subscribe');
   await expect(textarea).not.toHaveAttribute('aria-label', 'Title');
 });
+
+test('screen-reader: input an editor without a node keeps text input on the textarea @pr', async ({ gpux, page }) => {
+  await openMirrored(gpux);
+  // A custom editor with its own input handler and no role: GPUI focuses it, the tree's focus
+  // is the window, and typing, IMEs and paste still go through the textarea.
+  // Focus first on a node (the check box), so the tree's focus then moves to the window.
+  await gpux.click('role=checkbox name=Subscribe');
+  await expect
+    .poll(() => page.evaluate(() => document.activeElement?.getAttribute('aria-label')))
+    .toBe('Subscribe');
+  await page.evaluate(() => {
+    const seen: string[] = [];
+    (globalThis as unknown as { __focusins: string[] }).__focusins = seen;
+    document.addEventListener('focusin', (event) =>
+      seen.push((event.target as Element).tagName + ((event.target as Element).hasAttribute('data-gpux-a11y-mirror') ? ':mirror' : '')),
+    );
+  });
+  await gpux.click('text~="pad"');
+  await gpux.frames(6);
+  await expect(page.locator('textarea')).toBeFocused();
+  // DOM focus never left the textarea for the window's root on the way.
+  const focusins = await page.evaluate(() => (globalThis as unknown as { __focusins: string[] }).__focusins);
+  expect(focusins.filter((target) => target.endsWith(':mirror')), `${focusins}`).toEqual([]);
+  const session = await page.context().newCDPSession(page);
+  await session.send('Input.insertText', { text: 'ok' });
+  await gpux.locate('text="pad ok"');
+});

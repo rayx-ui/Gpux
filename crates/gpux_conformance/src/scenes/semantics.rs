@@ -83,6 +83,122 @@ struct Controls {
     pinned: bool,
     /// The shelf's items: a scroll container shows the first two.
     shelf_focus: Vec<gpux::FocusHandle>,
+    /// An editor with no accessibility role of its own.
+    pad: gpux::Entity<Pad>,
+}
+
+/// An editor that takes text through its own input handler and has no accessibility role: what
+/// a custom editor is before it is annotated. It shows what it was given.
+struct Pad {
+    text: String,
+    focus: gpux::FocusHandle,
+}
+
+impl gpux::Render for Pad {
+    fn render(&mut self, _: &mut gpux::Window, cx: &mut gpux::Context<Self>) -> impl IntoElement {
+        let entity = cx.entity();
+        let focus = self.focus.clone();
+        div()
+            .id("pad")
+            .track_focus(&self.focus)
+            .w(px(120.))
+            .h(px(20.))
+            .bg(rgb(GRAY_HEX))
+            .child(gpux::SharedString::from(format!("pad {}", self.text)))
+            .child(
+                gpux::canvas(
+                    |_, _, _| {},
+                    move |bounds, _, window, cx| {
+                        window.handle_input(
+                            &focus,
+                            gpux::ElementInputHandler::new(bounds, entity.clone()),
+                            cx,
+                        );
+                    },
+                )
+                .absolute()
+                .size_full(),
+            )
+    }
+}
+
+impl gpux::EntityInputHandler for Pad {
+    fn text_for_range(
+        &mut self,
+        range: std::ops::Range<usize>,
+        adjusted: &mut Option<std::ops::Range<usize>>,
+        _: &mut gpux::Window,
+        _: &mut gpux::Context<Self>,
+    ) -> Option<String> {
+        let end = range.end.min(self.text.len());
+        let start = range.start.min(end);
+        *adjusted = Some(start..end);
+        Some(self.text[start..end].to_string())
+    }
+
+    fn selected_text_range(
+        &mut self,
+        _: bool,
+        _: &mut gpux::Window,
+        _: &mut gpux::Context<Self>,
+    ) -> Option<gpux::UTF16Selection> {
+        let end = self.text.encode_utf16().count();
+        Some(gpux::UTF16Selection {
+            range: end..end,
+            reversed: false,
+        })
+    }
+
+    fn marked_text_range(
+        &self,
+        _: &mut gpux::Window,
+        _: &mut gpux::Context<Self>,
+    ) -> Option<std::ops::Range<usize>> {
+        None
+    }
+
+    fn unmark_text(&mut self, _: &mut gpux::Window, _: &mut gpux::Context<Self>) {}
+
+    fn replace_text_in_range(
+        &mut self,
+        _: Option<std::ops::Range<usize>>,
+        text: &str,
+        _: &mut gpux::Window,
+        cx: &mut gpux::Context<Self>,
+    ) {
+        self.text.push_str(text);
+        cx.notify();
+    }
+
+    fn replace_and_mark_text_in_range(
+        &mut self,
+        range: Option<std::ops::Range<usize>>,
+        text: &str,
+        _: Option<std::ops::Range<usize>>,
+        window: &mut gpux::Window,
+        cx: &mut gpux::Context<Self>,
+    ) {
+        self.replace_text_in_range(range, text, window, cx);
+    }
+
+    fn bounds_for_range(
+        &mut self,
+        _: std::ops::Range<usize>,
+        bounds: gpux::Bounds<gpux::Pixels>,
+        _: &mut gpux::Window,
+        _: &mut gpux::Context<Self>,
+    ) -> Option<gpux::Bounds<gpux::Pixels>> {
+        Some(bounds)
+    }
+
+    fn character_index_for_point(
+        &mut self,
+        _: gpux::Point<gpux::Pixels>,
+        _: &mut gpux::Window,
+        _: &mut gpux::Context<Self>,
+    ) -> Option<usize> {
+        Some(self.text.len())
+    }
 }
 
 impl gpux::Render for Controls {
@@ -319,6 +435,7 @@ impl Controls {
                                 set(|this| this.copies = (this.copies - 1.).max(1.)),
                             ),
                     )
+                    .child(self.pad.clone())
                     .child(
                         div()
                             .id("delete")
@@ -466,6 +583,10 @@ fn controls(_: &mut gpux::Window, cx: &mut gpux::App) -> gpux::AnyView {
             copies_focus: cx.focus_handle(),
             pinned: false,
             shelf_focus: (0..5).map(|_| cx.focus_handle()).collect(),
+            pad: cx.new(|cx| Pad {
+                text: String::new(),
+                focus: cx.focus_handle(),
+            }),
         }
     })
     .into()

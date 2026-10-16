@@ -111,6 +111,9 @@ pub(crate) struct WebAccessibility {
     /// Set while the mirror moves DOM focus itself, so the `focus` event that follows is not
     /// sent back to GPUI.
     moving_focus: Cell<bool>,
+    /// The tree's focus a frame moved to, which DOM focus follows once the frame is done (GPUI
+    /// hands the window its input handler after the tree update).
+    pending_focus: Cell<Option<Option<NodeId>>>,
     /// The DOM id prefix of this window's elements.
     prefix: String,
     listeners: RefCell<Vec<EventListenerHandle>>,
@@ -215,6 +218,7 @@ impl WebAccessibility {
             button: RefCell::new(None),
             mirror: RefCell::new(None),
             moving_focus: Cell::new(false),
+            pending_focus: Cell::new(None),
             prefix,
             listeners: RefCell::new(Vec::new()),
         });
@@ -446,8 +450,28 @@ impl WebAccessibility {
             changes.focus
         };
         if let Some(focus) = focus {
-            self.move_focus(&window, focus);
+            self.schedule_focus(&window, focus);
         }
+    }
+
+    /// Moves DOM focus to follow the tree's `focus` after the current frame, once.
+    fn schedule_focus(self: &Rc<Self>, window: &WebWindowInner, focus: Option<NodeId>) {
+        if self.pending_focus.replace(Some(focus)).is_some() {
+            return;
+        }
+        let weak = Rc::downgrade(self);
+        let follow = Closure::once_into_js(move || {
+            if let Some(this) = weak.upgrade()
+                && let Some(focus) = this.pending_focus.take()
+                && let Some(window) = this.window.upgrade()
+            {
+                this.move_focus(&window, focus);
+            }
+        });
+        window
+            .browser_window
+            .set_timeout_with_callback(follow.unchecked_ref())
+            .ok();
     }
 
     fn create_element(&self, id: NodeId) -> Option<web_sys::HtmlElement> {
@@ -526,6 +550,16 @@ impl WebAccessibility {
             Target::Field(field) => {
                 // A text field is the IME mirror's textarea, which keeps text input on one path.
                 window.ime_mirror.set_accessible_field(Some(&field));
+                if !window.ime_mirror.is_focused() {
+                    self.moving_focus.set(true);
+                    window.focus_ime_mirror();
+                    self.moving_focus.set(false);
+                }
+            }
+            Target::Window(_) if window.state.borrow().input_handler.is_some() => {
+                // An editor without a node of its own has focus: text, IMEs, paste and the
+                // software keyboard go through the textarea, which keeps DOM focus.
+                window.ime_mirror.set_accessible_field(None);
                 if !window.ime_mirror.is_focused() {
                     self.moving_focus.set(true);
                     window.focus_ime_mirror();
