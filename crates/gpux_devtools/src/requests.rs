@@ -462,7 +462,8 @@ pub fn input(cx: &mut App, params: Value) -> Task<Outcome> {
                 }
                 if params.get("replace").and_then(Value::as_bool) == Some(true) {
                     // Fill: what the field holds goes first.
-                    let select_all = if cfg!(target_os = "macos") {
+                    // The secondary modifier of the keyboard in use: a Mac's in the browser too.
+                    let select_all = if Modifiers::secondary_key().platform {
                         "cmd-a"
                     } else {
                         "ctrl-a"

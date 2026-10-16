@@ -374,6 +374,18 @@ fn input_types_after_a_focusing_click_and_presses_keys() {
     .unwrap();
     cx.run_until_parked();
     assert_eq!(value(&mut cx), "Hel");
+    request(
+        &mut cx,
+        "input",
+        json!({"kind": "type", "ref": title, "text": "Fresh", "replace": true}),
+    )
+    .unwrap();
+    cx.run_until_parked();
+    assert_eq!(
+        value(&mut cx),
+        "Fresh",
+        "replace cleared what the field held"
+    );
     let bad = request(
         &mut cx,
         "input",
