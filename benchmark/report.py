@@ -60,6 +60,8 @@ METRICS = {
     "draw50": "draw_ms.p50",
     "draw95": "draw_ms.p95",
     "draw_mean": "draw_ms.mean",
+    "gpu": "gpu_ms.mean",
+    "gpu95": "gpu_ms.p95",
     "latency50": "frame_ms.p50",
     "fps": "fps",
     "janky": "janky_frames",
@@ -235,6 +237,8 @@ def target_section(data, target, meta):
     cpu_unit = "ms of Chrome main-thread task time per frame" if web else "ms of main-thread CPU per frame, mean"
     lines += comparison_table(rows, "cpu", "Frame cost: CPU", cpu_unit)
     lines += comparison_table(rows, "draw50", "Window::draw, median", "ms per frame")
+    if not web:
+        lines += comparison_table(rows, "gpu", "GPU time per frame", "ms, Metal command buffer start to end (macOS only)", digits=2)
     lines += comparison_table(rows, "draw95", "Window::draw, 95th percentile", "ms per frame")
     lines += comparison_table(rows, "fps", "Frame rate", "frames per second", lower_is_better=False, digits=1)
     lines += comparison_table(rows, "janky", "Missed frames", "intervals over 1.5× the display's, of the measured frames; changes in frames", digits=0, absolute=True)

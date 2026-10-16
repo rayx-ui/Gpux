@@ -37,6 +37,47 @@ const SHADERS_SOURCE_FILE: &str = include_str!(concat!(env!("OUT_DIR"), "/stitch
 const PATH_SAMPLE_COUNT: u32 = 4;
 
 pub type Context = Arc<Mutex<InstanceBufferPool>>;
+
+static GPU_TIMES_ENABLED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+static GPU_TIMES: Mutex<Vec<f64>> = Mutex::new(Vec::new());
+
+/// How many frames' GPU times are kept at most while they are recorded.
+const MAX_GPU_TIMES: usize = 1 << 16;
+
+/// Starts or stops recording how long the GPU spends on each frame drawn by any Metal renderer,
+/// from the start of its command buffer to the end (Metal's `GPUStartTime` and `GPUEndTime`),
+/// for benchmarks to read with [`take_gpu_frame_times`]. Starting forgets what was recorded.
+pub fn record_gpu_frame_times(on: bool) {
+    GPU_TIMES_ENABLED.store(on, std::sync::atomic::Ordering::Relaxed);
+    if on {
+        GPU_TIMES.lock().clear();
+    }
+}
+
+/// Takes the GPU time of each frame recorded since [`record_gpu_frame_times`], in milliseconds,
+/// in the order the frames completed.
+pub fn take_gpu_frame_times() -> Vec<f64> {
+    mem::take(&mut *GPU_TIMES.lock())
+}
+
+/// Records the GPU time of the frame whose command buffer completed.
+fn note_gpu_frame_time(command_buffer: ptr::NonNull<AnyObject>) {
+    if !GPU_TIMES_ENABLED.load(std::sync::atomic::Ordering::Relaxed) {
+        return;
+    }
+    // SAFETY: Metal passes the completed command buffer to its completion handlers.
+    let (start, end): (f64, f64) = unsafe {
+        let buffer = command_buffer.as_ref();
+        (
+            objc2::msg_send![buffer, GPUStartTime],
+            objc2::msg_send![buffer, GPUEndTime],
+        )
+    };
+    let mut times = GPU_TIMES.lock();
+    if times.len() < MAX_GPU_TIMES && end >= start {
+        times.push((end - start) * 1e3);
+    }
+}
 pub type Renderer = MetalRenderer;
 
 pub unsafe fn new_renderer(
@@ -512,7 +553,8 @@ impl MetalRenderer {
                 Ok(command_buffer) => {
                     let instance_buffer_pool = self.instance_buffer_pool.clone();
                     let instance_buffer = Cell::new(Some(instance_buffer));
-                    let block = RcBlock::new(move |_: ptr::NonNull<AnyObject>| {
+                    let block = RcBlock::new(move |command_buffer: ptr::NonNull<AnyObject>| {
+                        note_gpu_frame_time(command_buffer);
                         if let Some(instance_buffer) = instance_buffer.take() {
                             instance_buffer_pool.lock().release(instance_buffer);
                         }

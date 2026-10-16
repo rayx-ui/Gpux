@@ -256,6 +256,7 @@ fn tick(run: &Rc<RefCell<Run>>, window: &mut Window, cx: &mut App) {
                 state.wall_at_start = now;
                 state.draw_at_start = Some(window.frame_duration_snapshot());
                 reset_fast_stats(window);
+                metrics::gpu_times_begin();
                 if let Some(on_measuring) = state.config.on_measuring.take() {
                     on_measuring();
                 }
@@ -402,6 +403,7 @@ fn report(state: &Run, window: &mut Window) -> Value {
         "draw_ms": histogram_json(&draw_end, draw_start, true),
         "frame_ms": histogram_json(&draw_end, draw_start, false),
         "main_cpu_ms": summary_json(&state.main_cpu_ms),
+        "gpu_ms": summary_json(&metrics::gpu_times_take()),
         "interval_ms": summary_json(&state.intervals_ms),
         "process_cpu_ms_per_frame": process_cpu.map(|cpu| cpu.as_secs_f64() * 1e3 / frames),
         "process_cpu_pct": process_cpu.map(|cpu| cpu.as_secs_f64() / wall.as_secs_f64() * 100.),

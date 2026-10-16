@@ -28,8 +28,8 @@
     "successfulAttemptRequiresCommitBeforeNextExperiment": true,
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
-  "currentExperimentId": null,
-  "nextExperimentIndex": 5,
+  "currentExperimentId": "8e5cb53a-a293-4e7b-8b7d-703299abfd96",
+  "nextExperimentIndex": 6,
   "experiments": [
     {
       "id": "ddc0da9b-11bf-491e-a966-4a6997d6aca0",
@@ -77,6 +77,17 @@
       "finishedAt": "2026-10-16T08:43:00Z",
       "state": "done",
       "status": "failure"
+    },
+    {
+      "id": "8e5cb53a-a293-4e7b-8b7d-703299abfd96",
+      "index": 5,
+      "type": "hypothesis",
+      "name": "GPU time per frame in the macOS benchmark",
+      "path": "2026-10-16-05-gpu-time-per-frame-in-the-mac-os-benchmark.json",
+      "startedAt": "2026-10-16T08:43:29Z",
+      "finishedAt": null,
+      "state": "running",
+      "status": ""
     }
   ]
 }
