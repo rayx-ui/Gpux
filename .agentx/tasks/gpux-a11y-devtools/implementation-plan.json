@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-a11y-devtools",
-  "revision": 25,
+  "revision": 26,
   "title": "gpux accessibility-first: AccessKit as the one semantic tree for screen readers on every platform, gpux-devtools and its MCP, RayX on both",
   "validationMode": "sprint",
   "repositories": [
@@ -2763,11 +2763,11 @@
       "criterionIds": [
         "REM-5"
       ],
-      "descriptionMarkdown": "Every workspace member under `vendor/` is in CI's `FORK_EXCLUDES` (`.github/workflows/ci.yml`), so the workspace test and lint runs never build a fork crate for itself.",
+      "descriptionMarkdown": "Every workspace member under `vendor/` is in CI's `FORK_EXCLUDES`, every `cargo check`/`test`/`clippy --workspace` run in `.github/workflows/ci.yml` leaves `gpux-accesskit-macos` out (through `FORK_EXCLUDES` or its own `--exclude`), and the `package` job, whose verification builds every crate, runs on macOS, where the fork builds.",
       "argv": [
         "python3",
         "-c",
-        "import re,json,subprocess,sys\ns=open('.github/workflows/ci.yml').read()\nm=re.search(r'FORK_EXCLUDES: >-\\n((?:    .*\\n)+)',s)\nex=set(re.findall(r'--exclude (\\S+)',m.group(1)))\nmeta=json.loads(subprocess.check_output(['cargo','metadata','--no-deps','--format-version','1']))\nvendored=[p['name'] for p in meta['packages'] if '/vendor/' in p['manifest_path']]\nmissing=[n for n in vendored if n not in ex]\nprint(len(vendored),'vendored members; missing from FORK_EXCLUDES:',missing)\nsys.exit(1 if missing or not vendored else 0)"
+        "import re,json,subprocess,sys\ns=open('.github/workflows/ci.yml').read()\nm=re.search(r'FORK_EXCLUDES: >-\\n((?:    .*\\n)+)',s)\nex=set(re.findall(r'--exclude (\\S+)',m.group(1)))\nmeta=json.loads(subprocess.check_output(['cargo','metadata','--no-deps','--format-version','1']))\nvendored=[p['name'] for p in meta['packages'] if '/vendor/' in p['manifest_path']]\nproblems=[f'{n} missing from FORK_EXCLUDES' for n in vendored if n not in ex]\nfor line in s.splitlines():\n    if re.search(r'cargo (check|test|clippy) --workspace',line) and 'FORK_EXCLUDES' not in line and '--exclude gpux-accesskit-macos' not in line:\n        problems.append('builds the macOS fork off Apple platforms: '+line.strip())\njob=re.search(r'\\n  package:\\n(.*?)(?=\\n  [a-z][a-z_-]*:\\n|\\Z)',s,re.S).group(1)\nif 'runs-on: macos' not in job:\n    problems.append('the package job does not run on macOS, where gpux-accesskit-macos builds')\nprint(len(vendored),'vendored members;',problems or 'every workspace run leaves the macOS fork to Apple platforms')\nsys.exit(1 if problems or not vendored else 0)\n"
       ],
       "expected": {
         "exitCode": 0

@@ -105,7 +105,8 @@ jobs:
         if: runner.os == 'Linux'
         run: cargo fmt --check
       - name: Check every target
-        run: cargo check --workspace --all-targets
+        # gpux-accesskit-macos builds only on Apple platforms; gpux-macos still checks it there.
+        run: cargo check --workspace --all-targets --exclude gpux-accesskit-macos
       - name: Clippy
         if: runner.os == 'Windows'
         run: cargo clippy --workspace --all-targets --no-deps ${{ env.FORK_EXCLUDES }} -- -D warnings
@@ -269,12 +270,10 @@ jobs:
     name: package
     needs: plan
     if: contains(fromJSON(needs.plan.outputs.jobs), 'package')
-    runs-on: ubuntu-24.04
+    # Packaging verifies every crate by building it, and gpux-accesskit-macos builds only on
+    # Apple platforms; the other platforms' crates build on macOS as their target-gated selves.
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@1.95.0
-      - name: Install Linux dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y $LINUX_PACKAGES
       - run: cargo package --workspace
