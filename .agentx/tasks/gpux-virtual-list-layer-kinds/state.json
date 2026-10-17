@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list-layer-kinds",
-  "revision": 58,
+  "revision": 63,
   "planRevision": 9,
   "specHashes": {
     "requirements": "b0511d7e5dc2f81eef30f56a97b85348eb4557516cc4fbd46f4efcda72c9012a",
@@ -56,7 +56,10 @@
       ]
     },
     "t09-scenarios": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
     },
     "t10-timings": {
       "status": "pending"
@@ -169,6 +172,16 @@
         }
       },
       "recordedAt": "2026-10-17T01:43:19Z"
+    },
+    "4c50ab708e91de9f26d22a98ca60fe8c2fdde2fd0d21b3c02bd65e850c18f343": {
+      "snapshot": {
+        "specHash": "49abea1e5ee67ea44fca0ffdc7d17c9e15e05efb0685585ab37e93756b662ec2",
+        "repositories": {
+          "gpux": "43663bfb97efa17cdb7bc6f4a27883dfa8b0de3e4dcf016a9437ae77428e09db",
+          "rayx": "11ee0a5f7e615e9ab523f6d8e282dfe5042eb777de4faa16858cd97ea0bcdc30"
+        }
+      },
+      "recordedAt": "2026-10-17T01:47:19Z"
     }
   },
   "checkResults": {
@@ -426,6 +439,23 @@
       "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s05-rayx-kinds-final-e3dc8f7b6ec6.log",
       "logSha256": "d0166e68f1dc29290e67a0395715d3afb1854a20391ca01fb222c1d75e1a1421",
       "inputsHash": "6cf27ff1e58b1bdafa75f98d07445dd0e269cdd6607457ac666e1b5014b9a4a5"
+    },
+    "s06-bench-scenarios/c-attribution/final": {
+      "checkId": "c-attribution",
+      "boundaryId": "s06-bench-scenarios",
+      "phase": "final",
+      "batchId": "4c50ab708e91de9f26d22a98ca60fe8c2fdde2fd0d21b3c02bd65e850c18f343",
+      "definitionHash": "7f4a6170881106d2d60ff5ed13f35868d3f3fb10e6a61645d7b9de9ad6b273dd",
+      "basisHash": "053b0d70dc523d002823640b8cfb39f41541eb636fd9d327fa659387cd295053",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 0.5906,
+      "recordedAt": "2026-10-17T01:47:19Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s06-bench-scenarios-final-2030f141651f.log",
+      "logSha256": "bed46ae2b80bb73bfb71466a749d353961cee636d46b9ace5b0bfc68f440b43e",
+      "inputsHash": "10d777370e978181066a07ebc39432fd305d42e5b557d4ee049a0ba8c75c404a"
     }
   },
   "reviews": {
@@ -938,6 +968,55 @@
         "lk-s05-F1"
       ],
       "recordedAt": "2026-10-17T01:43:45Z"
+    },
+    "s06-bench-scenarios": {
+      "reviewerId": "reviewer-lk-s06",
+      "snapshotId": "4c50ab708e91de9f26d22a98ca60fe8c2fdde2fd0d21b3c02bd65e850c18f343",
+      "criterionIds": [
+        "TM-1"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/scenarios/scroll.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TM-1"
+          ],
+          "sha256": "cef2143f401c3a82bd3935cea5f9c9d6c8e9a7c7671409f62ef3b544b580a7cc"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/scenarios/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TM-1"
+          ],
+          "sha256": "41c0a6befb02ac8311c924d6eb3a4785ffd6aebc2a91f18e2ab5615bc5608132"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/benches/fast_mode.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TM-1"
+          ],
+          "sha256": "ed0c0de34da9694945fbb3eee5b48b699c0782756a2ae9fa7a2ddb41aaa53666"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/fast_mode_attribution.rs",
+          "kind": "test",
+          "criterionIds": [
+            "TM-1"
+          ],
+          "sha256": "c9cbaa2e37021f12920e682db15eb4a5bdf6a11b5ea02cfb5bb7177d732392d4"
+        }
+      ],
+      "summaryMarkdown": "Passed, with no findings.\n\n**Scenarios.** `scroll.rs` adds `scroll-virtual-list`, `-horizontal`, `-sticky` and `-synchronized`, built like `scroll-uniform-list`: 10,000 rows of varying extent, one wheel step a frame turning every 30. The row closure goes through `virtual_list`'s `lists::render_items` wrapper and counts rows in a shared cell exposed by `Fixture::rows_rendered`. The horizontal one uses a self-contained `column()` with x-axis wheels. The sticky one has a top-sticky row every 50. The synchronized one has an `overflow_y_scroll` driver tracking the shared handle beside the list in an `overflow_hidden` container (s03's clip rule), with the wheel over the driver. Expectations follow the existing pattern: frames shown from layers (×2 for the synchronized pair), no bypass, bounded repaints and rendered rows, kept rows, views built, and primitives drawn without layers.\n\n**Attribution and bench.** All four are in `fast_mode_attribution`'s `scenarios!` (`modes_differ_only_by_landed_mechanisms`) and the bench's list. `virtual_lists_render_fewer_rows_on_their_layers` asserts `tiles_composited > 0` and layers' rows × 3 < splice's for each.\n\n**Check coverage.** The `c-attribution` filter (`scroll_virtual_list`) selects neither `virtual_lists_render_fewer_rows_on_their_layers` nor `every_scenario_is_attributed`, so I ran both myself: 2/2 pass. Widening the check's selector would make the runtime record TM-1's row and attribution clauses too. The sprint checks are fresh at revision 61.",
+      "findingIds": [],
+      "recordedAt": "2026-10-17T01:50:11Z"
     }
   },
   "checkpoints": {
@@ -994,6 +1073,15 @@
       },
       "reviewHash": "5dee3941e2f20591b7ff76f9717c30ce4965403103254cd941c4b1d5853b79d9",
       "recordedAt": "2026-10-17T01:44:09Z"
+    },
+    "s06-bench-scenarios": {
+      "snapshotId": "4c50ab708e91de9f26d22a98ca60fe8c2fdde2fd0d21b3c02bd65e850c18f343",
+      "commits": {
+        "gpux": "a173030ab206b9e5b1c6a60717023398f87345fa",
+        "rayx": "5b839689e0a3af24915629bb22a50b3c7f9557fa"
+      },
+      "reviewHash": "3c22eb76a0d3a85b9d5be507b9b71b030b6ea275692b61c3ef62f94684a449f1",
+      "recordedAt": "2026-10-17T01:50:28Z"
     }
   },
   "findings": [
@@ -1175,7 +1263,7 @@
       "boundaryId": "s05-rayx-kinds"
     }
   ],
-  "handoffMarkdown": "RayX groups: rayx_components_core/tests/virtual_list_layer_kinds.rs (sticky ListView at two levels, horizontal ListView, TreeView with sticky roots, click on a stuck header) and rayx_components_datatable/tests/virtual_list_layer_kinds.rs (DataTable synchronized rows). DataTable fixes (owner choice (a)): header leaf row as a ParentViewport h_virtual_list with its own handle state; filler cells through a SynchronizedOffset list; header cell bounds in shared cells, table/fixed-column bounds written only when they move; rows' lists clipped to their width; ScrollableMask publishes its turn via gpux's new ScrollHandle::publish_wheel_offset (test in virtual_list_layers::synchronized).",
+  "handoffMarkdown": "Four TM-1 scenarios in fast/scenarios/scroll.rs (scroll-virtual-list, -horizontal, -sticky, -synchronized; 10,000 rows of varying size, the synchronized list clipped beside a driver div), listed in fast_mode_attribution and the fast_mode bench. Fixture::rows_rendered counts the row closure's rows; virtual_lists_render_fewer_rows_on_their_layers compares splice with layers.",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",
