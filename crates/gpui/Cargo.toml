@@ -79,6 +79,7 @@ futures-concurrency = { workspace = true, optional = true }
 gpui_macros.workspace = true
 gpux_color.workspace = true
 gpui_shared_string.workspace = true
+html5ever.workspace = true
 http_client.workspace = true
 image.workspace = true
 inventory.workspace = true

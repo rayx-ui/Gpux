@@ -1066,6 +1066,11 @@ impl TextLayoutMap {
         Some(point(x + visual.x_offset, visual.top))
     }
 
+    /// The field's font size from the last layout, or zero before it.
+    pub fn font_size(&self) -> Pixels {
+        self.font_size
+    }
+
     /// Returns the configured height of one visual row.
     pub fn line_height(&self) -> Pixels {
         self.line_height

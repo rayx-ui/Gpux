@@ -68,6 +68,8 @@ pub struct EditableTextState {
     /// How far each list level moves a list item's leading indent.
     list_indent_step: Pixels,
     list_editing: bool,
+    /// Whether paste inserts the clipboard's HTML formatting.
+    rich_paste: bool,
 }
 
 #[allow(missing_docs)]
@@ -124,6 +126,7 @@ impl EditableTextState {
             requested_height: None,
             list_indent_step: px(24.),
             list_editing: true,
+            rich_paste: false,
         }
     }
 
@@ -167,6 +170,17 @@ impl EditableTextState {
 
     pub fn line_mode(&self) -> EditableTextLineMode {
         self.line_mode
+    }
+
+    /// Whether paste inserts the formatting of the clipboard's HTML. Off by default, so plain
+    /// fields stay plain.
+    pub fn rich_paste(&self) -> bool {
+        self.rich_paste
+    }
+
+    /// Accepts or refuses the clipboard's HTML formatting on paste.
+    pub fn set_rich_paste(&mut self, enabled: bool) {
+        self.rich_paste = enabled;
     }
 
     pub fn soft_wrap(&self) -> bool {
@@ -1287,10 +1301,96 @@ impl EditableTextState {
         {
             return false;
         }
-        // Inline objects copy as their text fallbacks.
-        let text = self.attributed_text_in(self.selection.range()).plain_text();
-        cx.write_to_clipboard(ClipboardItem::new_string(text));
+        // Inline objects copy as their text fallbacks; formatted text adds its HTML, where
+        // objects write their HTML fallbacks.
+        let selected = self.attributed_text_in(self.selection.range());
+        let text = selected.plain_text();
+        let formatted = selected
+            .spans
+            .iter()
+            .any(|span| !span.attributes.is_empty())
+            || selected
+                .paragraphs
+                .iter()
+                .any(|format| !format.is_default());
+        cx.write_to_clipboard(if formatted {
+            ClipboardItem::new_string_with_html(text, super::attributed_text_to_html(&selected))
+        } else {
+            ClipboardItem::new_string(text)
+        });
         true
+    }
+
+    /// Replaces `range` with `text` and everything stored with it, as one undo step.
+    ///
+    /// The inserted characters take `text`'s attributes only. Its paragraph formats go to the
+    /// paragraphs it starts, and its first one also to the paragraph it lands in when it lands
+    /// at that paragraph's start. A single-line field flattens its paragraphs.
+    pub fn insert_attributed_text(
+        &mut self,
+        range: Range<usize>,
+        text: AttributedText,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        if !self.mode.permits_mutation() {
+            return false;
+        }
+        let single_line = self.line_mode == EditableTextLineMode::SingleLine;
+        let (replacement, offsets) =
+            super::movement::normalize_with_offsets(&text.text, single_line);
+        let map = |offset: usize| offsets[offset.min(text.text.len())];
+        let spans: Vec<AttributeSpan> = text
+            .spans
+            .into_iter()
+            .map(|span| AttributeSpan {
+                range: map(span.range.start)..map(span.range.end),
+                attributes: span.attributes,
+            })
+            .filter(|span| !span.range.is_empty())
+            .collect();
+        let paragraphs = if single_line {
+            Vec::new()
+        } else {
+            text.paragraphs
+        };
+        let snapshot = self.snapshot();
+        let range = range.start.min(snapshot.len())..range.end.min(snapshot.len());
+        let Ok(landing) = snapshot.byte_to_point(range.start) else {
+            return false;
+        };
+        let start = range.start;
+        let len = replacement.len();
+        self.apply_edit_then(
+            range,
+            replacement,
+            EditableSelection::caret(start + len),
+            None,
+            EditKind::Other,
+            move |state| {
+                let mut formatting = state.formatting.as_deref().cloned().unwrap_or_default();
+                formatting
+                    .spans
+                    .assign(start..start + len, Arc::new(TextAttributes::default()));
+                for span in spans {
+                    formatting.spans.assign(
+                        start + span.range.start..start + span.range.end,
+                        span.attributes,
+                    );
+                }
+                let count = state.snapshot().line_count();
+                for (index, format) in paragraphs.into_iter().enumerate() {
+                    let paragraph = landing.y + index;
+                    if (index == 0 && landing.x != 0) || paragraph >= count {
+                        continue;
+                    }
+                    formatting.update_paragraphs(paragraph..=paragraph, count, &|target| {
+                        *target = format.clone();
+                    });
+                }
+                state.formatting = (!formatting.is_empty()).then(|| Arc::new(formatting));
+            },
+            cx,
+        )
     }
 
     /// Inserts an inline object over `range` as one [`super::OBJECT_REPLACEMENT_CHARACTER`],
@@ -1376,10 +1476,38 @@ impl EditableTextState {
         if !self.mode.permits_mutation() {
             return false;
         }
-        let Some(text) = cx.read_from_clipboard().and_then(|item| item.text()) else {
+        let Some(item) = cx.read_from_clipboard() else {
             return false;
         };
-        self.replace_byte_range(self.selection.range(), &text, EditKind::Other, cx)
+        self.paste_item(&item, cx)
+    }
+
+    /// Pastes `item` over the selection as its own undo step: its HTML's formatting when rich
+    /// paste is on and the HTML parses to some text, else its plain text.
+    pub fn paste_item(&mut self, item: &ClipboardItem, cx: &mut Context<Self>) -> bool {
+        if !self.mode.permits_mutation() {
+            return false;
+        }
+        let range = self.marked_range.clone().unwrap_or(self.selection.range());
+        if self.rich_paste
+            && let Some(html) = item.html()
+        {
+            let font_size = self.layout_map.font_size();
+            let font_size = if font_size > px(0.) {
+                font_size
+            } else {
+                px(16.)
+            };
+            if let Some(text) = super::attributed_text_from_html(html, font_size)
+                && !text.text.is_empty()
+            {
+                return self.insert_attributed_text(range, text, cx);
+            }
+        }
+        let Some(text) = item.text() else {
+            return false;
+        };
+        self.replace_byte_range(range, &text, EditKind::Other, cx)
     }
 
     pub fn undo(&mut self, cx: &mut Context<Self>) -> bool {
@@ -2179,6 +2307,10 @@ impl EntityInputHandler for EditableTextState {
         cx: &mut Context<Self>,
     ) {
         self.replace_utf16_range(range, text, cx);
+    }
+
+    fn paste(&mut self, item: ClipboardItem, _window: &mut Window, cx: &mut Context<Self>) {
+        self.paste_item(&item, cx);
     }
 
     fn replace_and_mark_text_in_range(
