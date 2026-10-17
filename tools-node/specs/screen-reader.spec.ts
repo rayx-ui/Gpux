@@ -205,7 +205,9 @@ test('screen-reader: input the focused text field is the IME textarea @pr', asyn
     )
     .toEqual({ tag: 'TEXTAREA', label: 'Title' });
   await page.keyboard.type('Hi');
-  await expect(mirror(page).getByRole('textbox', { name: 'Title' })).toHaveText('Hi');
+  // The textarea stands for the field (whose own element screen readers then do not see).
+  await expect(page.locator('textarea')).toHaveValue('Hi');
+  await gpux.locate('role=textbox name=Title value="Hi"');
 });
 
 test('screen-reader: activation no mirror and no tree before the button @pr', async ({ gpux, page }) => {
@@ -417,4 +419,95 @@ test('screen-reader: input an editor without a node keeps text input on the text
   const session = await page.context().newCDPSession(page);
   await session.send('Input.insertText', { text: 'ok' });
   await gpux.locate('text="pad ok"');
+});
+
+// Navigation: a screen reader moving through the mirror (VoiceOver's VO-Right in Safari) meets
+// the focused text field where it sits. The IME textarea that stands for it sits right after
+// the field's element, which screen readers then do not see, and leaves the mirror with focus;
+// standing for no field, the textarea is hidden from screen readers.
+
+/** What the IME textarea sits after, and its own attributes. */
+async function textareaPlace(page: Page) {
+  return page.evaluate((mirrorSelector) => {
+    const textarea = document.querySelector('textarea[data-gpux-ime]');
+    const previous = textarea?.previousElementSibling;
+    return {
+      inMirror: textarea?.closest(mirrorSelector) != null,
+      hidden: textarea?.getAttribute('aria-hidden') ?? null,
+      label: textarea?.getAttribute('aria-label') ?? null,
+      after: previous?.getAttribute('aria-label') ?? null,
+      afterHidden: previous?.getAttribute('aria-hidden') ?? null,
+    };
+  }, MIRROR);
+}
+
+test('screen-reader: navigation the IME textarea sits right after the field it stands for @pr', async ({ gpux, page }) => {
+  await openMirrored(gpux);
+  await gpux.click('role=textbox name=Title');
+  await expect(page.locator('textarea')).toBeFocused();
+  await expect
+    .poll(() => textareaPlace(page))
+    .toEqual({ inMirror: true, hidden: null, label: 'Title', after: 'Title', afterHidden: 'true' });
+  // The field's own element is hidden while the textarea stands for it, so it is read once.
+  const titles = mirror(page).getByRole('textbox', { name: 'Title', exact: true });
+  await expect(titles).toHaveCount(1);
+  expect(await titles.evaluate((element) => element.tagName)).toBe('TEXTAREA');
+  await page.keyboard.type('Hi');
+  await expect(page.locator('textarea')).toHaveValue('Hi');
+});
+
+test('screen-reader: navigation the IME textarea leaves the mirror with focus @pr', async ({ gpux, page }) => {
+  await openMirrored(gpux);
+  await gpux.click('role=textbox name=Title');
+  await expect.poll(() => textareaPlace(page)).toMatchObject({ inMirror: true, after: 'Title' });
+  await gpux.click('role=checkbox name=Subscribe');
+  // Title's element is back for screen readers.
+  await expect(mirror(page).locator('div[aria-label="Title"]')).not.toHaveAttribute('aria-hidden', 'true');
+  await expect
+    .poll(() => textareaPlace(page))
+    .toMatchObject({ inMirror: false, hidden: 'true', label: null });
+});
+
+test('screen-reader: navigation before activation the IME textarea is hidden from screen readers @pr', async ({ gpux, page }) => {
+  await gpux.open('accessibility', { params: { inspect: '0' } });
+  await expect(page.getByRole('button', { name: 'Enable accessibility' })).toHaveCount(1);
+  // It holds focus for keys and IMEs, but no screen reader lands on an unnamed edit field.
+  await expect(page.locator('textarea')).toBeFocused();
+  await expect(page.locator('textarea')).toHaveAttribute('aria-hidden', 'true');
+  await expect(page.getByRole('textbox')).toHaveCount(0);
+});
+
+test('screen-reader: navigation an update writes no attribute it does not change @pr', async ({ gpux, page }) => {
+  await openMirrored(gpux);
+  // Safari rebuilds an element's accessibility objects when its role or tabindex is written, even
+  // unchanged, which moved VoiceOver's cursor back to the window's start: an update must leave
+  // the elements it does not change untouched.
+  await page.evaluate((mirrorSelector) => {
+    const writes: string[] = [];
+    (globalThis as unknown as { __writes: string[] }).__writes = writes;
+    new MutationObserver((records) => {
+      for (const record of records) {
+        const target = record.target as Element;
+        if (!target.closest('[role="status"]')) {
+          writes.push(`${target.getAttribute('role')}:${target.getAttribute('aria-label')}:${record.attributeName}`);
+        }
+      }
+    }).observe(document.querySelector(mirrorSelector) as Element, { attributes: true, subtree: true });
+  }, MIRROR);
+  // A screen reader's cursor reaching Details focuses it: only the focus moves.
+  await mirror(page).getByRole('button', { name: 'Details' }).focus();
+  await gpux.frames(6);
+  await expect
+    .poll(() => page.evaluate(() => document.activeElement?.getAttribute('aria-label')))
+    .toBe('Details');
+  const writes = await page.evaluate(() => (globalThis as unknown as { __writes: string[] }).__writes);
+  // Its box may move with its focus ring; its role, tabindex and ARIA attributes did not change.
+  const semantic = (write: string) => /:(role|tabindex|aria-[a-z]+)$/.test(write);
+  expect(writes.filter(semantic), `${writes}`).toEqual([]);
+});
+
+test('screen-reader: tree a spin button gives its number as its value text @pr', async ({ gpux, page }) => {
+  await openMirrored(gpux);
+  // WebKit reads a spin button's number as a percentage of its range without value text.
+  await expect(mirror(page).getByRole('spinbutton', { name: 'Copies' })).toHaveAttribute('aria-valuetext', '1');
 });

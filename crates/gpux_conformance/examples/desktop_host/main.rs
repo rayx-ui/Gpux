@@ -19,6 +19,7 @@ mod composition;
 mod composition_linux;
 mod composition_windows;
 mod os;
+mod screen_reader;
 
 use gpux::{
     AppContext as _, AsyncApp, Bounds, Context, IntoElement, ParentElement as _, Render,

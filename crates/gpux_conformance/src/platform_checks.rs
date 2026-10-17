@@ -49,6 +49,10 @@ pub const PLATFORM_CHECKS: &[PlatformCheck] = &[
         description: "a click the sidecar synthesizes at a button's ref reaches the button, and the window's tree shows its effect",
     },
     PlatformCheck {
+        id: "screen-reader-macos-voiceover",
+        description: "on macOS, VoiceOver's view of the `accessibility` scene (the window view's `accessibilityChildren`) gives the table its rows and cell positions, the disclosure button its expanded state, the spin button its value, the disabled button a press action and the slider a horizontal orientation and a one-step increment (skipped elsewhere)",
+    },
+    PlatformCheck {
         id: "composition-macos-order-bounds",
         description: "with window composition on macOS, a native surface's view sits between the GPUI base view and the overlay view, at its element's bounds in device pixels",
     },

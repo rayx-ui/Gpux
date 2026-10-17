@@ -34,6 +34,7 @@ pub async fn run(id: &str, cx: &mut AsyncApp) -> ResultLine {
         "platform-close" => close(cx).await,
         "devtools-hello-snapshot" => devtools(cx, false).await,
         "devtools-tap" => devtools(cx, true).await,
+        "screen-reader-macos-voiceover" => crate::screen_reader::voiceover(cx).await,
         "composition-macos-order-bounds" => crate::composition::order_bounds(cx).await,
         "composition-macos-input" => crate::composition::input(cx).await,
         "composition-macos-shadow" => crate::composition::shadow(cx).await,
