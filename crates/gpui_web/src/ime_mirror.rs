@@ -67,6 +67,9 @@ pub(crate) struct AccessibleField {
 /// virtual-keyboard control, and [`ImeMirror::schedule_sync`].
 pub(crate) struct ImeMirror {
     element: web_sys::HtmlTextAreaElement,
+    /// Where the element lives while it stands for no text field of the accessibility tree.
+    #[cfg(feature = "accessibility")]
+    home: web_sys::HtmlElement,
     /// The mirror text most recently synced to (or observed in) the hidden
     /// element. `input` events diff the element's new value against this to
     /// recover what edit the IME performed.
@@ -127,6 +130,12 @@ impl ImeMirror {
         style.set_property("font-size", "16px").ok();
         body.append_child(&element)
             .map_err(|e| anyhow::anyhow!("Failed to append input to body: {e:?}"))?;
+        // Marks it for the accessibility mirror, whose listeners its events bubble through
+        // while it stands in the mirror for a text field.
+        element.set_attribute("data-gpux-ime", "").ok();
+        // Standing for no text field, it is a conduit for keys and IMEs, not something for
+        // screen readers to land on.
+        element.set_attribute("aria-hidden", "true").ok();
         Self::focus_element(&element);
         // The element must stay focused to receive hardware-key and IME
         // events, but on touch-first devices a focused *editable* element
@@ -141,6 +150,8 @@ impl ImeMirror {
 
         let this = Self {
             element,
+            #[cfg(feature = "accessibility")]
+            home: body.clone(),
             text: RefCell::new(String::new()),
             selection: Cell::new((0, 0)),
             window_hint: Cell::new(0),
@@ -208,6 +219,7 @@ impl ImeMirror {
             };
         };
         let flag = |value: bool| value.then_some("true");
+        set("aria-hidden", field.is_none().then_some("true"));
         set("aria-label", field.and_then(|field| field.name.as_deref()));
         set(
             "aria-description",
@@ -226,6 +238,37 @@ impl ImeMirror {
             "aria-multiline",
             field.map(|field| if field.multiline { "true" } else { "false" }),
         );
+    }
+
+    /// Places the element right after `field`'s element in the accessibility mirror, where a
+    /// screen reader moving through the mirror meets it and moves on to what follows the field,
+    /// or, with no field, back where it lives. Focus survives the move.
+    #[cfg(feature = "accessibility")]
+    pub(crate) fn place_after(&self, field: Option<&web_sys::Element>) {
+        let node: &web_sys::Node = self.element.as_ref();
+        let (parent, before): (web_sys::Node, Option<web_sys::Node>) = match field {
+            Some(field) => {
+                let Some(parent) = field.parent_node() else {
+                    return;
+                };
+                if field.next_sibling().as_ref() == Some(node) {
+                    return;
+                }
+                (parent, field.next_sibling())
+            }
+            None => {
+                let home: &web_sys::Node = self.home.as_ref();
+                if node.parent_node().as_ref() == Some(home) {
+                    return;
+                }
+                (home.clone(), None)
+            }
+        };
+        let focused = self.is_focused();
+        parent.insert_before(node, before.as_ref()).ok();
+        if focused && !self.is_focused() {
+            Self::focus_element(&self.element);
+        }
     }
 
     pub(crate) fn event_target(&self) -> &web_sys::EventTarget {

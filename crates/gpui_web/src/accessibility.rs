@@ -130,6 +130,9 @@ struct Mirror {
     overlays: HashSet<String>,
     /// The number of action requests the mirror sent, published on the root for tests.
     actions: u32,
+    /// The text field the IME textarea stands for: the textarea sits right after its element,
+    /// which screen readers do not see, so the field is read once and in its place.
+    field: Option<NodeId>,
 }
 
 /// What an update changed, collected by the change handler and applied after it.
@@ -181,10 +184,19 @@ fn has_element(node: &NodeRef) -> bool {
 }
 
 fn style(element: &web_sys::HtmlElement, css: &str) {
+    if element.get_attribute("style").as_deref() == Some(css) {
+        return;
+    }
     element.set_attribute("style", css).ok();
 }
 
+/// Sets or removes an attribute, leaving one that already has the value alone: Safari rebuilds
+/// an element's accessibility objects when its role or tabindex is written, even unchanged,
+/// which moves VoiceOver's cursor back to the window's start.
 fn attribute(element: &web_sys::Element, name: &str, value: Option<&str>) {
+    if element.get_attribute(name).as_deref() == value {
+        return;
+    }
     match value {
         Some(value) => element.set_attribute(name, value).ok(),
         None => element.remove_attribute(name).ok(),
@@ -313,6 +325,7 @@ impl WebAccessibility {
             owners: HashMap::new(),
             overlays: HashSet::new(),
             actions: 0,
+            field: None,
         });
         let all = self.with_mirror(|mirror| {
             let mut ids = Vec::new();
@@ -395,8 +408,8 @@ impl WebAccessibility {
                 if *id == root_id {
                     // The window: focusable for when no node of it has focus, named by its title.
                     let root: &web_sys::Element = mirror.root.as_ref();
-                    root.set_attribute("role", "group").ok();
-                    root.set_attribute("tabindex", "-1").ok();
+                    attribute(root, "role", Some("group"));
+                    attribute(root, "tabindex", Some("-1"));
                     attribute(root, "aria-label", node.label().as_deref());
                     touch(*id, &mut parents);
                     continue;
@@ -413,6 +426,9 @@ impl WebAccessibility {
                         }
                     };
                     write(&element, &node, &self.prefix, scale);
+                    if mirror.field == Some(*id) {
+                        attribute(&element, "aria-hidden", Some("true"));
+                    }
                     touch(*id, &mut parents);
                 } else if mirror.elements.contains_key(id) {
                     dropped.push(*id);
@@ -449,6 +465,16 @@ impl WebAccessibility {
             }
             changes.focus
         };
+        // A reorder can move the field's element away from the textarea that stands for it.
+        let field = self.with_mirror(|mirror| {
+            mirror
+                .field
+                .and_then(|id| mirror.elements.get(&id))
+                .cloned()
+        });
+        if let Some(Some(field)) = field {
+            window.ime_mirror.place_after(Some(field.as_ref()));
+        }
         if let Some(focus) = focus {
             self.schedule_focus(&window, focus);
         }
@@ -506,7 +532,7 @@ impl WebAccessibility {
     fn move_focus(&self, window: &Rc<WebWindowInner>, focus: Option<NodeId>) {
         enum Target {
             Element(web_sys::HtmlElement),
-            Field(AccessibleField),
+            Field(NodeId, AccessibleField),
             Window(web_sys::HtmlElement),
         }
         let Some(target) = self.with_mirror(|mirror| {
@@ -516,14 +542,17 @@ impl WebAccessibility {
                 && is_text_field(node.role())
             {
                 let data = node.data();
-                return Target::Field(AccessibleField {
-                    name: node.label(),
-                    description: node.description(),
-                    placeholder: data.placeholder().map(str::to_string),
-                    required: data.is_required(),
-                    invalid: data.invalid().is_some(),
-                    multiline: node.role() == Role::MultilineTextInput,
-                });
+                return Target::Field(
+                    node.locate().0,
+                    AccessibleField {
+                        name: node.label(),
+                        description: node.description(),
+                        placeholder: data.placeholder().map(str::to_string),
+                        required: data.is_required(),
+                        invalid: data.invalid().is_some(),
+                        multiline: node.role() == Role::MultilineTextInput,
+                    },
+                );
             }
             match node
                 .and_then(|node| mirror.elements.get(&node.locate().0))
@@ -542,12 +571,17 @@ impl WebAccessibility {
             element.focus_with_options(&options).ok();
             self.moving_focus.set(false);
         };
+        let field = match &target {
+            Target::Field(id, _) => Some(*id),
+            _ => None,
+        };
+        self.stand_for(window, field);
         match target {
             Target::Element(element) => {
                 window.ime_mirror.set_accessible_field(None);
                 focus_element(&element);
             }
-            Target::Field(field) => {
+            Target::Field(_, field) => {
                 // A text field is the IME mirror's textarea, which keeps text input on one path.
                 window.ime_mirror.set_accessible_field(Some(&field));
                 if !window.ime_mirror.is_focused() {
@@ -581,6 +615,34 @@ impl WebAccessibility {
         }
     }
 
+    /// Makes the IME textarea stand for the text field `field` in the mirror (right after its
+    /// element, which screen readers then do not see), or for none.
+    fn stand_for(&self, window: &Rc<WebWindowInner>, field: Option<NodeId>) {
+        let Some(element) = self.with_mirror(|mirror| {
+            if let Some(old) = mirror.field.take().filter(|old| Some(*old) != field)
+                && let Some(element) = mirror.elements.get(&old)
+            {
+                let hidden = mirror
+                    .tree
+                    .state()
+                    .node_by_tree_local_id(old, TreeId::ROOT)
+                    .is_some_and(|node| node.is_hidden());
+                attribute(element, "aria-hidden", hidden.then_some("true"));
+            }
+            mirror.field = field;
+            let element = field.and_then(|id| mirror.elements.get(&id)).cloned();
+            if let Some(element) = &element {
+                attribute(element, "aria-hidden", Some("true"));
+            }
+            element
+        }) else {
+            return;
+        };
+        window
+            .ime_mirror
+            .place_after(element.as_ref().map(|element| element.as_ref()));
+    }
+
     fn listen(self: &Rc<Self>, root: &web_sys::HtmlElement) {
         let target: &web_sys::EventTarget = root.as_ref();
         let mut listeners = self.listeners.borrow_mut();
@@ -599,6 +661,9 @@ impl WebAccessibility {
         listeners.push(EventListenerHandle::add(target, "click", move |event| {
             if let Some(this) = weak.upgrade() {
                 let event: web_sys::Event = event.unchecked_into();
+                if from_ime(&event) {
+                    return;
+                }
                 if let Some(id) = node_of(&event) {
                     event.prevent_default();
                     this.send(id, Action::Click, None);
@@ -609,7 +674,7 @@ impl WebAccessibility {
         listeners.push(EventListenerHandle::add(target, "focusin", move |event| {
             if let Some(this) = weak.upgrade() {
                 let event: web_sys::Event = event.unchecked_into();
-                if this.moving_focus.get() {
+                if this.moving_focus.get() || from_ime(&event) {
                     return;
                 }
                 if let Some(id) = node_of(&event) {
@@ -624,6 +689,10 @@ impl WebAccessibility {
         listeners.push(EventListenerHandle::add(target, "keydown", move |event| {
             if let Some(this) = weak.upgrade() {
                 let event: web_sys::KeyboardEvent = event.unchecked_into();
+                // The IME textarea's own listeners handle its keys.
+                if from_ime(&event) {
+                    return;
+                }
                 if let Some(id) = node_of(&event)
                     && let Some(action) = this.keyboard_action(id, &event.key())
                 {
@@ -641,6 +710,7 @@ impl WebAccessibility {
         listeners.push(EventListenerHandle::add(target, "keyup", move |event| {
             if let Some(this) = weak.upgrade()
                 && let Some(window) = this.window.upgrade()
+                && !from_ime(&event.clone().unchecked_into())
             {
                 window.handle_key_up(&event.unchecked_into());
             }
@@ -719,6 +789,15 @@ impl WebAccessibility {
 }
 
 /// The node of the mirror element an event targets.
+/// Whether `event` comes from the IME textarea, which sits in the mirror while it stands for a
+/// text field and has listeners of its own.
+fn from_ime(event: &web_sys::Event) -> bool {
+    event
+        .target()
+        .and_then(|target| target.dyn_into::<web_sys::Element>().ok())
+        .is_some_and(|target| target.has_attribute("data-gpux-ime"))
+}
+
 fn node_of(event: &web_sys::Event) -> Option<NodeId> {
     let target: web_sys::Element = event.target()?.dyn_into().ok()?;
     let element = target.closest("[data-gpux-node]").ok()??;
@@ -901,7 +980,18 @@ fn write(element: &web_sys::HtmlElement, node: &NodeRef, prefix: &str, scale: f6
         "aria-valuemax",
         numeric(data.max_numeric_value()).as_deref(),
     );
-    attribute(el, "aria-valuetext", data.value().filter(|_| ranged));
+    // WebKit reads a spin button's number as a percentage of its range (VoiceOver said "0%" for 1
+    // of 1-9), so a spin button without value text gives its number as its text.
+    let value_text = data.value().map(str::to_string).or_else(|| {
+        (role == Role::SpinButton)
+            .then(|| data.numeric_value().map(number))
+            .flatten()
+    });
+    attribute(
+        el,
+        "aria-valuetext",
+        value_text.as_deref().filter(|_| ranged),
+    );
     let toggled = data.toggled().map(|toggled| match toggled {
         Toggled::True => "true",
         Toggled::False => "false",
