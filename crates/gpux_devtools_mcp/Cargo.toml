@@ -1,0 +1,27 @@
+[package]
+name = "gpux-devtools-mcp"
+version.workspace = true
+edition.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "MCP sidecar that inspects and drives gpux apps through gpux-devtools"
+readme = "README.md"
+keywords = ["gpux", "mcp", "devtools", "accessibility", "automation"]
+categories = ["development-tools"]
+
+[lints]
+workspace = true
+
+[lib]
+name = "gpux_devtools_mcp"
+path = "src/lib.rs"
+
+[[bin]]
+name = "gpux-devtools-mcp"
+path = "src/main.rs"
+
+[dependencies]
+serde_json.workspace = true
+tungstenite.workspace = true

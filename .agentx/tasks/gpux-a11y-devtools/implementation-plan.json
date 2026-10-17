@@ -1,0 +1,4647 @@
+{
+  "schemaVersion": 7,
+  "epicId": "gpux-a11y-devtools",
+  "revision": 26,
+  "title": "gpux accessibility-first: AccessKit as the one semantic tree for screen readers on every platform, gpux-devtools and its MCP, RayX on both",
+  "validationMode": "sprint",
+  "repositories": [
+    {
+      "id": "gpux",
+      "path": ".",
+      "role": "execution"
+    },
+    {
+      "id": "rayx",
+      "path": "../RayX",
+      "role": "execution"
+    },
+    {
+      "id": "rayx-dtcg",
+      "path": "../RayX.Dtcg",
+      "role": "reference"
+    },
+    {
+      "id": "rayx-reactive",
+      "path": "../RayX.Reactive",
+      "role": "reference"
+    },
+    {
+      "id": "rayx-signalr",
+      "path": "../RayX.SignalR",
+      "role": "reference"
+    }
+  ],
+  "boundaries": {
+    "repositoryIds": [
+      "gpux",
+      "rayx"
+    ],
+    "forbiddenPaths": [
+      "gpux:.agentx/experiments/**",
+      "gpux:.agentx/tasks/frame-effects-navigation-transitions/**",
+      "gpux:.agentx/tasks/frame-family-component-transitions/**",
+      "gpux:.agentx/tasks/gpux-cross-platform-test-lanes/**",
+      "gpux:.agentx/tasks/gpux-fast-mode/**",
+      "gpux:.agentx/tasks/gpux-faster-test-lanes/**",
+      "gpux:.agentx/tasks/gpux-fixed-sticky-positioning/**",
+      "gpux:.agentx/tasks/gpux-text-rendering-quality-performance/**",
+      "gpux:.agentx/tasks/gpux-wgpu-platform-renderers/**",
+      "gpux:.agentx/tasks/high-quality-wasm-text-rendering/**",
+      "gpux:.agentx/tasks/html-element-dom-overlay/**",
+      "gpux:.agentx/tasks/html-island-wasm/**",
+      "gpux:.agentx/tasks/keyed-sticky-stacking/**",
+      "gpux:.agentx/tasks/macos-only-metal-port-and-ci-repair/**",
+      "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**",
+      "gpux:docs/changelog/2026-10-16-macos-fast-mode-improvement-loop.md",
+      "gpux:ToFix/**",
+      "gpux:vendor/wgpu/**",
+      "rayx:.agentx/tasks/**",
+      "rayx:.agentx/experiments/**",
+      "rayx:vendor/**"
+    ]
+  },
+  "checks": [
+    {
+      "id": "check-a11y-activation",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "ACT-1",
+        "ACT-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/a11y_activation.rs`: tree built per source, platform updates only for platform-covered frames (counted on the test window), one source off keeps the other, mid-frame switches, `new_inaccessible` refusing every source, `AccessibilityMode::Always`, `GPUX_ACCESSIBILITY` values and builder precedence. `AccessibilityMode::Off` (the last root-only tree to an active screen reader, a full tree on leaving it, inspection still working) and `App::set_accessibility_mode` at runtime.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "a11y_activation"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 12
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a11y-inspection-guard",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "ACT-3"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/a11y_inspection_guard.rs`: guard counting, the forced full redraw on the first guard, the source turning off with the last guard, `Window::a11y_tree` present only while a source is on.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "a11y_inspection_guard"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a11y-web-build",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "ACT-4"
+      ],
+      "descriptionMarkdown": "The web platform with the activation sources compiled for wasm32.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-web",
+        "--target",
+        "wasm32-unknown-unknown",
+        "--no-default-features"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui_web/**",
+        "crates/gpui_wgpu/**"
+      ]
+    },
+    {
+      "id": "check-a11y-ios-build",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "ACT-4"
+      ],
+      "descriptionMarkdown": "The mobile platform with the activation sources compiled for iOS.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-mobile",
+        "--target",
+        "aarch64-apple-ios"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui_mobile/**",
+        "crates/gpui_wgpu/**",
+        "crates/gpui_apple/**"
+      ]
+    },
+    {
+      "id": "check-a11y-lane-b",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "ACT-4"
+      ],
+      "descriptionMarkdown": "New spec `tools/browser/specs/accessibility.spec.ts` (titles `accessibility: ...`): no tree before inspection, a non-empty tree with the scene's button after it, read through the web host bridge.",
+      "argv": [
+        "bash",
+        "-c",
+        "PATH=/opt/homebrew/opt/node@22/bin:$PATH cargo run -p gpux-testkit -- lane b --grep \"accessibility: \""
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false
+    },
+    {
+      "id": "check-a11y-text-leaves",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "TREE-1"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/a11y_text_leaves.rs`: Label leaves for every text element kind, ids stable across frames and changed by a reorder, names of buttons and links from their text, no leaf without a source.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "a11y_text_leaves"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 6
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a11y-inspection-tree",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "TREE-2",
+        "TREE-3"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/a11y_inspection_tree.rs`: generic containers only while inspecting, equal screen-reader views with and without them, the id map's paths and its absence without inspection.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "a11y_inspection_tree"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a11y-relations",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "TREE-4"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/a11y_relations.rs`: required and read-only flags, each relation resolved in order, an unknown id dropped.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "a11y_relations"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a11y-actions",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "TREE-5"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/a11y_actions.rs`: advertised actions follow registered handlers, custom actions listed and dispatched by id, ScrollIntoView in nested scroll containers, `perform_a11y_action` returning whether a handler ran.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "a11y_actions"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 6
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-fast-a11y-describe",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "FAST-1"
+      ],
+      "descriptionMarkdown": "New group `fast::tests::a11y_describe`: the frame description lists the tree, shadow verification runs with accessibility on, and a seeded difference in a carried tree fails the oracle.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "diagnostics",
+        "--lib",
+        "fast::tests::a11y_describe"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-fast-a11y-retention",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "FAST-2"
+      ],
+      "descriptionMarkdown": "New group `fast::tests::a11y_retention`: view replay, retained paint and splice with accessibility on carry nodes, links, bounds, focus, focusables, listeners, text leaves, containers and the id map; rollback truncates; randomized element trees equal a from-scratch window.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--lib",
+        "fast::tests::a11y_retention"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 8
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-fast-a11y-layers",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "FAST-3"
+      ],
+      "descriptionMarkdown": "New group `crates/gpux_tests_conformance/tests/lane_c_a11y_layers.rs`: a scrolled div and list composited with accessibility on, the tree (bounds stepped, hidden rows absent) equal to the reference window's frame by frame.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-tests-conformance",
+        "--test",
+        "lane_c_a11y_layers"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpux_tests_conformance/**",
+        "crates/gpui_wgpu/**",
+        "crates/gpui_apple/**",
+        "crates/gpui_macos/**",
+        "crates/gpux_fonts/**"
+      ]
+    },
+    {
+      "id": "check-fast-a11y-counters",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "FAST-3"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/fast_mode_a11y.rs`: with accessibility on, a frame where one view changes replays the others and composites a layer (fast-mode counters), and no bypass reason is counted.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "fast_mode_a11y"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-query-accesskit",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "QRY-1",
+        "QRY-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/semantic_query_accesskit.rs`: every query term over the AccessKit tree, the removed `type=` error, the screen-reader view, locators starting inspection and acting at node bounds, the release-build tree.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "semantic_query_accesskit"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 12
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-conformance-accessibility",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "QRY-3"
+      ],
+      "descriptionMarkdown": "New group `crates/gpux_tests_conformance/tests/conformance_accessibility.rs`: the test host and `app_host` resolve scene queries through the AccessKit tree, `Area::Accessibility` scenes, the status helper.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-tests-conformance",
+        "--test",
+        "conformance_accessibility"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpux_tests_conformance/**",
+        "crates/gpui_wgpu/**",
+        "crates/gpui_apple/**",
+        "crates/gpui_macos/**",
+        "crates/gpux_fonts/**"
+      ]
+    },
+    {
+      "id": "check-devtools-connection",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "DEV-1",
+        "DEV-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpux_devtools/tests/connection.rs` against an in-test WebSocket server: URL precedence, off switch, backoff while nothing listens, `hello` contents, version and token refusals, window notifications, guards held only while connected, errors keeping request ids. `set_enabled` turning the client off (connection closed, guards dropped, no retries) and on again at runtime.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-devtools",
+        "--test",
+        "connection"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 10
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpux_devtools/**"
+      ]
+    },
+    {
+      "id": "check-devtools-snapshot",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "DEV-3"
+      ],
+      "descriptionMarkdown": "New group `crates/gpux_devtools/tests/snapshot.rs`: the YAML shape, refs, bounds on request, both views, rooting at a ref, `query`.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-devtools",
+        "--test",
+        "snapshot"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpux_devtools/**"
+      ]
+    },
+    {
+      "id": "check-devtools-actions",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "DEV-4"
+      ],
+      "descriptionMarkdown": "New group `crates/gpux_devtools/tests/actions.rs`: every AccessKit action through `act`, every synthesized input kind, typing after a focusing click, a gone ref.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-devtools",
+        "--test",
+        "actions"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 8
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpux_devtools/**"
+      ]
+    },
+    {
+      "id": "check-devtools-observe",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "DEV-5"
+      ],
+      "descriptionMarkdown": "New group `crates/gpux_devtools/tests/observe.rs`: window and node screenshots, `wait` matching and timing out, `stats`.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-devtools",
+        "--test",
+        "observe"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpux_devtools/**"
+      ]
+    },
+    {
+      "id": "check-devtools-web-build",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "DEV-5"
+      ],
+      "descriptionMarkdown": "gpux-devtools with its web transport compiled for wasm32.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-devtools",
+        "--target",
+        "wasm32-unknown-unknown"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpux_devtools/**",
+        "crates/gpui_web/**"
+      ]
+    },
+    {
+      "id": "check-mcp-stdio",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "MCP-1"
+      ],
+      "descriptionMarkdown": "New group `crates/gpux_devtools_mcp/tests/stdio_protocol.rs`: MCP initialize and tool listing, each `gpux_*` and `browser_*` tool against a scripted app connection, Playwright response sections, `--print-manifest`.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-devtools-mcp",
+        "--test",
+        "stdio_protocol"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 10
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpux_devtools/**",
+        "crates/gpux_devtools_mcp/**"
+      ]
+    },
+    {
+      "id": "check-mcp-extensions",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "MCP-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpux_devtools_mcp/tests/extensions.rs`: advertised tools listed and forwarded, duplicate names needing an app id, a disconnected app, failures keeping request ids.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-devtools-mcp",
+        "--test",
+        "extensions"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpux_devtools/**",
+        "crates/gpux_devtools_mcp/**"
+      ]
+    },
+    {
+      "id": "check-devtools-lane-d",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "DEV-6"
+      ],
+      "descriptionMarkdown": "New lane D group `devtools` in the desktop conformance host: a real window connected to a WebSocket server, `hello`, a snapshot and a click's effect.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "d",
+        "--grep",
+        "devtools"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "tools/browser/specs/**",
+        "tools/browser/fixtures/**",
+        "tools/browser/playwright.config.ts",
+        "tools/browser/package.json",
+        "vendor/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-devtools-lane-b",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "DEV-6"
+      ],
+      "descriptionMarkdown": "New spec `tools/browser/specs/devtools.spec.ts` (titles `devtools: ...`): the spec's WebSocket server, the `gpux_devtools` parameter, `hello`, a snapshot and a click's effect in the threaded WASM host.",
+      "argv": [
+        "bash",
+        "-c",
+        "PATH=/opt/homebrew/opt/node@22/bin:$PATH cargo run -p gpux-testkit -- lane b --grep \"devtools: \""
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "tools/browser/specs/**",
+        "tools/browser/fixtures/**",
+        "tools/browser/playwright.config.ts",
+        "tools/browser/package.json",
+        "vendor/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-devtools-lane-f",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "DEV-7"
+      ],
+      "descriptionMarkdown": "New lane F group `devtools` on the iOS Simulator: the host connects to the Mac's loopback, `hello`, a snapshot and a tap's effect.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "f",
+        "--grep",
+        "devtools"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "tools/browser/specs/**",
+        "tools/browser/fixtures/**",
+        "tools/browser/playwright.config.ts",
+        "tools/browser/package.json",
+        "vendor/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-devtools-lane-e",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "DEV-7"
+      ],
+      "descriptionMarkdown": "New lane E group `devtools` on an emulator or device through `adb reverse`: `hello`, a snapshot and a tap's effect.",
+      "argv": [
+        "bash",
+        "-c",
+        "ANDROID_HOME=$HOME/Library/Android/sdk JAVA_HOME=/Library/Java/JavaVirtualMachines/microsoft-21.jdk/Contents/Home PATH=/Library/Java/JavaVirtualMachines/microsoft-21.jdk/Contents/Home/bin:$PATH cargo run -p gpux-testkit -- lane e --grep devtools"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "tools/browser/specs/**",
+        "tools/browser/fixtures/**",
+        "tools/browser/playwright.config.ts",
+        "tools/browser/package.json",
+        "vendor/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-rx-core-accesskit",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "RX-2"
+      ],
+      "descriptionMarkdown": "New group `crates/rayx_components/rayx_components_core/tests/accesskit_from_devtools.rs`: the AccessKit nodes of every core component whose devtools semantics were its only semantics.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_components_core",
+        "--test",
+        "accesskit_from_devtools"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 14
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_runtime/**",
+        "crates/rayx_macros/**",
+        "crates/rayx_theme/**",
+        "gpux:crates/gpui/**",
+        "gpux:crates/gpux_devtools/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock",
+        "crates/rayx_components/rayx_components_core/**",
+        "crates/rayx_components/rayx_components_base/**"
+      ]
+    },
+    {
+      "id": "check-rx-base-accesskit",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "RX-2"
+      ],
+      "descriptionMarkdown": "New group `crates/rayx_components/rayx_components_base/tests/accesskit_from_devtools.rs`: Base primitives keep their AccessKit nodes with the duplicate devtools annotations gone.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_components_base",
+        "--test",
+        "accesskit_from_devtools"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_runtime/**",
+        "crates/rayx_macros/**",
+        "crates/rayx_theme/**",
+        "gpux:crates/gpui/**",
+        "gpux:crates/gpux_devtools/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock",
+        "crates/rayx_components/rayx_components_base/**"
+      ]
+    },
+    {
+      "id": "check-rx-blocks-accesskit",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "RX-2"
+      ],
+      "descriptionMarkdown": "New group `crates/rayx_blocks/tests/accesskit_from_devtools.rs`: the four blocks that had only devtools semantics.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_blocks",
+        "--test",
+        "accesskit_from_devtools"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_runtime/**",
+        "crates/rayx_macros/**",
+        "crates/rayx_theme/**",
+        "gpux:crates/gpui/**",
+        "gpux:crates/gpux_devtools/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock",
+        "crates/rayx_blocks/**",
+        "crates/rayx_components/**"
+      ]
+    },
+    {
+      "id": "check-rx-migrated-tests",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "RX-2"
+      ],
+      "descriptionMarkdown": "The existing RayX tests this task rewrites from devtools snapshots to the AccessKit tree (they are the changed code, not regression padding).",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_components_core",
+        "--test",
+        "field_semantics",
+        "--test",
+        "otp_field",
+        "--test",
+        "password_field",
+        "--test",
+        "search_field",
+        "--test",
+        "text_area",
+        "--test",
+        "resizable_direction",
+        "--test",
+        "application_configuration_motion_continuous"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 10
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_runtime/**",
+        "crates/rayx_macros/**",
+        "crates/rayx_theme/**",
+        "gpux:crates/gpui/**",
+        "gpux:crates/gpux_devtools/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock",
+        "crates/rayx_components/rayx_components_core/**",
+        "crates/rayx_components/rayx_components_base/**"
+      ]
+    },
+    {
+      "id": "check-rx-property-actions",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "RX-3"
+      ],
+      "descriptionMarkdown": "New group `crates/rayx_components/rayx_components_propertygrid/tests/accesskit_actions.rs`: each former writable property set through SetValue or its custom action, asserting the edited value.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_components_propertygrid",
+        "--test",
+        "accesskit_actions"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 10
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_runtime/**",
+        "crates/rayx_macros/**",
+        "crates/rayx_theme/**",
+        "gpux:crates/gpui/**",
+        "gpux:crates/gpux_devtools/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock",
+        "crates/rayx_components/rayx_components_propertygrid/**",
+        "crates/rayx_components/rayx_components_core/**",
+        "crates/rayx_components/rayx_components_base/**"
+      ]
+    },
+    {
+      "id": "check-rx-node-editor-actions",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "RX-3"
+      ],
+      "descriptionMarkdown": "New group `crates/rayx_components/rayx_components_node_editor/tests/accesskit_actions.rs` plus the rewritten `devkit_semantics_contracts` replacement: the editor's former pointer actions as AccessKit actions.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_components_node_editor",
+        "--test",
+        "accesskit_actions"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_runtime/**",
+        "crates/rayx_macros/**",
+        "crates/rayx_theme/**",
+        "gpux:crates/gpui/**",
+        "gpux:crates/gpux_devtools/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock",
+        "crates/rayx_components/rayx_components_node_editor/**",
+        "crates/rayx_components/rayx_components_core/**",
+        "crates/rayx_components/rayx_components_base/**"
+      ]
+    },
+    {
+      "id": "check-rx-canvas-actions",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "RX-3"
+      ],
+      "descriptionMarkdown": "New group `crates/rayx_components/rayx_components_canvas_infinite/tests/accesskit_actions.rs`: the canvas's former pointer actions as AccessKit actions, and its rewritten `semantics_contracts`.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_components_canvas_infinite",
+        "--test",
+        "accesskit_actions"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_runtime/**",
+        "crates/rayx_macros/**",
+        "crates/rayx_theme/**",
+        "gpux:crates/gpui/**",
+        "gpux:crates/gpux_devtools/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock",
+        "crates/rayx_components/rayx_components_canvas_infinite/**",
+        "crates/rayx_components/rayx_components_core/**",
+        "crates/rayx_components/rayx_components_base/**"
+      ]
+    },
+    {
+      "id": "check-rx-devkit-extension",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "RX-4",
+        "RX-8"
+      ],
+      "descriptionMarkdown": "New group `crates/rayx_devkit/tests/gpux_devtools_extension.rs`: `with_devkit` installs gpux-devtools, RayX's extension tools are advertised in `hello` and answer through a test sidecar. `with_devkit` honouring `enabled`, and the accessibility mode applied from `ApplicationConfiguration`. `rayx_component_state` answers with the machine state components publish.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_devkit",
+        "--test",
+        "gpux_devtools_extension"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 8
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_runtime/**",
+        "crates/rayx_macros/**",
+        "crates/rayx_theme/**",
+        "gpux:crates/gpui/**",
+        "gpux:crates/gpux_devtools/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock",
+        "crates/rayx_devkit/**"
+      ]
+    },
+    {
+      "id": "check-rx-test-suite-spec",
+      "repositoryId": "rayx",
+      "kind": "runtime",
+      "criterionIds": [
+        "RX-5"
+      ],
+      "descriptionMarkdown": "The migrated data-table selection spec, headed on WebGPU in Test Suite through the rayx CLI.",
+      "argv": [
+        "bash",
+        "-c",
+        "PATH=/opt/homebrew/opt/node@22/bin:$PATH rayx app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-data-table-selection.spec.ts"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "(\\d+) passed"
+      },
+      "reuse": false
+    },
+    {
+      "id": "check-rx-desktop-smoke",
+      "repositoryId": "rayx",
+      "kind": "runtime",
+      "criterionIds": [
+        "RX-5"
+      ],
+      "descriptionMarkdown": "New `tools-node/test_suite/devtools-desktop-smoke.mjs`: starts `gpux-devtools-mcp` from the sibling Gpux worktree, runs Test Suite natively with `devkit`, and drives a snapshot, a click and typing through MCP; prints `devtools-desktop-smoke: <n> passed`.",
+      "argv": [
+        "bash",
+        "-c",
+        "PATH=/opt/homebrew/opt/node@22/bin:$PATH node tools-node/test_suite/devtools-desktop-smoke.mjs"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3,
+        "testCountPattern": "devtools-desktop-smoke: (\\d+) passed"
+      },
+      "reuse": false
+    },
+    {
+      "id": "check-rx-guard",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "RX-1"
+      ],
+      "descriptionMarkdown": "New guard `crates/rayx_devkit/tests/retired_devtools_api.rs`: no retired devtools symbol under `crates/`, `apps/` or `tools-node/`; a seeded fixture string proves the scan can fail.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_devkit",
+        "--test",
+        "retired_devtools_api"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2
+      },
+      "inputs": [
+        "crates/**",
+        "apps/**",
+        "tools-node/test_suite/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-devtools-guard",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "REM-1"
+      ],
+      "descriptionMarkdown": "New guard `crates/gpui/tests/devtools_removed_guard.rs`: no retired devtools symbol under `crates/`; a seeded fixture string proves the scan can fail.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "devtools_removed_guard"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2
+      },
+      "inputs": [
+        "crates/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-effect-diagnostics",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "REM-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/effect_diagnostics.rs`: `Window::effect_diagnostics()` counts for active effects, snapshots, regions and missing targets.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "effect_diagnostics"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-sr-web-tree",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "SR-1"
+      ],
+      "descriptionMarkdown": "New spec `tools/browser/specs/screen-reader.spec.ts`, titles `screen-reader: tree ...`: Chromium's accessibility tree of the `accessibility` scene (roles, names, states, values, relations, element boxes against the painted controls), its change after an update, generic containers without elements, an `html_element` ordered in by `aria-owns`.",
+      "argv": [
+        "bash",
+        "-c",
+        "PATH=/opt/homebrew/opt/node@22/bin:$PATH cargo run -p gpux-testkit -- lane b --grep \"screen-reader: tree\""
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false
+    },
+    {
+      "id": "check-sr-web-input",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "SR-2"
+      ],
+      "descriptionMarkdown": "Titles `screen-reader: input ...`: a DOM click and focus on mirror elements reaching the scene as Click and Focus, slider keys as Increment/Decrement, gpux focus moving DOM focus without a GPUI focus change back, the focused text field on the IME textarea, typing with a mirror element focused, `aria-live`.",
+      "argv": [
+        "bash",
+        "-c",
+        "PATH=/opt/homebrew/opt/node@22/bin:$PATH cargo run -p gpux-testkit -- lane b --grep \"screen-reader: input\""
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false
+    },
+    {
+      "id": "check-sr-web-activation",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "SR-3"
+      ],
+      "descriptionMarkdown": "Titles `screen-reader: activation ...`: no mirror and no tree before activation, the enable button building the mirror, `WebScreenReader::Always`, the localized label.",
+      "argv": [
+        "bash",
+        "-c",
+        "PATH=/opt/homebrew/opt/node@22/bin:$PATH cargo run -p gpux-testkit -- lane b --grep \"screen-reader: activation\""
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false
+    },
+    {
+      "id": "check-sr-web-build",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "SR-1"
+      ],
+      "descriptionMarkdown": "The web platform with its `accessibility` feature (the DOM mirror) compiled for wasm32; `check-a11y-web-build` covers the build without it.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-web",
+        "--target",
+        "wasm32-unknown-unknown",
+        "--no-default-features",
+        "--features",
+        "accessibility"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui_web/**",
+        "crates/gpui_wgpu/**"
+      ]
+    },
+    {
+      "id": "check-sr-ios",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "SR-4"
+      ],
+      "descriptionMarkdown": "New lane F group `screen-reader` in the iOS conformance host: `accessibilityElements` of the `accessibility` scene (labels, values, traits, frames) and `accessibilityActivate` on its button changing the scene's state.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "f",
+        "--grep",
+        "screen-reader"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false
+    },
+    {
+      "id": "check-sr-ios-build",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "SR-4"
+      ],
+      "descriptionMarkdown": "`gpux-mobile` with the iOS adapter compiled for iOS.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-mobile",
+        "--target",
+        "aarch64-apple-ios"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui_mobile/**",
+        "crates/gpui_wgpu/**",
+        "crates/gpui_apple/**"
+      ]
+    },
+    {
+      "id": "check-sr-android",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "SR-5"
+      ],
+      "descriptionMarkdown": "New lane E group `screen-reader`: `uiautomator dump` of the `accessibility` scene (text, content description, class, bounds) and an accessibility click through the adapter changing the scene's state. Also an accessibility adjustment of the slider (0.9) changing its value.",
+      "argv": [
+        "bash",
+        "-c",
+        "ANDROID_HOME=$HOME/Library/Android/sdk JAVA_HOME=/Library/Java/JavaVirtualMachines/microsoft-21.jdk/Contents/Home PATH=/Library/Java/JavaVirtualMachines/microsoft-21.jdk/Contents/Home/bin:$PATH cargo run -p gpux-testkit -- lane e --grep screen-reader"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false
+    },
+    {
+      "id": "check-sr-android-build",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "SR-5"
+      ],
+      "descriptionMarkdown": "`gpux-mobile`'s embedded host (the default features) with the Android adapter, type-checked as the lane E workflow does.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-mobile",
+        "--target",
+        "x86_64-linux-android"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui_mobile/**",
+        "crates/gpui_wgpu/**"
+      ]
+    },
+    {
+      "id": "check-sr-android-native-build",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "SR-5"
+      ],
+      "descriptionMarkdown": "`gpux-mobile`'s NativeActivity host with the Android adapter (the mobile rules build both after touching `android/`).",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-mobile",
+        "--target",
+        "x86_64-linux-android",
+        "--features",
+        "android-native-activity"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui_mobile/**",
+        "crates/gpui_wgpu/**"
+      ]
+    },
+    {
+      "id": "check-rx-screen-reader-spec",
+      "repositoryId": "rayx",
+      "kind": "runtime",
+      "criterionIds": [
+        "RX-5"
+      ],
+      "descriptionMarkdown": "New `tools-node/test_suite/rayx-screen-reader.spec.ts`: with the web mirror enabled, RayX components found, activated and typed into through Chromium's accessibility tree, headed on WebGPU in Test Suite.",
+      "argv": [
+        "bash",
+        "-c",
+        "PATH=/opt/homebrew/opt/node@22/bin:$PATH rayx app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-screen-reader.spec.ts"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3,
+        "testCountPattern": "(\\d+) passed"
+      },
+      "reuse": false
+    },
+    {
+      "id": "check-accesskit-025",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "AK-1"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/accesskit_025.rs`: cloned nodes keep every property gpux writes, a property cleared and set again holds, node equality independent of the order properties were set, `TreeInfo` with gpux's toolkit name and version.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--test",
+        "accesskit_025"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui/tests/accesskit_025.rs",
+        "crates/gpui/src/window.rs",
+        "crates/gpui/src/window/a11y.rs",
+        "crates/gpui/src/window/a11y/**"
+      ]
+    },
+    {
+      "id": "check-accesskit-a11y-unit",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "AK-1"
+      ],
+      "descriptionMarkdown": "The existing `window::a11y` unit tests: the tree builder the AccessKit move touches (existing tests of the changed code, not regression padding).",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "window::a11y"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui/src/window.rs",
+        "crates/gpui/src/window/a11y.rs",
+        "crates/gpui/src/window/a11y/**"
+      ]
+    },
+    {
+      "id": "check-accesskit-macos-build",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "AK-1"
+      ],
+      "descriptionMarkdown": "The macOS platform crate on `accesskit_macos` 0.27.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-macos"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui_macos/**",
+        "crates/gpui/src/**"
+      ]
+    },
+    {
+      "id": "check-accesskit-linux-build",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "AK-1"
+      ],
+      "descriptionMarkdown": "The Linux platform crate on `accesskit_unix` 0.24, checked in the `gpux` Lima VM from this worktree.",
+      "argv": [
+        "limactl",
+        "shell",
+        "gpux",
+        "--",
+        "bash",
+        "-lc",
+        "cd /Users/dinko/.worktrees/gpux-a11y-devtools/Gpux && CARGO_TARGET_DIR=$HOME/targets/gpux-a11y-devtools cargo check -p gpux-linux"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "reuse": false,
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui_linux/**",
+        "crates/gpui/src/**"
+      ]
+    },
+    {
+      "id": "check-a11y-feature-tree",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [
+        "ACT-5"
+      ],
+      "descriptionMarkdown": "`cargo tree` of `gpux-platform` on macOS lists `accesskit_macos` with the default features and not without `accessibility`; prints `feature-tree: ok`.",
+      "argv": [
+        "bash",
+        "-c",
+        "set -e; cargo tree -p gpux-platform -e normal --prefix none | grep -q '^gpux-accesskit-macos '; if cargo tree -p gpux-platform --no-default-features --features font-kit -e normal --prefix none | grep -q '^gpux-accesskit-macos '; then echo 'gpux-accesskit-macos linked without the accessibility feature'; exit 1; fi; echo 'feature-tree: ok'"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "stdoutPattern": "feature-tree: ok"
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui_macos/**",
+        "crates/gpui_windows/**",
+        "crates/gpui_linux/**",
+        "crates/gpui_web/**",
+        "crates/gpui_mobile/**"
+      ]
+    },
+    {
+      "id": "check-a11y-feature-off-build",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "ACT-5"
+      ],
+      "descriptionMarkdown": "`gpux-platform` builds without the `accessibility` feature.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-platform",
+        "--no-default-features",
+        "--features",
+        "font-kit"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui_macos/**",
+        "crates/gpui_apple/**",
+        "crates/gpui_wgpu/**"
+      ]
+    },
+    {
+      "id": "check-sr-mobile-feature-tree",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [
+        "SR-5"
+      ],
+      "descriptionMarkdown": "`cargo tree` of `gpux-mobile` lists `accesskit_ios` (iOS) and `accesskit_android` (Android) with `accessibility` and neither without it; prints `mobile-feature-tree: ok`.",
+      "argv": [
+        "bash",
+        "-c",
+        "set -e; t(){ cargo tree -p gpux-mobile --target \"$1\" -e normal --prefix none \"${@:3}\" | grep -q \"^$2 \"; }; t aarch64-apple-ios accesskit_ios --no-default-features --features accessibility; t x86_64-linux-android accesskit_android --no-default-features --features accessibility; if t aarch64-apple-ios accesskit_ios --no-default-features || t x86_64-linux-android accesskit_android --no-default-features; then echo 'adapter linked without the accessibility feature'; exit 1; fi; echo 'mobile-feature-tree: ok'"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "stdoutPattern": "mobile-feature-tree: ok"
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui_mobile/**"
+      ]
+    },
+    {
+      "id": "check-devtools-not-linked",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [
+        "DEV-1"
+      ],
+      "descriptionMarkdown": "Neither `gpux` nor `gpux-platform` links `gpux-devtools` or a WebSocket client; prints `devtools-not-linked: ok`.",
+      "argv": [
+        "bash",
+        "-c",
+        "set -e; for p in gpux gpux-platform; do if cargo tree -p $p -e normal --prefix none | grep -Eq '^(gpux-devtools|tungstenite) '; then echo \"$p links the devtools\"; exit 1; fi; done; echo 'devtools-not-linked: ok'"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "stdoutPattern": "devtools-not-linked: ok"
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpux_devtools/**"
+      ]
+    },
+    {
+      "id": "final-fmt",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [],
+      "descriptionMarkdown": "Formatting of gpux.",
+      "argv": [
+        "cargo",
+        "fmt",
+        "--check"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-clippy",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [],
+      "descriptionMarkdown": "Clippy over the gpux packages the epic touches.",
+      "argv": [
+        "cargo",
+        "clippy",
+        "-p",
+        "gpux",
+        "-p",
+        "gpux-tests-conformance",
+        "-p",
+        "gpux-devtools",
+        "-p",
+        "gpux-devtools-mcp",
+        "-p",
+        "gpux-platform",
+        "-p",
+        "gpux-web",
+        "-p",
+        "gpux-mobile",
+        "--all-targets",
+        "--no-deps",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-package",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [],
+      "descriptionMarkdown": "Two new crates change the workspace manifest: every crate still packages.",
+      "argv": [
+        "cargo",
+        "package",
+        "--workspace"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "timeoutSeconds": 3600
+    },
+    {
+      "id": "final-rx-fmt",
+      "repositoryId": "rayx",
+      "kind": "static",
+      "criterionIds": [],
+      "descriptionMarkdown": "Formatting of RayX.",
+      "argv": [
+        "cargo",
+        "fmt",
+        "--check"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-rx-clippy",
+      "repositoryId": "rayx",
+      "kind": "static",
+      "criterionIds": [],
+      "descriptionMarkdown": "Clippy over the RayX packages the migration touches.",
+      "argv": [
+        "cargo",
+        "clippy",
+        "-p",
+        "rayx_devkit",
+        "-p",
+        "rayx_runtime",
+        "-p",
+        "rayx_macros",
+        "-p",
+        "rayx_blocks",
+        "-p",
+        "rayx_components_core",
+        "-p",
+        "rayx_components_base",
+        "-p",
+        "rayx_components_propertygrid",
+        "-p",
+        "rayx_components_node_editor",
+        "-p",
+        "rayx_components_canvas_infinite",
+        "-p",
+        "rayx_components_carousel",
+        "-p",
+        "rayx_components_code",
+        "-p",
+        "rayx_components_colorpicker_advanced",
+        "-p",
+        "rayx_components_datatable",
+        "-p",
+        "rayx_components_dock",
+        "-p",
+        "rayx_components_document",
+        "-p",
+        "rayx_components_markup_view",
+        "-p",
+        "rayx_components_rich_text_editor",
+        "-p",
+        "rayx_components_webview",
+        "-p",
+        "rayx_test_suite",
+        "-p",
+        "rayx_lab",
+        "--all-targets",
+        "--no-deps",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-rx-check",
+      "repositoryId": "rayx",
+      "kind": "build",
+      "criterionIds": [],
+      "descriptionMarkdown": "Every RayX caller compiles against gpux without the devtools API (the removal reaches every component crate, so the compile is workspace-wide; tests stay focused).",
+      "argv": [
+        "cargo",
+        "check",
+        "--workspace",
+        "--all-targets"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-lane-a",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [],
+      "descriptionMarkdown": "Lane A in full: every scene now resolves its queries through the AccessKit tree. Left to the pull request's CI.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "a"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 30,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false
+    },
+    {
+      "id": "final-fast-oracle",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [],
+      "descriptionMarkdown": "The whole fast-mode unit suite, oracle included, after the DevKit carry is gone. Left to the pull request's CI.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--lib",
+        "fast::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 50
+      }
+    },
+    {
+      "id": "final-windows-ci",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [],
+      "descriptionMarkdown": "The Windows platform crate on `accesskit_windows` 0.35 and the Windows lanes: the pull request's CI runs them (no Windows toolchain on this Mac). Left to CI.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-windows",
+        "--all-targets",
+        "--target",
+        "x86_64-pc-windows-msvc"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "(\\d+) passed"
+      },
+      "reuse": false
+    },
+    {
+      "id": "check-sr-android-registry",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "SR-5"
+      ],
+      "descriptionMarkdown": "New group `accessibility_registry` in `crates/gpui_mobile/src/accessibility_registry.rs`: the Android windows sharing one surface share one adapter on their Activity's view, which serves the front window (its tree updates, its actions, the new front window's tree when it changes), is rebuilt for a window opened under another Activity, and goes with the last window or a cleared embedded context.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-mobile",
+        "--lib",
+        "accessibility_registry"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui_mobile/**",
+        "crates/gpui_wgpu/**"
+      ]
+    },
+    {
+      "id": "check-a11y-shared-focus",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "TREE-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/a11y_shared_focus.rs`: a focus handle tracked by a host and the field inside it focuses the innermost node without the double-focus panic; a handle tracked once focuses its own node.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "a11y_shared_focus"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a11y-editable-text-host",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "SR-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/a11y_editable_text_host.rs`: a control built around an `EditableText` is exactly one named text input that holds the focus and handles SetValue, carrying the host's states and relations; SetValue reaches the field or the host's handler.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "a11y_editable_text_host"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-rx-select-all",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "RX-7"
+      ],
+      "descriptionMarkdown": "New group `crates/rayx_components/rayx_components_core/tests/select_all_shortcut.rs`: select-all is bound to the secondary modifier for every core context, and the platform's select-all replaces a text field's draft.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_components_core",
+        "--test",
+        "select_all_shortcut"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_runtime/**",
+        "crates/rayx_macros/**",
+        "crates/rayx_theme/**",
+        "gpux:crates/gpui/**",
+        "gpux:crates/gpux_devtools/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock",
+        "crates/rayx_components/rayx_components_core/**",
+        "crates/rayx_components/rayx_components_base/**"
+      ]
+    },
+    {
+      "id": "check-rx-viewer-actions",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "RX-3"
+      ],
+      "descriptionMarkdown": "New group `crates/rayx_components/rayx_components_core/tests/interactive_viewer_accesskit_actions.rs`: the interactive viewer's scroll actions pan one 40-pixel step and its Zoom in/Zoom out custom actions scale by 1.25, each reported through the interaction callbacks, and neither is offered while pan or scale is disabled.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_components_core",
+        "--test",
+        "interactive_viewer_accesskit_actions"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_runtime/**",
+        "crates/rayx_macros/**",
+        "crates/rayx_theme/**",
+        "gpux:crates/gpui/**",
+        "gpux:crates/gpux_devtools/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock",
+        "crates/rayx_components/rayx_components_core/**",
+        "crates/rayx_components/rayx_components_base/**"
+      ]
+    },
+    {
+      "id": "check-rx-navigation-paint",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "RX-1",
+        "REM-2"
+      ],
+      "descriptionMarkdown": "RayX's navigation region tests (`crates/rayx_runtime/src/services/navigation/tests.rs`, `navigation_region_view`) assert again that the configured screen-effect region is painted, through `Window::effect_diagnostics()` in place of the retired devtools frame snapshot.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_runtime",
+        "--lib",
+        "navigation_region_view"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_runtime/**",
+        "crates/rayx_macros/**",
+        "gpux:crates/gpui/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-rx-announced-values",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "RX-8"
+      ],
+      "descriptionMarkdown": "New groups `announced_values` in the infinite canvas, node editor and property grid: their announced values are human-readable and carry no machine state.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_components_canvas_infinite",
+        "-p",
+        "rayx_components_node_editor",
+        "-p",
+        "rayx_components_propertygrid",
+        "--test",
+        "announced_values"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 6
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_runtime/**",
+        "crates/rayx_macros/**",
+        "crates/rayx_theme/**",
+        "gpux:crates/gpui/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock",
+        "crates/rayx_components/**"
+      ]
+    },
+    {
+      "id": "check-rx-component-state",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "RX-8"
+      ],
+      "descriptionMarkdown": "New group `crates/rayx_runtime/tests/component_state.rs`: component state is computed and recorded only once enabled, keeps each element's latest state and drops a closed window's.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_runtime",
+        "--test",
+        "component_state"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_runtime/**",
+        "crates/rayx_macros/**",
+        "crates/rayx_theme/**",
+        "gpux:crates/gpui/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock",
+        "crates/rayx_components/**"
+      ]
+    },
+    {
+      "id": "check-rx-component-state-readers",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "RX-8"
+      ],
+      "descriptionMarkdown": "The canvas's and node editor's `semantics_contracts` read the machine state they publish instead of their announced values.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_components_canvas_infinite",
+        "-p",
+        "rayx_components_node_editor",
+        "--test",
+        "semantics_contracts"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_runtime/**",
+        "crates/rayx_macros/**",
+        "crates/rayx_theme/**",
+        "gpux:crates/gpui/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock",
+        "crates/rayx_components/**"
+      ]
+    },
+    {
+      "id": "check-rx-node-editor-state-readers",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "RX-8"
+      ],
+      "descriptionMarkdown": "The node editor's `node_component_contracts` and `node_variants_navigation_contracts` read the ports' and editor's published state.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_components_node_editor",
+        "--test",
+        "node_component_contracts",
+        "--test",
+        "node_variants_navigation_contracts"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_runtime/**",
+        "crates/rayx_macros/**",
+        "crates/rayx_theme/**",
+        "gpux:crates/gpui/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock",
+        "crates/rayx_components/**"
+      ]
+    },
+    {
+      "id": "check-rx-editor-select-all",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "RX-9"
+      ],
+      "descriptionMarkdown": "New test in `apps/test_suite/src/lib.rs`: select-all of the code editor, rich-text editor, canvas and node editor is `secondary-a`, and the Test Suite's and Lab's maps match the components' defaults.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_test_suite",
+        "--lib",
+        "select_all"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_runtime/**",
+        "crates/rayx_macros/**",
+        "crates/rayx_theme/**",
+        "gpux:crates/gpui/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock",
+        "crates/rayx_components/**",
+        "crates/rayx/**",
+        "apps/test_suite/**",
+        "apps/lab/application-input-map.json"
+      ]
+    },
+    {
+      "id": "check-sr-macos-voiceover",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "SR-8"
+      ],
+      "descriptionMarkdown": "New lane D check `screen-reader-macos-voiceover` (`crates/gpux_tests_conformance/examples/desktop_host/screen_reader.rs`): VoiceOver's view of the `accessibility` scene through the window's `accessibilityChildren` gives the table its rows and cell positions, Details its expanded state, Copies its value, Delete a press action while disabled, and Volume a horizontal orientation and a one-step increment.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "d",
+        "--grep",
+        "screen-reader-macos"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "tools/browser/specs/**",
+        "tools/browser/fixtures/**",
+        "tools/browser/playwright.config.ts",
+        "tools/browser/package.json",
+        "vendor/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-sr-web-navigation",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "SR-9"
+      ],
+      "descriptionMarkdown": "New specs in `tools/browser/specs/screen-reader.spec.ts`: `screen-reader: navigation ...` (the IME textarea right after its field and leaving the mirror with focus, hidden before activation, unchanged attributes left alone on a focus move) and `screen-reader: tree a spin button gives its number as its value text`.",
+      "argv": [
+        "bash",
+        "-c",
+        "PATH=/opt/homebrew/opt/node@22/bin:$PATH cargo run -p gpux-testkit -- lane b --grep \"screen-reader: (navigation|tree a spin button)\""
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "tools/browser/specs/**",
+        "tools/browser/fixtures/**",
+        "tools/browser/playwright.config.ts",
+        "tools/browser/package.json",
+        "vendor/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-sr-aria-defaults",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "SR-8"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/a11y_aria_defaults.rs`: a slider without an orientation is horizontal; one that sets an orientation keeps it.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "a11y_aria_defaults"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-verify-mode-text",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "REM-4"
+      ],
+      "descriptionMarkdown": "The retention verifier's groups with the `diagnostics` feature, which the workspace's test run enables: `fast::tests::verify_mode` (a view reading untracked state is named, verify mode does not change the presented frame) and `fast::tests::a11y_describe::verification`.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--lib",
+        "--features",
+        "diagnostics",
+        "--",
+        "fast::tests::verify_mode",
+        "fast::tests::a11y_describe::verification"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-web-composition-exits",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "REM-4"
+      ],
+      "descriptionMarkdown": "The lane B specs the scene's duplicate status id broke: `pointer.spec.ts` `the hidden input mirror leaves the corner it sits in to the canvas` and `composition.spec.ts` `moving between the canvas and the popover stays inside the window`.",
+      "argv": [
+        "bash",
+        "-c",
+        "PATH=/opt/homebrew/opt/node@22/bin:$PATH cargo run -p gpux-testkit -- lane b --grep \"hidden input mirror leaves the corner|moving between the canvas and the popover\""
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "tools/browser/specs/**",
+        "tools/browser/fixtures/**",
+        "tools/browser/playwright.config.ts",
+        "tools/browser/package.json",
+        "vendor/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a11y-duplicate-ids",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "TREE-6"
+      ],
+      "descriptionMarkdown": "`crates/gpui/tests/a11y_duplicate_ids.rs`: two siblings with one element id each have a node, keep its id across frames, run their own action handlers, and fast mode draws them as it does without the tree.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--test",
+        "a11y_duplicate_ids"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-benchmark-hidden-window",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "PERF-3"
+      ],
+      "descriptionMarkdown": "`crates/gpux_tests_benchmark/tools/hidden-window.sh` on macOS: a run covered after its first frame ends with status 2 and the reason, and a run opened while the screens are covered does not wait.",
+      "argv": [
+        "bash",
+        "-c",
+        "cd crates/gpux_tests_benchmark && cargo build --release --bin gpux-bench && caffeinate -d -u -i tools/hidden-window.sh"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2,
+        "testCountPattern": "hidden-window: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/gpux_tests_benchmark/src/**",
+        "crates/gpux_tests_benchmark/tools/**",
+        "crates/gpux_tests_benchmark/Cargo.toml",
+        "crates/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-fork-ci-excludes",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [
+        "REM-5"
+      ],
+      "descriptionMarkdown": "Every workspace member under `vendor/` is in CI's `FORK_EXCLUDES`, every `cargo check`/`test`/`clippy --workspace` run in `.github/workflows/ci.yml` leaves `gpux-accesskit-macos` out (through `FORK_EXCLUDES` or its own `--exclude`), and the `package` job, whose verification builds every crate, runs on macOS, where the fork builds.",
+      "argv": [
+        "python3",
+        "-c",
+        "import re,json,subprocess,sys\ns=open('.github/workflows/ci.yml').read()\nm=re.search(r'FORK_EXCLUDES: >-\\n((?:    .*\\n)+)',s)\nex=set(re.findall(r'--exclude (\\S+)',m.group(1)))\nmeta=json.loads(subprocess.check_output(['cargo','metadata','--no-deps','--format-version','1']))\nvendored=[p['name'] for p in meta['packages'] if '/vendor/' in p['manifest_path']]\nproblems=[f'{n} missing from FORK_EXCLUDES' for n in vendored if n not in ex]\nfor line in s.splitlines():\n    if re.search(r'cargo (check|test|clippy) --workspace',line) and 'FORK_EXCLUDES' not in line and '--exclude gpux-accesskit-macos' not in line:\n        problems.append('builds the macOS fork off Apple platforms: '+line.strip())\njob=re.search(r'\\n  package:\\n(.*?)(?=\\n  [a-z][a-z_-]*:\\n|\\Z)',s,re.S).group(1)\nif 'runs-on: macos' not in job:\n    problems.append('the package job does not run on macOS, where gpux-accesskit-macos builds')\nprint(len(vendored),'vendored members;',problems or 'every workspace run leaves the macOS fork to Apple platforms')\nsys.exit(1 if problems or not vendored else 0)\n"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "inputs": [
+        ".github/workflows/ci.yml",
+        "Cargo.toml",
+        "vendor/**/Cargo.toml"
+      ]
+    }
+  ],
+  "finalCheckIds": [
+    "final-fmt",
+    "final-clippy",
+    "final-package",
+    "final-rx-fmt",
+    "final-rx-clippy",
+    "final-rx-check",
+    "final-lane-a",
+    "final-fast-oracle",
+    "final-windows-ci"
+  ],
+  "recordPaths": [
+    "gpux:docs/measurements/a11y-devtools.md",
+    "gpux:docs/measurements/screen-reader-walkthrough.md"
+  ],
+  "sprints": [
+    {
+      "id": "s01-baseline",
+      "title": "Measure what devtools and the accessibility bypass cost today",
+      "dependsOn": [],
+      "memoryScopes": [
+        "repository/validation"
+      ],
+      "tasks": [
+        {
+          "id": "t01-baseline",
+          "title": "Record the before measurements",
+          "descriptionMarkdown": "On origin/main 58257fe run `benchmark/run.py --hold-clocks 3` (macOS and web-webgpu; `retention`, `text`, `scroll`; fast mode on) with the benchmark's gpux features plus `devtools`, as it is, and with a throwaway patch that forces the accessibility flag on; keep the patches and raw results under `artifacts-temp/agentx/gpux-a11y-devtools/` and write `docs/measurements/a11y-devtools.md`. Nothing but the document is committed.",
+          "criterionIds": [
+            "PERF-1"
+          ],
+          "designIds": [
+            "d-measurements"
+          ],
+          "dependsOn": [],
+          "checkIds": [],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "benchmark/run.py"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "benchmark/README.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "benchmark/Cargo.toml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "docs/fast-mode.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s01a-accesskit-025",
+      "title": "Move gpux to AccessKit 0.25",
+      "dependsOn": [
+        "s01-baseline"
+      ],
+      "memoryScopes": [
+        "repository/upstream-sync",
+        "repository/packaging"
+      ],
+      "tasks": [
+        {
+          "id": "t01b-accesskit-025",
+          "title": "AccessKit 0.25 for every adapter",
+          "descriptionMarkdown": "Move the workspace pins to `accesskit` 0.25.1, `accesskit_consumer` 0.39.1, `accesskit_macos` 0.27.1, `accesskit_windows` 0.35.1 and `accesskit_unix` 0.24.0 in one change; rename `accesskit::Tree` to `TreeInfo` with gpux's toolkit name and version; record the gpux-local pins in the upstream checklist and provenance. New group `crates/gpui/tests/accesskit_025.rs`; Linux checked in the Lima VM, Windows by the pull request's CI.",
+          "criterionIds": [
+            "AK-1",
+            "AK-2"
+          ],
+          "designIds": [
+            "d-accesskit-025"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-accesskit-025",
+            "check-accesskit-a11y-unit",
+            "check-accesskit-macos-build",
+            "check-accesskit-linux-build"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "Cargo.toml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window/a11y.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "docs/history/upstream-provenance.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": ".claude/skills/gpux/references/update-from-zed-gpui-closure.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s02-activation",
+      "title": "Accessibility activation sources, modes and inspection on every platform",
+      "dependsOn": [
+        "s01a-accesskit-025"
+      ],
+      "memoryScopes": [
+        "gpui/frame-pipeline",
+        "platform/web",
+        "platform/mobile"
+      ],
+      "tasks": [
+        {
+          "id": "t02-activation-sources",
+          "title": "Platform and inspection sources, accessibility modes",
+          "descriptionMarkdown": "Split `A11y`'s single flag into the platform flag, the inspection count and the application's `AccessibilityMode` (`Auto`, `Always`, `Off`); keep the platform send rule; add `Application::with_accessibility_mode`, `App::set_accessibility_mode` and `GPUX_ACCESSIBILITY`; `Off` sends an active adapter a root-only tree and keeps inspection; make `new_inaccessible` refuse every source. New group `crates/gpui/tests/a11y_activation.rs`.",
+          "criterionIds": [
+            "ACT-1",
+            "ACT-2"
+          ],
+          "designIds": [
+            "d-activation-sources"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-a11y-activation"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window/a11y.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/app.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/platform/test/window.rs"
+            }
+          ]
+        },
+        {
+          "id": "t04a-accessibility-feature",
+          "title": "The `accessibility` Cargo feature",
+          "descriptionMarkdown": "Make each platform crate's screen-reader adapter optional behind `accessibility` (default on, forwarded from `gpux-platform`, on with `test-support`; `wayland`/`x11` no longer pull `accesskit_unix` in alone); `a11y_init`/`a11y_tree_update` are no-ops without it. The web mirror (s05a) and the mobile adapters (s05b) join the same feature.",
+          "criterionIds": [
+            "ACT-5"
+          ],
+          "designIds": [
+            "d-accessibility-feature"
+          ],
+          "dependsOn": [
+            "t02-activation-sources"
+          ],
+          "checkIds": [
+            "check-a11y-feature-tree",
+            "check-a11y-feature-off-build"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_platform/Cargo.toml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_macos/Cargo.toml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_windows/Cargo.toml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_linux/Cargo.toml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_macos/src/window.rs"
+            }
+          ]
+        },
+        {
+          "id": "t03-inspection-guard",
+          "title": "Inspection guards and the tree read",
+          "descriptionMarkdown": "`Window::begin_a11y_inspection` and its guard (forced full redraw on the first, a frame on the last drop) and `Window::a11y_tree` over the update `A11yDebug` retains. New group `crates/gpui/tests/a11y_inspection_guard.rs`.",
+          "criterionIds": [
+            "ACT-3"
+          ],
+          "designIds": [
+            "d-activation-sources"
+          ],
+          "dependsOn": [
+            "t04a-accessibility-feature"
+          ],
+          "checkIds": [
+            "check-a11y-inspection-guard"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window/a11y.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window/a11y/debug.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/app/test_context.rs"
+            }
+          ]
+        },
+        {
+          "id": "t04-inspection-everywhere",
+          "title": "Build the tree on wasm32, iOS and Android",
+          "descriptionMarkdown": "Remove the wasm gate around the adapter setup; export a tree read from the web host bridge; add `tools-node/specs/accessibility.spec.ts`.",
+          "criterionIds": [
+            "ACT-4"
+          ],
+          "designIds": [
+            "d-inspection-everywhere"
+          ],
+          "dependsOn": [
+            "t03-inspection-guard"
+          ],
+          "checkIds": [
+            "check-a11y-web-build",
+            "check-a11y-ios-build",
+            "check-a11y-lane-b"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/examples/web_host/bridge.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/examples/web_host/lib.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tools-node/specs/scenes.spec.ts"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s03-tree",
+      "title": "Complete the AccessKit tree: text leaves, inspection containers, relations, actions",
+      "dependsOn": [
+        "s02-activation"
+      ],
+      "memoryScopes": [
+        "gpui/frame-pipeline",
+        "gpui/text",
+        "gpui/positioning-scroll"
+      ],
+      "tasks": [
+        {
+          "id": "t05-text-leaves",
+          "title": "Plain text as Label leaves",
+          "descriptionMarkdown": "`A11yNodeBuilder::push_text_leaf` with per-parent ordinals; every text element kind pushes a leaf when the tree is built and it has no id (beside today's `set_devtools_semantics_with` calls, which s09-removal removes). New group `crates/gpui/tests/a11y_text_leaves.rs`.",
+          "criterionIds": [
+            "TREE-1"
+          ],
+          "designIds": [
+            "d-text-leaves"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-a11y-text-leaves"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/text.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window/a11y.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/element.rs"
+            }
+          ]
+        },
+        {
+          "id": "t06-inspection-containers",
+          "title": "Generic containers and the id map while inspecting",
+          "descriptionMarkdown": "Push `GenericContainer` nodes for id-only elements and keep the node-id to global-id map while inspection is on. New group `crates/gpui/tests/a11y_inspection_tree.rs`.",
+          "criterionIds": [
+            "TREE-2",
+            "TREE-3"
+          ],
+          "designIds": [
+            "d-inspection-tree"
+          ],
+          "dependsOn": [
+            "t05-text-leaves"
+          ],
+          "checkIds": [
+            "check-a11y-inspection-tree"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/element.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window/a11y.rs"
+            }
+          ]
+        },
+        {
+          "id": "t07-relations",
+          "title": "Required, read-only and relation properties",
+          "descriptionMarkdown": "The six div builders on `AriaProperties` (behind `LazyAria`), the relation queue and its end-of-frame resolution through `accessibility_id`. New group `crates/gpui/tests/a11y_relations.rs`.",
+          "criterionIds": [
+            "TREE-4"
+          ],
+          "designIds": [
+            "d-relations"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-a11y-relations"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/div.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window/a11y.rs"
+            }
+          ]
+        },
+        {
+          "id": "t08-actions",
+          "title": "Custom actions, ScrollIntoView and in-process requests",
+          "descriptionMarkdown": "`on_a11y_custom_action` (a `LazyVec`), per-node scrolling ancestors and the default ScrollIntoView, `Window::perform_a11y_action` on the adapter's dispatch path. New group `crates/gpui/tests/a11y_actions.rs`.",
+          "criterionIds": [
+            "TREE-5"
+          ],
+          "designIds": [
+            "d-actions"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-a11y-actions"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/div.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window/a11y.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s04-fast",
+      "title": "Fast mode carries the accessibility tree",
+      "dependsOn": [
+        "s03-tree"
+      ],
+      "memoryScopes": [
+        "gpui/frame-pipeline",
+        "gpui/positioning-scroll"
+      ],
+      "tasks": [
+        {
+          "id": "t09-fast-describe",
+          "title": "The frame description and verification include the tree",
+          "descriptionMarkdown": "List the tree in `describe_rendered_frame`, let shadow verification and the oracle run with accessibility on. New group `fast::tests::a11y_describe`.",
+          "criterionIds": [
+            "FAST-1"
+          ],
+          "designIds": [
+            "d-fast-carry"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-fast-a11y-describe"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/verify.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window.rs"
+            }
+          ]
+        },
+        {
+          "id": "t10-fast-retention",
+          "title": "View replay, retained paint and splice carry the tree",
+          "descriptionMarkdown": "Add the accessibility lengths to the prepaint and paint indices, copy the records on every retention path beside the (feature-gated) DevKit copies, truncate in `transact`, remove the `view.rs` and `Bypass::Accessibility` bypasses. New group `fast::tests::a11y_retention`.",
+          "criterionIds": [
+            "FAST-2"
+          ],
+          "designIds": [
+            "d-fast-carry"
+          ],
+          "dependsOn": [
+            "t09-fast-describe"
+          ],
+          "checkIds": [
+            "check-fast-a11y-retention"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/view.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/retained.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/splice.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window.rs"
+            }
+          ]
+        },
+        {
+          "id": "t11-fast-layers",
+          "title": "List layers, scroll layers and kept content carry the tree",
+          "descriptionMarkdown": "Hidden rows contribute no node (tests at the shipped overscan), composited frames step carried bounds, kept content takes the layer's nodes and the `Div::prepaint` fallback builds them, remove the `fast::layers::active` bypass that also gates `expects_composite`. New groups `crates/gpux_conformance/tests/lane_c_a11y_layers.rs` and `crates/gpui/tests/fast_mode_a11y.rs`.",
+          "criterionIds": [
+            "FAST-3"
+          ],
+          "designIds": [
+            "d-fast-carry"
+          ],
+          "dependsOn": [
+            "t10-fast-retention"
+          ],
+          "checkIds": [
+            "check-fast-a11y-layers",
+            "check-fast-a11y-counters"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/layers/mod.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/layers/lists.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/layers/reuse.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/layers/policy.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/div.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s05-queries",
+      "title": "Tests and conformance hosts query the AccessKit tree",
+      "dependsOn": [
+        "s04-fast"
+      ],
+      "memoryScopes": [
+        "repository/validation",
+        "gpui/frame-pipeline"
+      ],
+      "tasks": [
+        {
+          "id": "t12-accesskit-queries",
+          "title": "semantic_query and Locator over the AccessKit tree",
+          "descriptionMarkdown": "Build queries on `accesskit_consumer` behind the `semantic-query` feature, the role table, state terms, `view=screen-reader`, the removed `type=`; locators hold inspection guards; move `semantic_locators`, `test_platform_semantics_fidelity` and `ignored_hitbox_semantics` to the new tree and replace `devtools_snapshot_tree`. New group `crates/gpui/tests/semantic_query_accesskit.rs`.",
+          "criterionIds": [
+            "QRY-1",
+            "QRY-2"
+          ],
+          "designIds": [
+            "d-queries"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-query-accesskit"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/semantic_query.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/semantic_query/locator.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/app/test_context.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/Cargo.toml"
+            }
+          ]
+        },
+        {
+          "id": "t13-conformance-accessibility",
+          "title": "Conformance hosts and scenes on AccessKit, the accessibility scene",
+          "descriptionMarkdown": "Every host resolves through the new queries, `Area::Accessibility`, AccessKit annotations in the catalog scenes and the status helper, `semantic-query` in place of `devtools` in the crate's manifest, and the new `accessibility` scene. New group `crates/gpux_conformance/tests/conformance_accessibility.rs`.",
+          "criterionIds": [
+            "QRY-3"
+          ],
+          "designIds": [
+            "d-queries"
+          ],
+          "dependsOn": [
+            "t12-accesskit-queries"
+          ],
+          "checkIds": [
+            "check-conformance-accessibility"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/Cargo.toml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/src/scene.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/src/scenes/common.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/src/evaluate.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/src/app_host.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/src/test_host.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/examples/desktop_host/checks.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/examples/ios_host/checks.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/examples/android_host/checks.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/examples/web_host/bridge.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s05a-web-screen-readers",
+      "title": "Screen readers on the web: the DOM mirror",
+      "dependsOn": [
+        "s05-queries"
+      ],
+      "memoryScopes": [
+        "platform/web",
+        "gpui/input"
+      ],
+      "tasks": [
+        {
+          "id": "t13a-web-mirror",
+          "title": "The DOM mirror from the AccessKit tree",
+          "descriptionMarkdown": "The web accessibility module, behind `gpux-web`'s `accessibility` feature: `a11y_init`/`a11y_tree_update` on the web window, the consumer-driven element tree beside the canvas, the ARIA role table, names, states, values, relations, boxes, `aria-owns` for `html_element`. New spec `tools-node/specs/screen-reader.spec.ts` (`screen-reader: tree ...`).",
+          "criterionIds": [
+            "SR-1"
+          ],
+          "designIds": [
+            "d-web-adapter"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-sr-web-tree",
+            "check-sr-web-build"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/html_element.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/gpui_web.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/Cargo.toml"
+            }
+          ]
+        },
+        {
+          "id": "t13b-web-input",
+          "title": "Screen-reader operation on the web",
+          "descriptionMarkdown": "DOM click, focus and ARIA keyboard interactions as action requests, gpux focus to DOM focus behind a guard, the focused text field on the IME mirror textarea, key events from mirror elements, `aria-live`. Titles `screen-reader: input ...`.",
+          "criterionIds": [
+            "SR-2"
+          ],
+          "designIds": [
+            "d-web-adapter"
+          ],
+          "dependsOn": [
+            "t13a-web-mirror"
+          ],
+          "checkIds": [
+            "check-sr-web-input"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/ime_mirror.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/events.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/keyboard.rs"
+            }
+          ]
+        },
+        {
+          "id": "t13c-web-activation",
+          "title": "Activation on the web",
+          "descriptionMarkdown": "The hidden \"Enable accessibility\" button, `WebScreenReader::Always`, the localizable label, no mirror before activation. Titles `screen-reader: activation ...`.",
+          "criterionIds": [
+            "SR-3"
+          ],
+          "designIds": [
+            "d-web-adapter"
+          ],
+          "dependsOn": [
+            "t13b-web-input"
+          ],
+          "checkIds": [
+            "check-sr-web-activation"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/platform.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s05b-mobile-screen-readers",
+      "title": "Screen readers on iOS and Android",
+      "dependsOn": [
+        "s05a-web-screen-readers"
+      ],
+      "memoryScopes": [
+        "platform/mobile",
+        "repository/packaging"
+      ],
+      "tasks": [
+        {
+          "id": "t13d-ios-adapter",
+          "title": "VoiceOver through accesskit_ios",
+          "descriptionMarkdown": "Add `accesskit_ios` 0.2.1 for iOS targets behind `gpux-mobile`'s `accessibility` feature; the `SubclassingAdapter` on `GPUIMetalView` from `a11y_init`, updates on the main thread, handlers to `A11yCallbacks`, teardown before the view; lane F group `screen-reader` in the iOS host.",
+          "criterionIds": [
+            "SR-4"
+          ],
+          "designIds": [
+            "d-mobile-adapters"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-sr-ios-build",
+            "check-sr-ios"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/ios/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/Cargo.toml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/examples/ios_host/checks.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tooling/testkit/src/ios.rs"
+            }
+          ]
+        },
+        {
+          "id": "t13e-android-adapter",
+          "title": "TalkBack through accesskit_android",
+          "descriptionMarkdown": "Add `accesskit_android` 0.9.0 (`embedded-dex`) for Android targets behind the same feature; the `InjectingAdapter` on the NativeActivity content view and the embedded `SurfaceView`, raw-pointer `jni` bridging, handlers to `A11yCallbacks`; lane E group `screen-reader` with `uiautomator dump` and an accessibility click and a slider adjustment; the feature's `cargo tree` check for both mobile adapters.",
+          "criterionIds": [
+            "SR-5"
+          ],
+          "designIds": [
+            "d-mobile-adapters"
+          ],
+          "dependsOn": [
+            "t13d-ios-adapter"
+          ],
+          "checkIds": [
+            "check-sr-android-build",
+            "check-sr-android-native-build",
+            "check-sr-android",
+            "check-sr-mobile-feature-tree",
+            "check-sr-android-registry"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/android/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/android/jni.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/android/embedded.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/Cargo.toml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/examples/android_host/checks.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tooling/testkit/src/android.rs"
+            }
+          ]
+        },
+        {
+          "id": "t13f-accessibility-docs",
+          "title": "docs/accessibility.md",
+          "descriptionMarkdown": "Write `docs/accessibility.md` (every build-time and runtime switch, sources and modes, inspection, the web mirror and its activation, the mobile adapters, annotation guidance, per-platform coverage and limits) and the walkthrough steps the owner follows in s11-owner-screen-readers.",
+          "criterionIds": [
+            "SR-6"
+          ],
+          "designIds": [
+            "d-web-adapter",
+            "d-mobile-adapters"
+          ],
+          "dependsOn": [
+            "t13e-android-adapter"
+          ],
+          "checkIds": [],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "README.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "docs/testing.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s06-devtools",
+      "title": "gpux-devtools: the in-app client",
+      "dependsOn": [
+        "s05b-mobile-screen-readers"
+      ],
+      "memoryScopes": [
+        "gpui/input",
+        "repository/packaging",
+        "platform/web"
+      ],
+      "tasks": [
+        {
+          "id": "t14-devtools-client",
+          "title": "Crate, install, transports and protocol",
+          "descriptionMarkdown": "Create `crates/gpux_devtools` (workspace member, README table, publishable manifest), `install` with URL precedence and the build-time switch (the dependency; a `cargo tree` check that `gpux` and `gpux-platform` never link it) and the runtime switches (`Options::enabled`, `GPUX_DEVTOOLS`, `set_enabled`), the native `tungstenite` and wasm `web_sys::WebSocket` transports with backoff, `hello`, versions, token, window notifications, guards while connected. New group `tests/connection.rs`.",
+          "criterionIds": [
+            "DEV-1",
+            "DEV-2"
+          ],
+          "designIds": [
+            "d-devtools-client",
+            "d-protocol"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-devtools-connection",
+            "check-devtools-not-linked"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "Cargo.toml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "README.md"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_devkit/src/connector.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_devkit/src/protocol.rs"
+            }
+          ]
+        },
+        {
+          "id": "t15-devtools-snapshot",
+          "title": "Snapshot and query",
+          "descriptionMarkdown": "YAML aria-snapshot rendering of both views with refs and optional bounds; `query` through `semantic_query`. New group `tests/snapshot.rs`.",
+          "criterionIds": [
+            "DEV-3"
+          ],
+          "designIds": [
+            "d-devtools-client"
+          ],
+          "dependsOn": [
+            "t14-devtools-client"
+          ],
+          "checkIds": [
+            "check-devtools-snapshot"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/semantic_query.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_devkit/src/nodes.rs"
+            }
+          ]
+        },
+        {
+          "id": "t16-devtools-act",
+          "title": "Actions and synthesized input",
+          "descriptionMarkdown": "`act` through `perform_a11y_action`; `input` with the dispatch helpers ported from `rayx_devkit`'s live command path. New group `tests/actions.rs`.",
+          "criterionIds": [
+            "DEV-4"
+          ],
+          "designIds": [
+            "d-devtools-client"
+          ],
+          "dependsOn": [
+            "t15-devtools-snapshot"
+          ],
+          "checkIds": [
+            "check-devtools-actions"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_devkit/src/app_ext.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window.rs"
+            }
+          ]
+        },
+        {
+          "id": "t17-devtools-observe",
+          "title": "Screenshots, waits and stats",
+          "descriptionMarkdown": "`screenshot` (window or ref, PNG), `wait` over frames, `stats`; the wasm32 build of the crate. New group `tests/observe.rs`.",
+          "criterionIds": [
+            "DEV-5"
+          ],
+          "designIds": [
+            "d-devtools-client"
+          ],
+          "dependsOn": [
+            "t16-devtools-act"
+          ],
+          "checkIds": [
+            "check-devtools-observe",
+            "check-devtools-web-build"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_devkit/src/runtime.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s07-mcp",
+      "title": "gpux-devtools-mcp and every platform",
+      "dependsOn": [
+        "s06-devtools"
+      ],
+      "memoryScopes": [
+        "repository/packaging",
+        "repository/validation",
+        "platform/web",
+        "platform/mobile"
+      ],
+      "tasks": [
+        {
+          "id": "t18-mcp-sidecar",
+          "title": "The stdio MCP sidecar",
+          "descriptionMarkdown": "Create `crates/gpux_devtools_mcp` (binary `gpux-devtools-mcp`): the loopback WebSocket server and app registry, the MCP loop and tool schemas ported from `rayx_devkit_mcp`, `--port`, `--token`, `--print-manifest`. New group `tests/stdio_protocol.rs`.",
+          "criterionIds": [
+            "MCP-1"
+          ],
+          "designIds": [
+            "d-mcp-sidecar"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-mcp-stdio"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_devkit_mcp/src/native.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "Cargo.toml"
+            }
+          ]
+        },
+        {
+          "id": "t19-mcp-extensions",
+          "title": "Extension tools",
+          "descriptionMarkdown": "List, disambiguate and forward the tools apps advertise. New group `tests/extensions.rs`.",
+          "criterionIds": [
+            "MCP-2"
+          ],
+          "designIds": [
+            "d-mcp-sidecar"
+          ],
+          "dependsOn": [
+            "t18-mcp-sidecar"
+          ],
+          "checkIds": [
+            "check-mcp-extensions"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_devkit_mcp/src/native.rs"
+            }
+          ]
+        },
+        {
+          "id": "t20-devtools-platforms",
+          "title": "Desktop, browser, iOS and Android",
+          "descriptionMarkdown": "Lane groups `devtools` in the desktop, iOS and Android conformance hosts and the `devtools` lane B spec (with a WebSocket server in the spec; `adb reverse` in the testkit's Android run).",
+          "criterionIds": [
+            "DEV-6",
+            "DEV-7"
+          ],
+          "designIds": [
+            "d-protocol"
+          ],
+          "dependsOn": [
+            "t19-mcp-extensions"
+          ],
+          "checkIds": [
+            "check-devtools-lane-d",
+            "check-devtools-lane-b",
+            "check-devtools-lane-f",
+            "check-devtools-lane-e"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "tooling/testkit/src/lanes.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tooling/testkit/src/android.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tooling/testkit/src/ios.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/examples/desktop_host/checks.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tools-node/specs/scenes.spec.ts"
+            }
+          ]
+        },
+        {
+          "id": "t21-devtools-docs",
+          "title": "docs/devtools.md and the crate table",
+          "descriptionMarkdown": "Write `docs/devtools.md` (including how to add it as an optional dependency behind an app feature and how to switch it on and off) and update the README crate table and `docs/testing.md`.",
+          "criterionIds": [
+            "MCP-3"
+          ],
+          "designIds": [
+            "d-mcp-sidecar"
+          ],
+          "dependsOn": [
+            "t20-devtools-platforms"
+          ],
+          "checkIds": [],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "README.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "docs/testing.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s08-rayx",
+      "title": "RayX on AccessKit, gpux-devtools and the web screen reader",
+      "dependsOn": [
+        "s07-mcp"
+      ],
+      "memoryScopes": [
+        "rayx:tooling/devkit-diagnostics",
+        "rayx:ui/accessibility",
+        "rayx:ui/theming-components",
+        "rayx:runtime/services",
+        "rayx:examples/test-suite",
+        "rayx:examples/lab",
+        "rayx:tooling/validation",
+        "rayx:ui/virtualization"
+      ],
+      "tasks": [
+        {
+          "id": "t22a-gpux-shared-focus",
+          "title": "Nested nodes sharing one focus handle",
+          "descriptionMarkdown": "Found while migrating RayX (s08): a RayX text control's host tracks the same focus handle as gpux's inner `EditableText`, both with roles, so a focused field claimed the tree's focus twice and debug builds panicked (\"set_focus called more than once in a single frame\") whenever the tree was built, for inspection or a screen reader. A claim through the handle that already holds the focus now takes over, so the innermost node of a shared handle is focused; claims through two handles still panic. New group `crates/gpui/tests/a11y_shared_focus.rs`.",
+          "criterionIds": [],
+          "supportingCriterionIds": [
+            "TREE-2",
+            "RX-2"
+          ],
+          "designIds": [
+            "d-rayx-migration"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-a11y-shared-focus"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window/a11y.rs"
+            }
+          ]
+        },
+        {
+          "id": "t22b-one-text-field-node",
+          "title": "A text field is one named node",
+          "descriptionMarkdown": "Found by the s08 RayX screen-reader spec: each RayX text control was two text inputs, the host (name, states, SetValue) and gpux's `EditableText` inside it, which held the focus with no name, so screen readers announced an unnamed field (SR-2) and met each field twice (RX-2). gpux's `EditableText` takes what a host says of it (`aria_role`, description, required, invalid, `accessibility_id`, labelled-by, described-by, error message, `on_set_value`, else SetValue replaces the text), and a field that takes the focus over a host container tracking the same handle holds the inspection focus. RayX's TextField, SearchField, TextArea, OtpField and PasswordField annotate their `EditableText` and drop the host's role; NumberField stays a spin button around its named input. New group `crates/gpui/tests/a11y_editable_text_host.rs`.",
+          "criterionIds": [],
+          "supportingCriterionIds": [
+            "SR-2",
+            "RX-2"
+          ],
+          "designIds": [
+            "d-rayx-migration"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-a11y-editable-text-host"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/element.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_core/src/forms/form/text_field/text_field.rs"
+            }
+          ]
+        },
+        {
+          "id": "t22-rx-annotations",
+          "title": "AccessKit-only annotations across the component crates",
+          "descriptionMarkdown": "Remove every `devtools_semantics` call in `crates/`; convert the core and blocks files that had only devtools semantics; rewrite the existing tests that read devtools snapshots. New groups `tests/accesskit_from_devtools.rs` in `rayx_components_core`, `rayx_components_base` and `rayx_blocks`.",
+          "criterionIds": [
+            "RX-2"
+          ],
+          "designIds": [
+            "d-rayx-migration"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-rx-core-accesskit",
+            "check-rx-base-accesskit",
+            "check-rx-blocks-accesskit",
+            "check-rx-migrated-tests"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_base/src/collapsible_base.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_core/tests/accessibility.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_core/tests/field_semantics.rs"
+            }
+          ]
+        },
+        {
+          "id": "t23-rx-actions",
+          "title": "Writable properties and pointer actions as AccessKit actions",
+          "descriptionMarkdown": "Property-grid editors handle SetValue or custom actions; the canvas, node editor and interactive viewer expose their operations as AccessKit actions. New groups `tests/accesskit_actions.rs` in `rayx_components_propertygrid`, `rayx_components_node_editor` and `rayx_components_canvas_infinite`. The core interactive viewer's actions get their own group, `rayx_components_core/tests/interactive_viewer_accesskit_actions.rs`.",
+          "criterionIds": [
+            "RX-3"
+          ],
+          "designIds": [
+            "d-rayx-migration"
+          ],
+          "dependsOn": [
+            "t22-rx-annotations"
+          ],
+          "checkIds": [
+            "check-rx-property-actions",
+            "check-rx-node-editor-actions",
+            "check-rx-canvas-actions",
+            "check-rx-viewer-actions"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_propertygrid/src/integration/devkit.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_propertygrid/src/grid/element.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_propertygrid/src/editors/path_editor.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_canvas_infinite/src/canvas/element.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_node_editor/src/editor/element.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_core/src/_interactive/interactive_viewer.rs"
+            }
+          ]
+        },
+        {
+          "id": "t24-rx-devkit-extension",
+          "title": "rayx_devkit as gpux-devtools extensions",
+          "descriptionMarkdown": "`with_devkit` installs gpux-devtools with RayX's extension tools; delete the connector, registry, protocol, node mapping, live command path and `rayx_devkit_mcp`. New group `crates/rayx_devkit/tests/gpux_devtools_extension.rs`. Keep the apps' `devkit` feature as the build-time switch, carry `enabled` through `with_devkit`, add the accessibility mode to `ApplicationConfiguration`, and enable gpux's `accessibility` feature on `gpui_mobile`.",
+          "criterionIds": [
+            "RX-4"
+          ],
+          "designIds": [
+            "d-rayx-devkit-extension"
+          ],
+          "dependsOn": [
+            "t23-rx-actions"
+          ],
+          "checkIds": [
+            "check-rx-devkit-extension"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_devkit/src/lib.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_devkit/src/app_ext.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_devkit/src/nodes.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_devkit_mcp/src/native.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "apps/test_suite/Cargo.toml"
+            }
+          ]
+        },
+        {
+          "id": "t25-rx-apps-and-probes",
+          "title": "Test Suite, Lab, the probes and the browser screen-reader spec",
+          "descriptionMarkdown": "Remove devtools calls from `apps/test_suite` and `apps/lab` (real AccessKit annotations only, no test hooks in Lab); move the DevKit probes and the data-table selection spec to gpux-devtools; add `tools-node/test_suite/devtools-desktop-smoke.mjs` and `tools-node/test_suite/rayx-screen-reader.spec.ts`.",
+          "criterionIds": [
+            "RX-5"
+          ],
+          "designIds": [
+            "d-rayx-devkit-extension"
+          ],
+          "dependsOn": [
+            "t24-rx-devkit-extension"
+          ],
+          "checkIds": [
+            "check-rx-test-suite-spec",
+            "check-rx-desktop-smoke",
+            "check-rx-screen-reader-spec"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "rayx",
+              "path": "apps/test_suite/README.md"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "tools-node/test_suite/rayx-data-table-selection.spec.ts"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "tools-node/test_suite/android-pointer-gesture-probe.mjs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "tools-node/test_suite/rayx-components-base-completion-targets.mjs"
+            }
+          ],
+          "supportingCriterionIds": [
+            "RX-2"
+          ]
+        },
+        {
+          "id": "t25a-select-all-shortcut",
+          "title": "Select-all follows the keyboard",
+          "descriptionMarkdown": "Bind select-all for RayX's text fields and selection areas to `secondary-a` instead of `ctrl-a`, so a Mac browser's Command-A reaches them. New group `tests/select_all_shortcut.rs` in `rayx_components_core`.",
+          "criterionIds": [
+            "RX-7"
+          ],
+          "designIds": [
+            "d-rayx-migration"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-rx-select-all",
+            "check-rx-test-suite-spec",
+            "check-rx-screen-reader-spec"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_core/src/forms/form/actions.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_core/src/default_input_map.rs"
+            }
+          ]
+        },
+        {
+          "id": "t26-rx-guard-docs",
+          "title": "Guard test and RayX docs",
+          "descriptionMarkdown": "Add the retired-API guard; update the DevKit and accessibility docs and skills listed in RX-6.",
+          "criterionIds": [
+            "RX-1",
+            "RX-6"
+          ],
+          "designIds": [
+            "d-rayx-migration"
+          ],
+          "dependsOn": [
+            "t25-rx-apps-and-probes"
+          ],
+          "checkIds": [
+            "check-rx-guard"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "rayx",
+              "path": ".claude/skills/rayx/references/devkit.md"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": ".claude/skills/rayx/references/diagnostics.md"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "docs/src/rayx/android.md"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "apps/examples_mobile/README.md"
+            }
+          ]
+        },
+        {
+          "id": "t25b-readable-values",
+          "title": "Readable accessibility values, machine state for agents",
+          "descriptionMarkdown": "Replace the diagnostic `aria_value` strings of the infinite canvas, minimap, node editor (root, nodes, ports, connections, labels) and property grid (rows, editor hosts, operations) with human-readable values; publish the machine state through a new `rayx_runtime::component_state` registry (`ComponentStateExt::component_state`), enabled by DevKit and served as the extension tool `rayx_component_state`. New groups `announced_values` and `rayx_runtime/tests/component_state.rs`; the existing readers move to the published state.",
+          "criterionIds": [
+            "RX-8"
+          ],
+          "designIds": [
+            "d-rayx-migration",
+            "d-rayx-devkit-extension"
+          ],
+          "dependsOn": [
+            "t22-rx-annotations",
+            "t24-rx-devkit-extension"
+          ],
+          "checkIds": [
+            "check-rx-announced-values",
+            "check-rx-component-state",
+            "check-rx-component-state-readers",
+            "check-rx-node-editor-state-readers",
+            "check-rx-property-actions",
+            "check-rx-devkit-extension"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_runtime/src/component_state.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_canvas_infinite/src/integration/accessibility.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_node_editor/src/integration/accessibility.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_propertygrid/src/integration/accessibility.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_devkit/src/extensions.rs"
+            }
+          ]
+        },
+        {
+          "id": "t25c-editor-select-all",
+          "title": "Select-all follows the keyboard in the editors, canvas and node editor",
+          "descriptionMarkdown": "Bind select-all of the code editor, rich-text editor, infinite canvas and node editor to `secondary-a` and update the Test Suite's and Lab's `application-input-map.json` to the components' typed defaults. New test `select_all_bindings_use_the_secondary_modifier_and_match_component_defaults` in `apps/test_suite/src/lib.rs`.",
+          "criterionIds": [
+            "RX-9"
+          ],
+          "designIds": [
+            "d-rayx-migration"
+          ],
+          "dependsOn": [
+            "t25a-select-all-shortcut"
+          ],
+          "checkIds": [
+            "check-rx-editor-select-all"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_code/src/editor_actions.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_rich_text_editor/src/actions.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_canvas_infinite/src/actions.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_node_editor/src/actions.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "apps/test_suite/application-input-map.json"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "apps/lab/application-input-map.json"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s09-removal",
+      "title": "Remove the devtools surface from gpux",
+      "dependsOn": [
+        "s08-rayx"
+      ],
+      "memoryScopes": [
+        "gpui",
+        "gpui/frame-pipeline",
+        "gpui/positioning-scroll",
+        "repository/upstream-sync"
+      ],
+      "tasks": [
+        {
+          "id": "t27-remove-devtools",
+          "title": "Delete the devtools feature, types, records and carry",
+          "descriptionMarkdown": "Delete every retired symbol, the `devtools` feature and its `DEVTOOLS` gates, and the DevKit-node handling in `fast/`; add `Window::effect_diagnostics()`; add the guard. Commit paired with RayX's s08-rayx commits. New groups `crates/gpui/tests/devtools_removed_guard.rs` and `crates/gpui/tests/effect_diagnostics.rs`. The paired RayX commit restores the navigation region tests' painted-region assertion through `effect_diagnostics()` (RayX check `check-rx-navigation-paint`).",
+          "criterionIds": [
+            "REM-1",
+            "REM-2"
+          ],
+          "designIds": [
+            "d-remove-devtools"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-devtools-guard",
+            "check-effect-diagnostics",
+            "check-rx-navigation-paint"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/Cargo.toml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/element.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/text.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/splice.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/retained.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/layers/lists.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/layers/reuse.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/verify.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_runtime/src/services/navigation/tests.rs"
+            }
+          ]
+        },
+        {
+          "id": "t28-cleanup-docs",
+          "title": "Checklist, docs and the alias",
+          "descriptionMarkdown": "Rewrite the upstream-import checklist's DevKit section, update `docs/fast-mode.md` (its `devtools` feature section), `README.md` and `LINUX-WSL.md`, drop gpui's `rayx_diagnostics` alias.",
+          "criterionIds": [
+            "REM-3"
+          ],
+          "designIds": [
+            "d-remove-devtools"
+          ],
+          "dependsOn": [
+            "t27-remove-devtools"
+          ],
+          "checkIds": [],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": ".claude/skills/gpux/references/update-from-zed-gpui-closure.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "docs/fast-mode.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "README.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "LINUX-WSL.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/Cargo.toml"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s10-after",
+      "title": "Measure the result",
+      "dependsOn": [
+        "s09-removal"
+      ],
+      "memoryScopes": [
+        "repository/validation"
+      ],
+      "tasks": [
+        {
+          "id": "t29-after-measurements",
+          "title": "Record the after measurements",
+          "descriptionMarkdown": "Repeat PERF-1's runs for the epic's build with accessibility off and with `GPUX_ACCESSIBILITY=always` (one binary, alternated, clocks held), add tree sizes, name regressions and causes.",
+          "criterionIds": [
+            "PERF-2"
+          ],
+          "designIds": [
+            "d-measurements"
+          ],
+          "dependsOn": [],
+          "checkIds": [],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "benchmark/run.py"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s10a-voiceover-fixes",
+      "title": "Fix what VoiceOver found on macOS and in Safari",
+      "dependsOn": [
+        "s10-after"
+      ],
+      "memoryScopes": [
+        "platform/desktop",
+        "platform/web",
+        "gpui"
+      ],
+      "tasks": [
+        {
+          "id": "t31-voiceover-macos",
+          "title": "VoiceOver on macOS: the adapter fork and slider orientation",
+          "descriptionMarkdown": "Vendor `accesskit_macos` 0.27.1 as `gpux-accesskit-macos` with the VoiceOver changes (table rows and cells, expanded state, range values and increment, dimmed disabled controls), give a slider without an orientation ARIA's horizontal default, and prove them in the lane D check `screen-reader-macos-voiceover` and the gpui group `a11y_aria_defaults`.",
+          "criterionIds": [
+            "SR-8"
+          ],
+          "designIds": [
+            "d-macos-adapter-fork"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-sr-macos-voiceover",
+            "check-sr-aria-defaults"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "vendor/accesskit_macos/src/node.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/div.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/examples/desktop_host/screen_reader.rs"
+            }
+          ]
+        },
+        {
+          "id": "t32-voiceover-web",
+          "title": "VoiceOver in Safari: moving through the mirror",
+          "descriptionMarkdown": "Place the IME textarea right after the field it stands for (hiding the field's element), hide it while it stands for none, leave unchanged attributes alone, and give a spin button its number as value text; specs `screen-reader: navigation ...` and `screen-reader: tree a spin button ...`.",
+          "criterionIds": [
+            "SR-9"
+          ],
+          "designIds": [
+            "d-web-adapter"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-sr-web-navigation"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/accessibility.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/ime_mirror.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tools-node/specs/screen-reader.spec.ts"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s10b-ci-repairs",
+      "title": "Repair what the first CI run found",
+      "dependsOn": [
+        "s10a-voiceover-fixes"
+      ],
+      "memoryScopes": [
+        "gpui/frame-pipeline"
+      ],
+      "tasks": [
+        {
+          "id": "t33-ci-repairs",
+          "title": "The retention verifier's text and the composition scene's ids",
+          "descriptionMarkdown": "The retention verifier tells a retained view by its accessibility events and sprite tiles (`fast/verify.rs` `describe_view`, `A11yEvent::describe`) and reports a differing view without a frame-wide difference; the verify-mode tests build the tree in both windows. The `web-composition` scene's second status gets its own id.",
+          "criterionIds": [
+            "REM-4"
+          ],
+          "designIds": [
+            "d-remove-devtools"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-verify-mode-text",
+            "check-web-composition-exits"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/verify.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window/a11y.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/examples/web_host/web_scenes.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s10c-followups",
+      "title": "Duplicate element ids, hidden benchmark windows and the fork in CI",
+      "dependsOn": [
+        "s10b-ci-repairs"
+      ],
+      "memoryScopes": [
+        "gpui/frame-pipeline",
+        "platform/desktop"
+      ],
+      "tasks": [
+        {
+          "id": "t34-duplicate-ids",
+          "title": "A node of its own for each duplicate element id",
+          "descriptionMarkdown": "`A11yNodeBuilder::element_node_id` numbers duplicates; `A11y::push_element` returns the node id, `element_nodes` carries it through prepaint and paint, `Window::a11y_node_id` reads it, and div's focus, active descendant and action handlers (and RayX's scrollbar) register on it. Docs: the accessibility guide and `docs/accessibility.md`.",
+          "criterionIds": [
+            "TREE-6"
+          ],
+          "designIds": [
+            "d-duplicate-element-nodes"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-a11y-duplicate-ids"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window/a11y.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/element.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/tests/a11y_duplicate_ids.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_core/src/layout/scroll/scrollbar.rs"
+            }
+          ]
+        },
+        {
+          "id": "t35-hidden-benchmark-window",
+          "title": "A benchmark run whose window is hidden ends instead of waiting",
+          "descriptionMarkdown": "The driver ends a hidden run with an error report (`fail`, `OPEN_TIMEOUT`), the entry points exit with status 2 or publish the error, `run.py` retries once, and `tools/hidden-window.sh` with `tools/cover.swift` proves it. The probe findings are recorded in `docs/measurements/a11y-devtools.md` and the desktop memory.",
+          "criterionIds": [
+            "PERF-3"
+          ],
+          "designIds": [
+            "d-hidden-benchmark-window"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-benchmark-hidden-window"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "benchmark/src/driver.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "benchmark/run.py"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "benchmark/tools/hidden-window.sh"
+            }
+          ]
+        },
+        {
+          "id": "t36-fork-ci-excludes",
+          "title": "CI leaves the accesskit_macos fork out of workspace runs",
+          "descriptionMarkdown": "`FORK_EXCLUDES` in `.github/workflows/ci.yml` gains `--exclude gpux-accesskit-macos`.",
+          "criterionIds": [
+            "REM-5"
+          ],
+          "designIds": [
+            "d-macos-adapter-fork"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-fork-ci-excludes"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": ".github/workflows/ci.yml"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s11-owner-screen-readers",
+      "title": "Owner-run: real screen readers on the web, iOS and Android",
+      "dependsOn": [
+        "s10c-followups"
+      ],
+      "memoryScopes": [
+        "platform/web",
+        "platform/mobile"
+      ],
+      "tasks": [
+        {
+          "id": "t30-owner-walkthrough",
+          "title": "VoiceOver and TalkBack walkthrough",
+          "descriptionMarkdown": "Owner-run, not agent work: the owner follows `docs/accessibility.md` with VoiceOver (macOS desktop, Safari, Chrome, iOS), TalkBack, and Narrator, NVDA or Orca where available, on the `accessibility` scene and records the results in `docs/measurements/screen-reader-walkthrough.md`; the agent prepares the hosts and commands and records the owner's findings.",
+          "criterionIds": [
+            "SR-7"
+          ],
+          "designIds": [
+            "d-web-adapter",
+            "d-mobile-adapters"
+          ],
+          "dependsOn": [],
+          "checkIds": [],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "docs/testing.md"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

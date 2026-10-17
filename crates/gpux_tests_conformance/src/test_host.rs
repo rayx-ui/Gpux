@@ -18,10 +18,11 @@ use crate::{
 };
 use anyhow::{Context as _, anyhow, bail};
 use gpux::{
-    AnyView, AnyWindowHandle, Context, DevtoolsElementSnapshot, FastMode, IntoElement, Modifiers,
-    MouseButton, Pixels, PlatformHeadlessRenderer, Point, Render, TestAppContext, TestDispatcher,
-    TestWindowOptions, TouchEvent, TouchId, TouchPhase, VisualTestContext, Window, point, px,
-    semantic_query::Query, size,
+    AnyView, AnyWindowHandle, Context, FastMode, IntoElement, Modifiers, MouseButton, Pixels,
+    PlatformHeadlessRenderer, Point, Render, TestAppContext, TestDispatcher, TestWindowOptions,
+    TouchEvent, TouchId, TouchPhase, VisualTestContext, Window, point, px,
+    semantic_query::{Query, SemanticNode},
+    size,
 };
 use image::RgbaImage;
 use std::{collections::HashMap, time::Duration};
@@ -171,7 +172,7 @@ impl OpenScene {
         VisualTestContext::from_window(self.window, &self.cx)
     }
 
-    fn locate(&self, query: &Query) -> anyhow::Result<DevtoolsElementSnapshot> {
+    fn locate(&self, query: &Query) -> anyhow::Result<SemanticNode> {
         Ok(self.vcx().locate(query.clone())?)
     }
 
@@ -216,7 +217,12 @@ impl OpenScene {
                     bail!("no accessibility node is labelled {label:?}; labels: {labels:?}");
                 }
             }
-            expect => evaluate::expect(&vcx.settled_frame_snapshot(), expect, 0.)?,
+            expect => {
+                let snapshot = vcx
+                    .settled_semantic_snapshot()
+                    .context("the window builds no accessibility tree")?;
+                evaluate::expect(&snapshot, expect, 0.)?
+            }
         }
         Ok(())
     }

@@ -48,6 +48,8 @@ fn skip(id: &str, detail: impl Into<String>) -> ResultLine {
 
 async fn open(cx: &mut AsyncApp, scene: &'static SceneSpec) -> anyhow::Result<AnyWindowHandle> {
     let window = cx.open_window(WindowOptions::default(), |window, cx| {
+        // The checks find elements in the window's accessibility tree.
+        gpux_tests_conformance::evaluate::keep_inspecting(window);
         cx.new(|cx| SceneFrame::new(scene, window, cx))
     })?;
     let window = AnyWindowHandle::from(window);
@@ -56,6 +58,7 @@ async fn open(cx: &mut AsyncApp, scene: &'static SceneSpec) -> anyhow::Result<An
 }
 
 fn close(cx: &mut AsyncApp, window: AnyWindowHandle) {
+    gpux_tests_conformance::evaluate::stop_inspecting(window);
     window
         .update(cx, |_, window, _| window.remove_window())
         .ok();
@@ -83,10 +86,11 @@ fn scale_factor(cx: &mut AsyncApp, window: AnyWindowHandle) -> f32 {
 fn status_number(cx: &mut AsyncApp, window: AnyWindowHandle, prefix: &str) -> Option<f32> {
     let value = window
         .update(cx, |_, window, _| {
+            let snapshot = gpux_tests_conformance::evaluate::snapshot(window).ok()?;
             Query::role("status")
-                .resolve(&window.devtools_frame_snapshot())
+                .resolve(&snapshot)
                 .ok()
-                .and_then(|status| status.semantics.value.clone())
+                .and_then(|status| status.value.clone())
         })
         .ok()
         .flatten()?;

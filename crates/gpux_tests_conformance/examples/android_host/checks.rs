@@ -50,6 +50,8 @@ pub(crate) async fn open(
     scene: &'static SceneSpec,
 ) -> anyhow::Result<AnyWindowHandle> {
     let window = cx.open_window(WindowOptions::default(), |window, cx| {
+        // The checks find elements in the window's accessibility tree.
+        gpux_tests_conformance::evaluate::keep_inspecting(window);
         cx.new(|cx| SceneFrame::new(scene, window, cx))
     })?;
     let window = AnyWindowHandle::from(window);
@@ -58,6 +60,7 @@ pub(crate) async fn open(
 }
 
 pub(crate) fn close(cx: &mut AsyncApp, window: AnyWindowHandle) {
+    gpux_tests_conformance::evaluate::stop_inspecting(window);
     window
         .update(cx, |_, window, _| window.remove_window())
         .ok();
@@ -82,13 +85,11 @@ pub(crate) fn find(
     cx: &mut AsyncApp,
     window: AnyWindowHandle,
     query: &Query,
-) -> Option<gpux::DevtoolsElementSnapshot> {
+) -> Option<gpux::semantic_query::SemanticNode> {
     window
         .update(cx, |_, window, _| {
-            query
-                .resolve(&window.devtools_frame_snapshot())
-                .ok()
-                .cloned()
+            let snapshot = gpux_tests_conformance::evaluate::snapshot(window).ok()?;
+            query.resolve(&snapshot).ok().cloned()
         })
         .ok()
         .flatten()
@@ -112,12 +113,7 @@ pub(crate) fn physical_center(
 /// The scroll offset a scrolling scene's status line reports (`offset <n>`).
 pub(crate) fn offset(cx: &mut AsyncApp, window: AnyWindowHandle) -> Option<f32> {
     let status = find(cx, window, &Query::role("status"))?;
-    status
-        .semantics
-        .value?
-        .strip_prefix("offset ")?
-        .parse()
-        .ok()
+    status.value?.strip_prefix("offset ")?.parse().ok()
 }
 
 /// Waits until `done` holds, polling every frame, for at most [`ACTION_TIMEOUT`].

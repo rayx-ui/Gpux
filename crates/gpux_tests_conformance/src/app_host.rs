@@ -11,7 +11,7 @@ use crate::{
     evaluate::{self, center},
     host::{StepOutcome, describe},
     report::{Outcome, ResultLine},
-    scene::{Capability, Expect, Lane, SceneSpec, Step, flatten},
+    scene::{Capability, Lane, SceneSpec, Step, flatten},
 };
 use anyhow::{anyhow, bail};
 use gpux::{
@@ -164,6 +164,11 @@ impl AppHost {
                 return ResultLine::new(Outcome::Fail, id, format!("could not open: {error:#}"));
             }
         };
+        // The scene's queries read the window's accessibility tree, built for inspection while
+        // the scene runs.
+        let inspection = window
+            .update(cx, |_, window, _| evaluate::inspect(window))
+            .ok();
         let mut run = SceneRun {
             host: self,
             scene_id: scene.id,
@@ -180,6 +185,7 @@ impl AppHost {
             Ok(()) => run.steps(cx, &script, &mut number, &mut skipped).await,
             Err(error) => Err(format!("the first frame never arrived: {error:#}")),
         };
+        drop(inspection);
         window
             .update(cx, |_, window, _| window.remove_window())
             .ok();
@@ -324,9 +330,9 @@ impl SceneRun<'_> {
         }
     }
 
-    fn snapshot(&self, cx: &mut AsyncApp) -> anyhow::Result<gpux::DevtoolsFrameSnapshot> {
+    fn snapshot(&self, cx: &mut AsyncApp) -> anyhow::Result<semantic_query::SemanticSnapshot> {
         self.window
-            .update(cx, |_, window, _| window.devtools_frame_snapshot())
+            .update(cx, |_, window, _| evaluate::snapshot(window))?
     }
 
     fn scale(&self, cx: &mut AsyncApp) -> anyhow::Result<f32> {
@@ -337,7 +343,7 @@ impl SceneRun<'_> {
         &mut self,
         cx: &mut AsyncApp,
         query: &semantic_query::Query,
-    ) -> anyhow::Result<gpux::DevtoolsElementSnapshot> {
+    ) -> anyhow::Result<semantic_query::SemanticNode> {
         self.settle(cx).await?;
         evaluate::locate(&self.snapshot(cx)?, query)
     }
@@ -561,11 +567,6 @@ impl SceneRun<'_> {
             Step::Focus(query) => self.focus(cx, query).await?,
             Step::Advance(duration) => {
                 cx.background_executor().timer(*duration).await;
-            }
-            Step::Expect(Expect::Accessible(_)) => {
-                return Ok(StepOutcome::Skipped(
-                    "the accessibility tree needs an assistive-technology client".into(),
-                ));
             }
             Step::Expect(expect) => {
                 self.settle(cx).await?;

@@ -3221,7 +3221,8 @@ mod gpux {
             outside: &Rc<RefCell<Vec<usize>>>,
         ) -> crate::AnyElement {
             use crate::{
-                InspectableElementExt as _, InteractiveElement as _, prelude::FluentBuilder as _,
+                InteractiveElement as _, StatefulInteractiveElement as _,
+                prelude::FluentBuilder as _,
             };
             let outside = outside.clone();
             let focus = handle.clone();
@@ -3241,11 +3242,8 @@ mod gpux {
                 .track_focus(handle)
                 .debug_selector(|| format!("row-{ix}"))
                 .on_mouse_down_out(move |_, _, _| outside.borrow_mut().push(ix))
-                .devtools_semantics(
-                    crate::DevtoolsSemantics::new()
-                        .role("listitem")
-                        .name(format!("Row {ix}")),
-                )
+                .role(accesskit::Role::ListItem)
+                .aria_label(format!("Row {ix}"))
                 .when(input, |row| {
                     row.child(
                         crate::canvas(
@@ -3335,10 +3333,23 @@ mod gpux {
         focus: Rc<RefCell<Vec<crate::FocusHandle>>>,
         page: Rc<RefCell<Option<Entity<ToldPage>>>>,
         beside: Entity<Beside>,
+        /// Keeps the window building its accessibility tree, which tells of
+        /// the rows shown, for [`told`].
+        _inspection: Option<crate::A11yInspection>,
     }
 
+    /// A [`ToldWindow`] building its accessibility tree, for [`told`].
     fn told_page(cx: &mut TestAppContext, kind: Told) -> ToldWindow {
-        told_page_at(cx, kind, Shape::default(), 1.)
+        let mut page = told_page_at(cx, kind, Shape::default(), 1.);
+        let inspection = cx
+            .update_window(page.window, |_, window, _| window.begin_a11y_inspection())
+            .unwrap();
+        page._inspection = Some(inspection);
+        // The first inspected frame is drawn from scratch; the next as usual.
+        for _ in 0..2 {
+            with_window(cx, page.window, |window, cx| window.draw(cx).clear(cx));
+        }
+        page
     }
 
     fn told_page_at(
@@ -3383,24 +3394,34 @@ mod gpux {
             focus,
             page,
             beside,
+            _inspection: None,
         }
     }
 
-    /// What a frame tells of its elements besides what it draws: the named
-    /// elements and where they lie, the bounds tests find elements by, and
+    /// What a frame tells of its elements besides what it draws: the rows
+    /// its accessibility tree holds, in tree order, and where they lie, the
+    /// bounds tests find elements by, and
     /// the rows the tab key stops at, in its order.
     fn told(cx: &mut TestAppContext, page: &ToldWindow) -> (Vec<String>, Vec<String>, Vec<usize>) {
         let focus: Vec<crate::FocusId> =
             page.focus.borrow().iter().map(|handle| handle.id).collect();
         with_window(cx, page.window, |window, _| {
-            // In the order the frame tells of them.
-            let elements: Vec<String> = window
-                .devtools_frame_snapshot()
-                .elements
-                .iter()
-                .filter(|element| element.semantics.role.as_deref() == Some("listitem"))
-                .map(|element| format!("{:?} {:?}", element.semantics.name, element.bounds))
-                .collect();
+            // In the order the accessibility tree holds them.
+            let tree = window.a11y_tree().expect("the window is inspected");
+            let nodes: collections::FxHashMap<_, _> =
+                tree.nodes.iter().map(|(id, node)| (*id, node)).collect();
+            let mut elements = Vec::new();
+            let mut pending = vec![tree.tree.as_ref().expect("a full tree").root];
+            while let Some(id) = pending.pop() {
+                let Some(node) = nodes.get(&id) else {
+                    continue;
+                };
+                if node.role() == accesskit::Role::ListItem {
+                    elements.push(format!("{:?} {:?}", node.label(), node.bounds()));
+                }
+                pending.extend(node.children().iter().rev().copied());
+            }
+            assert!(!elements.is_empty(), "the tree holds the rows shown");
             let mut bounds: Vec<String> = window
                 .rendered_frame
                 .debug_bounds

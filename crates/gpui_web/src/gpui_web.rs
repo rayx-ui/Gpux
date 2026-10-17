@@ -6,6 +6,8 @@ pub mod canvas_fallback;
 
 pub use canvas_fallback::CanvasFontFallback;
 
+#[cfg(all(target_family = "wasm", feature = "accessibility"))]
+mod accessibility;
 #[cfg(any(target_family = "wasm", test))]
 mod browser_os;
 #[cfg(target_family = "wasm")]
@@ -49,6 +51,11 @@ mod web_viewport_scheduler;
 #[cfg(target_family = "wasm")]
 mod window;
 
+#[cfg(all(target_family = "wasm", feature = "accessibility"))]
+pub use accessibility::{
+    DEFAULT_SCREEN_READER_LABEL, WebScreenReader, set_web_screen_reader,
+    set_web_screen_reader_label,
+};
 #[cfg(target_family = "wasm")]
 pub use dispatcher::WebDispatcher;
 #[cfg(target_family = "wasm")]

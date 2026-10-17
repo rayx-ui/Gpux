@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/gpui/input
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-07T03:00:00+02:00
+  updated: 2026-10-17T10:00:00+02:00
   topics:
     - actions
     - touch-gestures
@@ -32,7 +32,7 @@ gpux adds `TouchEvent::timestamp`, the platform's sample time: the recognizer ti
 
 One active drag (`App::active_drag`) starts from `on_drag` after a mouse-move threshold, is drawn by `Window` at the pointer, and is consumed by the first hovered `on_drop` of its type, with `can_drop` gating acceptance; a release without a drop clears it, and platform drag-out handoff suspends it. `Window` exposes the pressed mouse button beside pointer position so paint-time continuations survive nested controls that consume bubble handlers. Cursor requests resolve against point hit-test order, not request insertion order.
 
-`Window::dispatch_text_input(&str, &mut App)` routes literal text through the active platform input handler, and `Window::text_input_value(&mut App)` reads the active input text; DevKit uses them for `type`/`fill`, while `press` stays a key down/up path.
+`Window::dispatch_text_input(&str, &mut App)` routes literal text through the active platform input handler, and `Window::text_input_value(&mut App)` reads the active input text; gpux-devtools uses them for `type`/`fill`, while `press` stays a key down/up path.
 
 `KeymapSnapshot` holds boxed actions and is UI-thread state retained with `Rc`; one snapshot plus map revision is captured at input-sequence start and carried to completion.
 

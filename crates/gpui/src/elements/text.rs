@@ -1,8 +1,8 @@
 use crate::{
-    ActiveTooltip, AnyView, App, Bounds, DevtoolsSemantics, DispatchPhase, Element, ElementId,
-    GlobalElementId, HighlightStyle, Hitbox, HitboxBehavior, InspectorElementId, IntoElement,
-    LayoutId, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Point, SharedString, Size,
-    TextOverflow, TextRun, TextStyle, TooltipId, TruncateFrom, WhiteSpace, Window, WrappedLine,
+    ActiveTooltip, AnyView, App, Bounds, DispatchPhase, Element, ElementId, GlobalElementId,
+    HighlightStyle, Hitbox, HitboxBehavior, InspectorElementId, IntoElement, LayoutId,
+    MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Point, SharedString, Size, TextOverflow,
+    TextRun, TextStyle, TooltipId, TruncateFrom, WhiteSpace, Window, WrappedLine,
     WrappedLineLayout, register_tooltip_mouse_handlers, set_tooltip_on_window,
 };
 use anyhow::Context as _;
@@ -278,6 +278,10 @@ impl Element for &'static str {
         None
     }
 
+    fn a11y_text_leaf(&self) -> Option<&str> {
+        Some(self)
+    }
+
     fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
         None
     }
@@ -316,7 +320,6 @@ impl Element for &'static str {
         window: &mut Window,
         cx: &mut App,
     ) {
-        window.set_devtools_semantics_with(|| DevtoolsSemantics::new().role("text").text(*self));
         text_layout.paint(self, window, cx)
     }
 }
@@ -351,6 +354,10 @@ impl Element for SharedString {
 
     fn id(&self) -> Option<ElementId> {
         None
+    }
+
+    fn a11y_text_leaf(&self) -> Option<&str> {
+        Some(self.as_ref())
     }
 
     fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
@@ -391,11 +398,6 @@ impl Element for SharedString {
         window: &mut Window,
         cx: &mut App,
     ) {
-        window.set_devtools_semantics_with(|| {
-            DevtoolsSemantics::new()
-                .role("text")
-                .text(self.as_ref().to_string())
-        });
         text_layout.paint(self.as_ref(), window, cx)
     }
 }
@@ -572,6 +574,10 @@ impl Element for StyledText {
         None
     }
 
+    fn a11y_text_leaf(&self) -> Option<&str> {
+        Some(self.text.as_ref())
+    }
+
     fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
         None
     }
@@ -622,11 +628,6 @@ impl Element for StyledText {
         window: &mut Window,
         cx: &mut App,
     ) {
-        window.set_devtools_semantics_with(|| {
-            DevtoolsSemantics::new()
-                .role("text")
-                .text(self.text.as_ref().to_string())
-        });
         self.layout.paint(&self.text, window, cx)
     }
 }

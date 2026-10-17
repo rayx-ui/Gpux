@@ -24,6 +24,7 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow.workspace = true
+gpux_devtools_mcp.workspace = true
 gpux_tests_conformance.workspace = true
 wasmparser.workspace = true
 zip.workspace = true

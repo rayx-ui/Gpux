@@ -11,6 +11,13 @@
 //! - `?backend=webgpu|webgl` forces a backend (WebGPU first with a WebGL2 fallback otherwise);
 //! - `?layers=1|0` sets the shown scene's [`FastMode`]: every mechanism on (scroll layers among
 //!   them) or all off. Without it the window keeps its default.
+//! - `?inspect=0` shows the scene without inspecting its accessibility tree, which the host
+//!   otherwise starts with the scene, since its queries read that tree.
+//! - `?screen-reader=always` builds the window's screen-reader mirror from its first frame
+//!   (`WebScreenReader::Always`) instead of offering the "Enable accessibility" button, and
+//!   `?screen-reader-label=<text>` labels that button.
+//! - `?gpux_devtools=<ws url>` connects the app to the gpux-devtools sidecar at that URL (the
+//!   `devtools: ...` specs serve one in the spec, for the `web-devtools` scene).
 //!
 //! It publishes `globalThis.__gpuxConformance`: `ready`, `backend`, `scene`, `results`, `done`,
 //! `lastError`, `probes` (the scene's pixel expectations for its first frame, as
@@ -23,7 +30,9 @@
 //!
 //! Browser-only scenes ([`web_scenes`]) cover gpui_web areas the shared catalog cannot, and
 //! [`fixtures`] exports the queue and glyph fixtures the thread and text-fallback specs call.
-//! `close()` closes the shown scene's window.
+//! `close()` closes the shown scene's window. `startA11yInspection()` starts the shown window's
+//! accessibility inspection (it builds its AccessKit tree from the next frame on, without a screen
+//! reader) and `a11yTree()` returns that tree as JSON, or `null` while no source asks for one.
 
 // The atomic-wait negative control needs the nightly intrinsic; browser builds use nightly.
 #![cfg_attr(target_family = "wasm", feature(stdarch_wasm_atomic_wait))]
@@ -39,8 +48,8 @@ mod web_scenes;
 mod web {
     use crate::bridge::Bridge;
     use gpux::{
-        AnyWindowHandle, AppContext as _, AsyncApp, FastMode, WindowOptions, point, px,
-        semantic_query::Query,
+        A11yInspection, AnyWindowHandle, AppContext as _, AsyncApp, FastMode, WindowOptions, point,
+        px, semantic_query::Query,
     };
     use gpux_tests_conformance::{
         CATALOG, Lane, SceneSpec, Step,
@@ -54,6 +63,7 @@ mod web {
         cx: AsyncApp,
         window: AnyWindowHandle,
         bridge: Bridge,
+        inspection: Option<A11yInspection>,
     }
 
     thread_local! {
@@ -65,6 +75,10 @@ mod web {
         run: Option<String>,
         backend: Option<String>,
         layers: Option<String>,
+        inspect: Option<String>,
+        screen_reader: Option<String>,
+        screen_reader_label: Option<String>,
+        devtools: Option<String>,
     }
 
     impl Params {
@@ -79,6 +93,10 @@ mod web {
                 run: get("run"),
                 backend: get("backend"),
                 layers: get("layers"),
+                inspect: get("inspect"),
+                screen_reader: get("screen-reader"),
+                screen_reader_label: get("screen-reader-label"),
+                devtools: get("gpux_devtools"),
             }
         }
     }
@@ -175,12 +193,18 @@ mod web {
                 return JsValue::NULL;
             };
             let window = shown.window;
-            let snapshot = match window.update(&mut shown.cx, |_, window, _| {
-                window.devtools_frame_snapshot()
-            }) {
+            let snapshot = match window
+                .update(&mut shown.cx, |_, window, _| {
+                    gpux_tests_conformance::evaluate::snapshot(window)
+                })
+                .map_err(anyhow::Error::from)
+                .and_then(|snapshot| snapshot)
+            {
                 Ok(snapshot) => snapshot,
                 Err(error) => {
-                    miss(format!("the scene window is gone: {error}"));
+                    miss(format!(
+                        "the scene window has no accessibility tree: {error}"
+                    ));
                     return JsValue::NULL;
                 }
             };
@@ -248,6 +272,49 @@ mod web {
         })
     }
 
+    /// `startA11yInspection()`: starts inspecting the shown window's accessibility tree; `true`
+    /// when a window is shown and accessibility is enabled.
+    fn start_a11y_inspection() -> JsValue {
+        SHOWN.with(|shown| {
+            let mut shown = shown.borrow_mut();
+            let Some(shown) = shown.as_mut() else {
+                return JsValue::FALSE;
+            };
+            let window = shown.window;
+            match window.update(&mut shown.cx, |_, window, _| window.begin_a11y_inspection()) {
+                Ok(guard) => {
+                    let enabled = !guard.accessibility_disabled();
+                    shown.inspection = Some(guard);
+                    JsValue::from_bool(enabled)
+                }
+                Err(_) => JsValue::FALSE,
+            }
+        })
+    }
+
+    /// `a11yTree()`: the shown window's last accessibility tree as JSON (nodes keyed by short
+    /// ids, with their roles, labels and children), or `null` while no source asks for one.
+    fn a11y_tree() -> JsValue {
+        SHOWN.with(|shown| {
+            let mut shown = shown.borrow_mut();
+            let Some(shown) = shown.as_mut() else {
+                return JsValue::NULL;
+            };
+            let window = shown.window;
+            window
+                .update(&mut shown.cx, |_, window, _| {
+                    window
+                        .a11y_tree()
+                        .is_some()
+                        .then(|| window.debug_a11y_tree_json())
+                        .flatten()
+                })
+                .ok()
+                .flatten()
+                .map_or(JsValue::NULL, JsValue::from)
+        })
+    }
+
     /// `close()`: closes the shown scene's window; `true` when one was open.
     fn close() -> JsValue {
         SHOWN.with(|shown| {
@@ -279,7 +346,12 @@ mod web {
         }
     }
 
-    async fn show(cx: &mut AsyncApp, scene: &'static SceneSpec, layers: Option<&str>) {
+    async fn show(
+        cx: &mut AsyncApp,
+        scene: &'static SceneSpec,
+        layers: Option<&str>,
+        inspect: bool,
+    ) {
         let window: AnyWindowHandle = match cx
             .open_window(WindowOptions::default(), |window, cx| {
                 cx.new(|cx| SceneFrame::new(scene, window, cx))
@@ -295,6 +367,14 @@ mod web {
         if let Some(mode) = mode {
             let _ = window.update(cx, |_, window, _| window.set_fast_mode(mode));
         }
+        // The scene's queries read the window's accessibility tree.
+        let inspection = inspect
+            .then(|| {
+                window
+                    .update(cx, |_, window, _| window.begin_a11y_inspection())
+                    .ok()
+            })
+            .flatten();
         if let Err(error) = app_host::wait_frames(cx, window, 2).await {
             return fail(format!("{} never drew: {error:#}", scene.id));
         }
@@ -307,6 +387,7 @@ mod web {
                 cx: cx.clone(),
                 window,
                 bridge,
+                inspection,
             })
         });
         set("ready", true);
@@ -347,6 +428,15 @@ mod web {
         let pixels = Closure::<dyn Fn(u32, js_sys::Uint8Array) -> JsValue>::new(pixels);
         set("pixels", pixels.as_ref().clone());
         pixels.forget();
+        let start_a11y_inspection = Closure::<dyn Fn() -> JsValue>::new(start_a11y_inspection);
+        set(
+            "startA11yInspection",
+            start_a11y_inspection.as_ref().clone(),
+        );
+        start_a11y_inspection.forget();
+        let a11y_tree = Closure::<dyn Fn() -> JsValue>::new(a11y_tree);
+        set("a11yTree", a11y_tree.as_ref().clone());
+        a11y_tree.forget();
         let close = Closure::<dyn Fn() -> JsValue>::new(close);
         set("close", close.as_ref().clone());
         close.forget();
@@ -354,6 +444,12 @@ mod web {
         set("focusPoint", focus_point.as_ref().clone());
         focus_point.forget();
 
+        if params.screen_reader.as_deref() == Some("always") {
+            gpui_platform::set_web_screen_reader(gpui_platform::WebScreenReader::Always);
+        }
+        if let Some(label) = params.screen_reader_label.clone() {
+            gpui_platform::set_web_screen_reader_label(label);
+        }
         let preference = match params.backend.as_deref() {
             Some("webgl") => gpui_platform::WebBackendPreference::WebGl,
             Some("webgpu") => gpui_platform::WebBackendPreference::WebGpu,
@@ -362,6 +458,9 @@ mod web {
         gpui_platform::application_with_web_backend(preference).run(move |mut cx| async move {
             if let Err(error) = cx.update(app_host::register_bundled_fonts) {
                 fail(format!("could not register the bundled fonts: {error:#}"));
+            }
+            if let Some(url) = params.devtools.clone() {
+                cx.update(|cx| gpux_tests_conformance::devtools::connect(cx, url));
             }
             let scene = params.scene.as_deref().map(|id| {
                 CATALOG
@@ -379,7 +478,10 @@ mod web {
                     run_scripts(&mut cx, scenes).await;
                 }
                 (Some(_), Some(Ok(scene))) => run_scripts(&mut cx, vec![scene]).await,
-                (None, Some(Ok(scene))) => show(&mut cx, scene, params.layers.as_deref()).await,
+                (None, Some(Ok(scene))) => {
+                    let inspect = params.inspect.as_deref() != Some("0");
+                    show(&mut cx, scene, params.layers.as_deref(), inspect).await
+                }
                 (_, Some(Err(error))) => fail(error),
                 (_, None) => {
                     fail("name a scene with `?scene=<id>`, or run every scene with `?run=all`")

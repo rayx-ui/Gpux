@@ -488,7 +488,7 @@ impl Render for Positioned {
 }
 
 /// Fixed, absolute and top-layer content keeps its draw-order bands and its
-/// DevKit visual bounds when its view is drawn from last frame.
+/// visual bounds when its view is drawn from last frame.
 #[test]
 fn positioned_and_top_layer_bands_and_visual_bounds_are_carried() {
     let mut pair = host(|_, _| Positioned);
@@ -533,14 +533,24 @@ impl Render for Inspectable {
     }
 }
 
-/// DevKit nodes are carried with their ids remapped and their parents and
-/// focus kept: the DevKit tree equals the one drawn from scratch.
+/// The accessibility nodes of a view drawn from last frame are carried under
+/// their parents: the tree equals the one drawn from scratch, and it holds
+/// the view's elements.
 #[test]
-fn devkit_nodes_are_remapped() {
+fn accessibility_nodes_are_carried() {
     let mut pair = host(|_, _| Inspectable);
+    let inspections = std::cell::RefCell::new(Vec::new());
+    pair.each(|cx, window| {
+        let inspection = cx
+            .update_window(window, |_, window, _| window.begin_a11y_inspection())
+            .unwrap();
+        inspections.borrow_mut().push(inspection);
+    });
+    pair.draw("inspected");
     tick(&mut pair, "reused");
-    let nodes = pair.retained(|_, window, _| window.devtools_frame_snapshot().elements.len());
-    assert!(nodes >= 3, "{nodes}");
+    let nodes = pair.retained(|_, window, _| window.a11y_tree().map_or(0, |tree| tree.nodes.len()));
+    assert!(nodes >= 4, "{nodes}");
+    drop(inspections);
 }
 
 /// Lays its child view out and prepaints it, discards that prepaint through
@@ -640,8 +650,8 @@ impl Render for RollbackHost {
     }
 }
 
-/// A rollback drops the records the discarded prepaint made, and the DevKit
-/// nodes with them: the child prepainted twice is recorded once, findable
+/// A rollback drops the records the discarded prepaint made: the child
+/// prepainted twice is recorded once, findable
 /// to be drawn again, and the frame equals the frame drawn from scratch.
 #[test]
 fn a_rollback_truncates_the_records() {

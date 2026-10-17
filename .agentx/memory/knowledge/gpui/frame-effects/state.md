@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/gpui/frame-effects
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-05T23:00:00+02:00
+  updated: 2026-10-17T10:00:00+02:00
   topics:
     - frame-family
     - effect-frame
@@ -28,7 +28,7 @@ Read before changing frame-family elements, `ElementEffect`, screen effects, or 
 
 Element effects are emitted as `VisualEffectPrimitive`s from element bounds and corner radii and batched in `Scene`, so replay and retained painting keep order. `Window::paint_visual_effects` stores `ElementEffect::prepare().scale(scale_factor)`, so blur/glass radii and glow radius/spread reach the renderer in device pixels. `ElementEffect::LayerBlur` (`layer_blur(radius)`) blurs the frame's own content: it prepares to the backdrop blur pass and `EffectFrame` paints it after the child over bounds widened by `outset()` (1.5 × radius), while pre-content effects still paint before the child.
 
-`Window` owns screen effects: `play_screen_effect(...)` queues `ScreenEffect`s in capped queues, `tick_screen_effects` prunes by `gpux::Instant`, retained snapshot ids have explicit release APIs, and `devtools_frame_snapshot().effects` reports active counts, registered and missing regions, retained and missing snapshots, and renderer capabilities. Effect support is capability-driven: WGPU implements it; Metal and other non-WGPU paths report false.
+`Window` owns screen effects: `play_screen_effect(...)` queues `ScreenEffect`s in capped queues, `tick_screen_effects` prunes by `gpux::Instant`, retained snapshot ids have explicit release APIs, and `Window::effect_diagnostics()` reports active counts, registered and missing regions, retained and missing snapshots, and renderer capabilities. Effect support is capability-driven: WGPU implements it; Metal and other non-WGPU paths report false.
 
 ## Backlinks
 

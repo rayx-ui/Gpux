@@ -2,6 +2,8 @@
 //! it hooks into. Each group is selected on its own with
 //! `cargo test -p gpux --features test-support --lib fast::tests::<group>::`.
 
+mod a11y_describe;
+mod a11y_retention;
 mod border_clips;
 mod bounds_grid;
 mod composition;

@@ -53,7 +53,11 @@
 //! Since `middle` doesn't have an ID itself, it has no global ID.
 //!
 //! [`GlobalElementId`]s should be unique per-frame. Duplicate global IDs in the
-//! same frame will likely cause bugs.
+//! same frame will likely cause bugs: such elements share their element state.
+//! The accessibility tree still gives each of them a node of its own (debug
+//! builds log the duplicate once), numbered in draw order, so their node ids
+//! hold only while the duplicates keep their order. A custom element registers
+//! its handlers on [`Window::a11y_node_id`], the node it holds.
 //!
 //! ### IDs and accessibility
 //!

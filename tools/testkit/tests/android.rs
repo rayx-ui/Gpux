@@ -80,6 +80,13 @@ fn host_requests_parse_from_logcat_lines() {
     );
     assert_eq!(android::request("gpux-conformance-host: tap 1"), None);
     assert_eq!(
+        android::request("android_host::android: gpux-conformance-host: a11y-dump 3"),
+        Some(android::Request::A11yDump(3))
+    );
+    assert_eq!(android::request("gpux-conformance-host: a11y-dump"), None);
+    assert_eq!(android::request("gpux-conformance-host: a11y-dump x"), None);
+    assert!(android::shell_commands(&android::Request::A11yDump(3)).is_empty());
+    assert_eq!(
         android::request("gpux-conformance: PASS layout-flex 3 steps"),
         None
     );

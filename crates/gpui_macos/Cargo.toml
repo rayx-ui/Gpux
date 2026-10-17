@@ -17,9 +17,12 @@ path = "src/gpui_macos.rs"
 doctest = false
 
 [features]
-default = ["gpux/default"]
+default = ["gpux/default", "accessibility"]
+# Links the VoiceOver adapter (`accesskit_macos`). Without it the window never turns the platform
+# accessibility source on; inspection and `AccessibilityMode::Always` still build the tree.
+accessibility = ["dep:accesskit_macos"]
 bench-support = ["gpux/bench-support", "gpui_apple/bench-support"]
-test-support = ["gpux/test-support", "gpui_apple/test-support"]
+test-support = ["gpux/test-support", "gpui_apple/test-support", "accessibility"]
 runtime_shaders = ["gpui_apple/runtime_shaders"]
 font-kit = ["dep:font-kit", "dep:core-text", "dep:pathfinder_geometry"]
 screen-capture = ["gpux/screen-capture", "dep:objc2-core-graphics", "dep:objc2-core-media", "dep:objc2-screen-capture-kit"]
@@ -29,7 +32,7 @@ gpux.workspace = true
 
 [target.'cfg(target_os = "macos")'.dependencies]
 accesskit.workspace = true
-accesskit_macos.workspace = true
+accesskit_macos = { workspace = true, optional = true }
 anyhow.workspace = true
 block2.workspace = true
 cocoa.workspace = true

@@ -1,0 +1,360 @@
+{
+  "schemaVersion": 7,
+  "epicId": "gpux-a11y-devtools",
+  "scopeMarkdown": "Make AccessKit the only semantic tree of gpux and RayX, give it to screen readers on every platform gpux runs on (desktop, web, iOS, Android), and rebuild agent inspection (the DevTools MCP) on it, as the owner approved on 2026-10-16.\n\n## Starting point (origin/main 58257fe, after the macOS improvement loop merged as PR #8; RayX origin/master 4ee806e9)\n- Since the loop (`f611fd4`), per-element DevKit nodes exist only with gpux's `devtools` Cargo feature, which is on by default and with `test-support` (`crates/gpui/Cargo.toml`; `Window`'s `DEVTOOLS` const, `set_devtools_semantics_with`); `gpux-conformance` asks for it, the benchmark builds without it. With the feature (every app on default features, RayX included) every element of every frame records a `DevtoolsFrameNode` (472 bytes, 296 of them an inline `Option<DevtoolsSemantics>`) and text elements build semantics on every paint. The loop measured the feature at 16% of `dashboard-clock`'s CPU with fast mode on and 5-60% of the heap allocations per frame (`docs/fast-mode.md`).\n- The API came from RayX DevKit (`2192fb7`, `ca067cf`, 2026-06-26) and spread into fast mode: splice, retained paint, list layers and verification carry \"DevKit nodes\".\n- RayX annotates twice: of the 133 files that call `devtools_semantics`, 99 also set AccessKit roles or `aria_*`; 34 have devtools semantics only (Lab 9, Test Suite 7, `rayx_blocks` 4, `rayx_components_core` 14). Writable properties exist only in the property grid (10 sites); pointer actions in the infinite canvas, node editor and the core interactive viewer (15 sites).\n- AccessKit's tree is built only while a platform adapter (macOS, Windows, Linux) has activated it (`crates/gpui/src/window.rs`, an `AtomicBool` the adapter's callbacks flip). Its setup is compiled out on wasm32, and `gpui_web`/`gpui_mobile` have no `a11y_init`, so web, iOS and Android never build it and screen readers there see nothing. While it is active fast mode turns itself off: cached view replay (`view.rs`), scroll layers and kept content layout (`fast::layers::active`, which `expects_composite` reads), retained paint (`Bypass::Accessibility`) and shadow verification.\n- gpux pins Zed's AccessKit 0.24 family (`accesskit` 0.24.1, `accesskit_consumer` 0.38, `accesskit_macos` 0.26, `accesskit_windows` 0.34, `accesskit_unix` 0.22). AccessKit 0.25 (`accesskit` 0.25.1, `accesskit_consumer` 0.39.1, `accesskit_macos` 0.27.1, `accesskit_windows` 0.35.1, `accesskit_unix` 0.24.0) adds `accesskit_ios` 0.2.1 (`UIAccessibility` on a `UIView`, live updates for non-label nodes) and `accesskit_android` 0.9.0 (an injecting adapter on a `View`, slider adjustment, live regions, usable from any thread); its one breaking change for gpux is the `Tree` to `TreeInfo` rename (the old name is a deprecated alias). AccessKit has no released web adapter (one is planned), so the browser needs gpux's own DOM mirror, as Flutter and Figma do for canvas UIs.\n- Switches today: AccessKit has none of its own (the tree follows the OS adapter; only `Application::new_inaccessible` turns it off, at creation); the macOS and Windows adapters are linked unconditionally and the Linux one through `wayland`/`x11`; DevKit nodes have the `devtools` Cargo feature and no runtime switch.\n- A node exists only for an element with an id and a role; text without an id is no node, so a button labelled only by child text has no name. gpux tests locate elements by id 197 times, mostly on plain divs.\n\n## Owner decisions (2026-10-16)\n1. The MCP lives in gpux: `gpux-devtools` (linked into an app) and `gpux-devtools-mcp` (the sidecar); RayX keeps only its own tools, as extensions.\n2. Plain text becomes Label nodes in the real screen-reader tree.\n3. Transport: the app connects out to the sidecar over WebSocket.\n4. Names `gpux-devtools` / `gpux-devtools-mcp`.\n5. `DevtoolsSemantics`, writable properties and pointer actions are removed from gpux and from RayX completely.\n6. The user can switch accessibility and the devtools on and off, each at build time (Cargo features, or the optional dependency) and at runtime (modes, environment variables and API), and inspection never depends on OS assistive technology.\n7. Screen-reader support on web and mobile is part of this epic (2026-10-16), replacing RayX's earlier decision to leave WASM accessibility unsupported.\n8. gpux moves to AccessKit 0.25 in this epic (2026-10-16), ahead of Zed, instead of waiting for the Zed import that moves the pins.\n\n## In scope\n- gpux: the move to AccessKit 0.25; activation sources and modes; build-time and runtime switches for accessibility and the devtools; inspection on every platform; tree completion (text leaves, inspection containers and id map, missing properties and relations, actions); fast mode carrying the tree; test-support queries and the conformance hosts on the AccessKit tree; screen-reader adapters for the web (a gpux DOM mirror in `gpui_web`), iOS and Android (AccessKit's adapters in `gpui_mobile`); the `gpux-devtools` crate and the `gpux-devtools-mcp` sidecar; removal of every devtools surface, the `devtools` feature included; docs; before and after measurements; an owner-run screen-reader walkthrough.\n- RayX (paired, `../RayX`): every devtools call removed, AccessKit annotations where devtools was the only semantics, property-grid writable properties and pointer actions as AccessKit actions, `rayx_devkit` reduced to RayX extensions of gpux-devtools, `rayx_devkit_mcp` retired, the Test Suite probes, a browser screen-reader spec, and the DevKit and accessibility docs and skills.\n\n## Excluded\n- RayX.CLI's Android DevKit bridge (`--android-devkit`: `adb forward` plus a host registration, `RayX.CLI/src/app/android.rs`). A follow-up in RayX.CLI replaces it with `adb reverse` of the sidecar port; until then RayX Android inspection uses the manual `adb reverse` that `docs/devtools.md` documents.\n- `gpui_web`'s `rayx_diagnostics` alias and its legacy `__rayx<Name>` globals (RayX enables the alias on `gpui_web`).\n- Upstreaming to Zed. The activation sources and text leaves are worth offering upstream separately.\n- Zed's `inspector` feature (the element picker) is unchanged.\n\n## Worktree layout\nGpux `feature/a11y-devtools` (at origin/main 58257fe) and RayX `feat/a11y-devtools` (from origin/master) sit side by side under `/Users/dinko/.worktrees/gpux-a11y-devtools/`, with detached RayX.Dtcg (7d55b99), RayX.Reactive (9e5b3b9) and RayX.SignalR (790eb5a) beside them, so RayX's `../` path dependencies resolve to this Gpux worktree. The macOS scroll-layer improvement loop is merged (PR #8), so the epic starts from its result; if main moves again while the epic runs, merge it before a sprint that touches the same files.",
+  "constraintsMarkdown": "- Keep Zed's crate boundaries. The two new crates are gpux-only: `crates/gpux_devtools` (package `gpux-devtools`, lib `gpux_devtools`) and `crates/gpux_devtools_mcp` (package and binary `gpux-devtools-mcp`), with the workspace version, Apache-2.0, a description, crates.io dependencies only, no file included from outside the crate, listed in the README crate table; `cargo package --workspace` passes.\n- With no assistive technology and no inspection, gpux builds no accessibility tree and records no per-element semantic data; an app that does not depend on `gpux-devtools` contains no devtools code.\n- Inspection never activates OS accessibility: platform adapters receive tree updates only while they activated the tree themselves.\n- AccessKit moves to the 0.25 family as one change, all adapters together (no two `accesskit` versions in the graph); `accesskit_ios` 0.2 and `accesskit_android` 0.9 on `objc2` 0.5 and `jni` 0.21 meet gpux's `objc2` 0.6 and `jni` 0.22 only through raw pointers, as `accesskit_macos` already does. An upstream import keeps gpux's AccessKit pins unless Zed's are newer.\n- Every switch is explicit, tested and documented. Build time: the `accessibility` feature of `gpux-platform` and each platform crate (screen-reader adapters and the web mirror), `gpux`'s `semantic-query` feature (the query engine), and depending on `gpux-devtools` (in RayX behind its apps' `devkit` feature). Runtime: `AccessibilityMode` (`Auto`, `Always`, `Off`) through the builder, `App::set_accessibility_mode` and `GPUX_ACCESSIBILITY`; `WebScreenReader`; `gpux_devtools::set_enabled`, `Options::enabled` and `GPUX_DEVTOOLS`.\n- The web DOM mirror never takes pointer input (`pointer-events: none`, like the IME mirror) and never moves DOM focus in a way that re-enters GPUI; screen-reader activation arrives as DOM events that become AccessKit action requests.\n- New per-element lists and aria properties live in `Interactivity`'s `LazyVec`/`LazyAria`, which allocate on first use.\n- Fast-mode frames equal frames drawn from scratch, accessibility tree included (the oracle).\n- Take Zed's input model unchanged: synthesized input goes through `Window::dispatch_event`, `dispatch_keystroke` and `dispatch_text_input` like platform input.\n- The sidecar listens on loopback only; a shared token is optional.\n- gpux proof stays in gpux's tests and lanes; RayX checks prove the consumer. A gpux commit that changes an API RayX uses is paired with the RayX commit.\n- Every new behaviour gets a new, separately selectable test group; every check can fail (seed the difference it guards against).\n- Timing claims only in lane G and the measurements document; no timing threshold in a test.\n- RayX: runtime proof in `apps/test_suite`; `apps/lab` gets only the removal of devtools calls and real AccessKit annotations, never test hooks.\n- Raw output, profiles and screenshots stay in ignored `artifacts-temp/`.",
+  "requirements": [
+    {
+      "id": "PERF",
+      "title": "Measured before and after",
+      "descriptionMarkdown": "What the devtools tree costs today and what the epic changes are measured numbers, not estimates.",
+      "criteria": [
+        {
+          "id": "PERF-1",
+          "verification": "manual",
+          "descriptionMarkdown": "Before any product change, `docs/measurements/a11y-devtools.md` records, with machine, commit and the exact commands, `benchmark/run.py --hold-clocks 3` on `--target macos` and `--target web-webgpu` for the `retention`, `text` and `scroll` groups with fast mode on, in three builds of origin/main 58257fe: (a) the benchmark with gpux's `devtools` feature added (what every default-features app, RayX included, runs today); (b) the benchmark as it is (no `devtools` feature); (c) a throwaway build with the accessibility flag forced on (fast mode then bypasses itself). It reports CPU and GPU time per frame (`main_cpu_ms`, `gpu_ms`), frame time p50/p95, allocations and bytes per frame and memory where the harness reports them. The throwaway changes are never committed. Verified by review of the document against the raw results in `artifacts-temp/`."
+        },
+        {
+          "id": "PERF-2",
+          "verification": "manual",
+          "descriptionMarkdown": "After the removal sprint the same document records the same runs for (a') the epic's build with no assistive technology and no inspection and (c') `GPUX_ACCESSIBILITY=always` with fast mode on, beside (a), (b) and (c), judged with the clocks held and, for (a') against (c'), by alternating one binary with the variable; plus the accessibility tree's node count and retained size for each scenario with inspection on. (a') must not cost more than (b); every regression is named with its cause. Timing claims come from these runs, never from CI. Verified by review."
+        },
+        {
+          "id": "PERF-3",
+          "verification": "automated",
+          "descriptionMarkdown": "Finding-driven scope the owner required in this epic (2026-10-17): a macOS benchmark run occasionally never drew (PERF-2's measurements). Logging the display link over 280 launches caught one: the window drew, then AppKit reported it occluded and no later notification reported it visible; covering and uncovering a window resumes it, so `gpui_macos` behaves as designed (a window AppKit does not present gets no frames) and the run was covered by another app's window. The benchmark ends a run whose window is hidden after its first frame, or presents none within 10 s, with status 2 and the reason, and `run.py` retries it once. Proved by `benchmark/tools/hidden-window.sh`, which covers the screens with another process's window."
+        }
+      ]
+    },
+    {
+      "id": "AK",
+      "title": "AccessKit 0.25",
+      "descriptionMarkdown": "gpux moves to AccessKit 0.25 for every adapter, ahead of Zed, so the mobile adapters land on their current releases.",
+      "criteria": [
+        {
+          "id": "AK-1",
+          "verification": "automated",
+          "descriptionMarkdown": "The workspace pins the AccessKit 0.25 family together: `accesskit` 0.25.1 (with `enumn`), `accesskit_consumer` 0.39.1, `accesskit_macos` 0.27.1, `accesskit_windows` 0.35.1, `accesskit_unix` 0.24.0, and later `accesskit_ios` 0.2.1 and `accesskit_android` 0.9.0; `Cargo.lock` holds one `accesskit` version. gpux uses `accesskit::TreeInfo` (setting gpux's toolkit name and version) instead of the deprecated `Tree`. A new group `crates/gpui/tests/accesskit_025.rs` pins the 0.25 behaviours gpux relies on: a cloned node keeps every property gpux writes (fast mode copies nodes), a property cleared and set again holds its new value, and node equality does not depend on the order properties were set (the oracle compares trees); the existing `window::a11y` unit tests pass; gpux builds for macOS, Linux (in the Lima VM), wasm32, iOS and Android, and Windows in the pull request's CI."
+        },
+        {
+          "id": "AK-2",
+          "verification": "manual",
+          "descriptionMarkdown": "The upstream records say gpux is ahead of Zed on AccessKit: the gpux skill's upstream-import checklist and `docs/upstream/` note the 0.25 pins and that an import keeps them unless Zed's are newer, and `docs/history/upstream-provenance.md` lists the move as a gpux-local delta. Verified by review."
+        }
+      ]
+    },
+    {
+      "id": "ACT",
+      "title": "Switching accessibility on",
+      "descriptionMarkdown": "The tree is built for screen readers, tests and agents alike, and only while one of them asks for it.",
+      "criteria": [
+        {
+          "id": "ACT-1",
+          "verification": "automated",
+          "descriptionMarkdown": "A window builds its accessibility tree for a frame when at least one activation source is on: the platform source (an adapter's activation callback, as today) or the inspection source (in-process). Tree updates reach `PlatformWindow::a11y_tree_update` only while the platform source was on at the start and the end of the frame; a frame built for inspection alone sends nothing to the platform. Turning one source off keeps the tree while the other is on; a source switched in the middle of a frame takes effect on the next. An application created with `Application::new_inaccessible` refuses every source: no tree is built and an inspection request reports that accessibility is disabled. New group `crates/gpui/tests/a11y_activation.rs` on the test platform, counting the updates the test window records."
+        },
+        {
+          "id": "ACT-2",
+          "verification": "automated",
+          "descriptionMarkdown": "The runtime switch is `AccessibilityMode`, set by `Application::with_accessibility_mode`, changed at any time by `App::set_accessibility_mode`, and read once from `GPUX_ACCESSIBILITY` (`auto`, `always`, `off`) when the `App` is created (the builder and later calls win over the variable; an unknown value is logged once and read as `auto`). `Auto` (the default) keeps today's behaviour: the tree follows the platform's assistive technology and inspection. `Always` builds the tree on every frame of every window with no assistive technology, still sending nothing to the platform unless it activates. `Off` refuses the platform source: a screen reader that was active receives one last tree holding only the window's root, then nothing, and the next switch to `Auto` or `Always` sends it a full tree again; inspection (tests, devtools) still builds the tree under `Off`, so turning screen-reader exposure off never turns agents off. `Application::new_inaccessible` remains the hard switch that refuses every source. Covered by `a11y_activation`."
+        },
+        {
+          "id": "ACT-3",
+          "verification": "automated",
+          "descriptionMarkdown": "`Window::begin_a11y_inspection()` returns a guard; while at least one guard of a window lives the inspection source is on. The first guard forces a full redraw, so the next frame carries a complete tree; dropping the last guard turns the source off. `Window::a11y_tree()` returns the last frame's complete `TreeUpdate` while any source is on and `None` otherwise, without a second copy beyond the one gpux already retains for its debug dump. New group `crates/gpui/tests/a11y_inspection_guard.rs`."
+        },
+        {
+          "id": "ACT-4",
+          "verification": "automated",
+          "descriptionMarkdown": "On wasm32, iOS and Android the inspection source builds the tree whether or not the platform's screen-reader adapter (SR) is active: the `cfg(not(target_family = \"wasm\"))` gate around the adapter setup goes, and a platform without an adapter simply never turns the platform source on. `cargo check -p gpux-web --target wasm32-unknown-unknown --no-default-features` and `cargo check -p gpux-mobile --target aarch64-apple-ios` compile, and a new lane B spec (`tools-node/specs/accessibility.spec.ts`, titles `accessibility: ...`) reads a non-empty tree with the scene's button for a conformance scene through the web host bridge after inspection starts, and an empty answer before it."
+        },
+        {
+          "id": "ACT-5",
+          "verification": "automated",
+          "descriptionMarkdown": "The build-time switch is an `accessibility` Cargo feature on `gpux-platform` and on each platform crate (`gpux-macos`, `gpux-windows`, `gpux-linux`, `gpux-web`, `gpux-mobile`), on by default and forwarded from `gpux-platform`: with it the platform's screen-reader adapter is linked (`accesskit_macos`, `accesskit_windows`, `accesskit_unix`, `accesskit_ios`, `accesskit_android`, the web DOM mirror); without it no adapter crate is linked and no mirror code is compiled, the platform source never turns on, and inspection and `Always` still build the tree for tests and devtools. The `accesskit` data types stay in `gpux`, so the `Element` API is the same with and without the feature. A static check reads `cargo tree` with and without the feature (`accesskit_macos` present and absent for `gpux-platform` on macOS; `accesskit_ios` and `accesskit_android` for `gpux-mobile` on iOS and Android) and builds both configurations."
+        }
+      ]
+    },
+    {
+      "id": "TREE",
+      "title": "A tree complete enough for tests and agents",
+      "descriptionMarkdown": "Everything the devtools tree gave tests and agents, the AccessKit tree gives, without a second annotation layer.",
+      "criteria": [
+        {
+          "id": "TREE-1",
+          "verification": "automated",
+          "descriptionMarkdown": "While the tree is built, text drawn without an element id (`&'static str`, `SharedString`, `StyledText`, `InteractiveText`) becomes a `Role::Label` leaf with its text as value under the nearest accessibility node (the window root when there is none), with a synthetic id derived from that node's id and the text's position among its text leaves; text with an id keeps its own node as today. A Button, CheckBox, Link, MenuItem (and its check-box and radio variants) or RadioButton without an authored label gets its computed name (`accesskit_consumer`'s label) from those leaves. Ids stay equal across frames while the order of the text is unchanged. With no source on, no leaf is built and no text is copied. New group `crates/gpui/tests/a11y_text_leaves.rs`."
+        },
+        {
+          "id": "TREE-2",
+          "verification": "automated",
+          "descriptionMarkdown": "While the inspection source is on, an element with an id and no role becomes a `Role::GenericContainer` node, so its subtree is reachable under it; with only the platform source on none is added. The screen-reader view of a tree (AccessKit's `common_filter`) with these containers equals the view of the same frame without them. New group `crates/gpui/tests/a11y_inspection_tree.rs`."
+        },
+        {
+          "id": "TREE-3",
+          "verification": "automated",
+          "descriptionMarkdown": "While the inspection source is on the window keeps, for the frame, a map from each node id to its global element id path (text leaves and synthetic children map to their owner's path); nothing is kept otherwise. Covered by `a11y_inspection_tree`."
+        },
+        {
+          "id": "TREE-4",
+          "verification": "automated",
+          "descriptionMarkdown": "Divs gain `aria_required`, `aria_read_only`, `aria_labelled_by`, `aria_described_by`, `aria_controls` and `aria_error_message`, stored in `AriaProperties` behind `LazyAria` so an element without them allocates nothing. A relation names another element's `accessibility_id`; at the end of the frame each is resolved to that node's id (several, in the order given, for the list relations); an unknown id is dropped and, in debug builds, logged once per id. AccessKit receives `required`, `read_only` and the resolved node ids. New group `crates/gpui/tests/a11y_relations.rs`."
+        },
+        {
+          "id": "TREE-5",
+          "verification": "automated",
+          "descriptionMarkdown": "A div advertises `SetValue`, `Increment`, `Decrement`, `Expand` and `Collapse` exactly when a handler is registered for them through `on_a11y_action`, and `CustomAction` with each `(id, description)` registered through a new `on_a11y_custom_action` (kept in a `LazyVec`). gpux handles `ScrollIntoView` for every node: the node's scrolling ancestors move, through their scroll owners' ordinary programmatic path, until its bounds are visible. `Window::perform_a11y_action(ActionRequest)` delivers a request through the same path as a platform adapter's and returns whether a handler ran; a request without a handler does nothing and returns false. New group `crates/gpui/tests/a11y_actions.rs`."
+        },
+        {
+          "id": "TREE-6",
+          "verification": "automated",
+          "descriptionMarkdown": "Finding-driven scope the owner required in this epic (2026-10-17): siblings with the same element id share a global element id, from which the AccessKit node id derived, so the tree kept one of them (debug builds panicked) and screen readers, `semantic_query` and `gpux.locate` missed the rest. Each duplicate now gets a node of its own: the first keeps the derived id, later ones take the first free id hashed from it and a count (stable while the duplicates keep their draw order), debug builds log the duplicate once, and `Window::a11y_node_id` gives the node the element being drawn holds, which its focus, active descendant and action handlers use (RayX's scrollbar too). Proved by `crates/gpui/tests/a11y_duplicate_ids.rs`: both nodes exist, keep their ids across frames, an action on either runs its own handler, and fast mode draws the scene as it does without the tree."
+        }
+      ]
+    },
+    {
+      "id": "FAST",
+      "title": "Fast mode with accessibility on",
+      "descriptionMarkdown": "Screen-reader users and attached agents get fast mode; every fast frame's tree equals the tree of a frame drawn from scratch.",
+      "criteria": [
+        {
+          "id": "FAST-1",
+          "verification": "automated",
+          "descriptionMarkdown": "`Window::describe_rendered_frame` lists the accessibility tree (nodes in order with role, properties, actions and bounds, child links, focus, active descendant, focusable entries, action listeners, inspection containers and the id map) where it listed the DevKit nodes; shadow verification (`fast/verify.rs`) runs while accessibility is on; the fast-mode oracle can draw with accessibility on, and a seeded difference in a carried tree fails it. New group `fast::tests::a11y_describe` in `crates/gpui/src/fast/tests/`."
+        },
+        {
+          "id": "FAST-2",
+          "verification": "automated",
+          "descriptionMarkdown": "With accessibility on, cached view replay, retained paint and splice run as with it off and carry what the tree recorded for the reused content: nodes and their links into the parent, bounds, focusable entries, focus and active descendant, action listeners, text leaves, inspection containers and the id map, through `reuse_prepaint`/`reuse_paint`, retained shifted indices and splice stretches; `transact` truncates them. The bypasses in `view.rs` and `fast/retained.rs` are gone. The oracle with accessibility on and the switches on (layers off) holds the tree equal to a from-scratch window over randomized element trees. New group `fast::tests::a11y_retention`."
+        },
+        {
+          "id": "FAST-3",
+          "verification": "automated",
+          "descriptionMarkdown": "With accessibility on, list layers, scroll layers and kept content layout run as with it off: rows a list layer holds off screen (the shipped overscan, `run_at_shipped_list_overscan`) contribute no node, focusable entry or listener; a composited frame moves the carried nodes' bounds by the scroll since the frame it copied (as `LayerInput::step` moves DevKit bounds today); a container whose layer is expected to composite keeps its children's layout (`reuse_kept_content`) and takes their nodes from the layer, while the `Div::prepaint` fallback that requests the layout after all builds them as usual; the bypass in `fast::layers::active` is gone. A lane C group shows composited frames whose tree equals the reference window's, and a counter group shows views replayed and layers composited on a frame where one view changes with accessibility on. New groups `crates/gpux_conformance/tests/lane_c_a11y_layers.rs` and `crates/gpui/tests/fast_mode_a11y.rs`."
+        }
+      ]
+    },
+    {
+      "id": "QRY",
+      "title": "Queries and conformance on the AccessKit tree",
+      "descriptionMarkdown": "gpux's own tests and every conformance host find elements in the tree screen readers see.",
+      "criteria": [
+        {
+          "id": "QRY-1",
+          "verification": "automated",
+          "descriptionMarkdown": "`semantic_query::Query` resolves against a window's AccessKit tree through `accesskit_consumer`: `role` (one ARIA-style name per AccessKit role in one table; `Label` reads as `text`, `GenericContainer` as `generic`), `name` (the computed label), `text` (a Label's value or a node's text content), `value` (value or numeric value), `id` (a global element id suffix on a `.` boundary through the id map, or an `accessibility_id`), `nth` and `>>` scopes, and new state terms `checked`, `expanded`, `selected`, `disabled` and `focused`. `type=` is removed: parsing it fails with a message saying it was removed. `view=screen-reader` (`Query::for_screen_readers`) matches over the filtered tree. The module is compiled by gpui's `test-support` feature and a new `semantic-query` feature, not in plain builds. New group `crates/gpui/tests/semantic_query_accesskit.rs`."
+        },
+        {
+          "id": "QRY-2",
+          "verification": "automated",
+          "descriptionMarkdown": "`Locator` and the successor of `VisualTestContext::settled_frame_snapshot` start the inspection source on first use (forcing the redraw) and resolve to nodes with bounds in window pixels; click, hover, scroll, focus, type and press act at those bounds as today. The locator suites that read the devtools snapshot (`semantic_locators`, `test_platform_semantics_fidelity`, `ignored_hitbox_semantics`) run on the new tree, and `devtools_snapshot_tree` is replaced by the release-build check of the new tree. Covered by `semantic_query_accesskit`."
+        },
+        {
+          "id": "QRY-3",
+          "verification": "automated",
+          "descriptionMarkdown": "`gpux-conformance` resolves every scene query through the AccessKit tree on every host (the test host, `app_host`, the desktop, web, iOS and Android examples); `Area::DevtoolsSemantics` becomes `Area::Accessibility`; `scenes::common::status` publishes `Role::Status` with a value; every scene that annotated devtools semantics uses AccessKit annotations; `gpux-conformance` asks for gpux's `semantic-query` feature instead of `devtools`. A new `accessibility` scene (a button, a check box, a text field, a slider, a labelled and described field, a list, a status line) is the fixture the screen-reader lanes and the owner's walkthrough use. New group `crates/gpux_conformance/tests/conformance_accessibility.rs`."
+        }
+      ]
+    },
+    {
+      "id": "SR",
+      "title": "Screen readers on the web, iOS and Android",
+      "descriptionMarkdown": "A blind user of a gpux app hears and operates it with the platform's screen reader on every platform gpux runs on, as desktop users already can.",
+      "criteria": [
+        {
+          "id": "SR-1",
+          "verification": "automated",
+          "descriptionMarkdown": "`gpui_web` implements `a11y_init` and `a11y_tree_update` with a DOM mirror: while its platform source is on, each window keeps, beside its canvas, a tree of DOM elements built from the AccessKit tree (through `accesskit_consumer`'s change handler, so an update touches only the nodes that changed): ARIA role from the AccessKit role, accessible name, description, value and numeric range, the states (checked, expanded, selected, disabled, required, read-only, invalid), the relations as `aria-labelledby`/`aria-describedby`/`aria-controls`/`aria-errormessage` over DOM ids, list positions and table indices, and an absolutely positioned box at the node's bounds, transparent and `pointer-events: none`; generic containers produce no element of their own; removed nodes leave the DOM; an `html_element` overlay's real DOM is ordered in by `aria-owns`. A new lane B spec (`tools-node/specs/screen-reader.spec.ts`, titles `screen-reader: tree ...`) reads Chromium's accessibility tree of a conformance scene (`getByRole`, aria snapshots, element boxes against the painted controls) and its change after an update."
+        },
+        {
+          "id": "SR-2",
+          "verification": "automated",
+          "descriptionMarkdown": "Screen-reader operation on the web: activating a mirror element (a DOM `click`) sends AccessKit `Click`, DOM focus on it sends `Focus` (and `ScrollIntoView` when the node is outside its scroll view), and the standard ARIA interactions of sliders, spin buttons and disclosures send `Increment`/`Decrement`/`Expand`/`Collapse`; when gpux's focus moves the mirror moves DOM focus to the focused node's element without dispatching a GPUI focus change in return; a focused editable text node is exposed through the IME mirror textarea (role, name, value, selection), so typing and IME keep their existing path; key events while a mirror element holds DOM focus reach GPUI as they do with the canvas focused; live regions map to `aria-live`. Covered by `screen-reader.spec.ts` titles `screen-reader: input ...`."
+        },
+        {
+          "id": "SR-3",
+          "verification": "automated",
+          "descriptionMarkdown": "Web activation: a browser cannot report a screen reader, so `gpui_web` puts one visually hidden, focusable \"Enable accessibility\" button first in each window's DOM; activating it (or an application's `WebScreenReader::Always` option) turns the window's platform source on and builds the mirror from a full tree; until then the window has no mirror elements and builds no tree for it. The button's label is localizable by the application. Covered by `screen-reader.spec.ts` titles `screen-reader: activation ...`."
+        },
+        {
+          "id": "SR-4",
+          "verification": "automated",
+          "descriptionMarkdown": "iOS: `gpui_mobile` creates an `accesskit_ios` 0.2 `SubclassingAdapter` on each window's `GPUIMetalView` from `a11y_init`, forwards `a11y_tree_update` to it on the main thread, and bridges its activation and action handlers to `A11yCallbacks`; frames are in the view's points. A new lane F group `screen-reader` in the iOS conformance host reads the view's `accessibilityElements` in process (labels, values, traits, frames against the painted controls) and activates the scene's button through `accessibilityActivate`, observing the scene's state change."
+        },
+        {
+          "id": "SR-5",
+          "verification": "automated",
+          "descriptionMarkdown": "Android: `gpui_mobile` creates an `accesskit_android` 0.9 `InjectingAdapter` (`embedded-dex`) on the view showing the GPUI surface (an embedding host's declared view or `SurfaceView`, else the NativeActivity's decor view), shared by the app's windows on that surface and describing the front one, rebuilt for a new Activity, bridging `jni` 0.21 and 0.22 through raw pointers, and forwards `a11y_tree_update` to it; activation and actions reach `A11yCallbacks`. A new lane E group `screen-reader` reads the accessibility nodes from outside the process (`adb shell uiautomator dump`: text, content description, class, bounds against the painted controls) and performs an accessibility click on the scene's button and an accessibility adjustment of its slider through the adapter (0.9's slider support), observing the scene's state and value change; the scene's status line is a live region. `gpux-mobile` type-checks for Android with and without `android-native-activity`. Both mobile adapters sit behind the `accessibility` feature (ACT-5)."
+        },
+        {
+          "id": "SR-6",
+          "verification": "manual",
+          "descriptionMarkdown": "`docs/accessibility.md` documents every switch (the `accessibility` feature, `AccessibilityMode` with `GPUX_ACCESSIBILITY` and `App::set_accessibility_mode`, `new_inaccessible`, `WebScreenReader`), the activation sources, inspection, the web mirror (its activation button, `WebScreenReader`, what it exposes, `html_element` ordering), the iOS and Android adapters, how to annotate elements (roles, names from text, relations, actions), what each platform's screen reader gets and the known limits. Verified by review."
+        },
+        {
+          "id": "SR-7",
+          "verification": "manual",
+          "descriptionMarkdown": "Owner-run: with the steps in `docs/accessibility.md`, the owner uses VoiceOver on the macOS desktop conformance host (the 0.27 adapter), VoiceOver in Safari and Chrome on macOS on the web conformance host, VoiceOver on the iOS Simulator or a device, and TalkBack on an Android emulator or device (Narrator or NVDA on Windows and Orca on Linux where the owner has them) to move through the `accessibility` scene, hear each control's role, name and state, activate a button, toggle a check box and type into a text field, and records what each one announced and anything missing in `docs/measurements/screen-reader-walkthrough.md`."
+        },
+        {
+          "id": "SR-8",
+          "verification": "automated",
+          "descriptionMarkdown": "Finding-driven scope the owner chose (2026-10-17: \"Fix in this epic\", and a vendored fork for the macOS adapter): on macOS, VoiceOver gets what the walkthrough (`docs/measurements/screen-reader-walkthrough.md`, findings 1-5) found missing: a table's rows and cell positions, a disclosure's expanded state, a spin button's value (not a percentage), a disabled control as dimmed, and a slider that is horizontal by default and steps once per increment, through the vendored fork `vendor/accesskit_macos` (`gpux-accesskit-macos`) and ARIA's default slider orientation in gpux. Proved by the lane D check `screen-reader-macos-voiceover` (which fails on the unmodified adapter) and the gpui group `a11y_aria_defaults`."
+        },
+        {
+          "id": "SR-9",
+          "verification": "automated",
+          "descriptionMarkdown": "Finding-driven scope the owner chose (2026-10-17): in the web mirror, VoiceOver moves past a focused text field (the IME textarea stands right after its field, which screen readers then do not see, and leaves the mirror with focus), the textarea is hidden while it stands for no field, an update leaves unchanged attributes alone (Safari rebuilt an element written unchanged and sent VoiceOver back to the window's start), and a spin button gives its number as its value text (walkthrough findings 6-7 and the jump back after Details). Proved by the lane B specs `screen-reader: navigation ...` and `screen-reader: tree a spin button ...`."
+        }
+      ]
+    },
+    {
+      "id": "DEV",
+      "title": "gpux-devtools in the app",
+      "descriptionMarkdown": "Any gpux app can be inspected and driven by an agent while it runs, on every platform, by depending on one crate.",
+      "criteria": [
+        {
+          "id": "DEV-1",
+          "verification": "automated",
+          "descriptionMarkdown": "`gpux_devtools::install(cx, Options)` makes an app connect out to the sidecar at `Options::url`, else `GPUX_DEVTOOLS_URL`, else (web) the page's `gpux_devtools` query parameter, else the documented default loopback URL. Build time: an app gets the devtools only by depending on `gpux-devtools`, which apps make optional behind a Cargo feature of their own; `gpux` and `gpux-platform` never depend on it, so without that dependency no devtools code, WebSocket client or query engine is linked (a static check reads `cargo tree`). Runtime: `Options::enabled(false)` or `GPUX_DEVTOOLS=off` starts it off, and `gpux_devtools::set_enabled(cx, bool)` turns it on and off at any time: off closes the connection, drops every inspection guard and stops retrying; on resumes. While enabled it retries with bounded backoff while no sidecar listens, holds an inspection guard on every window only while connected and drops them on disconnect. New group `crates/gpux_devtools/tests/connection.rs` with an in-test WebSocket server."
+        },
+        {
+          "id": "DEV-2",
+          "verification": "automated",
+          "descriptionMarkdown": "Protocol: JSON-RPC 2.0 over WebSocket text frames on one connection, requests flowing both ways. The app's first message is `hello` with the protocol version, app id and name, platform, windows (id, title, bounds, scale factor) and its extension tools; a sidecar that answers with another protocol version closes the connection with a stated error; an optional shared token (`Options::token`, `GPUX_DEVTOOLS_TOKEN`) must match. Window opening and closing are notified. Every error carries its request id; no request is sent again after a lost response. Covered by `connection`."
+        },
+        {
+          "id": "DEV-3",
+          "verification": "automated",
+          "descriptionMarkdown": "`snapshot` returns a window's tree as YAML in the shape of Playwright's aria snapshot (role, name, value, states, `[ref=<node id>]`, bounds on request), in the inspection view or the screen-reader view, optionally rooted at a ref; `query` returns the nodes a `Query` text form matches. New group `crates/gpux_devtools/tests/snapshot.rs`."
+        },
+        {
+          "id": "DEV-4",
+          "verification": "automated",
+          "descriptionMarkdown": "`act` performs an AccessKit action on a ref (Click, Focus, SetValue with a value, Increment, Decrement, Expand, Collapse, ScrollIntoView, CustomAction by id) through `Window::perform_a11y_action` and reports whether a handler ran; `input` synthesizes input at a ref's bounds or a point (click with button and count, hover, drag to a ref or point, long press, pinch, wheel, type text, press keys) through the window's dispatch methods, flushing a draw where text input needs the focused input handler installed; a ref that is gone fails naming the ref. New group `crates/gpux_devtools/tests/actions.rs`."
+        },
+        {
+          "id": "DEV-5",
+          "verification": "automated",
+          "descriptionMarkdown": "`screenshot` returns a PNG of a window or of a ref's bounds (`Window::render_to_image`); `wait` resolves when a query starts or stops matching within a timeout, frame by frame; `stats` returns frame counts, fast-mode counters and the tree's size. The crate builds for wasm32. New group `crates/gpux_devtools/tests/observe.rs`."
+        },
+        {
+          "id": "DEV-6",
+          "verification": "automated",
+          "descriptionMarkdown": "The client works in a real desktop window and in the browser: a lane D group connects the desktop conformance host to a WebSocket server and reads `hello`, a snapshot and a click's effect; a lane B spec (`tools-node/specs/devtools.spec.ts`, titles `devtools: ...`) runs a WebSocket server in the spec, loads the threaded WASM host with the `gpux_devtools` parameter and reads the same."
+        },
+        {
+          "id": "DEV-7",
+          "verification": "automated",
+          "descriptionMarkdown": "The client works on the iOS Simulator (lane F, the host connecting to the Mac's loopback) and on Android (lane E, through `adb reverse` of the server's port): each lane's `devtools` group reads `hello`, a snapshot and a tap's effect."
+        }
+      ]
+    },
+    {
+      "id": "MCP",
+      "title": "gpux-devtools-mcp",
+      "descriptionMarkdown": "One sidecar serves every gpux app, RayX's included.",
+      "criteria": [
+        {
+          "id": "MCP-1",
+          "verification": "automated",
+          "descriptionMarkdown": "`gpux-devtools-mcp` is a stdio MCP server that listens for apps on loopback (`--port`, a documented default; `--token`), lists connected apps and windows, and exposes `gpux_*` tools (list_apps, snapshot, query, act, input, screenshot, wait, stats) and the Playwright-compatible `browser_*` tools RayX's sidecar offered (snapshot, click, hover, drag, type, press_key, the mouse_* tools, mouse_wheel, take_screenshot, wait_for, tabs, observe; `browser_set_property` becomes SetValue), keeping their response sections (`### Result`, `### Ran Playwright code`, `### Page`, `### Snapshot`); `--print-manifest` prints the tools and options. New group `crates/gpux_devtools_mcp/tests/stdio_protocol.rs`."
+        },
+        {
+          "id": "MCP-2",
+          "verification": "automated",
+          "descriptionMarkdown": "Tools an app advertises in `hello` appear in the tool list under the advertised names (such as `rayx_metadata`), are forwarded to that app and return its result; when two apps advertise the same name the call takes an app id; a call to a disconnected app fails naming it; a tool failure keeps the parsed request id. New group `crates/gpux_devtools_mcp/tests/extensions.rs`."
+        },
+        {
+          "id": "MCP-3",
+          "verification": "manual",
+          "descriptionMarkdown": "`docs/devtools.md` documents adding gpux-devtools (as an optional dependency behind an app feature), switching it on and off (`Options::enabled`, `GPUX_DEVTOOLS`, `set_enabled`), enabling it per platform (desktop variable, web query parameter, iOS Simulator loopback, Android `adb reverse`), the sidecar's options and an MCP harness entry, the tools, the accessibility modes and inspection, and how to annotate elements so agents and screen readers see them; the README crate table lists both crates; `docs/testing.md` names the new groups and lane selectors. Verified by review."
+        }
+      ]
+    },
+    {
+      "id": "RX",
+      "title": "RayX on AccessKit and gpux-devtools",
+      "descriptionMarkdown": "RayX keeps one annotation surface and one inspection path.",
+      "criteria": [
+        {
+          "id": "RX-1",
+          "verification": "automated",
+          "descriptionMarkdown": "RayX contains no `devtools_semantics`, `set_devtools_semantics`, `DevtoolsSemantics`, `InspectableElement`, `on_devtools_property`, `set_devtools_property`, `DevtoolsPointerAction`, `pointer_action(`, `devtools_frame_snapshot` or `Devtools*Snapshot`: a guard test in `crates/rayx_devkit/tests/retired_devtools_api.rs` scans `crates/`, `apps/` and `tools-node/` and fails naming each file and symbol."
+        },
+        {
+          "id": "RX-2",
+          "verification": "automated",
+          "descriptionMarkdown": "Each of the 34 files whose devtools semantics were their only semantics exposes the same role, name, value and states through AccessKit, and files that set both keep only the AccessKit annotation, losing nothing devtools carried (names from text come from text leaves). New groups `tests/accesskit_from_devtools.rs` in `rayx_components_core`, `rayx_components_base` and `rayx_blocks` assert the converted components' AccessKit nodes through gpux's test adapter; the existing tests that read devtools snapshots (`field_semantics`, `otp_field`, `password_field`, `search_field`, `text_area`, `resizable_direction`, `application_configuration_motion_continuous`, the infinite canvas's `semantics_contracts`, the node editor's `devkit_semantics_contracts`, `node_component_contracts` and `node_variants_navigation_contracts`) read the AccessKit tree."
+        },
+        {
+          "id": "RX-3",
+          "verification": "automated",
+          "descriptionMarkdown": "The property grid's 10 writable properties become `SetValue` or custom-action handlers on the owning editors, and the 15 pointer actions of the infinite canvas, node editor and core interactive viewer become the matching AccessKit actions or are left to synthesized input; new groups `tests/accesskit_actions.rs` in `rayx_components_propertygrid`, `rayx_components_node_editor` and `rayx_components_canvas_infinite` perform each action through `Window::perform_a11y_action` and assert the component's state."
+        },
+        {
+          "id": "RX-4",
+          "verification": "automated",
+          "descriptionMarkdown": "`rayx_devkit` installs gpux-devtools from `with_devkit(...)` and registers RayX's own tools (`rayx_metadata`, `rayx_diagnostics`, operation diagnostics) as extensions; its connector, registry, protocol, node mapping and live command path are removed and `rayx_devkit_mcp` (crate and binary) is deleted. RayX's switches: the apps' `devkit` Cargo feature stays the build-time switch for the devtools, `with_devkit(|options| ...)` carries `enabled` and `GPUX_DEVTOOLS` works unchanged at runtime; `ApplicationConfiguration` gains the accessibility mode (`RayX:Application` configuration, passed to `App::set_accessibility_mode`); RayX keeps gpux's `accessibility` feature on in every app, enabling it on `gpui_mobile` where RayX uses `default-features = false`. New group `crates/rayx_devkit/tests/gpux_devtools_extension.rs` calls the extensions through a test sidecar."
+        },
+        {
+          "id": "RX-5",
+          "verification": "automated",
+          "descriptionMarkdown": "Test Suite pages and probes that read DevKit (`rayx-data-table-selection.spec.ts`, `android-pointer-gesture-probe.mjs`, `rayx-components-base-completion-targets.mjs` and the Test Suite pages with devtools semantics) use AccessKit annotations and gpux-devtools; the data-table selection spec passes headed on WebGPU through `rayx app apps/test_suite test wasm`; a desktop smoke (`tools-node/test_suite/devtools-desktop-smoke.mjs`) starts `gpux-devtools-mcp`, runs Test Suite natively with `devkit` and drives a snapshot, a click and typing through MCP; a new Test Suite spec (`tools-node/test_suite/rayx-screen-reader.spec.ts`) enables the web mirror and finds, activates and types into RayX components through Chromium's accessibility tree (`getByRole`) on WebGPU."
+        },
+        {
+          "id": "RX-6",
+          "verification": "manual",
+          "descriptionMarkdown": "RayX's docs and skills describe gpux-devtools and AccessKit annotations instead of DevKit semantics, and screen-reader support on the web and mobile instead of \"WASM accessibility unsupported\": `.claude/skills/rayx/references/devkit.md` and `diagnostics.md`, the rayx-components references that mention DevKit semantics (property grid, window controls, themes-icons-assets), `apps/test_suite/README.md`, `apps/examples_mobile/README.md`, `docs/src/rayx/android.md` and the property grid's `AVALONIA_PARITY.md`; the memory sync rewrites RayX's accessibility and DevKit rules. Verified by review."
+        },
+        {
+          "id": "RX-7",
+          "verification": "automated",
+          "descriptionMarkdown": "Pre-existing defect the owner brought into scope (2026-10-16; it also fails on RayX 66875570 with Gpux 58257fe, `artifacts-temp/agentx/gpux-a11y-devtools/dt-baseline.log`): select-all in RayX text fields and selection areas follows the keyboard in use (Command-A on an Apple keyboard, a Mac browser included; Control-A elsewhere, gpux's `secondary` modifier), so the old draft never survives select-all before typing. A Control-A-only binding left a Mac browser's Command-A to the browser, which selected the hidden input-method textarea instead. New group `crates/rayx_components/rayx_components_core/tests/select_all_shortcut.rs`; the runtime proof is `check-rx-test-suite-spec` (the data-table selection spec) and the RayX screen-reader spec selecting all before typing."
+        },
+        {
+          "id": "RX-8",
+          "verification": "automated",
+          "descriptionMarkdown": "Finding-driven scope the owner chose (2026-10-16, s08 review finding `s08-rx2-diagnostic-values-announced`, option A): what assistive technologies announce as the value of the infinite canvas, its minimap, the node editor and its nodes, ports, connections and connection labels, and the property grid's rows, editor hosts and operations buttons is human-readable (\"2 nodes, 1 connection, 1 selected, zoom 100%\"), never machine state. The machine state agents and tests need (ids, counts, interactions, viewports, paths, editors, operation flags) is published through `rayx_runtime::component_state` only while it is recorded, and DevKit serves it as the gpux-devtools extension tool `rayx_component_state`. New groups `announced_values` in the three component crates and `rayx_runtime/tests/component_state.rs`; the existing readers (`semantics_contracts` of the canvas and node editor, `node_component_contracts`, `node_variants_navigation_contracts`, the property grid's `accesskit_actions`) read the published state, and `gpux_devtools_extension` calls the tool."
+        },
+        {
+          "id": "RX-9",
+          "verification": "automated",
+          "descriptionMarkdown": "Finding-driven scope the owner chose (2026-10-16, s08 review finding `s08-rx7-other-editors-ctrl-a`, option A): select-all in the code editor, rich-text editor, infinite canvas and node editor is bound to `secondary-a` like RX-7, and the Test Suite's and Lab's `application-input-map.json` carry exactly the components' typed select-all entries. New test `select_all_bindings_use_the_secondary_modifier_and_match_component_defaults` in `apps/test_suite/src/lib.rs` fails if any of them goes back to a Control-A-only binding or the maps drift."
+        }
+      ]
+    },
+    {
+      "id": "REM",
+      "title": "No devtools surface left in gpux",
+      "descriptionMarkdown": "gpux's frame pipeline no longer carries an inspection layer of its own.",
+      "criteria": [
+        {
+          "id": "REM-1",
+          "verification": "automated",
+          "descriptionMarkdown": "gpux has no `DevtoolsSemantics`, `DevtoolsWritableProperty`, `DevtoolsPropertySetter`, `DevtoolsPointerAction`, `InspectableElement`, `DevtoolsFrameSnapshot`, `DevtoolsElementSnapshot`, `DevtoolsBounds`, `DevtoolsElementSource`, `devtools_frame_snapshot`, `set_devtools_semantics`, `on_devtools_property`, `set_devtools_property`, `set_devtools_semantics_with`, the `DEVTOOLS` const, per-element devtools node records (`devtools_nodes`, the node stack, `PrepaintStateIndex` fields) or paint-time text semantics; the `devtools` Cargo feature is gone from `gpux` and from `gpux-conformance`'s dependency; fast mode carries no DevKit nodes. A guard test `crates/gpui/tests/devtools_removed_guard.rs` scans `crates/` for the retired symbols and fails naming each file and symbol."
+        },
+        {
+          "id": "REM-2",
+          "verification": "automated",
+          "descriptionMarkdown": "The shader-effect counts the devtools snapshot carried are available from `Window::effect_diagnostics()` with the same values. New group `crates/gpui/tests/effect_diagnostics.rs`."
+        },
+        {
+          "id": "REM-3",
+          "verification": "manual",
+          "descriptionMarkdown": "The gpux skill's upstream-import checklist (`.claude/skills/gpux/references/update-from-zed-gpui-closure.md`) describes the accessibility patch surface (activation sources, text leaves, inspection containers and id map, relations, fast-mode carry) instead of devtools snapshots; `docs/fast-mode.md` (its \"The `devtools` feature\" section included), `README.md` and `LINUX-WSL.md` describe the accessibility carry and gpux-devtools; `crates/gpui/Cargo.toml` drops the `rayx_diagnostics` alias (RayX does not enable it on gpux); and the memory sync updates the frame-pipeline, positioning-scroll, gpui and web rules that name DevKit nodes or the `devtools` feature. Verified by review."
+        },
+        {
+          "id": "REM-4",
+          "verification": "automated",
+          "descriptionMarkdown": "Repair of a regression the first complete CI run found (2026-10-17, test job on all three platforms; main passes it): with the DevKit node records gone, the retention verifier no longer told a retained view by its text, so a view showing stale text differed only at window level or not at all. A view's description now holds the accessibility events it recorded (its nodes and text leaves) and its sprites' atlas tiles (which one window's frames share), and a view that differs is reported even when the frame-wide description does not. The same run's lane B failures (`pointer.spec.ts` and `composition.spec.ts`, \"exits 0\") came from two sibling `status()` elements with one id in the `web-composition` scene, whose AccessKit nodes collapsed into one; the scene gives the second its own id. Proved by `fast::tests::verify_mode` and `fast::tests::a11y_describe::verification` with the `diagnostics` feature, and the two lane B specs."
+        },
+        {
+          "id": "REM-5",
+          "verification": "automated",
+          "descriptionMarkdown": "Repair of a regression the second CI run found (2026-10-17, run 38992709138, test job on Linux and Windows): the vendored `gpux-accesskit-macos` is a workspace member, so the workspace test run built it off Apple platforms, where `objc-sys` needs a runtime feature. CI's `FORK_EXCLUDES` leaves it out with the wgpu fork crates. Proved by a check that every workspace member under `vendor/` is in `FORK_EXCLUDES`."
+        }
+      ]
+    }
+  ]
+}

@@ -313,6 +313,11 @@ fn listing_lane_g_shows_the_benchmarks_and_the_hardware_runs() {
                 code: Some(0),
                 output: "full_mode_compares_every_frame_of_the_script: test\n".into(),
             },
+            RunOutput {
+                success: true,
+                code: Some(0),
+                output: "a_scrolled_div_carries_its_content_s_nodes: test\n".into(),
+            },
         ],
         ..FakeRunner::default()
     };
@@ -340,7 +345,7 @@ fn listing_lane_g_shows_the_benchmarks_and_the_hardware_runs() {
         text.contains("  lane_c_sampling::full_mode_compares_every_frame_of_the_script"),
         "{text}"
     );
-    assert_eq!(runner.ran.len(), 9, "{:?}", runner.ran);
+    assert_eq!(runner.ran.len(), 10, "{:?}", runner.ran);
     assert!(
         runner
             .ran

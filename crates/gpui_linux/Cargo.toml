@@ -17,10 +17,13 @@ path = "src/gpui_linux.rs"
 doctest = false
 
 [features]
-default = ["wayland", "x11"]
-test-support = ["gpux/test-support"]
+default = ["wayland", "x11", "accessibility"]
+# Links the AT-SPI adapter (`accesskit_unix`) for the Wayland and X11 windows. Without it no window
+# turns the platform accessibility source on; inspection and `AccessibilityMode::Always` still
+# build the tree.
+accessibility = ["dep:accesskit_unix"]
+test-support = ["gpux/test-support", "accessibility"]
 wayland = [
-    "dep:accesskit_unix",
     "gpui_wgpu",
     "ashpd/wayland",
 
@@ -38,7 +41,6 @@ wayland = [
     "uuid/v5",
 ]
 x11 = [
-    "dep:accesskit_unix",
     "gpui_wgpu",
     "ashpd",
 

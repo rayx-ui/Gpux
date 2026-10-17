@@ -98,7 +98,7 @@ pub enum Area {
     ShaderEffects,
     SrgbCompositing,
     AccessibilityTree,
-    DevtoolsSemantics,
+    Accessibility,
 }
 
 impl Area {
@@ -151,7 +151,7 @@ impl Area {
         Area::ShaderEffects,
         Area::SrgbCompositing,
         Area::AccessibilityTree,
-        Area::DevtoolsSemantics,
+        Area::Accessibility,
     ];
 }
 

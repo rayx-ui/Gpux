@@ -340,6 +340,9 @@ pub fn set_embedded_context(java_vm: *mut c_void, activity: *mut c_void) -> bool
 
 /// Clear the managed-Activity embedded JNI handles.
 pub fn clear_embedded_context() {
+    // TalkBack's adapter is on the cleared Activity's view: it goes with it.
+    #[cfg(feature = "accessibility")]
+    super::accessibility::release();
     EMBEDDED_JAVA_VM.store(std::ptr::null_mut(), Ordering::Release);
     EMBEDDED_ACTIVITY.store(std::ptr::null_mut(), Ordering::Release);
 }

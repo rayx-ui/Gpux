@@ -42,6 +42,7 @@ macro_rules! lane_c_scenes {
             effects_animated_frame => "effects-animated-frame",
             effects_transition_frame => "effects-transition-frame",
             semantics_accessibility => "semantics-accessibility",
+            accessibility => "accessibility",
         }
     };
 }

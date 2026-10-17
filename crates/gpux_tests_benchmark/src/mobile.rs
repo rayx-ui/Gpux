@@ -27,6 +27,11 @@ fn start(cx: &mut App) {
         config,
         WindowOptions::default(),
         Box::new(|report, _, _| {
+            if let Some(error) = report["error"].as_str() {
+                println!("gpux-bench-error: {error}");
+                std::io::stdout().flush().ok();
+                std::process::exit(2);
+            }
             println!("gpux-bench-result: {report}");
             std::io::stdout().flush().ok();
             std::process::exit(0);

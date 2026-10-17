@@ -79,15 +79,15 @@ view that read the hover of a hitbox it does not insert, such as the group aroun
 (`group_hover`), is built again every frame: that hitbox belongs to whoever inserts it, under a
 new id each frame its owner draws.
 
-### The `devtools` feature
+### Accessibility
 
-`gpux`'s `devtools` feature (on by default, and with `test-support`) records a DevKit node for
-every element each frame: its semantics, writable properties and the snapshot semantic locators
-and `devtools_frame_snapshot` read. A reused or spliced stretch copies those nodes and a frame
-drops them. An application that does not use them builds with `default-features = false` (adding
-the features it needs back): nothing is then recorded, copied or built per element, and
-`devtools_frame_snapshot` lists no element. The benchmark builds this way: on macOS it takes 16%
-of `dashboard-clock`'s CPU with fast mode on, and 5–60% of the heap allocations per frame.
+Fast mode works with the accessibility tree built, for a screen reader or for inspection (tests,
+gpux-devtools): no view or layer is bypassed for it. Each frame records its tree as an event log
+that cached view replay, splice, retained paint, scroll layers (with the scroll offset applied to
+the bounds they carry) and list rows replay, so a frame drawn from last frame carries the nodes,
+focus, focusable nodes, action handlers and where actions reach that a frame drawn from scratch
+would build, which the frame verifier and the lane C `lane_c_a11y_layers` group compare. With no
+source asking for the tree nothing is recorded. See [accessibility.md](accessibility.md#fast-mode).
 
 ## View retention
 
@@ -134,8 +134,8 @@ itself may have changed, and what is drawn around the changed views must read an
 it was. Each changed nested view is built again in its gap, where it was drawn, inheriting what
 it had there: element ids, text style, the content masks it was prepainted and painted under,
 element offset, rem size, opacity, transform, scroll and sticky contexts and hitbox behavior. The
-stretches between gaps are copied, their dispatch nodes and DevKit nodes mapped across the gaps
-so a node allocated before a gap and recorded after it still finds its parent.
+stretches between gaps are copied, their dispatch nodes and accessibility records mapped across
+the gaps so a node allocated before a gap and recorded after it still finds its parent.
 
 A gap laid out at another node changes the view around it, which is then built, taking over the
 nested views already built rather than building them twice (`views_prebuilt`). A gap laid out
@@ -246,11 +246,10 @@ Two things differ in time, not in what a frame shows:
 
 A container goes without a layer, counted by reason in `FastStats::layer_bypasses`, when:
 
-- `inactive`: the frame is drawn from scratch, during a drag, with accessibility active, or
-  while the inspector picks. A frame drawn from scratch (`Window::refresh`, as after the
-  renderer lost its sprite atlas, whose tiles the kept content would still name) also leaves no
-  layer content painted before it: the container is painted into its layer again the next time
-  it scrolls. So does removing an image or an SVG from the sprite atlas (`Window::drop_image`,
+- `inactive`: the frame is drawn from scratch, during a drag, or while the inspector picks. A
+  frame drawn from scratch (`Window::refresh`, as after the renderer lost its sprite atlas, whose
+  tiles the kept content would still name) also leaves no layer content painted before it: the
+  container is painted into its layer again the next time it scrolls. So does removing an image or an SVG from the sprite atlas (`Window::drop_image`,
   `drop_svg`): the atlas hands the slot out again, and the tiles' hashes would not tell the next
   image from the one removed;
 - `not-promoted`: it has not scrolled on two frames in a row;
@@ -342,11 +341,10 @@ A frame shown from a list's layer tells what the frame drawn without it tells. T
 layer holds off screen give it their pixels and nothing else, as a list without a layer does
 not draw them: their hitboxes are clipped away, their mouse listeners hear nothing (one that
 listens for a press outside its element would hear every press), they are no stops for the tab
-key, hold no focus, are not among the frame's DevKit elements
-(`Window::devtools_frame_snapshot`), are not counted among the hitboxes of the elements around
-them, have no bounds for tests to find them by, and handle no text input. The rows the list
-shows are told row after row, in the tab order and among the DevKit elements, whichever of them
-the frame carried and whichever it rendered.
+key, hold no focus, have no nodes in the accessibility tree, have no bounds for tests to find
+them by, and handle no text input.
+The rows the list shows are told row after row, in the tab order and in the accessibility tree,
+whichever of them the frame carried and whichever it rendered.
 
 The rows a list shows are those its own layout renders. A `list` shows the rows from its first
 on that start above the height of its bounds, by its own offset, wherever the offset moved to

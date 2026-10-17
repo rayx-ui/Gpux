@@ -150,6 +150,7 @@ pub struct WindowsWindowState {
     fullscreen: Cell<Option<StyleAndBounds>>,
     initial_placement: Cell<Option<WindowOpenStatus>>,
     hwnd: HWND,
+    #[cfg(feature = "accessibility")]
     pub(crate) a11y: RefCell<Option<A11yState>>,
     pub(crate) destroyed: Cell<bool>,
     pub(crate) evaluating_close: Cell<bool>,
@@ -281,6 +282,7 @@ impl WindowsWindowState {
             initial_placement: Cell::new(initial_placement),
             hwnd,
             direct_manipulation,
+            #[cfg(feature = "accessibility")]
             a11y: RefCell::new(None),
             destroyed: Cell::new(false),
             evaluating_close: Cell::new(false),
@@ -1271,6 +1273,7 @@ impl PlatformWindow for WindowsWindow {
         let _ = unsafe { MessageBeep(MB_OK) };
     }
 
+    #[cfg(feature = "accessibility")]
     fn a11y_init(&self, callbacks: gpux::A11yCallbacks) {
         if self.state.destroyed.get() {
             return;
@@ -1292,6 +1295,7 @@ impl PlatformWindow for WindowsWindow {
         });
     }
 
+    #[cfg(feature = "accessibility")]
     fn a11y_tree_update(&self, tree_update: accesskit::TreeUpdate) {
         let events = {
             let mut a11y = self.state.a11y.borrow_mut();
@@ -1313,23 +1317,28 @@ impl PlatformWindow for WindowsWindow {
     }
 }
 
+#[cfg(feature = "accessibility")]
 pub(crate) struct A11yState {
     pub(crate) adapter: accesskit_windows::Adapter,
     pub(crate) activation_handler: A11yActivationHandler,
 }
 
+#[cfg(feature = "accessibility")]
 pub(crate) struct A11yActivationHandler {
     callback: Box<dyn Fn() -> Option<accesskit::TreeUpdate> + Send + 'static>,
 }
 
+#[cfg(feature = "accessibility")]
 impl accesskit::ActivationHandler for A11yActivationHandler {
     fn request_initial_tree(&mut self) -> Option<accesskit::TreeUpdate> {
         (self.callback)()
     }
 }
 
+#[cfg(feature = "accessibility")]
 struct A11yActionHandler(Box<dyn Fn(accesskit::ActionRequest) + Send + 'static>);
 
+#[cfg(feature = "accessibility")]
 impl accesskit::ActionHandler for A11yActionHandler {
     fn do_action(&mut self, request: accesskit::ActionRequest) {
         (self.0)(request);
