@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-rich-editable-text",
-  "revision": 1,
+  "revision": 6,
   "title": "Rich text in gpux's EditableText: per-run metrics, stored formatting, variable rows, paragraphs and lists, inline objects, rich clipboard",
   "validationMode": "sprint",
   "repositories": [
@@ -52,7 +52,10 @@
       "gpux:.agentx/tasks/keyed-sticky-stacking/**",
       "gpux:.agentx/tasks/macos-only-metal-port-and-ci-repair/**",
       "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**",
-      "gpux:.agentx/tasks/gpux-platform-text-input/**",
+      "gpux:.agentx/tasks/gpux-platform-text-input/requirements.json",
+      "gpux:.agentx/tasks/gpux-platform-text-input/design.json",
+      "gpux:.agentx/tasks/gpux-platform-text-input/implementation-plan.json",
+      "gpux:.agentx/tasks/gpux-platform-text-input/state.json",
       "gpux:.agentx/experiments/**",
       "gpux:docs/changelog/2026-09-01-gpux-performance-improvement-sprint.md",
       "gpux:docs/changelog/2026-10-16-macos-fast-mode-improvement-loop.md",
@@ -114,6 +117,8 @@
         "test",
         "-p",
         "gpux-macos",
+        "--features",
+        "font-kit",
         "run_metrics"
       ],
       "expected": {
@@ -134,7 +139,9 @@
         "crates/gpux_color/**",
         "crates/gpux_fonts/**",
         "Cargo.toml",
-        "Cargo.lock"
+        "Cargo.lock",
+        "crates/gpui_macos/**",
+        "crates/gpui_apple/**"
       ]
     },
     {
@@ -241,7 +248,8 @@
         "crates/gpux_color/**",
         "crates/gpux_fonts/**",
         "Cargo.toml",
-        "Cargo.lock"
+        "Cargo.lock",
+        "crates/gpui_wgpu/**"
       ]
     },
     {
@@ -1861,6 +1869,82 @@
         "testCountPattern": "gpux-testkit: (\\d+) passed"
       },
       "reuse": false
+    },
+    {
+      "id": "check-a-run-metrics-web",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "RUN-3"
+      ],
+      "descriptionMarkdown": "Test `run_metrics_candidates_take_their_runs_size` in `crates/gpui_web/src/run_replacements.rs`: a canvas-fallback candidate carries its run's size, which `apply_fallback` measures and rasterizes at.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-web",
+        "--lib",
+        "run_metrics"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui_web/**",
+        "crates/gpui_wgpu/**"
+      ]
+    },
+    {
+      "id": "check-a-run-metrics-paint",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "RUN-4"
+      ],
+      "descriptionMarkdown": "Unit tests `run_metrics_strikethrough_*` in `crates/gpui/src/text_system/line.rs`: a strikethrough sits at each run's own middle, and a shaper's glyph y never moves or splits it on runs without metrics (review finding s01-strikethrough-glyph-y).",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--lib",
+        "run_metrics_"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
     }
   ],
   "finalCheckIds": [
@@ -1980,7 +2064,8 @@
           ],
           "checkIds": [
             "check-a-run-metrics-cosmic",
-            "check-a-web-build"
+            "check-a-web-build",
+            "check-a-run-metrics-web"
           ],
           "sourceRefs": [
             {
@@ -2017,7 +2102,8 @@
             "check-a-runs-lane-c",
             "check-a-runs-lane-b",
             "check-a-runs-lane-e",
-            "check-a-runs-lane-f"
+            "check-a-runs-lane-f",
+            "check-a-run-metrics-paint"
           ],
           "sourceRefs": [
             {

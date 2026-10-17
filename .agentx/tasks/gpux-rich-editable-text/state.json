@@ -1,25 +1,37 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-rich-editable-text",
-  "revision": 0,
-  "planRevision": 1,
+  "revision": 21,
+  "planRevision": 6,
   "specHashes": {
     "requirements": "dd2fb980909e8180a8291227ea08cef4d241a5684340cdb66f70c1b4ca539061",
     "design": "75d1477d98b395c22c8d694b837633e4558521317e37d3e2603988ac152f52f5",
-    "plan": "90fa5d76f2475f594c2138a0f300cdbd64dd54bc3278ac5e98459eaba0b2949b"
+    "plan": "387827add1481b7738d82aede16bf18bfb428c5b88ef106c483d1b9a10f42ccd"
   },
   "tasks": {
     "t01-run-metrics-core": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "3b3dd124"
+      ]
     },
     "t02-run-metrics-coretext": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "3b3dd124"
+      ]
     },
     "t03-run-metrics-cosmic": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "3b3dd124"
+      ]
     },
     "t04-run-metrics-scene": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "3b3dd124"
+      ]
     },
     "t05-attribute-store": {
       "status": "pending"
@@ -76,11 +88,542 @@
       "status": "pending"
     }
   },
-  "validationBatches": {},
-  "checkResults": {},
-  "reviews": {},
+  "validationBatches": {
+    "701029920a252d850baa156c15c05b681bb42f1fb899d55315c7ff977d8c7ffd": {
+      "snapshot": {
+        "specHash": "dadc3f11539d86a77722b71a211a313e9f94a770def16f9341708741008cd020",
+        "repositories": {
+          "gpux": "90d200e7ec7ebb895120af65286eb1fddd31397a416c9b18155f7f76678840b2",
+          "rayx": "84d2cf241369243da3a9acff3794e5f471dea1a58363826115976742f944428b"
+        }
+      },
+      "recordedAt": "2026-10-17T00:07:51Z"
+    }
+  },
+  "checkResults": {
+    "s01-run-metrics/check-a-run-metrics/final": {
+      "checkId": "check-a-run-metrics",
+      "boundaryId": "s01-run-metrics",
+      "phase": "final",
+      "batchId": "701029920a252d850baa156c15c05b681bb42f1fb899d55315c7ff977d8c7ffd",
+      "definitionHash": "3caf716d44cbf9a8f0d53d5c12156027466ea3cd466d055a8a7fb355531b188e",
+      "basisHash": "d25b82447bbfd823d9091792037a6128298291872804d54392fceb25e9e74fbc",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 10,
+      "durationSeconds": 25.9931,
+      "recordedAt": "2026-10-17T00:01:51Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s01-run-metrics-final-1dd3177e5c74.log",
+      "logSha256": "ad48c1880e4073eae6bd1fee54c2995ff4d8eaca4943f652aae94dcb57fce1ef",
+      "inputsHash": "39f32326016e4456f1b1d19b8f72036a3413f732787761d7f535e3fbd4e2eab7"
+    },
+    "s01-run-metrics/check-a-run-metrics-macos/final": {
+      "checkId": "check-a-run-metrics-macos",
+      "boundaryId": "s01-run-metrics",
+      "phase": "final",
+      "batchId": "701029920a252d850baa156c15c05b681bb42f1fb899d55315c7ff977d8c7ffd",
+      "definitionHash": "0205541e8653d334b98b81bcd95dc74d69c5ba85ecbfed30e23f6b4ca950edc4",
+      "basisHash": "cd44ff1edac2fc4bdcdd49e587370bebf040af49c89494a683bbf0b5bce25151",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 48.4508,
+      "recordedAt": "2026-10-17T00:02:40Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s01-run-metrics-final-6817c0463685.log",
+      "logSha256": "502ef2778a853dc75c5e7d0cf9bd8ed39a6c96ac35a907d8d539c703981b20cd",
+      "inputsHash": "0266a3426b94cbb366ebf043453c25d92af230b42ee2337a8583c950fa4527bc"
+    },
+    "s01-run-metrics/check-a-ios-build/final": {
+      "checkId": "check-a-ios-build",
+      "boundaryId": "s01-run-metrics",
+      "phase": "final",
+      "batchId": "701029920a252d850baa156c15c05b681bb42f1fb899d55315c7ff977d8c7ffd",
+      "definitionHash": "9c5e803a9729c915c365a1858845203c6c248551e66fd3b32496d0956999fb7f",
+      "basisHash": "2a6cf9761ee846e90296c8de92bff96da0ce4ea5deb8a9dacdf303d9b436c961",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 8.7585,
+      "recordedAt": "2026-10-17T00:02:49Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s01-run-metrics-final-789831abd6b1.log",
+      "logSha256": "7c34d324e4613ebc3676fa0113bf116be470772492efd58c04e155429aa789b5",
+      "inputsHash": "9e3405c398196f24e17d4f3f73af9a4bd49bea43cc4d226c354092f6a02a3794"
+    },
+    "s01-run-metrics/check-a-run-metrics-lane-f/final": {
+      "checkId": "check-a-run-metrics-lane-f",
+      "boundaryId": "s01-run-metrics",
+      "phase": "final",
+      "batchId": "701029920a252d850baa156c15c05b681bb42f1fb899d55315c7ff977d8c7ffd",
+      "definitionHash": "e21833ca5eedce3f383318ea3c83cbe84e89fb4c448e151216465b1154515427",
+      "basisHash": "762238001b16d0143571a8f95dea19b7c713627e31484bf1cf6626ca2bc8b96c",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 39.5297,
+      "recordedAt": "2026-10-17T00:03:28Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s01-run-metrics-final-b2af6adcea91.log",
+      "logSha256": "8fde8a2989cd37fa3a0560511aa5e455c55414df3ed111a5169ea21e1d2304d8",
+      "inputsHash": "38fec8e516f9270867f24c68c55735e394f54a7f42c4cf42cf3df72cec6f3ddb"
+    },
+    "s01-run-metrics/check-a-run-metrics-cosmic/final": {
+      "checkId": "check-a-run-metrics-cosmic",
+      "boundaryId": "s01-run-metrics",
+      "phase": "final",
+      "batchId": "701029920a252d850baa156c15c05b681bb42f1fb899d55315c7ff977d8c7ffd",
+      "definitionHash": "254673b5167d18ca7da7358c793ee9488508361195c5928a8cc8fd9ca50e61c2",
+      "basisHash": "a2c85f19f4c3f64e837ba7995f1fa4ff96f151d2f191351975f71ef921e2220d",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 26.5437,
+      "recordedAt": "2026-10-17T00:03:55Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s01-run-metrics-final-28761043d462.log",
+      "logSha256": "8512bd324ce66f3531a61643a1c69fcf197e6a724c0201d0c4acda25753d4b53",
+      "inputsHash": "42b2f1ec6fe101e0a98fa4a5245017bb34466cf23fcecdf3961015f7f18d11d9"
+    },
+    "s01-run-metrics/check-a-web-build/final": {
+      "checkId": "check-a-web-build",
+      "boundaryId": "s01-run-metrics",
+      "phase": "final",
+      "batchId": "701029920a252d850baa156c15c05b681bb42f1fb899d55315c7ff977d8c7ffd",
+      "definitionHash": "57e255228e767da2d7be235933d561bb24a156ee18add9626bad121e20d4fa59",
+      "basisHash": "2728bdc5045f325a8c55a24e356ef16714f5e39c3887ea8aad288c4f99bd7f19",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 6.9295,
+      "recordedAt": "2026-10-17T00:04:02Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s01-run-metrics-final-c9f76e2819cd.log",
+      "logSha256": "bce893dbb75bcc708e4a8450108e84a61bffa7b88414941834e32812510454d0",
+      "inputsHash": "5d39b94c22503b8bd7a94244337762783d03fa9bee456f3b7cf92ef58dd14c2b"
+    },
+    "s01-run-metrics/check-a-runs-lane-a/final": {
+      "checkId": "check-a-runs-lane-a",
+      "boundaryId": "s01-run-metrics",
+      "phase": "final",
+      "batchId": "701029920a252d850baa156c15c05b681bb42f1fb899d55315c7ff977d8c7ffd",
+      "definitionHash": "4e6bce1f0b89a12552e08202dfb20350b46ad8963c4f9e8ce6ad53e65796d2cd",
+      "basisHash": "6f841309bcb245cb1564ac76bf4d1a908e339931d9e0a6f277110bd793c2d616",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 28.8715,
+      "recordedAt": "2026-10-17T00:04:31Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s01-run-metrics-final-e8ea20cb8501.log",
+      "logSha256": "03887500efdf38e200c1d8217bf02a16b533b778ea78e623d100661e1da49eaf",
+      "inputsHash": "38fec8e516f9270867f24c68c55735e394f54a7f42c4cf42cf3df72cec6f3ddb"
+    },
+    "s01-run-metrics/check-a-runs-lane-c/final": {
+      "checkId": "check-a-runs-lane-c",
+      "boundaryId": "s01-run-metrics",
+      "phase": "final",
+      "batchId": "701029920a252d850baa156c15c05b681bb42f1fb899d55315c7ff977d8c7ffd",
+      "definitionHash": "d54a870ed3dea713fb7c7dc1b9624717ce95fbaa6f8b48acb74dda0b445b07c1",
+      "basisHash": "98acb7582a000d8bf61795bcf2fafabb6352da9650ad29c8a8560b5bec2f72c6",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 2.4668,
+      "recordedAt": "2026-10-17T00:04:33Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s01-run-metrics-final-0635b549de59.log",
+      "logSha256": "0b5e47e9f28ca3b02d0f401eb5fb0f0e57d9abdb4a602c1121ea494a4a9d3809",
+      "inputsHash": "38fec8e516f9270867f24c68c55735e394f54a7f42c4cf42cf3df72cec6f3ddb"
+    },
+    "s01-run-metrics/check-a-runs-lane-b/final": {
+      "checkId": "check-a-runs-lane-b",
+      "boundaryId": "s01-run-metrics",
+      "phase": "final",
+      "batchId": "701029920a252d850baa156c15c05b681bb42f1fb899d55315c7ff977d8c7ffd",
+      "definitionHash": "2c5f1b9b5eb47a5bdb05da292dcf59ab877f91188a2099aa944db388e7efeec3",
+      "basisHash": "c32df2d03b3bdb42277fa47b414d9f1451268b18210865f4a264507e560ad08a",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 91.2455,
+      "recordedAt": "2026-10-17T00:06:04Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s01-run-metrics-final-2400361a5dcc.log",
+      "logSha256": "7eac58b1c812219efb50b21d9e690ab1ada0d453c55f3a717bae553c10ee6c8a",
+      "inputsHash": "38fec8e516f9270867f24c68c55735e394f54a7f42c4cf42cf3df72cec6f3ddb"
+    },
+    "s01-run-metrics/check-a-runs-lane-e/final": {
+      "checkId": "check-a-runs-lane-e",
+      "boundaryId": "s01-run-metrics",
+      "phase": "final",
+      "batchId": "701029920a252d850baa156c15c05b681bb42f1fb899d55315c7ff977d8c7ffd",
+      "definitionHash": "7217dbe13dc8691da18dfc5c20c7ccb5c9c0565759d317c4beaf6282d79d0760",
+      "basisHash": "3500c9d575b70dd7713370bab24cfde5fbd9a1f973848c59af741ab6705e51c0",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 34.0946,
+      "recordedAt": "2026-10-17T00:06:39Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s01-run-metrics-final-7b18c0455b85.log",
+      "logSha256": "9abc923338354c39f3fcfc8406524363793c9d953d4c3b109784d7d9ae41d71c",
+      "inputsHash": "38fec8e516f9270867f24c68c55735e394f54a7f42c4cf42cf3df72cec6f3ddb"
+    },
+    "s01-run-metrics/check-a-runs-lane-f/final": {
+      "checkId": "check-a-runs-lane-f",
+      "boundaryId": "s01-run-metrics",
+      "phase": "final",
+      "batchId": "701029920a252d850baa156c15c05b681bb42f1fb899d55315c7ff977d8c7ffd",
+      "definitionHash": "9c3275cd4e585e67ec7a776606dad286c5d5ab06c645c635360b87cfc7e78d7f",
+      "basisHash": "f8c930896b3f177123995fc47491250188ee31122a17f99a2e7d408a40e3e722",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 4.6323,
+      "recordedAt": "2026-10-17T00:06:43Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s01-run-metrics-final-ec7c9037c206.log",
+      "logSha256": "472f9fe5a35b1b20b14c1c19af2c617ff9f16ef7b6cac1b6d80ee456833a02bc",
+      "inputsHash": "38fec8e516f9270867f24c68c55735e394f54a7f42c4cf42cf3df72cec6f3ddb"
+    },
+    "s01-run-metrics/check-a-rx-textrun/final": {
+      "checkId": "check-a-rx-textrun",
+      "boundaryId": "s01-run-metrics",
+      "phase": "final",
+      "batchId": "701029920a252d850baa156c15c05b681bb42f1fb899d55315c7ff977d8c7ffd",
+      "definitionHash": "b3cbcdf483f96d0d095fd682e15fb708005dae01b9d2f4e49ffe7dbcaabc27bb",
+      "basisHash": "78a4a2ac098ba22041bfee31e27a76b2899fda491009a2f5aa5131217d6362ba",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 10.4991,
+      "recordedAt": "2026-10-17T00:06:54Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s01-run-metrics-final-20ce0f149f27.log",
+      "logSha256": "e59f987001f4e6b0ff0dd852fa18b63d126643904545680cf107dedfebc0ef4d",
+      "inputsHash": "6826960a11981792289e94830ec12d3c9f78f667c67120479c5ccb55ba36e54f"
+    },
+    "s01-run-metrics/check-a-run-metrics-web/final": {
+      "checkId": "check-a-run-metrics-web",
+      "boundaryId": "s01-run-metrics",
+      "phase": "final",
+      "batchId": "701029920a252d850baa156c15c05b681bb42f1fb899d55315c7ff977d8c7ffd",
+      "definitionHash": "ca5f0a9adb5bf50a753e22478c1d252548edc225b2772dc295957809766d08fe",
+      "basisHash": "b9609d1fd4c8a44b97842366f443c7afc79b895a3106356a3e3a9be54e8a530e",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 19.217,
+      "recordedAt": "2026-10-17T00:07:13Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s01-run-metrics-final-c09898b87b2e.log",
+      "logSha256": "34e6d6956c3662030bc1c0c326a4d5369a9b9f584bff1d19fd208b0128e011ad",
+      "inputsHash": "5d39b94c22503b8bd7a94244337762783d03fa9bee456f3b7cf92ef58dd14c2b"
+    },
+    "s01-run-metrics/check-a-run-metrics-paint/final": {
+      "checkId": "check-a-run-metrics-paint",
+      "boundaryId": "s01-run-metrics",
+      "phase": "final",
+      "batchId": "701029920a252d850baa156c15c05b681bb42f1fb899d55315c7ff977d8c7ffd",
+      "definitionHash": "b3bd699f568e0c63180bbf0893364edf01196bf12fbd1573ff0dbf62b79563d3",
+      "basisHash": "053ceb0b0f4bbaeab8cc3819b9e968e25e8c2c718e4f4e3b76bda63e5d4d563f",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 37.3725,
+      "recordedAt": "2026-10-17T00:07:51Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s01-run-metrics-final-7e0817d532f8.log",
+      "logSha256": "1962886ca6694147826885cbf750b68484499eeb0b29dc6249aed046e01364b8",
+      "inputsHash": "39f32326016e4456f1b1d19b8f72036a3413f732787761d7f535e3fbd4e2eab7"
+    }
+  },
+  "reviews": {
+    "s01-run-metrics": {
+      "reviewerId": "reviewer-s01-q7m4kx",
+      "snapshotId": "701029920a252d850baa156c15c05b681bb42f1fb899d55315c7ff977d8c7ffd",
+      "criterionIds": [
+        "RUN-1",
+        "RUN-2",
+        "RUN-3",
+        "RUN-4",
+        "API-1"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/text_system.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RUN-1",
+            "API-1"
+          ],
+          "sha256": "78fe61cd6ef42eda8ac1840c17be73a3729b0cead29bc663febbde73c1321dc9"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/text_system/line_layout.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RUN-1"
+          ],
+          "sha256": "107ef0d6cd9e457a58d4b5a04012b14799e7520ebf73737619f1144005b91f9b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/text.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RUN-1"
+          ],
+          "sha256": "e6e3d26b3b0887b98bdd23228b6a41ffbdeacd3ef7d90625595598a7dbc17479"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RUN-1"
+          ],
+          "sha256": "387b2e252f49e6863acc4e84bee0460d17c423c224e4d7c8197185258c30d05b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/text_system/line.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RUN-1",
+            "RUN-4"
+          ],
+          "sha256": "09a2d13b03c01efca8e3106edd64c80467674db32ac471f6fb0d135be3f7176a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/text_run_metrics.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RUN-1",
+            "API-1"
+          ],
+          "sha256": "89b8032cae4f2805645218b317fc55c2a0ee3e82556e6af9b6482975a20120d8"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_macos/src/text_system.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RUN-2"
+          ],
+          "sha256": "40c9d4c568ed2e7cf64212c48bc12206495f888cc6e98e6f294758e48b8adb94"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_macos/src/text_system.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RUN-2"
+          ],
+          "sha256": "40c9d4c568ed2e7cf64212c48bc12206495f888cc6e98e6f294758e48b8adb94"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/ios/text_system.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RUN-2"
+          ],
+          "sha256": "ac48e46aaf24eedac760fc192297d437215a61bb6311cf8a8206bcfaef5a812f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/examples/ios_host/checks.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "RUN-2"
+          ],
+          "sha256": "2256458d5d42540c2d57df22807ecf04697033b608ddec9cb065bd506a5971c6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/cosmic_text_system.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RUN-3"
+          ],
+          "sha256": "19ace5ee3482e94bdeda75d6a36d05f521bf6479ed27ab6952fe436918ac92a3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/cosmic_text_system.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RUN-3"
+          ],
+          "sha256": "19ace5ee3482e94bdeda75d6a36d05f521bf6479ed27ab6952fe436918ac92a3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/text_system.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RUN-3"
+          ],
+          "sha256": "64584fdbee4b6631eebc0946e199187dd6c3cc266b5cbeebb0e2accf06bf946f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/run_replacements.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RUN-3"
+          ],
+          "sha256": "9937278d1c24b5fe4de63cfe9bbeba4ecfcbab086089cdf70729fd548c60cb40"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/scene.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RUN-4"
+          ],
+          "sha256": "deed05c0c12b8b6fc01c219003b244a8337a210b04f87999080695b5c4f83636"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/scenes/text.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "RUN-4"
+          ],
+          "sha256": "a3d436796bf4ca0914614cb18a66f19eef7e556f42fd287ec34cd5f0208fe409"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/charts/plot/label.rs",
+          "kind": "source",
+          "criterionIds": [
+            "API-1"
+          ],
+          "sha256": "d49a4990789a24acb07b1d3c0824317dc2998ea3b027494db9604a62498976af"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/text_system/line.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RUN-4"
+          ],
+          "sha256": "09a2d13b03c01efca8e3106edd64c80467674db32ac471f6fb0d135be3f7176a"
+        }
+      ],
+      "summaryMarkdown": "This is a full review at the repaired snapshot. The first review's verdict was failed and left no stored review to reattest.\n\n**What holds:**\n- **`RunMetrics` reaches every layer.** It flows through `TextRun`, `FontRun` (unresolved, which is acceptable: the derived `Hash`/`Eq` put it in all four cache keys and the scratch pool is untouched), the merge loops and `shapes_as`.\n- **The shapers report per-run sizes.** CoreText maps by string index and cosmic sizes through `Attrs::metrics`. The web fallback now keeps the metrics.\n- **One shared spacing/shift post-pass.** It splits shaped runs on a shift change and leaves lines without metrics unchanged.\n- **Paint uses each run's size.** Strikethroughs come from the run's size and shift only.\n- **Proof:** the focused groups and lane checks, plus the RayX `..Default::default()` pairing.\n\nAll five earlier findings are resolved.",
+      "findingIds": [
+        "s01-strikethrough-glyph-y",
+        "s01-web-canvas-runs-drop-metrics",
+        "s01-rustfmt",
+        "s01-noop-descent-sign",
+        "s01-provenance-patch-surface"
+      ],
+      "recordedAt": "2026-10-17T00:08:44Z"
+    }
+  },
   "checkpoints": {},
-  "findings": [],
+  "findings": [
+    {
+      "id": "s01-strikethrough-glyph-y",
+      "criterionIds": [
+        "RUN-4",
+        "RUN-1"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "The strikethrough offset now comes from run-level size and shift only, and the split happens only at shaped-run starts. The two new `run_metrics_` tests in `line.rs` prove it.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/text_system/line.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/text_system/line_layout.rs"
+        }
+      ],
+      "boundaryId": "s01-run-metrics"
+    },
+    {
+      "id": "s01-web-canvas-runs-drop-metrics",
+      "criterionIds": [
+        "RUN-3"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "The canvas-font remap keeps each run's metrics (`..*run`).",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/text_system.rs"
+        }
+      ],
+      "boundaryId": "s01-run-metrics"
+    },
+    {
+      "id": "s01-rustfmt",
+      "criterionIds": [
+        "RUN-1",
+        "RUN-2",
+        "RUN-3"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "`cargo fmt --all --check` is clean.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/text_system/line_layout.rs"
+        }
+      ],
+      "boundaryId": "s01-run-metrics"
+    },
+    {
+      "id": "s01-noop-descent-sign",
+      "criterionIds": [
+        "RUN-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "The sized Noop path keeps the negative descent sign. `test_platform_text_system_honors_run_sizes` asserts that an explicit line-size run equals an inherited one.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/text_run_metrics.rs"
+        }
+      ],
+      "boundaryId": "s01-run-metrics"
+    },
+    {
+      "id": "s01-provenance-patch-surface",
+      "criterionIds": [
+        "RUN-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "The patch-surface entry for per-run text metrics, with its test groups, was added to the closure-update checklist.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/references/update-from-zed-gpui-closure.md"
+        }
+      ],
+      "boundaryId": "s01-run-metrics"
+    }
+  ],
   "handoffMarkdown": "",
   "protectedPaths": {
     "gpux": {
@@ -99,7 +642,10 @@
       "gpux:.agentx/tasks/keyed-sticky-stacking/**": "7f924a57495dfb6d3a2ca3be75e5fdb04cb012ecfc41554bdb278a84987e82ef",
       "gpux:.agentx/tasks/macos-only-metal-port-and-ci-repair/**": "64ecc143e24a8468c3b4e5d28bbc0f65d4fbbddab867d46a44823b1725ff1e5d",
       "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**": "f3f66695ebf53686a0437e18bf587955317994e21eac47d7908641e0281996ce",
-      "gpux:.agentx/tasks/gpux-platform-text-input/**": "79c38c1e21b79787f6c35af14e40d6ec1189a83dfde8f62ba71a8de66c7646d1",
+      "gpux:.agentx/tasks/gpux-platform-text-input/requirements.json": "ba183effe81412029b9c48f554a44dce270d4916a1e2a652a8a0ac30172823f0",
+      "gpux:.agentx/tasks/gpux-platform-text-input/design.json": "299e23e24aa8021dc24eb10f25a95e77bea16f80b49f9035bc1dd3d1a3c32118",
+      "gpux:.agentx/tasks/gpux-platform-text-input/implementation-plan.json": "c4693bea09d17fa70fdb972735cafe8e674cce40a83dda70d3f6cd984e9cb833",
+      "gpux:.agentx/tasks/gpux-platform-text-input/state.json": "a0d54b74bbfa6b5c48683c3c91c37912e3f3b66f2c89aa7141b67cc16b90c921",
       "gpux:.agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",
       "gpux:docs/changelog/2026-09-01-gpux-performance-improvement-sprint.md": "a1c055b3311719c288e3599854229b7c8ea6d1b4f6aec5bd8f09bcc0e50cbd0e",
       "gpux:docs/changelog/2026-10-16-macos-fast-mode-improvement-loop.md": "ffbcef372c7571efd0468f0712f89f47af8f0b48e10e0b762f4375ffdb3238dd",
