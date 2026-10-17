@@ -4598,6 +4598,9 @@ impl Interactivity {
         }
         if let Some(orientation) = self.aria.orientation {
             node.set_orientation(orientation);
+        } else if node.role() == accesskit::Role::Slider {
+            // ARIA's default for a slider; without one VoiceOver calls it a circular slider.
+            node.set_orientation(accesskit::Orientation::Horizontal);
         }
         if let Some(level) = self.aria.level {
             node.set_level(level);
