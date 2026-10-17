@@ -439,17 +439,21 @@ below leave them out; their cells stay in the tables.
 On macOS a run occasionally never draws and times out after 300 s (the harness drops it, so
 that cell is the median of the other repetitions): `dashboard-clock` once in each of the (a′) and
 (c′) series and `dashboard-all-panels` once in (i′). A process sampled while hung
-(`artifacts-temp/agentx/gpux-a11y-devtools/hang/sample-5.txt`, 1 of 12 back-to-back launches of
-the epic's binary) has its main thread idle in the AppKit run loop and no `CVDisplayLink`
-thread, which a healthy run has (`hang/healthy-sample.txt`): the window never subscribed to its
-display's link. `gpui_macos` starts the link only while the window reports itself visible and on
-a screen, and otherwise waits for an occlusion or screen change; a window that missed both never
-draws. That code is the same as `58257fe`'s (the epic only gated the VoiceOver adapter behind a
-feature). The before (a) build of `58257fe` hung the same way once (`table-stream`); the before
-and same-session (b) binary did not hang in 78 macOS launches (including 12 back-to-back,
-`hang/b-run-*`), the epic's binaries in about 5 of 200. These counts do not settle whether the
-epic changes how often a window misses its first visibility notification; it is recorded as an
-open follow-up, not as a measured regression of the epic.
+(`artifacts-temp/agentx/gpux-a11y-devtools/hang/sample-5.txt`) has its main thread idle in the
+AppKit run loop and no `CVDisplayLink` thread, which a healthy run has
+(`hang/healthy-sample.txt`). Logging the window's display-link starts and stops over 280 more
+launches (`hang/probe/`, 2026-10-17) caught one: the window started its link and drew, then AppKit
+reported it occluded (`windowDidChangeOcclusionState` without `NSWindowOcclusionStateVisible`),
+`gpui_macos` stopped the link, and no later notification reported it visible. Every other launch
+started the link once, when AppKit first reported the window visible. A window covered after it
+drew and uncovered again resumed in every trial (a full-screen window from another process,
+`benchmark/tools/cover.swift`), and the stop/start churn of a CVDisplayLink lost no ticks in 300
+rounds, so the platform code behaves as designed: a window AppKit does not present gets no frames.
+The benchmark's 1280 by 800 window, centred, sits where other apps' windows are, and one coming
+to the front for the rest of a run stops it for good. The evidence points to such covering, not to
+a gpux defect, and it does not depend on the epic (the before build hung the same way). The
+benchmark now ends such a run with status 2 and the reason, and `run.py` takes it again
+(`benchmark/tools/hidden-window.sh`).
 
 ### Findings after the epic
 
