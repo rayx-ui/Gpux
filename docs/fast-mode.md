@@ -417,9 +417,16 @@ read it again, which would otherwise happen on every frame that scrolls the list
 A view that shows the range takes it from an event the listener emits, as RayX's
 `VisibleRangeChanged` subscribers do, not by reading it as it renders.
 
-A `virtual_list` scrolled by another element has no list layer and calls none of the list hooks:
-it is no scroll container of its own. A `SynchronizedOffset` list applies the offset of the
-element driving it. A `ParentViewport` list lies in its parent's flow, at its whole content
+A `SynchronizedOffset` `virtual_list` applies the offset of the element driving it, a sibling
+sharing its handle (a table's body and header), and has a list layer of its own, keyed by the
+list: it is remembered as a scroll container whose offset lives in the handle's state
+(`invalidate::painted_synchronized`), so a scroll of the driver is a scroll of the list and the
+notification the handle sends the list's view counts as the scroll's. Having no scroll container
+of its own, the list clips its rows' hitboxes to its bounds and not what they paint; a layer clips
+both to its viewport, so the list has one only on frames where what holds it clips it within its
+bounds, as a table's body is, and is counted `ineligible` otherwise. Output with fast mode off is
+unchanged (`fast::tests::virtual_list_layers::synchronized`). A `ParentViewport` list
+calls none of the list hooks: it lies in its parent's flow, at its whole content
 extent, and is part of its parent `div`'s content and layer. It takes the parent's viewport from
 the content mask as it is without a layer (`paint::unlayered_content_mask`): while the parent's
 layer paints, the mask is the region the layer paints, and the metrics the list publishes

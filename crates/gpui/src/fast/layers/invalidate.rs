@@ -316,6 +316,31 @@ pub(crate) fn painted_list(window: &mut Window, id: &GlobalElementId, version: &
     window.fast_layers.scrolls.remember(&container, frame);
 }
 
+/// Remembers the list `id` scrolled by `handle`, a handle it shares with the
+/// container that scrolls it (a `virtual_list` in `SynchronizedOffset`
+/// mode), as a scroll container whose offset lives in the handle's state: a
+/// scroll of the driver is a scroll of the list, and the notification the
+/// handle sends the list's view on it counts as the scroll's.
+pub(crate) fn painted_synchronized(
+    window: &mut Window,
+    id: &GlobalElementId,
+    handle: &crate::ScrollHandle,
+) {
+    if !window.fast_mode.scroll_layers() {
+        return;
+    }
+    let version = handle.fast_version();
+    let container = Container {
+        id: id.clone(),
+        source: ScrollSource::of_state(&version),
+        version: Some(version),
+        view: window.current_view(),
+        hitbox: None,
+    };
+    let frame = window.fast_layers.frame;
+    window.fast_layers.scrolls.remember(&container, frame);
+}
+
 /// Whether the scroll container `id` is a `list`, which has no id of its
 /// own nor a scroll handle: its offset lives in its state (see
 /// [`painted_list`]).

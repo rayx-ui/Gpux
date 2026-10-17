@@ -1105,7 +1105,7 @@ impl Element for VirtualList {
         } else {
             self.fixed_cross_axis_size.map_or_else(
                 || {
-                    if self.external_scroll_behavior.is_none() {
+                    if !self.uses_parent_viewport_scroll() {
                         // A frame that only scrolls the list's layer keeps what it measured.
                         crate::fast::layers::lists::measure_item(
                             window,
@@ -1449,10 +1449,12 @@ impl Element for VirtualList {
                             }
                         }
                     }
-                    // A list that scrolls itself places its rows at an offset on whole device
+                    // A list that scrolls itself, or by a handle it shares with a sibling
+                    // (`SynchronizedOffset`), places its rows at an offset on whole device
                     // pixels while scroll layers snap, as `uniform_list` does, so rows painted
-                    // into its layer and rows drawn without one land alike.
-                    let own_scroll = self.external_scroll_behavior.is_none();
+                    // into its layer and rows drawn without one land alike. Such a list has a
+                    // list layer; one in its parent's flow has its parent's.
+                    let own_scroll = !parent_viewport_scroll;
                     if own_scroll {
                         scroll_offset =
                             crate::fast::layers::lists::snap_item_offset(window, scroll_offset);
@@ -1582,6 +1584,29 @@ impl Element for VirtualList {
                             .binary_search_by_key(&ix, |item| item.visual_index)
                             .is_ok()
                     };
+                    if self.external_scroll_behavior
+                        == Some(VirtualListExternalScrollBehavior::SynchronizedOffset)
+                        && let Some(global_id) = global_id
+                    {
+                        // Scrolled by its driver's handle: the list's layer is keyed by the list.
+                        crate::fast::layers::invalidate::painted_synchronized(
+                            window,
+                            global_id,
+                            &self.scroll_handle.base_handle(),
+                        );
+                    }
+                    // A list scrolled by a sibling's handle has no scroll container of its own:
+                    // its rows' hitboxes are clipped to its bounds as they are prepainted, and
+                    // what they paint is not. A layer clips both to its viewport, the clip of
+                    // what holds the list, so it shows what the frame without it shows only
+                    // while that clip lies within the list's bounds, as a table's body is
+                    // clipped. Otherwise the list is counted ineligible.
+                    let synchronized = self.external_scroll_behavior
+                        == Some(VirtualListExternalScrollBehavior::SynchronizedOffset);
+                    let clipped_to_bounds = !synchronized || {
+                        let mask = window.content_mask().bounds;
+                        mask.intersect(&bounds) == mask
+                    };
                     let fast_rows = if own_scroll {
                         crate::fast::layers::lists::begin_virtual_list(
                             window,
@@ -1595,6 +1620,7 @@ impl Element for VirtualList {
                             extent_index,
                             &rendered_range,
                             &is_candidate,
+                            clipped_to_bounds,
                         )
                     } else {
                         crate::fast::layers::lists::Rows::unlayered()
@@ -1825,7 +1851,8 @@ impl Element for VirtualList {
             window,
             cx,
             |_, window, cx| {
-                let own_scroll = self.external_scroll_behavior.is_none();
+                let own_scroll = self.external_scroll_behavior
+                    != Some(VirtualListExternalScrollBehavior::ParentViewport);
                 let mut paint_items = |window: &mut Window, cx: &mut App| {
                     if !own_scroll {
                         for item in &mut layout.items {

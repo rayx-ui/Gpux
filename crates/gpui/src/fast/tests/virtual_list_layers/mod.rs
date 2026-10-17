@@ -16,14 +16,15 @@ mod range;
 mod rows;
 mod sticky;
 mod sticky_oracle;
+mod synchronized;
 
 use crate::fast::tests::layer_support::{add_window, draw, with_window};
 use crate::{
-    AnyWindowHandle, AppContext as _, Axis, Context, FastStats, Hsla, InteractiveElement as _,
-    IntoElement, ParentElement as _, Pixels, Render, ScrollDelta, ScrollHandle, ScrollWheelEvent,
-    StatefulInteractiveElement as _, Styled as _, TestAppContext, TouchPhase,
-    VirtualListExternalScrollBehavior, VirtualListScrollHandle, VirtualStickyRow, Window, div,
-    point, px, size,
+    AnyElement, AnyWindowHandle, AppContext as _, Axis, Context, FastStats, Hsla,
+    InteractiveElement as _, IntoElement, ParentElement as _, Pixels, Render, ScrollDelta,
+    ScrollHandle, ScrollWheelEvent, StatefulInteractiveElement as _, Styled as _, TestAppContext,
+    TouchPhase, VirtualListExternalScrollBehavior, VirtualListScrollHandle, VirtualStickyRow,
+    Window, div, point, px, size,
 };
 use std::{cell::RefCell, collections::BTreeMap, ops::Range, rc::Rc};
 
@@ -46,6 +47,9 @@ pub(super) enum Kind {
     ParentViewport,
     /// A `virtual_list` beside a scrolling `div` whose offset it applies.
     Synchronized,
+    /// A horizontal `virtual_list` under a `div` scrolling across, whose
+    /// offset it applies.
+    SynchronizedHorizontal,
 }
 
 /// What the rows of a page's list were rendered with, and what its range
@@ -98,6 +102,10 @@ pub(super) struct Page {
     pub(super) sticky: Sticky,
     /// The sticky state changes [`Sticky::Styled`]'s rows reported, by row.
     pub(super) sticky_events: StickyEvents,
+    /// Whether a list driven by a sibling (`Kind::Synchronized`,
+    /// `Kind::SynchronizedHorizontal`) lies in a container clipping it to its
+    /// bounds, as a table's body does.
+    pub(super) clipped: bool,
 }
 
 /// Sticky state changes, by row.
@@ -154,7 +162,23 @@ impl Page {
             beside: None,
             sticky: Sticky::Default,
             sticky_events: Rc::default(),
+            clipped: true,
         }
+    }
+}
+
+/// `list`, `width` by `height`, in a container of its size clipping it there
+/// when `clipped`.
+fn clip(clipped: bool, width: f32, height: f32, list: AnyElement) -> AnyElement {
+    if clipped {
+        div()
+            .w(px(width))
+            .h(px(height))
+            .overflow_hidden()
+            .child(list)
+            .into_any_element()
+    } else {
+        list
     }
 }
 
@@ -204,7 +228,7 @@ impl Render for Page {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let extents = self.extents.clone();
         let tint = self.tint;
-        let horizontal = self.kind == Kind::Horizontal;
+        let horizontal = matches!(self.kind, Kind::Horizontal | Kind::SynchronizedHorizontal);
         let interactive = self.interactive;
         let clicks = self.clicks;
         let log = self.log.clone();
@@ -336,15 +360,50 @@ impl Render for Page {
                             .track_scroll(&self.parent)
                             .child(div().w(px(W / 2.)).h(px(extent)).bg(crate::black())),
                     )
-                    .child(
+                    .child(clip(
+                        self.clipped,
+                        W / 2.,
+                        H,
                         virtual_list(cx, Axis::Vertical)
                             .track_external_scroll(
                                 &self.parent_list,
                                 VirtualListExternalScrollBehavior::SynchronizedOffset,
                             )
                             .w(px(W / 2.))
-                            .h(px(H)),
+                            .h(px(H))
+                            .into_any_element(),
+                    ))
+                    .into_any_element()
+            }
+            Kind::SynchronizedHorizontal => {
+                let extent: f32 = self.extents.iter().sum::<f32>()
+                    + self.gap * self.extents.len().saturating_sub(1) as f32
+                    + 2. * self.padding;
+                div()
+                    .flex()
+                    .flex_col()
+                    .child(
+                        div()
+                            .id("driver")
+                            .w(px(W))
+                            .h(px(H / 2.))
+                            .overflow_x_scroll()
+                            .track_scroll(&self.parent)
+                            .child(div().h(px(H / 2.)).w(px(extent)).bg(crate::black())),
                     )
+                    .child(clip(
+                        self.clipped,
+                        W,
+                        H / 2.,
+                        virtual_list(cx, Axis::Horizontal)
+                            .track_external_scroll(
+                                &self.parent_list,
+                                VirtualListExternalScrollBehavior::SynchronizedOffset,
+                            )
+                            .w(px(W))
+                            .h(px(H / 2.))
+                            .into_any_element(),
+                    ))
                     .into_any_element()
             }
         };

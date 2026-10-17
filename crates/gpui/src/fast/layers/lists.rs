@@ -1190,11 +1190,13 @@ pub(crate) fn begin_uniform_list(
 
 /// Decides what the virtual list `id` does with its rows this frame, and
 /// sets up rendering and prepainting them, as [`begin_uniform_list`] does
-/// for a uniform list. Row `n` lies `origins[n]` from the top of
-/// `padded_bounds` and is `sizes[n]` tall, gap included; `extents` indexes
-/// those sizes. The list is scrolled by `scroll_offset` and shows the rows
-/// `visible`, its mounted range. Only a vertical list that is its own scroll
-/// container and has no sticky rows is `carried`.
+/// for a uniform list. Row `n` lies `origins[n]` along `axis` from the
+/// start of `padded_bounds` and is `sizes[n]` long, gap included; `extents`
+/// indexes those sizes. The list is scrolled by `scroll_offset` and shows
+/// the rows `visible`, its mounted range; the rows `sticky` tells are drawn
+/// above the layer. The list is `carried` when a layer showing its viewport
+/// shows what it draws: a list scrolled by a sibling's handle only while
+/// what holds it clips it to its bounds.
 ///
 /// The layer holds the rows that lie within
 /// [`paint::list_overscan_viewports`] of a viewport above and below the
@@ -1212,6 +1214,7 @@ pub(crate) fn begin_virtual_list(
     extents: &crate::OrderedExtentIndex,
     visible: &Range<usize>,
     sticky: &dyn Fn(usize) -> bool,
+    carried: bool,
 ) -> Rows {
     let Some(id) = id else {
         return Rows(None);
@@ -1241,7 +1244,7 @@ pub(crate) fn begin_virtual_list(
         content_size,
         scroll_offset,
         visible,
-        true,
+        carried,
         sticky,
         |viewport| {
             let (start, end) = along(axis, viewport);
