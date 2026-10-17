@@ -92,6 +92,14 @@ opt-in native window composition. The first four are on by default; `GPUX_FAST_M
 off. [docs/fast-mode.md](docs/fast-mode.md) describes the switches, what each mechanism costs and
 saves, and how it is measured.
 
+## Rich editable text
+
+`EditableText` is a plain text field that becomes a rich text editor once its owner stores
+formatting: per-character attributes (font, size, letter spacing, baseline shift, colors,
+decorations), rows of different heights, paragraph formats, lists, inline objects, and HTML
+beside plain text on every platform's clipboard. [docs/editable-text.md](docs/editable-text.md)
+describes the API.
+
 ## The wgpu fork
 
 `vendor/wgpu` contains `gpux-wgpu`, upstream wgpu 30.0.1's `wgpu`, `wgpu-core`, `wgpu-hal` and
