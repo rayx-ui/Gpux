@@ -2,7 +2,8 @@ use anyhow::{Context as _, Ok, Result};
 use collections::HashMap;
 use cosmic_text::{
     Attrs, AttrsList, Ellipsize, Family, Font as CosmicTextFont,
-    FontFeatures as CosmicFontFeatures, FontSystem, ShapeBuffer, ShapeLine, Stretch, Style, Weight,
+    FontFeatures as CosmicFontFeatures, FontSystem, Metrics, ShapeBuffer, ShapeLine, Stretch,
+    Style, Weight,
 };
 use gpux::{
     Bounds, DevicePixels, FallbackFontClass, Font, FontFallbacks, FontFeatures, FontId,
@@ -692,7 +693,7 @@ impl CosmicTextSystemState {
             if let Some(same_run) = layout
                 .runs
                 .last_mut()
-                .filter(|last| last.font_id == run.font_id)
+                .filter(|last| last.font_id == run.font_id && last.font_size == run.font_size)
             {
                 same_run.glyphs.append(&mut run.glyphs);
             } else {
@@ -721,11 +722,19 @@ impl CosmicTextSystemState {
                 continue;
             };
 
-            let primary_attrs = properties.attributes(run.font_id, &properties.primary_family_name);
+            // A run sized apart from the line shapes at its own size; cosmic
+            // scales each glyph's advance by its span's metrics.
+            let size = run.metrics.font_size;
+            let primary_attrs = sized_attrs(
+                properties.attributes(run.font_id, &properties.primary_family_name),
+                size,
+            );
             let fallback_attrs: SmallVec<[Attrs<'_>; 4]> = properties
                 .fallback_chain
                 .iter()
-                .map(|(font_id, family_name)| properties.attributes(*font_id, family_name))
+                .map(|(font_id, family_name)| {
+                    sized_attrs(properties.attributes(*font_id, family_name), size)
+                })
                 .collect();
 
             let spans = if properties.fallback_chain.is_empty() {
@@ -807,6 +816,25 @@ impl CosmicTextSystemState {
         let mut runs: Vec<ShapedRun> = Vec::new();
         #[cfg(all(target_family = "wasm", feature = "diagnostics"))]
         let mut fallback_run_count = 0;
+        let sized_runs = font_runs.iter().any(|run| run.metrics.font_size.is_some());
+        let mut run_ends = SmallVec::<[(usize, Pixels); 8]>::new();
+        if sized_runs {
+            let mut end = 0;
+            for run in font_runs {
+                end += run.len;
+                run_ends.push((end, run.metrics.font_size_or(font_size)));
+            }
+        }
+        let size_at = |index: usize| {
+            if !sized_runs {
+                return font_size;
+            }
+            let ix = run_ends.partition_point(|(end, _)| *end <= index);
+            run_ends
+                .get(ix)
+                .or_else(|| run_ends.last())
+                .map_or(font_size, |(_, size)| *size)
+        };
         for glyph in &layout.glyphs {
             let mut font_id = FontId(glyph.metadata);
             let mut loaded_font = self.loaded_font(font_id);
@@ -843,13 +871,15 @@ impl CosmicTextSystemState {
                 is_emoji,
             };
 
-            if let Some(last_run) = runs
-                .last_mut()
-                .filter(|last_run| last_run.font_id == font_id)
-            {
+            let glyph_font_size = size_at(glyph.start);
+            if let Some(last_run) = runs.last_mut().filter(|last_run| {
+                last_run.font_id == font_id && last_run.font_size == glyph_font_size
+            }) {
                 last_run.glyphs.push(shaped_glyph);
             } else {
                 runs.push(ShapedRun {
+                    font_size: glyph_font_size,
+                    baseline_shift: Default::default(),
                     font_id,
                     glyphs: vec![shaped_glyph],
                 });
@@ -1018,6 +1048,13 @@ fn contains_paragraph_separator(text: &str) -> bool {
     !text.is_ascii() && text.chars().any(is_paragraph_separator)
 }
 
+fn sized_attrs(attrs: Attrs<'_>, size: Option<Pixels>) -> Attrs<'_> {
+    match size {
+        Some(size) => attrs.metrics(Metrics::new(f32::from(size), f32::from(size))),
+        None => attrs,
+    }
+}
+
 fn clip_font_runs(font_runs: &[FontRun], range: Range<usize>) -> SmallVec<[FontRun; 4]> {
     let mut clipped = SmallVec::new();
     let mut offs = 0;
@@ -1036,6 +1073,7 @@ fn clip_font_runs(font_runs: &[FontRun], range: Range<usize>) -> SmallVec<[FontR
             clipped.push(FontRun {
                 len: end - start,
                 font_id: run.font_id,
+                metrics: run.metrics,
             });
         }
     }
@@ -1396,6 +1434,7 @@ mod tests {
         let runs = [FontRun {
             len: text.len(),
             font_id,
+            metrics: Default::default(),
         }];
         Ok(text_system.layout_line(text, gpux::px(14.0), &runs))
     }
@@ -1475,6 +1514,7 @@ mod tests {
         let runs = [FontRun {
             len: text.len(),
             font_id,
+            metrics: Default::default(),
         }];
 
         let missing_glyphs = text_system
@@ -1604,10 +1644,12 @@ mod tests {
             FontRun {
                 len: "ab\u{001c}\u{05d0}".len(),
                 font_id,
+                metrics: Default::default(),
             },
             FontRun {
                 len: "\u{05d1}".len(),
                 font_id,
+                metrics: Default::default(),
             },
         ];
         let layout = text_system.layout_line(text, gpux::px(14.0), &runs);
@@ -1711,10 +1753,12 @@ mod tests {
             FontRun {
                 len: 3,
                 font_id: fid(1),
+                metrics: Default::default(),
             },
             FontRun {
                 len: 4,
                 font_id: fid(2),
+                metrics: Default::default(),
             },
         ];
 
@@ -1724,11 +1768,13 @@ mod tests {
             &[
                 FontRun {
                     len: 1,
-                    font_id: fid(1)
+                    font_id: fid(1),
+                    metrics: Default::default(),
                 },
                 FontRun {
                     len: 2,
-                    font_id: fid(2)
+                    font_id: fid(2),
+                    metrics: Default::default(),
                 },
             ]
         );
@@ -1736,7 +1782,8 @@ mod tests {
             clip_font_runs(&runs, 3..7).as_slice(),
             &[FontRun {
                 len: 4,
-                font_id: fid(2)
+                font_id: fid(2),
+                metrics: Default::default(),
             }]
         );
         assert!(clip_font_runs(&runs, 5..5).is_empty());
@@ -1915,5 +1962,150 @@ mod tests {
         let covers = |_: FontId, _: char| true;
         let spans = compute_run_spans("anything", 3, 0, primary, &fb, &covers);
         assert!(spans.is_empty());
+    }
+}
+
+#[cfg(test)]
+mod run_metrics {
+    use super::*;
+    use gpux::{RunMetrics, px};
+
+    fn text_system() -> Result<CosmicTextSystem> {
+        let text_system = CosmicTextSystem::new_without_system_fonts("IBM Plex Sans");
+        text_system.add_fonts(vec![
+            Cow::Borrowed(gpux_fonts::IBM_PLEX_SANS_REGULAR),
+            Cow::Borrowed(gpux_fonts::LILEX_REGULAR),
+        ])?;
+        Ok(text_system)
+    }
+
+    fn run(font_id: FontId, len: usize, size: Option<f32>) -> FontRun {
+        FontRun {
+            len,
+            font_id,
+            metrics: RunMetrics {
+                font_size: size.map(px),
+                ..Default::default()
+            },
+        }
+    }
+
+    fn xs(layout: &LineLayout) -> Vec<f32> {
+        layout
+            .runs
+            .iter()
+            .flat_map(|run| run.glyphs.iter().map(|glyph| f32::from(glyph.position.x)))
+            .collect()
+    }
+
+    #[test]
+    fn each_span_shapes_at_its_runs_size() -> Result<()> {
+        let text_system = text_system()?;
+        let plex = text_system.font_id(&gpux::font("IBM Plex Sans"))?;
+        let line = text_system.layout_line(
+            "small LARGE",
+            px(16.),
+            &[run(plex, 6, Some(12.)), run(plex, 5, Some(28.))],
+        );
+        let sizes: Vec<_> = line.runs.iter().map(|run| run.font_size).collect();
+        assert_eq!(sizes, [px(12.), px(28.)]);
+        let alone = |text: &str, size: f32| {
+            text_system
+                .layout_line(text, px(size), &[run(plex, text.len(), None)])
+                .width
+        };
+        let expected = alone("small ", 12.) + alone("LARGE", 28.);
+        assert!(
+            (line.width - expected).abs() < px(0.01),
+            "{:?} vs {expected:?}",
+            line.width
+        );
+        let large_ascent = px(28. * 1025. / 1000.);
+        assert!(
+            (line.ascent - large_ascent).abs() < px(0.01),
+            "{:?}",
+            line.ascent
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn output_runs_split_on_font_and_size() -> Result<()> {
+        let text_system = text_system()?;
+        let plex = text_system.font_id(&gpux::font("IBM Plex Sans"))?;
+        let lilex = text_system.font_id(&gpux::font("Lilex"))?;
+        let line = text_system.layout_line(
+            "aabbccdd",
+            px(16.),
+            &[
+                run(plex, 2, None),
+                run(lilex, 2, None),
+                run(lilex, 2, Some(24.)),
+                run(plex, 2, Some(16.)),
+            ],
+        );
+        let runs: Vec<_> = line
+            .runs
+            .iter()
+            .map(|run| (run.font_id, run.font_size, run.glyphs.len()))
+            .collect();
+        assert_eq!(
+            runs,
+            [
+                (plex, px(16.), 2),
+                (lilex, px(16.), 2),
+                (lilex, px(24.), 2),
+                (plex, px(16.), 2),
+            ]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn a_size_change_inside_a_word_scales_each_glyph() -> Result<()> {
+        let text_system = text_system()?;
+        let lilex = text_system.font_id(&gpux::font("Lilex"))?;
+        // Lilex is monospaced: 0.6 em per glyph.
+        let line = text_system.layout_line(
+            "Hello",
+            px(16.),
+            &[run(lilex, 3, Some(10.)), run(lilex, 2, Some(30.))],
+        );
+        let xs = xs(&line);
+        let expected = [0., 6., 12., 18., 36.];
+        assert_eq!(xs.len(), expected.len());
+        for (actual, expected) in xs.iter().zip(expected) {
+            assert!((actual - expected).abs() < 0.01, "{xs:?}");
+        }
+        assert!(
+            (f32::from(line.width) - 54.).abs() < 0.01,
+            "{:?}",
+            line.width
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn paragraph_separator_path_keeps_run_sizes() -> Result<()> {
+        let text_system = text_system()?;
+        let lilex = text_system.font_id(&gpux::font("Lilex"))?;
+        let line = text_system.layout_line(
+            "ab\u{1c}cd",
+            px(16.),
+            &[run(lilex, 3, Some(10.)), run(lilex, 2, Some(20.))],
+        );
+        let last = line.runs.last().unwrap();
+        assert_eq!(last.font_size, px(20.));
+        assert_eq!(line.runs.first().unwrap().font_size, px(10.));
+        assert!(
+            line.runs
+                .windows(2)
+                .all(|pair| (pair[0].font_id, pair[0].font_size)
+                    != (pair[1].font_id, pair[1].font_size)),
+            "adjacent runs of one font and size merge"
+        );
+        let xs = xs(&line);
+        assert!(xs.windows(2).all(|pair| pair[0] <= pair[1]), "{xs:?}");
+        Ok(())
     }
 }

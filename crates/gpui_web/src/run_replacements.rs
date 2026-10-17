@@ -8,6 +8,8 @@ use unicode_segmentation::UnicodeSegmentation;
 pub(crate) struct Candidate {
     pub(crate) source: Range<usize>,
     pub(crate) font_id: FontId,
+    /// The size of the run the candidate is in; `None` is the line's.
+    pub(crate) font_size: Option<Pixels>,
     pub(crate) is_emoji: bool,
     pub(crate) color: bool,
     pub(crate) glyphs: Option<GlyphSpan>,
@@ -40,7 +42,9 @@ pub(crate) fn collect_candidates(
         }
         let Some(run) = font_run else { break };
         // Paint-only run boundaries must not split a fallback grapheme.
-        while let Some(next_run) = font_runs.next_if(|next| next.font_id == run.font_id) {
+        while let Some(next_run) = font_runs.next_if(|next| {
+            next.font_id == run.font_id && next.metrics.font_size == run.metrics.font_size
+        }) {
             run_end += next_run.len;
         }
         let end = start + grapheme.len();
@@ -53,6 +57,7 @@ pub(crate) fn collect_candidates(
         candidates.push(Candidate {
             source: start..end,
             font_id: run.font_id,
+            font_size: run.metrics.font_size,
             is_emoji: fallback.is_emoji,
             color: fallback.emoji_presentation,
             glyphs: None,
@@ -166,6 +171,8 @@ pub(crate) fn apply_replacements(layout: &mut LineLayout, replacements: Vec<Repl
 
     let source_run_count = layout.runs.len();
     layout.runs.resize_with(final_run_count, || ShapedRun {
+        font_size: Pixels::ZERO,
+        baseline_shift: Default::default(),
         font_id: FontId(0),
         glyphs: Vec::new(),
     });
@@ -190,6 +197,8 @@ pub(crate) fn apply_replacements(layout: &mut LineLayout, replacements: Vec<Repl
                         .drain(glyph_start..glyph_end),
                 );
                 layout.runs[destination_index] = ShapedRun {
+                    font_size: layout.runs[source_index].font_size,
+                    baseline_shift: layout.runs[source_index].baseline_shift,
                     font_id: segment.font_id,
                     glyphs,
                 };
@@ -233,6 +242,7 @@ mod tests {
             &[FontRun {
                 len: text.len(),
                 font_id: FontId(7),
+                metrics: Default::default(),
             }],
             &layout,
         );
@@ -261,6 +271,37 @@ mod tests {
     }
 
     #[test]
+    fn run_metrics_candidates_take_their_runs_size() -> Result<()> {
+        let text = "a中";
+        let mut layout = layout(&[2]);
+        layout.runs[0].glyphs = vec![
+            source_glyph(0, 0.0, 1, false),
+            source_glyph(1, 10.0, 0, false),
+        ];
+        let sized = gpux::RunMetrics {
+            font_size: Some(px(30.0)),
+            ..Default::default()
+        };
+        let font_runs = [
+            FontRun {
+                len: 1,
+                font_id: FontId(7),
+                metrics: Default::default(),
+            },
+            FontRun {
+                len: 3,
+                font_id: FontId(7),
+                metrics: sized,
+            },
+        ];
+        let candidates = collect_candidates(text, &font_runs, &layout);
+        let candidate = candidates.first().context("missing candidate")?;
+        assert_eq!(candidate.source, 1..4);
+        assert_eq!(candidate.font_size, Some(px(30.0)));
+        Ok(())
+    }
+
+    #[test]
     fn candidates_keep_graphemes_across_same_font_boundaries() -> Result<()> {
         let text = "か\u{3099}";
         let mut layout = layout(&[1, 1]);
@@ -270,10 +311,12 @@ mod tests {
             FontRun {
                 len: 3,
                 font_id: FontId(7),
+                metrics: Default::default(),
             },
             FontRun {
                 len: 3,
                 font_id: FontId(7),
+                metrics: Default::default(),
             },
         ];
         let candidates = collect_candidates(text, &font_runs, &layout);
@@ -306,6 +349,7 @@ mod tests {
             &[FontRun {
                 len: 6,
                 font_id: FontId(7),
+                metrics: Default::default(),
             }],
             &layout,
         );
@@ -334,6 +378,7 @@ mod tests {
         let font_runs = [FontRun {
             len: "😀".len(),
             font_id: FontId(7),
+            metrics: Default::default(),
         }];
         for (id, color) in [(0, false), (1, false), (0, true), (1, true)] {
             layout.runs[0].glyphs = vec![source_glyph(0, 0.0, id, color)];
@@ -374,6 +419,8 @@ mod tests {
                 let glyphs = (index..index + length).map(glyph).collect();
                 index += length;
                 ShapedRun {
+                    font_size: Pixels::ZERO,
+                    baseline_shift: Default::default(),
                     font_id: FontId(font),
                     glyphs,
                 }
@@ -439,6 +486,8 @@ mod tests {
                 run.glyphs.push(glyph);
             } else {
                 layout.runs.push(ShapedRun {
+                    font_size: Pixels::ZERO,
+                    baseline_shift: Default::default(),
                     font_id,
                     glyphs: vec![glyph],
                 });

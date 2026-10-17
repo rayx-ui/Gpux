@@ -407,6 +407,7 @@ impl Element for EditableTextPaintElement {
                 background_color: None,
                 underline: None,
                 strikethrough: None,
+                metrics: Default::default(),
             };
             window
                 .text_system()

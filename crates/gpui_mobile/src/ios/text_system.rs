@@ -442,11 +442,17 @@ impl IosTextSystemState {
         let mut string = CFMutableAttributedString::new();
         let mut max_ascent = 0.0f32;
         let mut max_descent = 0.0f32;
+        // Where each input run ends in UTF-16, with its size: output glyph
+        // runs map back to their input run by string index, since the font
+        // they carry may be a fallback or the ligature-breaking `next_up` size.
+        let mut utf16_run_sizes = SmallVec::<[(usize, Pixels); 8]>::new();
 
         {
             let mut text = text;
             let mut break_ligature = true;
             for run in font_runs {
+                // Each run shapes at its own size; the line's is the default.
+                let font_size = run.metrics.font_size_or(font_size);
                 let text_run;
                 (text_run, text) = text.split_at(run.len);
 
@@ -454,6 +460,7 @@ impl IosTextSystemState {
                 // note: replace_str may silently ignore codepoints it dislikes (e.g., BOM at start of string)
                 string.replace_str(&CFString::new(text_run), CFRange::init(utf16_start, 0));
                 let utf16_end = string.char_len();
+                utf16_run_sizes.push((utf16_end as usize, font_size));
 
                 let length = utf16_end - utf16_start;
                 let cf_range = CFRange::init(utf16_start, length);
@@ -493,11 +500,26 @@ impl IosTextSystemState {
                     .unwrap()
             };
             let font_id = self.id_for_native_font(font);
+            let run_font_size = run
+                .string_indices()
+                .first()
+                .and_then(|ix| usize::try_from(*ix).ok())
+                .map_or(font_size, |ix| {
+                    let run_ix = utf16_run_sizes.partition_point(|(end, _)| *end <= ix);
+                    utf16_run_sizes
+                        .get(run_ix)
+                        .or_else(|| utf16_run_sizes.last())
+                        .map_or(font_size, |(_, size)| *size)
+                });
 
             let glyphs = match runs.last_mut() {
-                Some(run) if run.font_id == font_id => &mut run.glyphs,
+                Some(run) if run.font_id == font_id && run.font_size == run_font_size => {
+                    &mut run.glyphs
+                }
                 _ => {
                     runs.push(ShapedRun {
+                        font_size: run_font_size,
+                        baseline_shift: Default::default(),
                         font_id,
                         glyphs: Vec::with_capacity(run.glyph_count().try_into().unwrap_or(0)),
                     });

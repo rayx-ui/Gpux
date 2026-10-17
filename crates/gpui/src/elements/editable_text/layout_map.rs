@@ -730,6 +730,7 @@ fn shape_runs_for_line(
             background_color: None,
             underline: None,
             strikethrough: None,
+            metrics: Default::default(),
         });
         keys.push(ShapeRunKey { len, font });
     }

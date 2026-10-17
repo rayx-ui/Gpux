@@ -315,6 +315,8 @@ impl<'a> ShapedLineCursor<'a> {
             let end = self.glyph_index;
             if start < end {
                 runs.push(crate::ShapedRun {
+                    font_size: run.font_size,
+                    baseline_shift: run.baseline_shift,
                     font_id: run.font_id,
                     glyphs: run.glyphs[start..end]
                         .iter()
@@ -573,7 +575,7 @@ fn paint_line(
         let mut first_glyph_x = origin.x;
         for (run_ix, run) in layout.runs.iter().enumerate() {
             max_glyph_size =
-                crate::fast::glyphs::bounding_box(window, cx, run.font_id, layout.font_size).size;
+                crate::fast::glyphs::bounding_box(window, cx, run.font_id, run.font_size).size;
 
             for (glyph_ix, glyph) in run.glyphs.iter().enumerate() {
                 glyph_origin.x += glyph.position.x - prev_glyph_position.x;
@@ -685,7 +687,12 @@ fn paint_line(
                                 point(
                                     glyph_origin.x,
                                     glyph_origin.y
-                                        + (((layout.ascent * 0.5) + baseline_offset.y) * 0.5),
+                                        + strikethrough_y_offset(
+                                            layout,
+                                            run,
+                                            baseline_offset.y,
+                                            cx,
+                                        ),
                                 ),
                                 StrikethroughStyle {
                                     color: Some(
@@ -736,6 +743,24 @@ fn paint_line(
                     );
                 }
 
+                // A strikethrough crossing into a run of another size or baseline continues at
+                // its own middle.
+                if glyph_ix == 0
+                    && let Some((strikethrough_origin, strikethrough_style)) =
+                        current_strikethrough.as_mut()
+                {
+                    let y =
+                        glyph_origin.y + strikethrough_y_offset(layout, run, baseline_offset.y, cx);
+                    if y != strikethrough_origin.y && glyph_origin.x > strikethrough_origin.x {
+                        window.paint_strikethrough(
+                            *strikethrough_origin,
+                            glyph_origin.x - strikethrough_origin.x,
+                            strikethrough_style,
+                        );
+                        *strikethrough_origin = point(glyph_origin.x, y);
+                    }
+                }
+
                 let max_glyph_bounds = Bounds {
                     origin: glyph_origin,
                     size: max_glyph_size,
@@ -754,7 +779,7 @@ fn paint_line(
                             glyph_origin + baseline_offset + vertical_offset,
                             run.font_id,
                             glyph.id,
-                            layout.font_size,
+                            run.font_size,
                         )?;
                     } else {
                         glyph_painter.paint_glyph(
@@ -762,7 +787,7 @@ fn paint_line(
                             glyph_origin + baseline_offset + vertical_offset,
                             run.font_id,
                             glyph.id,
-                            layout.font_size,
+                            run.font_size,
                             &color,
                         )?;
                     }
@@ -807,6 +832,22 @@ fn paint_line(
     })
 }
 
+/// Where a strikethrough over a run sits below the row's top: the middle of the run's own
+/// ascent above its (possibly shifted) baseline. Runs at the line's size and baseline keep the
+/// line's position, whatever the shaper placed their glyphs at.
+fn strikethrough_y_offset(
+    layout: &LineLayout,
+    run: &crate::ShapedRun,
+    baseline_y: Pixels,
+    cx: &App,
+) -> Pixels {
+    if run.font_size == layout.font_size && run.baseline_shift == Pixels::ZERO {
+        return ((layout.ascent * 0.5) + baseline_y) * 0.5;
+    }
+    let run_ascent = cx.text_system().ascent(run.font_id, run.font_size);
+    baseline_y - run.baseline_shift - run_ascent * 0.35
+}
+
 fn paint_line_background(
     origin: Point<Pixels>,
     layout: &LineLayout,
@@ -846,7 +887,7 @@ fn paint_line_background(
         let mut prev_glyph_position = Point::default();
         let mut max_glyph_size = size(px(0.), px(0.));
         for (run_ix, run) in layout.runs.iter().enumerate() {
-            max_glyph_size = text_system.bounding_box(run.font_id, layout.font_size).size;
+            max_glyph_size = text_system.bounding_box(run.font_id, run.font_size).size;
 
             for (glyph_ix, glyph) in run.glyphs.iter().enumerate() {
                 glyph_origin.x += glyph.position.x - prev_glyph_position.x;
@@ -1029,8 +1070,9 @@ fn aligned_origin_x(
 mod tests {
     use super::*;
     use crate::{
-        AppContext as _, Color, Context, FontId, GlyphId, Hsla, IntoElement, Render, ShapedGlyph,
-        ShapedRun, Styled, TestAppContext, TextRun, Underline, canvas, font,
+        AppContext as _, Color, Context, FontId, GlyphId, Hsla, IntoElement, Render, RunMetrics,
+        ShapedGlyph, ShapedRun, StrikethroughStyle, Styled, TestAppContext, TextRun, Underline,
+        canvas, font,
     };
     use std::rc::Rc;
 
@@ -1068,6 +1110,8 @@ mod tests {
                 ascent: px(12.0),
                 descent: px(4.0),
                 runs: vec![ShapedRun {
+                    font_size: px(16.0),
+                    baseline_shift: Default::default(),
                     font_id: FontId(0),
                     glyphs: shaped_glyphs,
                 }],
@@ -1521,6 +1565,8 @@ mod tests {
                 descent: px(4.0),
                 runs: vec![
                     ShapedRun {
+                        font_size: px(16.0),
+                        baseline_shift: Default::default(),
                         font_id: FontId(0),
                         glyphs: vec![
                             ShapedGlyph {
@@ -1544,6 +1590,8 @@ mod tests {
                         ],
                     },
                     ShapedRun {
+                        font_size: px(16.0),
+                        baseline_shift: Default::default(),
                         font_id: FontId(1),
                         glyphs: vec![
                             ShapedGlyph {
@@ -1683,6 +1731,110 @@ mod tests {
         assert_eq!(right.decoration_runs[1].color, blue);
     }
 
+    fn struck_line(window: &Window, runs: &[TextRun]) -> ShapedLine {
+        let text: String = "abcdef"
+            .chars()
+            .take(runs.iter().map(|run| run.len).sum())
+            .collect();
+        let mut line =
+            window
+                .text_system()
+                .shape_line(SharedString::new(text), px(16.), runs, None);
+        line.decoration_runs = SmallVec::from_elem(
+            DecorationRun {
+                len: line.len as u32,
+                color: black(),
+                background_color: None,
+                underline: None,
+                strikethrough: Some(StrikethroughStyle {
+                    thickness: px(1.),
+                    color: Some(black()),
+                }),
+            },
+            1,
+        );
+        line
+    }
+
+    fn strikethrough_ys(line: &ShapedLine, window: &mut Window, cx: &mut App) -> Vec<f32> {
+        window.next_frame.scene.clear();
+        line.paint(
+            point(px(0.), px(0.)),
+            px(24.),
+            TextAlign::Left,
+            None,
+            window,
+            cx,
+        )
+        .unwrap();
+        window
+            .next_frame
+            .scene
+            .underlines
+            .iter()
+            .map(|underline| underline.bounds.origin.y.0)
+            .collect()
+    }
+
+    /// Found by review: a shaper's own glyph y (mark placement) must not move or split a
+    /// strikethrough over runs without metrics.
+    #[gpux::test]
+    fn run_metrics_strikethrough_ignores_shaped_glyph_y(cx: &mut TestAppContext) {
+        test_underline_handler_at_scales(cx, |window, cx| {
+            let run = TextRun {
+                len: 3,
+                font: font(".ZedMono"),
+                color: black(),
+                ..TextRun::default()
+            };
+            let plain = struck_line(window, &[run.clone()]);
+            let expected = strikethrough_ys(&plain, window, cx);
+            assert_eq!(expected.len(), 1);
+
+            let mut marked = struck_line(window, &[run]);
+            let layout = &marked.layout;
+            let mut runs = layout.runs.clone();
+            runs[0].glyphs[1].position.y = px(-3.);
+            marked.layout = Arc::new(LineLayout {
+                font_size: layout.font_size,
+                letter_spacing: layout.letter_spacing,
+                width: layout.width,
+                ascent: layout.ascent,
+                descent: layout.descent,
+                runs,
+                len: layout.len,
+            });
+            assert_eq!(strikethrough_ys(&marked, window, cx), expected);
+        });
+    }
+
+    /// A strikethrough over runs of different sizes or shifts sits at each run's own middle.
+    #[gpux::test]
+    fn run_metrics_strikethrough_follows_each_run(cx: &mut TestAppContext) {
+        test_underline_handler_at_scales(cx, |window, cx| {
+            let run = |len, size: Option<f32>, shift: f32| TextRun {
+                len,
+                font: font(".ZedMono"),
+                color: black(),
+                metrics: RunMetrics {
+                    font_size: size.map(px),
+                    baseline_shift: px(shift),
+                    ..Default::default()
+                },
+                ..TextRun::default()
+            };
+            let line = struck_line(
+                window,
+                &[run(2, None, 0.), run(2, Some(32.), 0.), run(2, None, 6.)],
+            );
+            let ys = strikethrough_ys(&line, window, cx);
+            assert_eq!(ys.len(), 3, "{ys:?}");
+            // The larger run's middle is higher; the raised run's is higher than the plain one's.
+            assert!(ys[1] < ys[0], "{ys:?}");
+            assert!(ys[2] < ys[0], "{ys:?}");
+        });
+    }
+
     struct UnderlineHandlerTestView(Rc<dyn Fn(&mut Window, &mut App)>);
 
     impl Render for UnderlineHandlerTestView {
@@ -1772,6 +1924,8 @@ mod tests {
                 descent: px(4.0),
                 runs: vec![
                     ShapedRun {
+                        font_size: px(16.0),
+                        baseline_shift: Default::default(),
                         font_id: FontId(3),
                         glyphs: vec![
                             ShapedGlyph {
@@ -1795,6 +1949,8 @@ mod tests {
                         ],
                     },
                     ShapedRun {
+                        font_size: px(16.0),
+                        baseline_shift: Default::default(),
                         font_id: FontId(8),
                         glyphs: vec![
                             ShapedGlyph {

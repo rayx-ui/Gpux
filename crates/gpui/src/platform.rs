@@ -1543,6 +1543,65 @@ impl NoopTextSystem {
     pub fn new() -> Self {
         Self
     }
+
+    /// Lays out a line whose runs set their own sizes: one shaped run per
+    /// input run, each glyph an em of its run's size wide, and ascent and
+    /// descent from the largest run.
+    fn layout_sized_runs(&self, text: &str, font_size: Pixels, runs: &[FontRun]) -> LineLayout {
+        let metrics = self.font_metrics(FontId(0));
+        let em = self
+            .advance(FontId(0), self.glyph_for_char(FontId(0), 'm').unwrap())
+            .unwrap()
+            .width
+            / metrics.units_per_em as f32;
+        let mut position = px(0.);
+        let mut ascent = px(0.);
+        let mut descent = px(0.);
+        let mut shaped = Vec::new();
+        let mut start = 0;
+        for run in runs {
+            let end = (start + run.len).min(text.len());
+            let size = run.metrics.font_size_or(font_size);
+            let em_width = size * em;
+            ascent = ascent.max(size * (metrics.ascent / metrics.units_per_em as f32));
+            // The test text system's descent keeps the font's (negative) sign, as unsized
+            // lines report it.
+            descent = descent.min(size * (metrics.descent / metrics.units_per_em as f32));
+            let mut glyphs = Vec::new();
+            for (ix, c) in text[start..end].char_indices() {
+                let glyph = self.glyph_for_char(FontId(0), c).unwrap();
+                glyphs.push(ShapedGlyph {
+                    id: glyph,
+                    position: point(position, px(0.)),
+                    index: start + ix,
+                    is_emoji: glyph.0 == 2,
+                });
+                position += if glyph.0 == 2 {
+                    em_width * 2.0
+                } else {
+                    em_width
+                };
+            }
+            if !glyphs.is_empty() {
+                shaped.push(ShapedRun {
+                    font_id: FontId(0),
+                    font_size: size,
+                    baseline_shift: Default::default(),
+                    glyphs,
+                });
+            }
+            start = end;
+        }
+        LineLayout {
+            font_size,
+            letter_spacing: Pixels::ZERO,
+            width: position,
+            ascent,
+            descent,
+            runs: shaped,
+            len: text.len(),
+        }
+    }
 }
 
 impl PlatformTextSystem for NoopTextSystem {
@@ -1608,7 +1667,10 @@ impl PlatformTextSystem for NoopTextSystem {
         Ok((raster_bounds.size, Vec::new()))
     }
 
-    fn layout_line(&self, text: &str, font_size: Pixels, _runs: &[FontRun]) -> LineLayout {
+    fn layout_line(&self, text: &str, font_size: Pixels, runs: &[FontRun]) -> LineLayout {
+        if runs.iter().any(|run| run.metrics.font_size.is_some()) {
+            return self.layout_sized_runs(text, font_size, runs);
+        }
         let mut position = px(0.);
         let metrics = self.font_metrics(FontId(0));
         let em_width = font_size
@@ -1639,6 +1701,8 @@ impl PlatformTextSystem for NoopTextSystem {
         if !glyphs.is_empty() {
             runs.push(ShapedRun {
                 font_id: FontId(0),
+                font_size,
+                baseline_shift: Default::default(),
                 glyphs,
             });
         } else {

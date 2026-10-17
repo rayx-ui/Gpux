@@ -46,6 +46,8 @@ impl TextLayoutShaper for DeterministicShaper {
                 descent: px(4.),
                 runs: (!glyphs.is_empty())
                     .then(|| ShapedRun {
+                        font_size: px(16.0),
+                        baseline_shift: Default::default(),
                         font_id: FontId(0),
                         glyphs,
                     })

@@ -146,7 +146,7 @@ mod text_shape_diagnostics_tests {
 }
 
 /// An opaque identifier for a specific font.
-#[derive(Hash, PartialEq, Eq, Clone, Copy, Debug)]
+#[derive(Hash, PartialEq, Eq, Clone, Copy, Debug, Default)]
 #[repr(C)]
 pub struct FontId(pub usize);
 
@@ -564,6 +564,7 @@ impl TextSystem {
                 &[FontRun {
                     len: buffer.len(),
                     font_id,
+                    metrics: RunMetrics::default(),
                 }],
             )
             .width
@@ -923,6 +924,7 @@ impl WindowTextSystem {
                 let font_id = self.resolve_font(&run.font);
                 if let Some(font_run) = font_runs.last_mut()
                     && font_id == font_run.font_id
+                    && run.metrics == font_run.metrics
                     && !decoration_changed
                 {
                     font_run.len += run_len_within_line;
@@ -930,6 +932,7 @@ impl WindowTextSystem {
                     font_runs.push(FontRun {
                         len: run_len_within_line,
                         font_id,
+                        metrics: run.metrics,
                     });
                 }
 
@@ -1041,6 +1044,7 @@ impl WindowTextSystem {
             let font_id = self.resolve_font(&run.font);
             if let Some(font_run) = font_runs.last_mut()
                 && font_id == font_run.font_id
+                && run.metrics == font_run.metrics
                 && !decoration_changed
             {
                 font_run.len += run.len;
@@ -1048,6 +1052,7 @@ impl WindowTextSystem {
                 font_runs.push(FontRun {
                     len: run.len,
                     font_id,
+                    metrics: run.metrics,
                 });
             }
         }
@@ -1077,6 +1082,7 @@ impl WindowTextSystem {
                 &[FontRun {
                     len: buffer.len(),
                     font_id,
+                    metrics: RunMetrics::default(),
                 }],
                 None,
             )
@@ -1125,6 +1131,7 @@ impl WindowTextSystem {
             let font_id = self.resolve_font(&run.font);
             if let Some(font_run) = font_runs.last_mut()
                 && font_id == font_run.font_id
+                && run.metrics == font_run.metrics
                 && !decoration_changed
             {
                 font_run.len += run.len;
@@ -1132,6 +1139,7 @@ impl WindowTextSystem {
                 font_runs.push(FontRun {
                     len: run.len,
                     font_id,
+                    metrics: run.metrics,
                 });
             }
         }
@@ -1188,6 +1196,7 @@ impl WindowTextSystem {
             let font_id = self.resolve_font(&run.font);
             if let Some(font_run) = font_runs.last_mut()
                 && font_id == font_run.font_id
+                && run.metrics == font_run.metrics
                 && !decoration_changed
             {
                 font_run.len += run.len;
@@ -1195,6 +1204,7 @@ impl WindowTextSystem {
                 font_runs.push(FontRun {
                     len: run.len,
                     font_id,
+                    metrics: run.metrics,
                 });
             }
         }
@@ -1372,6 +1382,43 @@ pub struct TextRun {
     pub underline: Option<UnderlineStyle>,
     /// The strikethrough style (if any)
     pub strikethrough: Option<StrikethroughStyle>,
+    /// Per-run font size, letter spacing and baseline shift. The default
+    /// inherits every metric from the line.
+    pub metrics: RunMetrics,
+}
+
+/// Metrics a [`TextRun`] may set for itself instead of inheriting the
+/// line's: its font size, the spacing added after each of its glyph
+/// clusters, and how far its glyphs sit above the baseline.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub struct RunMetrics {
+    /// The run's font size; `None` uses the line's.
+    pub font_size: Option<Pixels>,
+    /// The spacing added after each glyph cluster of the run; `None` uses
+    /// the line's letter spacing.
+    pub letter_spacing: Option<Pixels>,
+    /// How far the run's glyphs are raised above the baseline (negative
+    /// lowers them).
+    pub baseline_shift: Pixels,
+}
+
+impl RunMetrics {
+    /// Whether every metric is inherited from the line.
+    pub fn is_inherited(&self) -> bool {
+        self.font_size.is_none()
+            && self.letter_spacing.is_none()
+            && self.baseline_shift == Pixels::ZERO
+    }
+
+    /// The run's font size on a line of `line_font_size`.
+    pub fn font_size_or(&self, line_font_size: Pixels) -> Pixels {
+        self.font_size.unwrap_or(line_font_size)
+    }
+
+    /// The run's letter spacing on a line spaced by `line_letter_spacing`.
+    pub fn letter_spacing_or(&self, line_letter_spacing: Pixels) -> Pixels {
+        self.letter_spacing.unwrap_or(line_letter_spacing)
+    }
 }
 
 #[cfg(all(target_os = "macos", test))]
