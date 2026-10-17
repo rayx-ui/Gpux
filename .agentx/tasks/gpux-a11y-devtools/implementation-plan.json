@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-a11y-devtools",
-  "revision": 22,
+  "revision": 23,
   "title": "gpux accessibility-first: AccessKit as the one semantic tree for screen readers on every platform, gpux-devtools and its MCP, RayX on both",
   "validationMode": "sprint",
   "repositories": [
@@ -2690,6 +2690,93 @@
         "Cargo.toml",
         "Cargo.lock"
       ]
+    },
+    {
+      "id": "check-a11y-duplicate-ids",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "TREE-6"
+      ],
+      "descriptionMarkdown": "`crates/gpui/tests/a11y_duplicate_ids.rs`: two siblings with one element id each have a node, keep its id across frames, run their own action handlers, and fast mode draws them as it does without the tree.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--test",
+        "a11y_duplicate_ids"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-benchmark-hidden-window",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "PERF-3"
+      ],
+      "descriptionMarkdown": "`benchmark/tools/hidden-window.sh` on macOS: a run covered after its first frame ends with status 2 and the reason, and a run opened while the screens are covered does not wait.",
+      "argv": [
+        "bash",
+        "-c",
+        "cd benchmark && cargo build --release --bin gpux-bench && caffeinate -d -u -i tools/hidden-window.sh"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2,
+        "testCountPattern": "hidden-window: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "benchmark/src/**",
+        "benchmark/tools/**",
+        "benchmark/Cargo.toml",
+        "crates/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-fork-ci-excludes",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [
+        "REM-5"
+      ],
+      "descriptionMarkdown": "Every workspace member under `vendor/` is in CI's `FORK_EXCLUDES` (`.github/workflows/ci.yml`), so the workspace test and lint runs never build a fork crate for itself.",
+      "argv": [
+        "python3",
+        "-c",
+        "import re,json,subprocess,sys\ns=open('.github/workflows/ci.yml').read()\nm=re.search(r'FORK_EXCLUDES: >-\\n((?:    .*\\n)+)',s)\nex=set(re.findall(r'--exclude (\\S+)',m.group(1)))\nmeta=json.loads(subprocess.check_output(['cargo','metadata','--no-deps','--format-version','1']))\nvendored=[p['name'] for p in meta['packages'] if '/vendor/' in p['manifest_path']]\nmissing=[n for n in vendored if n not in ex]\nprint(len(vendored),'vendored members; missing from FORK_EXCLUDES:',missing)\nsys.exit(1 if missing or not vendored else 0)"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "inputs": [
+        ".github/workflows/ci.yml",
+        "Cargo.toml",
+        "vendor/**/Cargo.toml"
+      ]
     }
   ],
   "finalCheckIds": [
@@ -4428,10 +4515,106 @@
       ]
     },
     {
+      "id": "s10c-followups",
+      "title": "Duplicate element ids, hidden benchmark windows and the fork in CI",
+      "dependsOn": [
+        "s10b-ci-repairs"
+      ],
+      "memoryScopes": [
+        "gpui/frame-pipeline",
+        "platform/desktop"
+      ],
+      "tasks": [
+        {
+          "id": "t34-duplicate-ids",
+          "title": "A node of its own for each duplicate element id",
+          "descriptionMarkdown": "`A11yNodeBuilder::element_node_id` numbers duplicates; `A11y::push_element` returns the node id, `element_nodes` carries it through prepaint and paint, `Window::a11y_node_id` reads it, and div's focus, active descendant and action handlers (and RayX's scrollbar) register on it. Docs: the accessibility guide and `docs/accessibility.md`.",
+          "criterionIds": [
+            "TREE-6"
+          ],
+          "designIds": [
+            "d-duplicate-element-nodes"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-a11y-duplicate-ids"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window/a11y.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/element.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/tests/a11y_duplicate_ids.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_core/src/layout/scroll/scrollbar.rs"
+            }
+          ]
+        },
+        {
+          "id": "t35-hidden-benchmark-window",
+          "title": "A benchmark run whose window is hidden ends instead of waiting",
+          "descriptionMarkdown": "The driver ends a hidden run with an error report (`fail`, `OPEN_TIMEOUT`), the entry points exit with status 2 or publish the error, `run.py` retries once, and `tools/hidden-window.sh` with `tools/cover.swift` proves it. The probe findings are recorded in `docs/measurements/a11y-devtools.md` and the desktop memory.",
+          "criterionIds": [
+            "PERF-3"
+          ],
+          "designIds": [
+            "d-hidden-benchmark-window"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-benchmark-hidden-window"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "benchmark/src/driver.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "benchmark/run.py"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "benchmark/tools/hidden-window.sh"
+            }
+          ]
+        },
+        {
+          "id": "t36-fork-ci-excludes",
+          "title": "CI leaves the accesskit_macos fork out of workspace runs",
+          "descriptionMarkdown": "`FORK_EXCLUDES` in `.github/workflows/ci.yml` gains `--exclude gpux-accesskit-macos`.",
+          "criterionIds": [
+            "REM-5"
+          ],
+          "designIds": [
+            "d-macos-adapter-fork"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-fork-ci-excludes"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": ".github/workflows/ci.yml"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "s11-owner-screen-readers",
       "title": "Owner-run: real screen readers on the web, iOS and Android",
       "dependsOn": [
-        "s10b-ci-repairs"
+        "s10c-followups"
       ],
       "memoryScopes": [
         "platform/web",

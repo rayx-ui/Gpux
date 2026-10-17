@@ -18,6 +18,11 @@
           "id": "PERF-2",
           "verification": "manual",
           "descriptionMarkdown": "After the removal sprint the same document records the same runs for (a') the epic's build with no assistive technology and no inspection and (c') `GPUX_ACCESSIBILITY=always` with fast mode on, beside (a), (b) and (c), judged with the clocks held and, for (a') against (c'), by alternating one binary with the variable; plus the accessibility tree's node count and retained size for each scenario with inspection on. (a') must not cost more than (b); every regression is named with its cause. Timing claims come from these runs, never from CI. Verified by review."
+        },
+        {
+          "id": "PERF-3",
+          "verification": "automated",
+          "descriptionMarkdown": "Finding-driven scope the owner required in this epic (2026-10-17): a macOS benchmark run occasionally never drew (PERF-2's measurements). Logging the display link over 280 launches caught one: the window drew, then AppKit reported it occluded and no later notification reported it visible; covering and uncovering a window resumes it, so `gpui_macos` behaves as designed (a window AppKit does not present gets no frames) and the run was covered by another app's window. The benchmark ends a run whose window is hidden after its first frame, or presents none within 10 s, with status 2 and the reason, and `run.py` retries it once. Proved by `benchmark/tools/hidden-window.sh`, which covers the screens with another process's window."
         }
       ]
     },
@@ -99,6 +104,11 @@
           "id": "TREE-5",
           "verification": "automated",
           "descriptionMarkdown": "A div advertises `SetValue`, `Increment`, `Decrement`, `Expand` and `Collapse` exactly when a handler is registered for them through `on_a11y_action`, and `CustomAction` with each `(id, description)` registered through a new `on_a11y_custom_action` (kept in a `LazyVec`). gpux handles `ScrollIntoView` for every node: the node's scrolling ancestors move, through their scroll owners' ordinary programmatic path, until its bounds are visible. `Window::perform_a11y_action(ActionRequest)` delivers a request through the same path as a platform adapter's and returns whether a handler ran; a request without a handler does nothing and returns false. New group `crates/gpui/tests/a11y_actions.rs`."
+        },
+        {
+          "id": "TREE-6",
+          "verification": "automated",
+          "descriptionMarkdown": "Finding-driven scope the owner required in this epic (2026-10-17): siblings with the same element id share a global element id, from which the AccessKit node id derived, so the tree kept one of them (debug builds panicked) and screen readers, `semantic_query` and `gpux.locate` missed the rest. Each duplicate now gets a node of its own: the first keeps the derived id, later ones take the first free id hashed from it and a count (stable while the duplicates keep their draw order), debug builds log the duplicate once, and `Window::a11y_node_id` gives the node the element being drawn holds, which its focus, active descendant and action handlers use (RayX's scrollbar too). Proved by `crates/gpui/tests/a11y_duplicate_ids.rs`: both nodes exist, keep their ids across frames, an action on either runs its own handler, and fast mode draws the scene as it does without the tree."
         }
       ]
     },
@@ -338,6 +348,11 @@
           "id": "REM-4",
           "verification": "automated",
           "descriptionMarkdown": "Repair of a regression the first complete CI run found (2026-10-17, test job on all three platforms; main passes it): with the DevKit node records gone, the retention verifier no longer told a retained view by its text, so a view showing stale text differed only at window level or not at all. A view's description now holds the accessibility events it recorded (its nodes and text leaves) and its sprites' atlas tiles (which one window's frames share), and a view that differs is reported even when the frame-wide description does not. The same run's lane B failures (`pointer.spec.ts` and `composition.spec.ts`, \"exits 0\") came from two sibling `status()` elements with one id in the `web-composition` scene, whose AccessKit nodes collapsed into one; the scene gives the second its own id. Proved by `fast::tests::verify_mode` and `fast::tests::a11y_describe::verification` with the `diagnostics` feature, and the two lane B specs."
+        },
+        {
+          "id": "REM-5",
+          "verification": "automated",
+          "descriptionMarkdown": "Repair of a regression the second CI run found (2026-10-17, run 38992709138, test job on Linux and Windows): the vendored `gpux-accesskit-macos` is a workspace member, so the workspace test run built it off Apple platforms, where `objc-sys` needs a runtime feature. CI's `FORK_EXCLUDES` leaves it out with the wgpu fork crates. Proved by a check that every workspace member under `vendor/` is in `FORK_EXCLUDES`."
         }
       ]
     }

@@ -1,12 +1,12 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-a11y-devtools",
-  "revision": 176,
-  "planRevision": 22,
+  "revision": 185,
+  "planRevision": 23,
   "specHashes": {
-    "requirements": "4709d821a3df7eed3812b759720c5aecac4997eb752de8a495eb938f45c0ad99",
-    "design": "e7f5200d01257c5ecb829e0ba83cf7725b091c667adbae7739200e039f685af0",
-    "plan": "2731e634e169615b70e865780aec8da3bb00afb85e8bec795af040e3236b5cbd"
+    "requirements": "a54f54ef7a962136f1f0acf82890acc4ed05220e8fcfd89dfbf37c76731ece4d",
+    "design": "29c8317e8f28ccdb5be1543a4566003c6c4a88da4834b0447f42d4561b4fa1f8",
+    "plan": "1cb021f4e48bfdb4e51c965f6334deb50fc32897a33eab2b11e73defd1cde47e"
   },
   "tasks": {
     "t01-baseline": {
@@ -285,6 +285,24 @@
       "workerIds": [
         "local_a11y_impl"
       ]
+    },
+    "t34-duplicate-ids": {
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
+    },
+    "t35-hidden-benchmark-window": {
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
+    },
+    "t36-fork-ci-excludes": {
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     }
   },
   "validationBatches": {
@@ -447,6 +465,16 @@
         }
       },
       "recordedAt": "2026-10-17T01:55:51Z"
+    },
+    "3ac6cc59d57f44c3a09022fdda6a6441285abe37f5f315b3ffe657afcefc9ffd": {
+      "snapshot": {
+        "specHash": "cb229e08966602d49aea5a3842276d073e37af2fe3bad9910412239c17b15cc2",
+        "repositories": {
+          "gpux": "6dcc59bc2b47dfadea3378a6d5ebfde5641229a58da553f16059f28b3f04b687",
+          "rayx": "ad5a9c9d59d7d4a025b022112d7adb2a188eb8f6de66bbd5c93892ed1de05b11"
+        }
+      },
+      "recordedAt": "2026-10-17T03:06:00Z"
     }
   },
   "checkResults": {
@@ -1681,6 +1709,57 @@
       "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s10b-ci-repairs-final-892e4ce8384e.log",
       "logSha256": "16fe8c1f6dadb07c6de65ee211ee9afc67282c7a9c8f5edd08b6f3c0243f5421",
       "inputsHash": "4005de9241bcc0008e7f20895cae9f2b9d6498174187123ab777adb61022daf2"
+    },
+    "s10c-followups/check-a11y-duplicate-ids/final": {
+      "checkId": "check-a11y-duplicate-ids",
+      "boundaryId": "s10c-followups",
+      "phase": "final",
+      "batchId": "3ac6cc59d57f44c3a09022fdda6a6441285abe37f5f315b3ffe657afcefc9ffd",
+      "definitionHash": "90ad2a5d3b27ea586658c373c79be90e78827154bbb33b90b07ce6cd99ee2cdd",
+      "basisHash": "555830e18db18b3bba76ee06a025ea906d78b81fd5b10317ac503f69b85a7767",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 0.8572,
+      "recordedAt": "2026-10-17T03:05:29Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s10c-followups-final-c351e6fcf060.log",
+      "logSha256": "31982994984183c2663f80f934ff66088cb81faba98422220e7c69e284169ef3",
+      "inputsHash": "f290dbb50cf9ef608419f976a575cf8b814eab1326955d904138a80ccd658199"
+    },
+    "s10c-followups/check-benchmark-hidden-window/final": {
+      "checkId": "check-benchmark-hidden-window",
+      "boundaryId": "s10c-followups",
+      "phase": "final",
+      "batchId": "3ac6cc59d57f44c3a09022fdda6a6441285abe37f5f315b3ffe657afcefc9ffd",
+      "definitionHash": "e0db234dbadbd0c0c7f75b2a70ecec70b431cb08950e3d3fa763ffff0f09f544",
+      "basisHash": "b3fe483c0e979513ff2c80c620da7ad601bc3cfb89b124846ee2dae95ad70a9f",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 30.6057,
+      "recordedAt": "2026-10-17T03:06:00Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s10c-followups-final-c26303c93c51.log",
+      "logSha256": "94b83cf35776019201e6679dc6445ace827548e5f76d19f1c7bfdf034a7dedf9",
+      "inputsHash": "67efb64aea2b4a08a8a3e5ff72d29513929aa380e4b8963779ec1cd998237a19"
+    },
+    "s10c-followups/check-fork-ci-excludes/final": {
+      "checkId": "check-fork-ci-excludes",
+      "boundaryId": "s10c-followups",
+      "phase": "final",
+      "batchId": "3ac6cc59d57f44c3a09022fdda6a6441285abe37f5f315b3ffe657afcefc9ffd",
+      "definitionHash": "a73d40d944c7954fdc44e82c8e3e70895ed9f62d46a28eeeca27ed0eed177038",
+      "basisHash": "1ddd45ae3a8b5e25500c76d4aab39a62509af0efcac0bb820be0f8aa11ed2347",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.0755,
+      "recordedAt": "2026-10-17T03:06:00Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s10c-followups-final-70e5a5863aa5.log",
+      "logSha256": "c7f187f5d8d7364e140863125b8da80d7be0390f1a7e206913df1c86834bd1e5",
+      "inputsHash": "acfa3c61f39d23385534af003c6a003e3f98eaf180a05d681543a30c5aca9251"
     }
   },
   "reviews": {
@@ -3981,6 +4060,124 @@
         "gpux:docs/measurements/a11y-devtools.md": "e8e4f95bb77b8676c4816348f8b46089ace75a88346c2e467c5535803f54ed31",
         "gpux:docs/measurements/screen-reader-walkthrough.md": "152a5d2a5d854f8f546ac3681f5472e4b8f7cd267ce40e55fb6f1ba1b1ab779c"
       }
+    },
+    "s10c-followups": {
+      "reviewerId": "independent-reviewer-s08-rayx-opus-091c999e",
+      "snapshotId": "3ac6cc59d57f44c3a09022fdda6a6441285abe37f5f315b3ffe657afcefc9ffd",
+      "criterionIds": [
+        "TREE-6",
+        "PERF-3",
+        "REM-5"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window/a11y.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TREE-6"
+          ],
+          "sha256": "89f4392164a071650b3e91a07ee4856af0bf2dd2b8b345d70b43507f697a0662"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/element.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TREE-6"
+          ],
+          "sha256": "27271906d96041d35515111bf58dbce9842eb8a085eca03b9eb4ad8333b96d48"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TREE-6"
+          ],
+          "sha256": "bd076e10e0ae9bb84639439e7ac3f157d9347e971910a7832935d6b20c40a690"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TREE-6"
+          ],
+          "sha256": "622fadfcb9a5d4a3078c07d8a95df2f388983e2da0f8240d8ed350d04d147d37"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/layout/scroll/scrollbar.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TREE-6"
+          ],
+          "sha256": "952dfead98e49262d61247f5ef1fa05b2ac64a93994c7fc47e4bd9ec80ae9158"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/a11y_duplicate_ids.rs",
+          "kind": "test",
+          "criterionIds": [
+            "TREE-6"
+          ],
+          "sha256": "fc2a3a1ab2bd6fb6222403e9b806f8707e9ec2a7bef456962c32652d90f03c72"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "benchmark/src/driver.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-3"
+          ],
+          "sha256": "5649913d1decf23b05b4beecf5f9168206c244525ebf2a03685d4bcda59c54c3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "benchmark/run.py",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-3"
+          ],
+          "sha256": "9151a5fb16f2310d28ef796477b1ef66c12dcaaa4e469ca61e88fc718925f3dc"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "benchmark/tools/hidden-window.sh",
+          "kind": "runtime",
+          "criterionIds": [
+            "PERF-3"
+          ],
+          "sha256": "49244266ee87f35ebecbfcb21599dc919f5e1a45d6078452623267f9c6dde054"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/ci.yml",
+          "kind": "source",
+          "criterionIds": [
+            "REM-5"
+          ],
+          "sha256": "c89645ab4612d241bd59f50f94dbda01b30d8ce53642051e054eddf82522eb40"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "vendor/accesskit_macos/Cargo.toml",
+          "kind": "test",
+          "criterionIds": [
+            "REM-5"
+          ],
+          "sha256": "8d721a25e02021183c92aea35f658250b3a05c49a9f7640ac6d563187d05a368"
+        }
+      ],
+      "summaryMarkdown": "**TREE-6.**\n- `A11yNodeBuilder::element_node_id` returns the path's derived id unless the frame already holds it. Otherwise it takes the first id hashed (std `DefaultHasher`, fixed keys, deterministic) from the derived id and a count that is not the root and is not yet seen.\n- `push_element` returns that id. Prepaint (`open_element`) and paint (`element.rs`) push `(derived, id)` on `element_nodes`, and `Window::a11y_node_id` reads the top entry only when its derived id matches the element's path, so a nested element without a node falls back to its own derived id.\n- Replay is stable: `open_element` reuses the id recorded in the event log instead of renumbering. Duplicates are siblings under one parent, so they are replayed or drawn fresh together and keep their order. The test checks ids across frames, and fast mode against a frame drawn without the tree.\n- Consumers: every `accesskit_node_id()` call outside the builder now goes through `a11y_node_id` (div's focus, active descendant and action listeners; RayX's scrollbar, the only RayX caller). Relations resolve by `accessibility_id`, and synthetic children are built on the node's actual id (ba3f3f2).\n- Residual: ids shift if an earlier duplicate disappears or the duplicates reorder, as documented, and the debug log tells authors to give distinct ids.\n\n**PERF-3.** The probe evidence is enough to justify changing the harness rather than `gpui_macos`.\n- In `hang/probe/` and `probe2/` about 330 launches are logged (the doc says 280; the order of magnitude matches). The one that hung (`probe/run-97.log`) shows the link starting and drawing, then `occlusion changed` and `stop` with no later visible notification. Every other run shows a single start after the first visible report.\n- The `cover/` runs show a covered window resuming when uncovered.\n- The probes therefore show `gpui_macos` doing what it is designed to do when AppKit reports a window occluded. That another app actually covered the window is an inference, which the doc words as \"points to\".\n- Either way, a harness that never measures a hidden window and never waits without bound is the right fix. The driver fails on a hidden report after the first frame, or after `OPEN_TIMEOUT`, with status 2 and the reason, and `run.py` retries status 2 once.\n- `hidden-window.sh` case 1 (covered after the first frame) can fail; case 2 accepts either outcome and proves only that the run does not wait.\n\n**REM-5.** `FORK_EXCLUDES` now lists `gpux-accesskit-macos`, and the check derives every `vendor/` workspace member from `cargo metadata`, so a future vendored crate cannot be missed.\n\nSprint checks passed at revision 182.",
+      "findingIds": [],
+      "recordedAt": "2026-10-17T03:08:39Z",
+      "recordHashes": {
+        "gpux:docs/measurements/a11y-devtools.md": "56054dc432b5d47e5d9bad64495d389f07d8824e3728b4d4d4bf74c99a14870d",
+        "gpux:docs/measurements/screen-reader-walkthrough.md": "152a5d2a5d854f8f546ac3681f5472e4b8f7cd267ce40e55fb6f1ba1b1ab779c"
+      }
     }
   },
   "checkpoints": {
@@ -4118,6 +4315,15 @@
       },
       "reviewHash": "79c43e5c5418669440b4aea0e33b861a2bc7b8975e0349241404c7b13e0322eb",
       "recordedAt": "2026-10-17T01:59:01Z"
+    },
+    "s10c-followups": {
+      "snapshotId": "3ac6cc59d57f44c3a09022fdda6a6441285abe37f5f315b3ffe657afcefc9ffd",
+      "commits": {
+        "gpux": "74d918b2b50bd69c13e2b7a3a390b493f6cebcd5",
+        "rayx": "779e3accaee88406088ef44dfe125ab9e1223184"
+      },
+      "reviewHash": "0295316c36ea0d6377ef21b9c7ab7dcae9f4ba78c52ba3d6f56f56711353ae27",
+      "recordedAt": "2026-10-17T03:09:11Z"
     }
   },
   "findings": [
@@ -5213,7 +5419,7 @@
       ]
     }
   ],
-  "handoffMarkdown": "Verifier tells views by accessibility events and sprite tiles (680f662); web-composition exits status own id (81d3b88). Reproduced with --features diagnostics; gpux tests pass with and without diagnostics.",
+  "handoffMarkdown": "FORK_EXCLUDES excludes gpux-accesskit-macos (gpux bb898e9).",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",
@@ -5240,5 +5446,24 @@
       "rayx:.agentx/experiments/**": "0154d9e7bb0e5b7b8d1e3616c2ffda3c26c22704ca47bda74fb368f3f13ede9b",
       "rayx:vendor/**": "9fe6c6fe2fe5ffe4ea906930d334e93c60569f98645d453a7e0aef364add6dc5"
     }
-  }
+  },
+  "dispositions": [
+    {
+      "type": "criterion",
+      "id": "SR-7",
+      "disposition": "deferred",
+      "reasonMarkdown": "The owner, 2026-10-17: \"Close now. I'll do walkthroughs later. We need this epic commited and merged. Create pr and merge it when tests are done\". The remaining walkthrough rows (VoiceOver in Chrome, VoiceOver on an iOS device, TalkBack) move to after the merge.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-17T07:51:27Z",
+      "followUpMarkdown": "The owner fills the remaining rows of docs/measurements/screen-reader-walkthrough.md: VoiceOver in Chrome, VoiceOver on an iOS device, and TalkBack on Android; findings become a follow-up epic or fixes."
+    },
+    {
+      "type": "task",
+      "id": "t30-owner-walkthrough",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "The owner, 2026-10-17: \"Close now. I'll do walkthroughs later. We need this epic commited and merged. Create pr and merge it when tests are done\". The remaining walkthrough rows (VoiceOver in Chrome, VoiceOver on an iOS device, TalkBack) move to after the merge.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-17T07:51:27Z"
+    }
+  ]
 }

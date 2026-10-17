@@ -779,6 +779,51 @@
           "path": "docs/upstream/accesskit-macos-tables-expanded.md"
         }
       ]
+    },
+    {
+      "id": "d-duplicate-element-nodes",
+      "requirementIds": [
+        "TREE"
+      ],
+      "descriptionMarkdown": "An element whose path another element in the frame already took gets the first node id hashed from the path's id and a count that no node holds (`A11yNodeBuilder::element_node_id`); the element's draw phase keeps the id it got, prepaint and paint push it on `A11y::element_nodes`, and `Window::a11y_node_id` reads it there for the element being drawn. Replay reuses the recorded id. Debug builds log each duplicate path once instead of asserting.",
+      "invariantsMarkdown": "- An element without a duplicate keeps `GlobalElementId::accesskit_node_id`.\n- Every node id an element registers (focus, active descendant, actions, synthetic children, relations, bounds) is the one its node holds.",
+      "rationaleMarkdown": "The owner required the fix in this epic. Element state keeps tolerating duplicates as upstream GPUI does, so the tree cannot reject them; numbering in draw order keeps ids stable as long as the duplicates do not reorder, which distinct ids would fix for an app that reorders.",
+      "memoryDecisionRefs": [],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window/a11y.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/element.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-hidden-benchmark-window",
+      "requirementIds": [
+        "PERF"
+      ],
+      "descriptionMarkdown": "`gpui_macos` keeps stopping a window's display link while AppKit reports it occluded. The benchmark driver observes `Window::observe_window_visibility` and ends a run whose window is hidden after its first frame, or presents no frame within `OPEN_TIMEOUT` (10 s), with a report holding only `error`; `gpux-bench` and the iOS entry exit with status 2, the web entry publishes the error, and `run.py` retries a desktop run that exited with status 2 once.",
+      "invariantsMarkdown": "- A hidden window is never measured: frames after a hidden interval would include it.\n- A benchmark run never waits for frames without bound.",
+      "rationaleMarkdown": "The probes showed the platform behaving as designed (no frames for a window AppKit does not present), so drawing hidden windows would cost power in every app to fix a harness; failing loudly and retrying keeps the measurements honest.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-05-gpui-frame-pipeline-frame-demand-follow-up.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "benchmark/src/driver.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "benchmark/tools/hidden-window.sh"
+        }
+      ]
     }
   ],
   "memoryDecisionsConsidered": [
