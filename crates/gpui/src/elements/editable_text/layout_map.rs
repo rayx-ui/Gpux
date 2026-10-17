@@ -9,7 +9,7 @@ use super::{
     AttributeSpan, EditableTextProjection, EditableTextStyleRun, EditableTextStyleRuns, Formatting,
     LayoutStyleKey, ParagraphAlignment, ParagraphFormat, RowLayoutKey, ShapeRunKey,
     TextBufferError, TextBufferSnapshot, TextEdit, TextLayoutCache, TextLayoutCacheStats,
-    TextLayoutUpdate, editable_text_alignment_offset,
+    TextLayoutUpdate, TextListKind, editable_text_alignment_offset,
 };
 
 /// A byte-based point in the visual rows produced by soft wrapping.
@@ -231,6 +231,30 @@ pub struct TextLayoutMap {
     visual_rows: Vec<TextVisualRow>,
     alignment: TextAlign,
     align_width: Option<Pixels>,
+    /// How far each list level moves a list item's leading indent, and the step installed.
+    list_indent_step: Pixels,
+    installed_list_indent_step: Pixels,
+    /// The markers of list items, in order.
+    list_markers: Vec<TextListMarker>,
+    /// The field's font size, which list markers of unformatted items take.
+    font_size: Pixels,
+    /// The field's alignment offset the rows' offsets are relative to.
+    alignment_offset: Pixels,
+}
+
+/// The marker of one list item, painted in the space before its first row.
+#[derive(Clone, Debug, PartialEq)]
+pub struct TextListMarker {
+    /// The item's first visual row.
+    pub visual_row: usize,
+    /// The buffer offset where the item's paragraph starts.
+    pub paragraph_start: usize,
+    /// The marker's text; empty for a checkbox.
+    pub text: SharedString,
+    /// A checkbox item's state.
+    pub checkbox: Option<bool>,
+    /// The size of the item's first character, which the marker takes.
+    pub font_size: Pixels,
 }
 
 impl TextLayoutMap {
@@ -327,11 +351,72 @@ impl TextLayoutMap {
         }
     }
 
+    /// Each list item's marker: bullets and numbers by level, numbers counting consecutive
+    /// numbered items at a level (deeper items do not break the count; a paragraph that is not
+    /// a list item, or another kind at that level, restarts it).
+    fn rebuild_list_markers(&mut self) {
+        self.list_markers.clear();
+        // Per level: the kind's discriminant, its first number, and the items counted.
+        let mut counters: Vec<Option<(std::mem::Discriminant<TextListKind>, u32, u32)>> =
+            Vec::new();
+        for row in &self.rows {
+            let Some(item) = row
+                .paragraph
+                .as_deref()
+                .and_then(|format| format.list.as_ref())
+            else {
+                counters.clear();
+                continue;
+            };
+            let level = usize::from(item.level);
+            counters.truncate(level + 1);
+            counters.resize(level + 1, None);
+            let kind = std::mem::discriminant(&item.kind);
+            let start = match item.kind {
+                TextListKind::Numbered { start } => start,
+                _ => 0,
+            };
+            let count = match &mut counters[level] {
+                Some((counted, _, count)) if *counted == kind => {
+                    *count += 1;
+                    *count
+                }
+                slot => {
+                    *slot = Some((kind, start, 0));
+                    0
+                }
+            };
+            let first = counters[level].map_or(start, |(_, first, _)| first);
+            let (text, checkbox) = match &item.kind {
+                TextListKind::Bullet => (bullet_marker(level), None),
+                TextListKind::Numbered { .. } => (number_marker(level, first + count), None),
+                TextListKind::Checkbox { checked } => (SharedString::default(), Some(*checked)),
+                TextListKind::Custom(text) => (text.clone(), None),
+            };
+            let font_size = self
+                .projected_attributes
+                .iter()
+                .find(|span| {
+                    span.range.start <= row.display_start && span.range.end > row.display_start
+                })
+                .and_then(|span| span.attributes.font_size)
+                .unwrap_or(self.font_size);
+            self.list_markers.push(TextListMarker {
+                visual_row: row.visual_start,
+                paragraph_start: row.buffer_start,
+                text,
+                checkbox,
+                font_size,
+            });
+        }
+    }
+
     fn rebuild_visual_rows(&mut self) {
         self.visual_rows.clear();
         let global = self.align_width.map_or(px(0.), |width| {
             editable_text_alignment_offset(self.alignment, width, self.size.width)
         });
+        self.alignment_offset = global;
         let line_height = self.line_height;
         let mut uniform = true;
         let mut next_top = px(0.);
@@ -358,6 +443,7 @@ impl TextLayoutMap {
                 let (x, justify) = match paragraph {
                     Some(format) => paragraph_row_x(
                         format,
+                        self.list_indent_step,
                         self.alignment,
                         self.align_width,
                         shape,
@@ -398,7 +484,54 @@ impl TextLayoutMap {
         self.formatting = formatting;
     }
 
+    /// Sets how far each list level moves a list item's leading indent.
+    pub(crate) fn set_list_indent_step(&mut self, step: Pixels) {
+        self.list_indent_step = step;
+    }
+
+    /// The markers of list items, in order.
+    pub fn list_markers(&self) -> &[TextListMarker] {
+        &self.list_markers
+    }
+
+    /// Where a marker `width` wide starts, from the start of the text: right-aligned a gap of
+    /// 0.4 of its font size before the item's first row, but never before the field's leading
+    /// edge.
+    pub fn list_marker_x(&self, marker: &TextListMarker, width: Pixels) -> Option<Pixels> {
+        let start = self
+            .position_for_display(TextDisplayPoint::new(marker.visual_row, 0))?
+            .x;
+        // The field's leading edge, in the coordinates positions use.
+        let leading_edge = -self.alignment_offset;
+        Some((start - marker.font_size * 0.4 - width).max(leading_edge))
+    }
+
+    /// Where a checkbox item's box sits, from the top of the text: a square of 0.8 of the
+    /// item's font size placed as [`Self::list_marker_x`] places a marker, standing on the
+    /// row's baseline.
+    pub fn list_checkbox_bounds(&self, marker: &TextListMarker) -> Option<crate::Bounds<Pixels>> {
+        marker.checkbox?;
+        let row = self.visual_rows.get(marker.visual_row)?;
+        let side = marker.font_size * 0.8;
+        let x = self.list_marker_x(marker, side)?;
+        Some(crate::Bounds::new(
+            point(x, row.top + row.baseline - side),
+            size(side, side),
+        ))
+    }
+
+    /// The list item whose checkbox contains `position` (from the top of the text).
+    pub fn list_checkbox_at(&self, position: Point<Pixels>) -> Option<&TextListMarker> {
+        self.list_markers.iter().find(|marker| {
+            self.list_checkbox_bounds(marker)
+                .is_some_and(|bounds| bounds.contains(&position))
+        })
+    }
+
     fn formatting_installed(&self) -> bool {
+        if self.list_indent_step != self.installed_list_indent_step {
+            return false;
+        }
         match (&self.formatting, &self.installed_formatting) {
             (None, None) => true,
             (Some(next), Some(installed)) => Arc::ptr_eq(next, installed) || next == installed,
@@ -524,6 +657,7 @@ impl TextLayoutMap {
         let mut style_run_start = 0;
 
         let formatting = self.formatting.clone();
+        let list_step = self.list_indent_step;
         let mut layout_line = |display_start: usize,
                                line: &str,
                                buffer_start: usize,
@@ -562,7 +696,7 @@ impl TextLayoutMap {
             let line_text: Arc<str> = Arc::from(line);
             let wrap_widths = paragraph
                 .as_deref()
-                .and_then(|format| paragraph_wrap_widths(format, style.wrap_width));
+                .and_then(|format| paragraph_wrap_widths(format, style.wrap_width, list_step));
             let row_key =
                 RowLayoutKey::new(line_text.clone(), run_keys).with_wrap_widths(wrap_widths);
             let layout = if let Some(layout) = reusable.and_then(|rows| rows.get(&row_key)) {
@@ -602,7 +736,7 @@ impl TextLayoutMap {
             // Content reaches past each row's own indent and its trailing indent.
             max_width = max_width.max(match paragraph.as_deref() {
                 Some(format) => {
-                    let (first_indent, other_indent) = paragraph_indents(format);
+                    let (first_indent, other_indent) = paragraph_indents(format, list_step);
                     shapes
                         .iter()
                         .enumerate()
@@ -610,7 +744,8 @@ impl TextLayoutMap {
                             let indent = if row == 0 { first_indent } else { other_indent };
                             indent + shape.width + format.trailing_indent.max(px(0.))
                         })
-                        .fold(px(0.), Pixels::max)
+                        .reduce(Pixels::max)
+                        .unwrap_or_default()
                 }
                 None => layout.width(),
             });
@@ -675,8 +810,11 @@ impl TextLayoutMap {
         self.size = size(max_width, style.line_height * visual_start);
         self.projection = projection.cloned();
         self.installed_formatting = self.formatting.clone();
+        self.installed_list_indent_step = self.list_indent_step;
         self.projected_attributes = projected_attributes;
+        self.font_size = style.font_size;
         self.rebuild_visual_rows();
+        self.rebuild_list_markers();
         self.cache
             .install(snapshot.revision(), style_key, next_cache, update);
         Ok(update)
@@ -1160,23 +1298,30 @@ fn local_visual_row(layout: &WrappedLineLayout, local_offset: usize) -> Option<u
 fn paragraph_wrap_widths(
     format: &ParagraphFormat,
     wrap_width: Option<Pixels>,
+    list_step: Pixels,
 ) -> Option<(Pixels, Pixels)> {
     let wrap_width = wrap_width?;
     if format.leading_indent == px(0.)
         && format.first_line_indent == px(0.)
         && format.trailing_indent == px(0.)
+        && format.list.is_none()
     {
         return None;
     }
-    let (first_indent, other_indent) = paragraph_indents(format);
+    let (first_indent, other_indent) = paragraph_indents(format, list_step);
     let available = |indent: Pixels| (wrap_width - indent - format.trailing_indent).max(px(1.));
     Some((available(first_indent), available(other_indent)))
 }
 
-/// Where the first row and the other rows start: the leading indent, plus the first-line
-/// indent on the first row; a hanging indent stops at the field's edge.
-fn paragraph_indents(format: &ParagraphFormat) -> (Pixels, Pixels) {
-    let leading = format.leading_indent.max(px(0.));
+/// Where the first row and the other rows start: the leading indent (moved one list step per
+/// list level, counting the first), plus the first-line indent on the first row; a hanging
+/// indent stops at the field's edge.
+fn paragraph_indents(format: &ParagraphFormat, list_step: Pixels) -> (Pixels, Pixels) {
+    let list = format
+        .list
+        .as_ref()
+        .map_or(px(0.), |item| list_step * (f32::from(item.level) + 1.));
+    let leading = format.leading_indent.max(px(0.)) + list;
     ((leading + format.first_line_indent).max(px(0.)), leading)
 }
 
@@ -1185,13 +1330,14 @@ fn paragraph_indents(format: &ParagraphFormat) -> (Pixels, Pixels) {
 /// to reach the trailing indent, except the paragraph's last row and single-word rows.
 fn paragraph_row_x(
     format: &ParagraphFormat,
+    list_step: Pixels,
     element_alignment: TextAlign,
     width: Option<Pixels>,
     shape: &RowShape,
     first: bool,
     last: bool,
 ) -> (Pixels, Pixels) {
-    let (first_indent, other_indent) = paragraph_indents(format);
+    let (first_indent, other_indent) = paragraph_indents(format, list_step);
     let indent = if first { first_indent } else { other_indent };
     let Some(width) = width else {
         return (indent, px(0.));
@@ -1390,4 +1536,51 @@ mod tests {
         assert_eq!(projected[0].range, hidden_start..projection.text().len());
         assert_eq!(projected[0].style.font_style, Some(FontStyle::Italic));
     }
+}
+
+fn bullet_marker(level: usize) -> SharedString {
+    SharedString::new_static(["\u{2022}", "\u{25e6}", "\u{25aa}"][level % 3])
+}
+
+/// 1., a. or i. by level.
+fn number_marker(level: usize, number: u32) -> SharedString {
+    let label = match level % 3 {
+        0 => number.to_string(),
+        1 => {
+            let mut label = String::new();
+            let mut number = number.max(1);
+            while number > 0 {
+                number -= 1;
+                label.insert(0, char::from(b'a' + (number % 26) as u8));
+                number /= 26;
+            }
+            label
+        }
+        _ => {
+            let mut number = number.max(1);
+            let mut label = String::new();
+            for (value, numeral) in [
+                (1000, "m"),
+                (900, "cm"),
+                (500, "d"),
+                (400, "cd"),
+                (100, "c"),
+                (90, "xc"),
+                (50, "l"),
+                (40, "xl"),
+                (10, "x"),
+                (9, "ix"),
+                (5, "v"),
+                (4, "iv"),
+                (1, "i"),
+            ] {
+                while number >= value {
+                    label.push_str(numeral);
+                    number -= value;
+                }
+            }
+            label
+        }
+    };
+    format!("{label}.").into()
 }

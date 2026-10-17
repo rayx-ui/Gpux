@@ -134,6 +134,13 @@ fn handle_key_down(
     let modifiers = event.keystroke.modifiers;
     let secondary = modifiers.secondary();
     state.update(cx, |state, cx| match (secondary, modifiers.shift, key) {
+        // List editing defaults, which an owner can switch off per state.
+        (false, false, "backspace") if state.list_editing() && state.list_delete_backward(cx) => {
+            true
+        }
+        (false, false, "enter") if state.list_editing() && state.list_insert_newline(cx) => true,
+        (false, false, "tab") if state.list_editing() => state.indent_list_item(cx),
+        (false, true, "tab") if state.list_editing() => state.outdent_list_item(cx),
         (false, false, "backspace") => state.delete_backward(cx),
         (false, false, "delete") => state.delete_forward(cx),
         (true, false, "backspace") => state.delete_word_backward(cx),
@@ -248,6 +255,9 @@ struct EditableTextPrepaintState {
     content_origin: crate::Point<Pixels>,
     cursor: Option<PaintQuad>,
     selection: Vec<PaintQuad>,
+    /// List markers: shaped marker text at its origin, or checkbox quads.
+    list_marker_lines: Vec<(ShapedLine, crate::Point<Pixels>)>,
+    list_marker_quads: Vec<PaintQuad>,
 }
 
 struct EditableTextPaintLine {
@@ -447,6 +457,73 @@ impl Element for EditableTextPaintElement {
                 .shape_line(text, font_size, &[run], None)
         });
 
+        // List markers of the visible rows, right-aligned before each item's first row on its
+        // baseline, in the size and color of the item's first character.
+        let mut list_marker_lines = Vec::new();
+        let mut list_marker_quads = Vec::new();
+        if layout_ready {
+            let map = state.layout_map();
+            let visible = map.visual_row_at_y((-scroll_offset.y).max(px(0.)))
+                ..map.visual_row_at_y(bounds.size.height - scroll_offset.y) + 1;
+            for marker in map
+                .list_markers()
+                .iter()
+                .filter(|marker| visible.contains(&marker.visual_row))
+            {
+                let first = state.attributes_at(marker.paragraph_start);
+                let color = first.color.clone().unwrap_or_else(|| style.color.clone());
+                if let Some(checked) = marker.checkbox {
+                    let Some(bounds) = map.list_checkbox_bounds(marker) else {
+                        continue;
+                    };
+                    let bounds = Bounds::new(content_origin + bounds.origin, bounds.size);
+                    list_marker_quads.push(crate::outline(
+                        bounds,
+                        color.clone(),
+                        crate::BorderStyle::Solid,
+                    ));
+                    if checked {
+                        let inset = bounds.size.width * 0.25;
+                        list_marker_quads.push(fill(
+                            Bounds::new(
+                                bounds.origin + point(inset, inset),
+                                size(
+                                    bounds.size.width - inset * 2.,
+                                    bounds.size.height - inset * 2.,
+                                ),
+                            ),
+                            color,
+                        ));
+                    }
+                    continue;
+                }
+                let Some(row) = map.visual_row(marker.visual_row) else {
+                    continue;
+                };
+                let mut font = style.font();
+                if let Some(family) = &first.font_family {
+                    font.family = family.clone();
+                }
+                let run = TextRun {
+                    len: marker.text.len(),
+                    font,
+                    color,
+                    ..Default::default()
+                };
+                let line = window.text_system().shape_line(
+                    marker.text.clone(),
+                    marker.font_size,
+                    &[run],
+                    None,
+                );
+                let Some(x) = map.list_marker_x(marker, line.width) else {
+                    continue;
+                };
+                let origin = content_origin + point(x, row.top + row.baseline - line.ascent);
+                list_marker_lines.push((line, origin));
+            }
+        }
+
         let selection_quads = layout_ready
             .then(|| {
                 editable_text_selection_quads(
@@ -484,6 +561,8 @@ impl Element for EditableTextPaintElement {
             content_origin,
             cursor,
             selection: selection_quads,
+            list_marker_lines,
+            list_marker_quads,
         }
     }
 
@@ -536,6 +615,20 @@ impl Element for EditableTextPaintElement {
                         cx,
                     )
                     .expect("editable text placeholder should paint");
+            }
+            for (line, origin) in &prepaint.list_marker_lines {
+                line.paint(
+                    *origin,
+                    line.ascent + line.descent,
+                    TextAlign::Left,
+                    None,
+                    window,
+                    cx,
+                )
+                .expect("editable text list marker should paint");
+            }
+            for quad in prepaint.list_marker_quads.drain(..) {
+                window.paint_quad(quad);
             }
             if let Some(cursor) = prepaint.cursor.take() {
                 window.paint_quad(cursor);

@@ -65,6 +65,9 @@ pub struct EditableTextState {
     composition_attributes: Option<Arc<TextAttributes>>,
     /// The height a single-line field last asked layout for.
     pub(crate) requested_height: Option<Pixels>,
+    /// How far each list level moves a list item's leading indent.
+    list_indent_step: Pixels,
+    list_editing: bool,
 }
 
 #[allow(missing_docs)]
@@ -119,6 +122,8 @@ impl EditableTextState {
             typing_attributes: None,
             composition_attributes: None,
             requested_height: None,
+            list_indent_step: px(24.),
+            list_editing: true,
         }
     }
 
@@ -428,6 +433,165 @@ impl EditableTextState {
         true
     }
 
+    /// How far each list level moves a list item's leading indent (24 px unless set).
+    pub fn list_indent_step(&self) -> Pixels {
+        self.list_indent_step
+    }
+
+    pub fn set_list_indent_step(&mut self, step: Pixels, cx: &mut Context<Self>) {
+        if self.list_indent_step != step {
+            self.list_indent_step = step;
+            self.geometry = None;
+            cx.notify();
+        }
+    }
+
+    /// Whether Enter, Backspace, Tab and Shift-Tab use the list editing defaults in list items
+    /// (on unless switched off).
+    pub fn list_editing(&self) -> bool {
+        self.list_editing
+    }
+
+    pub fn set_list_editing(&mut self, enabled: bool) {
+        self.list_editing = enabled;
+    }
+
+    /// The list item of the paragraph at the caret, if it is one.
+    fn caret_list_item(&self) -> Option<super::TextListItem> {
+        self.paragraph_format(self.selection.head()).list
+    }
+
+    /// Enter in a list item: a non-empty item splits into two items (a new checkbox item starts
+    /// unchecked); an empty item ends the list, losing its list format instead of breaking the
+    /// line. Each is one undo step. Returns false outside a list item.
+    pub fn list_insert_newline(&mut self, cx: &mut Context<Self>) -> bool {
+        if self.line_mode != EditableTextLineMode::MultiLine || !self.mode.permits_mutation() {
+            return false;
+        }
+        let Some(item) = self.caret_list_item() else {
+            return false;
+        };
+        let head = self.selection.head();
+        if self.selection.is_empty() && self.paragraph_is_empty_at(head) {
+            return self.update_paragraph_format(head..head, |format| format.list = None, cx);
+        }
+        let range = self.selection.range();
+        let caret = range.start + 1;
+        // The new item is the empty first half when the split is at the item's start, else the
+        // second half; a new checkbox item starts unchecked.
+        let new_item = if self
+            .buffer
+            .char_before(range.start)
+            .is_none_or(|(_, ch)| ch == '\n')
+        {
+            range.start
+        } else {
+            caret
+        };
+        self.apply_edit_then(
+            range,
+            "\n".to_owned(),
+            EditableSelection::caret(caret),
+            None,
+            EditKind::Other,
+            move |state| {
+                if matches!(item.kind, super::TextListKind::Checkbox { .. }) {
+                    state.set_paragraph_list_in_place(
+                        new_item,
+                        Some(super::TextListItem {
+                            kind: super::TextListKind::Checkbox { checked: false },
+                            level: item.level,
+                        }),
+                    );
+                }
+            },
+            cx,
+        )
+    }
+
+    /// Backspace at the start of a list item removes its list format before any join, as one
+    /// undo step. Returns false elsewhere.
+    pub fn list_delete_backward(&mut self, cx: &mut Context<Self>) -> bool {
+        let head = self.selection.head();
+        let at_start = self.selection.is_empty()
+            && self
+                .buffer
+                .char_before(head)
+                .is_none_or(|(_, ch)| ch == '\n');
+        if !at_start || self.caret_list_item().is_none() {
+            return false;
+        }
+        self.update_paragraph_format(head..head, |format| format.list = None, cx)
+    }
+
+    /// Tab in a list item: every list item the selection touches goes one level deeper, as one
+    /// undo step. Returns false when the caret is not in a list item, so Tab propagates.
+    pub fn indent_list_item(&mut self, cx: &mut Context<Self>) -> bool {
+        if self.caret_list_item().is_none() {
+            return false;
+        }
+        self.update_paragraph_format(
+            self.selection.range(),
+            |format| {
+                if let Some(item) = &mut format.list {
+                    item.level = item.level.saturating_add(1);
+                }
+            },
+            cx,
+        )
+    }
+
+    /// Shift-Tab in a list item: every list item the selection touches goes one level up, and
+    /// one at level 0 loses its list format, as one undo step. Returns false when the caret is
+    /// not in a list item.
+    pub fn outdent_list_item(&mut self, cx: &mut Context<Self>) -> bool {
+        if self.caret_list_item().is_none() {
+            return false;
+        }
+        self.update_paragraph_format(
+            self.selection.range(),
+            |format| match &mut format.list {
+                Some(item) if item.level > 0 => item.level -= 1,
+                _ => format.list = None,
+            },
+            cx,
+        )
+    }
+
+    /// Sets the list item of the paragraph containing `offset` without recording history (the
+    /// caller is inside an undo step).
+    fn set_paragraph_list_in_place(&mut self, offset: usize, list: Option<super::TextListItem>) {
+        let snapshot = self.snapshot();
+        let Ok(point) = snapshot.byte_to_point(offset.min(snapshot.len())) else {
+            return;
+        };
+        let mut formatting = self.formatting.as_deref().cloned().unwrap_or_default();
+        formatting.update_paragraphs(point.y..=point.y, snapshot.line_count(), &|format| {
+            format.list = list.clone();
+        });
+        self.formatting = (!formatting.is_empty()).then(|| Arc::new(formatting));
+    }
+
+    /// Toggles the checkbox of the list item containing `offset`, as one undo step.
+    pub fn toggle_list_checkbox(&mut self, offset: usize, cx: &mut Context<Self>) -> bool {
+        let checked = match self.paragraph_format(offset).list {
+            Some(super::TextListItem {
+                kind: super::TextListKind::Checkbox { checked },
+                ..
+            }) => checked,
+            _ => return false,
+        };
+        self.update_paragraph_format(
+            offset..offset,
+            |format| {
+                if let Some(item) = &mut format.list {
+                    item.kind = super::TextListKind::Checkbox { checked: !checked };
+                }
+            },
+            cx,
+        )
+    }
+
     /// The text and everything stored with it.
     pub fn attributed_text(&self) -> AttributedText {
         AttributedText {
@@ -540,6 +704,7 @@ impl EditableTextState {
         let snapshot = self.snapshot();
         let projection = display_transform.project(&snapshot.text());
         self.layout_map.set_formatting(self.formatting.clone());
+        self.layout_map.set_list_indent_step(self.list_indent_step);
         self.layout_map
             .set_alignment(text_align, Some(bounds.size.width));
         let update_result = match (&projection, self.pending_layout_edit.as_ref()) {
@@ -1209,6 +1374,23 @@ impl EditableTextState {
         if self.mode == EditableTextMode::Disabled {
             return;
         }
+        // A press on a list item's checkbox toggles it instead of moving the caret.
+        if self.mode.permits_mutation()
+            && let Some(geometry) = &self.geometry
+        {
+            let content = position
+                - geometry.bounds().origin
+                - geometry.scroll_offset()
+                - point(geometry.alignment_offset(), px(0.));
+            if let Some(start) = self
+                .layout_map
+                .list_checkbox_at(content)
+                .map(|marker| marker.paragraph_start)
+            {
+                self.toggle_list_checkbox(start, cx);
+                return;
+            }
+        }
         self.is_selecting = true;
         self.drag_position = Some(position);
         let offset = self.index_for_point(position);
@@ -1522,6 +1704,30 @@ impl EditableTextState {
         kind: EditKind,
         cx: &mut Context<Self>,
     ) -> bool {
+        self.apply_edit_then(
+            range,
+            replacement,
+            selection,
+            marked_range,
+            kind,
+            |_| {},
+            cx,
+        )
+    }
+
+    /// [`Self::apply_edit`], with `then` changing the state after the edit inside the same
+    /// undo step.
+    #[allow(clippy::too_many_arguments)]
+    fn apply_edit_then(
+        &mut self,
+        range: Range<usize>,
+        replacement: String,
+        selection: EditableSelection,
+        marked_range: Option<Range<usize>>,
+        kind: EditKind,
+        then: impl FnOnce(&mut Self),
+        cx: &mut Context<Self>,
+    ) -> bool {
         let before = self.history_state();
         let composing = self.marked_range.is_some();
         let inserted = if replacement.is_empty() {
@@ -1557,6 +1763,7 @@ impl EditableTextState {
             self.typing_attributes = Some(deleted);
         }
         self.geometry = None;
+        then(self);
         let after = self.history_state();
         self.history.record(before, after, kind);
         self.restart_blink(cx);

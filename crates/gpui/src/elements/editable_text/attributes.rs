@@ -413,6 +413,64 @@ pub struct ParagraphFormat {
     pub line_height: Option<f32>,
     /// Letter spacing for runs that set none; `None` uses the element's.
     pub letter_spacing: Option<Pixels>,
+    /// Makes the paragraph a list item.
+    pub list: Option<TextListItem>,
+}
+
+/// What marks a list item.
+#[derive(Clone, Debug, PartialEq)]
+pub enum TextListKind {
+    /// •, ◦ and ▪ by level.
+    Bullet,
+    /// 1., a. and i. by level, counting from `start` over consecutive numbered items at the
+    /// item's level.
+    Numbered {
+        /// The first item's number.
+        start: u32,
+    },
+    /// A box showing `checked`; a click or tap on it toggles it.
+    Checkbox {
+        /// Whether the box is checked.
+        checked: bool,
+    },
+    /// The given marker text.
+    Custom(SharedString),
+}
+
+/// A paragraph's list item: its marker kind and nesting level. Each level moves the
+/// paragraph's leading indent by the state's list indent step.
+#[derive(Clone, Debug, PartialEq)]
+pub struct TextListItem {
+    /// The marker kind.
+    pub kind: TextListKind,
+    /// The nesting level, from 0.
+    pub level: u8,
+}
+
+impl TextListItem {
+    /// A bullet item at `level`.
+    pub fn bullet(level: u8) -> Self {
+        Self {
+            kind: TextListKind::Bullet,
+            level,
+        }
+    }
+
+    /// A numbered item at `level`, counting from 1.
+    pub fn numbered(level: u8) -> Self {
+        Self {
+            kind: TextListKind::Numbered { start: 1 },
+            level,
+        }
+    }
+
+    /// An unchecked checkbox item at `level`.
+    pub fn checkbox(level: u8) -> Self {
+        Self {
+            kind: TextListKind::Checkbox { checked: false },
+            level,
+        }
+    }
 }
 
 impl ParagraphFormat {
