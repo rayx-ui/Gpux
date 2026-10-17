@@ -5,9 +5,10 @@ use crate::scene::{Area, Expect, Lane, SceneSpec, Step};
 use gpux::prelude::*;
 use gpux::{
     AnyView, App, AttributeChange, AttributeState, Context, DevtoolsSemantics, EditableText,
-    EditableTextLineMode, EditableTextState, Entity, FontStyle, FontWeight, IntoElement,
-    ParagraphAlignment, ParagraphFormat, Render, TextAttributes, TextAttributesPatch, TextListItem,
-    TextListKind, UnderlineStyle, Window, div, px, rgb, semantic_query::Query,
+    EditableTextLineMode, EditableTextState, Entity, FontStyle, FontWeight, InlineObject,
+    IntoElement, MouseButton, ParagraphAlignment, ParagraphFormat, Render, SharedString,
+    TextAttributes, TextAttributesPatch, TextListItem, TextListKind, UnderlineStyle, Window, div,
+    px, rgb, semantic_query::Query,
 };
 
 const ALL_LANES: &[Lane] = &[Lane::A, Lane::B, Lane::C, Lane::D, Lane::E, Lane::F];
@@ -532,6 +533,115 @@ pub const LISTS: SceneSpec = SceneSpec {
             Step::Expect(Expect::Exists(status_is("checked true"))),
             Step::ProbeUniform((35.5, 115.5, 3., 3.), BLACK, 0),
             Step::ChangedSince("unchecked", (31., 111., 12., 12.)),
+        ]
+    },
+};
+
+/// Lilex "HH" around a green chip that counts its clicks and a 40 px blue box.
+struct InlineObjects {
+    state: Entity<EditableTextState>,
+    clicks: Entity<usize>,
+}
+
+impl InlineObjects {
+    fn new(cx: &mut Context<Self>) -> Self {
+        let object =
+            |key: &'static str, width: f32, height: f32, baseline_offset: f32| InlineObject {
+                key: SharedString::from(key),
+                width: px(width),
+                height: px(height),
+                baseline_offset: px(baseline_offset),
+                text_fallback: SharedString::from(key),
+                html_fallback: None,
+            };
+        let state = cx.new(|cx| {
+            let mut state =
+                EditableTextState::with_line_mode("HHHHHH", EditableTextLineMode::MultiLine, cx);
+            state.insert_inline_object(4..4, object("box", 40., 40., 0.), cx);
+            state.insert_inline_object(2..2, object("chip", 60., 18., 4.), cx);
+            state.set_selection(0, 0, cx);
+            state
+        });
+        let clicks = cx.new(|_| 0);
+        cx.observe(&state, |_, _, cx| cx.notify()).detach();
+        cx.observe(&clicks, |_, _, cx| cx.notify()).detach();
+        Self { state, clicks }
+    }
+}
+
+impl Render for InlineObjects {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let clicks = *self.clicks.read(cx);
+        let caret = self.state.read(cx).selection().head();
+        let counter = self.clicks.clone();
+        root()
+            .font_family("Lilex")
+            .child(
+                div()
+                    .absolute()
+                    .left(px(10.))
+                    .top(px(10.))
+                    .w(px(280.))
+                    .h(px(60.))
+                    .line_height(px(24.))
+                    .child(EditableText::new(&self.state).inline_object_renderer(
+                        move |object, _, _| {
+                            let counter = counter.clone();
+                            let color = if object.key.as_ref() == "chip" {
+                                GREEN_HEX
+                            } else {
+                                BLUE_HEX
+                            };
+                            div()
+                                .id(object.key.clone())
+                                .size_full()
+                                .bg(rgb(color))
+                                .when(object.key.as_ref() == "chip", |chip| {
+                                    chip.on_mouse_down(MouseButton::Left, move |_, _, cx| {
+                                        counter.update(cx, |clicks, cx| {
+                                            *clicks += 1;
+                                            cx.notify();
+                                        });
+                                        cx.stop_propagation();
+                                    })
+                                })
+                                .into_any_element()
+                        },
+                    )),
+            )
+            .child(
+                div()
+                    .absolute()
+                    .left(px(10.))
+                    .top(px(80.))
+                    .child(status(format!("clicks {clicks} caret {caret}"))),
+            )
+    }
+}
+
+/// Inline objects in one field of 16 px Lilex at (10, 10): "HH" (x 0-19.2), a 60 x 18 green chip
+/// standing 4 px below the baseline (x 19.2-79.2), "HH", a 40 x 40 blue box on the baseline
+/// (x 98.4-138.4) and "HH". The box makes the row 44.4 px tall (ascent 40, Lilex descent 4.4),
+/// with the baseline at y 40 of the field.
+pub const INLINE_OBJECTS: SceneSpec = SceneSpec {
+    id: "editable-inline-objects",
+    areas: &[Area::EditableInlineObjects, Area::EditableText],
+    size: (300., 110.),
+    scales: &[1., 2.],
+    lanes: &[Lane::A, Lane::B, Lane::C],
+    golden: false,
+    build: |_, cx| cx.new(InlineObjects::new).into(),
+    script: || {
+        vec![
+            Step::Expect(Expect::Exists(status_is("clicks 0 caret 0"))),
+            // The chip fills its box (y 36-54); the box fills its own (y 10-50).
+            Step::ProbeUniform((32., 38., 54., 14.), GREEN, 0),
+            Step::ProbeUniform((111., 13., 34., 34.), BLUE, 0),
+            // Text after the chip sits on the shared baseline (y 50).
+            Step::ProbeDiffer((90., 40., 16., 8.), (220., 40., 16., 8.), 40),
+            // The chip takes the click; the caret does not move.
+            Step::ClickAt(59., 45.),
+            Step::Expect(Expect::Exists(status_is("clicks 1 caret 0"))),
         ]
     },
 };

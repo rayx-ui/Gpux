@@ -33,6 +33,7 @@ pub static CATALOG: &[SceneSpec] = &[
     editing::RICH_ATTRIBUTES,
     editing::PARAGRAPHS,
     editing::LISTS,
+    editing::INLINE_OBJECTS,
     lists::UNIFORM_LIST,
     lists::LIST,
     scrolling::WHEEL,
