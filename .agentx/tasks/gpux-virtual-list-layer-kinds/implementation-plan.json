@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list-layer-kinds",
-  "revision": 9,
+  "revision": 10,
   "title": "Measured leaves kept under view retention, and every VirtualList kind on scroll layers: horizontal, sticky, SynchronizedOffset and ParentViewport lists composite, RayX's parent-viewport invalidation narrowed, timings measured",
   "validationMode": "sprint",
   "repositories": [
@@ -889,6 +889,38 @@
         "gpux:Cargo.toml",
         "gpux:Cargo.lock"
       ]
+    },
+    {
+      "id": "c-dt-frames",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "DF-1"
+      ],
+      "descriptionMarkdown": "A DataTable wheel turn draws one frame, fast mode off and on.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_components_datatable",
+        "--test",
+        "wheel_frames"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_components/**",
+        "crates/rayx_runtime/**",
+        "crates/rayx_theme/**",
+        "crates/rayx_macros/**",
+        "gpux:crates/gpui/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock"
+      ]
     }
   ],
   "finalCheckIds": [
@@ -1257,10 +1289,46 @@
       ]
     },
     {
+      "id": "s06c-datatable-frames",
+      "title": "A DataTable wheel turn draws one frame",
+      "dependsOn": [
+        "s06-bench-scenarios"
+      ],
+      "memoryScopes": [
+        "rayx:ui/virtualization"
+      ],
+      "checkIds": [
+        "c-dt-frames"
+      ],
+      "tasks": [
+        {
+          "id": "t-dt-frames",
+          "title": "Prove a DataTable wheel turn draws one frame",
+          "descriptionMarkdown": "The owner decided (2026-10-17), relayed by the coordinating session: \"Fix it\" (DataTable's second frame after each wheel turn, with fast mode off too). Add the `wheel_frames` RayX group (DF-1): a wheel turn across and down a DataTable draws exactly one frame with fast mode off and on, its doc comment naming the cause; show it red with the mask's old handler restored for the run.",
+          "criterionIds": [
+            "DF-1"
+          ],
+          "designIds": [
+            "d-datatable-frames"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "c-dt-frames"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_core/src/layout/scroll/scrollable_mask.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "s06b-accesskit-merge",
       "title": "Merge main's AccessKit model into the branches (after the owner says it is merged)",
       "dependsOn": [
-        "s06-bench-scenarios"
+        "s06c-datatable-frames"
       ],
       "memoryScopes": [
         "gpux:gpui/frame-pipeline",

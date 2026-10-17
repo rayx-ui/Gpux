@@ -1,12 +1,12 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list-layer-kinds",
-  "revision": 63,
-  "planRevision": 9,
+  "revision": 69,
+  "planRevision": 10,
   "specHashes": {
-    "requirements": "b0511d7e5dc2f81eef30f56a97b85348eb4557516cc4fbd46f4efcda72c9012a",
-    "design": "84012477aed757dfddf8d6bfdc1c2e538c56ac1a2fd4d0027a71528f776ebe9b",
-    "plan": "ac0a086f490cadc4558ab990e0bb25506662cb8fef8462dd230dce6959e300f6"
+    "requirements": "7dd07c3bc333cb4d53c03d1f459a2f2bc63c9c39fbe2c76e94389b8b285e411c",
+    "design": "c44e8ede1354c6cccc34dcf108a2d1da0c10660049fc2c7f7ab0a4da3df5ecef",
+    "plan": "2186bbcc43986902fca1a2f239eaaec204fc318b4c921c300aa53402d7768f0d"
   },
   "tasks": {
     "t01-axis-slots": {
@@ -90,6 +90,12 @@
     },
     "t09b-parent-scenario": {
       "status": "pending"
+    },
+    "t-dt-frames": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
     }
   },
   "validationBatches": {
@@ -182,6 +188,16 @@
         }
       },
       "recordedAt": "2026-10-17T01:47:19Z"
+    },
+    "928ffd84212b6a2416377f4c110c451a45cfb3ae1edc407677f0d470d12169d4": {
+      "snapshot": {
+        "specHash": "597b7d46dcfe129c2ed232fdaa7c468a88af9b1db1bda9dc2d8b628b8da910f6",
+        "repositories": {
+          "gpux": "43663bfb97efa17cdb7bc6f4a27883dfa8b0de3e4dcf016a9437ae77428e09db",
+          "rayx": "f5ad2fafde193145a5fd3c009d58e4fe2f6cdc9b071b96c349500644c55980d7"
+        }
+      },
+      "recordedAt": "2026-10-17T08:00:02Z"
     }
   },
   "checkResults": {
@@ -456,6 +472,23 @@
       "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s06-bench-scenarios-final-2030f141651f.log",
       "logSha256": "bed46ae2b80bb73bfb71466a749d353961cee636d46b9ace5b0bfc68f440b43e",
       "inputsHash": "10d777370e978181066a07ebc39432fd305d42e5b557d4ee049a0ba8c75c404a"
+    },
+    "s06c-datatable-frames/c-dt-frames/final": {
+      "checkId": "c-dt-frames",
+      "boundaryId": "s06c-datatable-frames",
+      "phase": "final",
+      "batchId": "928ffd84212b6a2416377f4c110c451a45cfb3ae1edc407677f0d470d12169d4",
+      "definitionHash": "e299f27243a19f5a93a883fd06678d131659c94a39d9c6945d593d67bbb29dc1",
+      "basisHash": "462a54f212b0bb1715f56bf4cb5097817bfea2029e58eb2d9180ffdc1c4a517d",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 15.1475,
+      "recordedAt": "2026-10-17T08:00:01Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s06c-datatable-frames-final-9bc336920903.log",
+      "logSha256": "128cf3828c9a394e0f19f8215388236ae26dc022bc5ddc78c351083ea34f56ca",
+      "inputsHash": "187560c29cd877f3791638aa90f0d680ea387cfddff78db55b76a43e169ab871"
     }
   },
   "reviews": {
@@ -1017,6 +1050,46 @@
       "summaryMarkdown": "Passed, with no findings.\n\n**Scenarios.** `scroll.rs` adds `scroll-virtual-list`, `-horizontal`, `-sticky` and `-synchronized`, built like `scroll-uniform-list`: 10,000 rows of varying extent, one wheel step a frame turning every 30. The row closure goes through `virtual_list`'s `lists::render_items` wrapper and counts rows in a shared cell exposed by `Fixture::rows_rendered`. The horizontal one uses a self-contained `column()` with x-axis wheels. The sticky one has a top-sticky row every 50. The synchronized one has an `overflow_y_scroll` driver tracking the shared handle beside the list in an `overflow_hidden` container (s03's clip rule), with the wheel over the driver. Expectations follow the existing pattern: frames shown from layers (×2 for the synchronized pair), no bypass, bounded repaints and rendered rows, kept rows, views built, and primitives drawn without layers.\n\n**Attribution and bench.** All four are in `fast_mode_attribution`'s `scenarios!` (`modes_differ_only_by_landed_mechanisms`) and the bench's list. `virtual_lists_render_fewer_rows_on_their_layers` asserts `tiles_composited > 0` and layers' rows × 3 < splice's for each.\n\n**Check coverage.** The `c-attribution` filter (`scroll_virtual_list`) selects neither `virtual_lists_render_fewer_rows_on_their_layers` nor `every_scenario_is_attributed`, so I ran both myself: 2/2 pass. Widening the check's selector would make the runtime record TM-1's row and attribution clauses too. The sprint checks are fresh at revision 61.",
       "findingIds": [],
       "recordedAt": "2026-10-17T01:50:11Z"
+    },
+    "s06c-datatable-frames": {
+      "reviewerId": "reviewer-lk-s06c",
+      "snapshotId": "928ffd84212b6a2416377f4c110c451a45cfb3ae1edc407677f0d470d12169d4",
+      "criterionIds": [
+        "DF-1"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/layout/scroll/scrollable_mask.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DF-1"
+          ],
+          "sha256": "f96f4a79b115881c5745db38dbd0b7aa24f16bd08968bbd2d90cd851ea19789d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DF-1"
+          ],
+          "sha256": "0fa0ce585d758ccab3d4aa84daa3f2947ceb9352671f456a98d78a880cfa6bc1"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_datatable/tests/wheel_frames.rs",
+          "kind": "test",
+          "criterionIds": [
+            "DF-1"
+          ],
+          "sha256": "d7757841ff1fc5e55c7a136ab19f15bffe51c98a5d2c8328625965e51cc62aad"
+        }
+      ],
+      "summaryMarkdown": "Passed, with no findings. The fix landed in s05, already reviewed: `ScrollableMask` publishes the turn through gpux's `ScrollHandle::publish_wheel_offset`, clamped and as a `Wheel` in its input turn, instead of `request_offset(Programmatic)` plus `cx.notify`. The new RayX group `wheel_frames.rs` names that cause in its doc comment. It turns the wheel 20 times across and 20 times down over a 40×400 DataTable, with fast mode OFF and ALL, with drawing on flush and no manual draw. Each turn must draw exactly one frame through `run_until_parked`, so a deferred frame left by a turn is drawn and counted in that turn's run. The recorded red run with the old handler fails both tests at 'across, turn 0: a wheel turn drew 2 frames' (dt-frames-red.log). The sprint check is fresh at revision 67.",
+      "findingIds": [],
+      "recordedAt": "2026-10-17T08:00:49Z"
     }
   },
   "checkpoints": {
@@ -1082,6 +1155,15 @@
       },
       "reviewHash": "3c22eb76a0d3a85b9d5be507b9b71b030b6ea275692b61c3ef62f94684a449f1",
       "recordedAt": "2026-10-17T01:50:28Z"
+    },
+    "s06c-datatable-frames": {
+      "snapshotId": "928ffd84212b6a2416377f4c110c451a45cfb3ae1edc407677f0d470d12169d4",
+      "commits": {
+        "gpux": "205b316144e1dfdec2ea421685b1d213cc0a11e1",
+        "rayx": "f4c29c7d5f46485f6bd7574e11fdebf9d6d017e9"
+      },
+      "reviewHash": "05813eac86dcd43149d012124c60e762a5cc7e9740fe965a0bf1ce7234338ee3",
+      "recordedAt": "2026-10-17T08:01:09Z"
     }
   },
   "findings": [
@@ -1263,7 +1345,7 @@
       "boundaryId": "s05-rayx-kinds"
     }
   ],
-  "handoffMarkdown": "Four TM-1 scenarios in fast/scenarios/scroll.rs (scroll-virtual-list, -horizontal, -sticky, -synchronized; 10,000 rows of varying size, the synchronized list clipped beside a driver div), listed in fast_mode_attribution and the fast_mode bench. Fixture::rows_rendered counts the row closure's rows; virtual_lists_render_fewer_rows_on_their_layers compares splice with layers.",
+  "handoffMarkdown": "RayX group rayx_components_datatable/tests/wheel_frames.rs (2): 20 turns across and 20 down a DataTable, fast mode off and ALL, each drawing exactly one frame with drawing on flush; doc names the cause (ScrollableMask's request_offset(Programmatic) plus cx.notify). Red with the mask at ddaba825 restored for the run (both modes: 'a wheel turn drew 2 frames'; log artifacts-temp/agentx/gpux-virtual-list-layer-kinds/dt-frames-red.log); the fix is RayX 5b839689 / gpux a4131c8.",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",

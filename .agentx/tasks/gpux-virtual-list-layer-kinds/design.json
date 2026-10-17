@@ -336,6 +336,19 @@
           "path": "crates/gpui/src/fast/layers/reuse.rs"
         }
       ]
+    },
+    {
+      "id": "d-datatable-frames",
+      "requirementIds": [
+        "DF"
+      ],
+      "descriptionMarkdown": "**Fix.** The mask over a DataTable publishes a wheel turn as the scroll container's own wheel listener does: clamped, as a `Wheel`, notifying the owner and the handle's dependents once in the input turn (gpux `ScrollHandle::publish_wheel_offset`). Made in s05 (RayX 5b839689) because the DataTable's rows could not composite without it; this sprint proves it on its own.\n\n**Proof.** The group counts the frames drawn after each turn with drawing on flush, so a frame a turn leaves pending is drawn and counted; it is shown red by restoring the old handler (`request_offset(Programmatic)` plus `cx.notify`) for the run.",
+      "sourceRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/layout/scroll/scrollable_mask.rs"
+        }
+      ]
     }
   ],
   "memoryDecisionsConsidered": [

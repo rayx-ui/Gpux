@@ -165,6 +165,18 @@
           "descriptionMarkdown": "**Merge.** gpux `main`, with the AccessKit epic, is merged into gpux `feat/virtual-list`, and RayX `master`, with its a11y side, into RayX `feat/virtual-list`.\n\n**Model.** `VirtualList`'s and the list layers' uses of DevKit nodes and the fast-mode scenes' `DevtoolsSemantics` move onto the AccessKit model main carries (content a layer holds off screen recorded under the window's a11y nodes; a composited layer replaying its a11y events). Main's DevKit-based record hiding is not ported.\n\n**Proof.** This epic's and `gpux-virtual-list`'s test groups pass afterwards, in gpux and in RayX.\n\n**Start.** Only once the owner says the AccessKit epic is merged."
         }
       ]
+    },
+    {
+      "id": "DF",
+      "title": "A wheel turn over a DataTable draws the frames a scroll needs",
+      "descriptionMarkdown": "The owner decided (2026-10-17), relayed by the coordinating session: \"Fix it\" (DataTable's second frame after each wheel turn, with fast mode off too). Found by t08: a DataTable drew a second frame after every wheel turn, with fast mode off and on.",
+      "criteria": [
+        {
+          "id": "DF-1",
+          "verification": "automated",
+          "descriptionMarkdown": "**Requirement.** One wheel turn over a DataTable, across or down, draws exactly one frame, with fast mode off and with every switch on; no frame follows it once it is drawn.\n\n**Cause.** `ScrollableMask` handled the table's wheel by queueing a programmatic offset (`request_offset`), which the header's scroll container took in at its next prepaint and published with a deferred notification, and by notifying the view itself: the deferred notification drew a second frame. It now publishes the turn as a wheel in its input turn (`ScrollHandle::publish_wheel_offset`, RayX 5b839689, gpux a4131c8).\n\n**Test.** A new RayX group, `crates/rayx_components/rayx_components_datatable/tests/wheel_frames.rs`, naming the cause in its doc comment; it fails with the mask's old handler."
+        }
+      ]
     }
   ]
 }
