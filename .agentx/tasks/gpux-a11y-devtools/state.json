@@ -1,12 +1,12 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-a11y-devtools",
-  "revision": 169,
-  "planRevision": 21,
+  "revision": 174,
+  "planRevision": 22,
   "specHashes": {
-    "requirements": "828bce0b1e3d55e899e87d78d9f8ac18362f50db8456cdca27205f783b5760b3",
+    "requirements": "4709d821a3df7eed3812b759720c5aecac4997eb752de8a495eb938f45c0ad99",
     "design": "e7f5200d01257c5ecb829e0ba83cf7725b091c667adbae7739200e039f685af0",
-    "plan": "dbb9d6bd2c9b94a1517561a822df69aff5a8bcbf117952900ac41c984ab53df9"
+    "plan": "2731e634e169615b70e865780aec8da3bb00afb85e8bec795af040e3236b5cbd"
   },
   "tasks": {
     "t01-baseline": {
@@ -220,10 +220,11 @@
       ]
     },
     "t30-owner-walkthrough": {
-      "status": "in_progress",
+      "status": "blocked",
       "workerIds": [
         "local_a11y_impl"
-      ]
+      ],
+      "blockerMarkdown": "Owner rows remain: VoiceOver in Chrome, on an iOS device, and TalkBack (see docs/measurements/screen-reader-walkthrough.md)."
     },
     "t01b-accesskit-025": {
       "status": "done",
@@ -275,6 +276,12 @@
     },
     "t32-voiceover-web": {
       "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
+    },
+    "t33-ci-repairs": {
+      "status": "implemented",
       "workerIds": [
         "local_a11y_impl"
       ]
@@ -430,6 +437,16 @@
         }
       },
       "recordedAt": "2026-10-17T01:20:23Z"
+    },
+    "5aa3b008231806b2b0f965b27e49ad65db229debe1aaf2a82887914820294fc1": {
+      "snapshot": {
+        "specHash": "404109d6a2c0795386dda42dc4f9891c55040c8e3d1156e6ffcd50ccf2112614",
+        "repositories": {
+          "gpux": "bbf09a56a195aaedad6c9dfd7a3aa4eeea24d119a828b6ca51d9f95d10184876",
+          "rayx": "8cfb3352ceb22853b42bd54b9eddbe1ec1b13e7425417a72efe39dcedc88bc2e"
+        }
+      },
+      "recordedAt": "2026-10-17T01:55:51Z"
     }
   },
   "checkResults": {
@@ -1630,6 +1647,40 @@
       "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s10a-voiceover-fixes-final-e7d031b40c53.log",
       "logSha256": "3748d43f3a3468ac9a3ed43e1a868f892e09abb1a28bfd00eb3aee08bf7a30da",
       "inputsHash": "dff0a04f6dad8fdc2a6944a1281c27061112c8c0e33f6259ffeac04913ea079d"
+    },
+    "s10b-ci-repairs/check-verify-mode-text/final": {
+      "checkId": "check-verify-mode-text",
+      "boundaryId": "s10b-ci-repairs",
+      "phase": "final",
+      "batchId": "5aa3b008231806b2b0f965b27e49ad65db229debe1aaf2a82887914820294fc1",
+      "definitionHash": "8066c9afffb8787b7c054fc2c1de738bbf288b1fb7070287d4fa4e669a7e52cb",
+      "basisHash": "8edd6884e4a8b1eb521281ad2eeb66100077e52e4a3e0fe48ee4e5d8607da73f",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 0.5558,
+      "recordedAt": "2026-10-17T01:54:11Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s10b-ci-repairs-final-9724280f3db4.log",
+      "logSha256": "b5669bc9f97b69329f50661cb76869fe11ba3a1a93f6ac0dc2fd580d444ed1e4",
+      "inputsHash": "e69ce587773cb4459d1839cd05509929c9498eb136d51668227cafa6e32f3518"
+    },
+    "s10b-ci-repairs/check-web-composition-exits/final": {
+      "checkId": "check-web-composition-exits",
+      "boundaryId": "s10b-ci-repairs",
+      "phase": "final",
+      "batchId": "5aa3b008231806b2b0f965b27e49ad65db229debe1aaf2a82887914820294fc1",
+      "definitionHash": "8abd55a5006a3fdbbd26f395f0131aae274cc2bff2b01f850d7a267e1995803c",
+      "basisHash": "0bc8c86b0a06892973c1e3b597918ea80cc6c05fb3728d0cfc10915d9512f9bb",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 98.6532,
+      "recordedAt": "2026-10-17T01:55:50Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s10b-ci-repairs-final-892e4ce8384e.log",
+      "logSha256": "16fe8c1f6dadb07c6de65ee211ee9afc67282c7a9c8f5edd08b6f3c0243f5421",
+      "inputsHash": "4005de9241bcc0008e7f20895cae9f2b9d6498174187123ab777adb61022daf2"
     }
   },
   "reviews": {
@@ -5082,7 +5133,7 @@
       ]
     }
   ],
-  "handoffMarkdown": "IME textarea right after its field, hidden standing for none, unchanged attributes left alone, spin button value text (e521be1); specs screen-reader: navigation ... and tree a spin button (fa3e98b); Safari VoiceOver walk now reaches the whole scene (b4be969).",
+  "handoffMarkdown": "Verifier tells views by accessibility events and sprite tiles (680f662); web-composition exits status own id (81d3b88). Reproduced with --features diagnostics; gpux tests pass with and without diagnostics.",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",

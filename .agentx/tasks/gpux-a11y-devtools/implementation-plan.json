@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-a11y-devtools",
-  "revision": 21,
+  "revision": 22,
   "title": "gpux accessibility-first: AccessKit as the one semantic tree for screen readers on every platform, gpux-devtools and its MCP, RayX on both",
   "validationMode": "sprint",
   "repositories": [
@@ -2620,6 +2620,76 @@
         "Cargo.toml",
         "Cargo.lock"
       ]
+    },
+    {
+      "id": "check-verify-mode-text",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "REM-4"
+      ],
+      "descriptionMarkdown": "The retention verifier's groups with the `diagnostics` feature, which the workspace's test run enables: `fast::tests::verify_mode` (a view reading untracked state is named, verify mode does not change the presented frame) and `fast::tests::a11y_describe::verification`.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--lib",
+        "--features",
+        "diagnostics",
+        "--",
+        "fast::tests::verify_mode",
+        "fast::tests::a11y_describe::verification"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-web-composition-exits",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "REM-4"
+      ],
+      "descriptionMarkdown": "The lane B specs the scene's duplicate status id broke: `pointer.spec.ts` `the hidden input mirror leaves the corner it sits in to the canvas` and `composition.spec.ts` `moving between the canvas and the popover stays inside the window`.",
+      "argv": [
+        "bash",
+        "-c",
+        "PATH=/opt/homebrew/opt/node@22/bin:$PATH cargo run -p gpux-testkit -- lane b --grep \"hidden input mirror leaves the corner|moving between the canvas and the popover\""
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tooling/**",
+        "tools-node/specs/**",
+        "tools-node/fixtures/**",
+        "tools-node/playwright.config.ts",
+        "tools-node/package.json",
+        "vendor/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
     }
   ],
   "finalCheckIds": [
@@ -4316,10 +4386,52 @@
       ]
     },
     {
+      "id": "s10b-ci-repairs",
+      "title": "Repair what the first CI run found",
+      "dependsOn": [
+        "s10a-voiceover-fixes"
+      ],
+      "memoryScopes": [
+        "gpui/frame-pipeline"
+      ],
+      "tasks": [
+        {
+          "id": "t33-ci-repairs",
+          "title": "The retention verifier's text and the composition scene's ids",
+          "descriptionMarkdown": "The retention verifier tells a retained view by its accessibility events and sprite tiles (`fast/verify.rs` `describe_view`, `A11yEvent::describe`) and reports a differing view without a frame-wide difference; the verify-mode tests build the tree in both windows. The `web-composition` scene's second status gets its own id.",
+          "criterionIds": [
+            "REM-4"
+          ],
+          "designIds": [
+            "d-remove-devtools"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-verify-mode-text",
+            "check-web-composition-exits"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/verify.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window/a11y.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/examples/web_host/web_scenes.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "s11-owner-screen-readers",
       "title": "Owner-run: real screen readers on the web, iOS and Android",
       "dependsOn": [
-        "s10a-voiceover-fixes"
+        "s10b-ci-repairs"
       ],
       "memoryScopes": [
         "platform/web",

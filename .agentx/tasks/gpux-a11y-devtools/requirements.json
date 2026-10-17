@@ -333,6 +333,11 @@
           "id": "REM-3",
           "verification": "manual",
           "descriptionMarkdown": "The gpux skill's upstream-import checklist (`.claude/skills/gpux/references/update-from-zed-gpui-closure.md`) describes the accessibility patch surface (activation sources, text leaves, inspection containers and id map, relations, fast-mode carry) instead of devtools snapshots; `docs/fast-mode.md` (its \"The `devtools` feature\" section included), `README.md` and `LINUX-WSL.md` describe the accessibility carry and gpux-devtools; `crates/gpui/Cargo.toml` drops the `rayx_diagnostics` alias (RayX does not enable it on gpux); and the memory sync updates the frame-pipeline, positioning-scroll, gpui and web rules that name DevKit nodes or the `devtools` feature. Verified by review."
+        },
+        {
+          "id": "REM-4",
+          "verification": "automated",
+          "descriptionMarkdown": "Repair of a regression the first complete CI run found (2026-10-17, test job on all three platforms; main passes it): with the DevKit node records gone, the retention verifier no longer told a retained view by its text, so a view showing stale text differed only at window level or not at all. A view's description now holds the accessibility events it recorded (its nodes and text leaves) and its sprites' atlas tiles (which one window's frames share), and a view that differs is reported even when the frame-wide description does not. The same run's lane B failures (`pointer.spec.ts` and `composition.spec.ts`, \"exits 0\") came from two sibling `status()` elements with one id in the `web-composition` scene, whose AccessKit nodes collapsed into one; the scene gives the second its own id. Proved by `fast::tests::verify_mode` and `fast::tests::a11y_describe::verification` with the `diagnostics` feature, and the two lane B specs."
         }
       ]
     }
