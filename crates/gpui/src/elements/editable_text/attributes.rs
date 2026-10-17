@@ -231,13 +231,44 @@ pub struct AttributeSpans {
 
 impl AttributeSpans {
     /// Builds a normalized set from arbitrary spans; later spans win where they overlap.
+    /// Spans already in order without overlaps (what the HTML parser and snapshots produce)
+    /// take one linear pass.
     pub fn from_spans(spans: impl IntoIterator<Item = AttributeSpan>, len: usize) -> Self {
+        let spans: Vec<AttributeSpan> = spans
+            .into_iter()
+            .map(|span| AttributeSpan {
+                range: span.range.start.min(len)..span.range.end.min(len),
+                attributes: span.attributes,
+            })
+            .collect();
+        if spans
+            .windows(2)
+            .all(|pair| pair[0].range.end <= pair[1].range.start)
+        {
+            let mut set = Self { spans };
+            set.normalize();
+            return set;
+        }
         let mut set = Self::default();
         for span in spans {
-            let range = span.range.start.min(len)..span.range.end.min(len);
-            set.assign(range, span.attributes);
+            set.assign(span.range, span.attributes);
         }
         set
+    }
+
+    /// Replaces the attributes of `range` with `spans`, which are relative to its start, in one
+    /// pass.
+    pub fn replace_range(&mut self, range: Range<usize>, spans: AttributeSpans) {
+        self.cut(range.clone());
+        let index = self
+            .spans
+            .partition_point(|span| span.range.end <= range.start);
+        let inserted = spans.spans.into_iter().map(|span| AttributeSpan {
+            range: range.start + span.range.start..range.start + span.range.end,
+            attributes: span.attributes,
+        });
+        self.spans.splice(index..index, inserted);
+        self.normalize();
     }
 
     /// The spans, in order.

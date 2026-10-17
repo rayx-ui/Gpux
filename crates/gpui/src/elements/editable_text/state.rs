@@ -1368,15 +1368,10 @@ impl EditableTextState {
             EditKind::Other,
             move |state| {
                 let mut formatting = state.formatting.as_deref().cloned().unwrap_or_default();
-                formatting
-                    .spans
-                    .assign(start..start + len, Arc::new(TextAttributes::default()));
-                for span in spans {
-                    formatting.spans.assign(
-                        start + span.range.start..start + span.range.end,
-                        span.attributes,
-                    );
-                }
+                formatting.spans.replace_range(
+                    start..start + len,
+                    super::AttributeSpans::from_spans(spans, len),
+                );
                 let count = state.snapshot().line_count();
                 for (index, format) in paragraphs.into_iter().enumerate() {
                     let paragraph = landing.y + index;

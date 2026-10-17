@@ -34,6 +34,19 @@ pub const MAX_HTML_LEN: usize = 4 * 1024 * 1024;
 /// Heading sizes `h1` to `h6`, as multiples of the base size.
 const HEADING_SCALES: [f32; 6] = [2., 1.5, 1.17, 1., 0.83, 0.67];
 
+/// The largest length a pasted style sets, either way: indents, spacing, letter spacing and
+/// baseline shift.
+const MAX_LENGTH: f32 = 1000.;
+/// The largest pasted font size, in pixels.
+const MAX_FONT_SIZE: f32 = 1000.;
+/// The largest pasted line-height multiplier.
+const MAX_LINE_HEIGHT: f32 = 10.;
+/// The largest pasted `ol start`.
+const MAX_LIST_START: u32 = 1_000_000;
+/// How deep pasted elements nest; deeper start tags are ignored, which keeps every per-tag
+/// step bounded.
+const MAX_DEPTH: usize = 256;
+
 /// Serializes `text` as HTML.
 pub fn attributed_text_to_html(text: &AttributedText) -> String {
     let mut html = String::from("<div data-gpux style=\"white-space:pre-wrap\">");
@@ -478,10 +491,12 @@ impl ParseState {
             .unwrap_or_default()
     }
 
+    /// Whether the innermost open element preserves whitespace; each element inherits it from
+    /// its parent, so this never scans the stack.
     fn preserves_whitespace(&self) -> bool {
         self.stack
-            .iter()
-            .any(|element| element.preserves_whitespace)
+            .last()
+            .is_some_and(|element| element.preserves_whitespace)
     }
 
     /// Starts a new paragraph with `format` before the next text, unless the current one is
@@ -545,7 +560,7 @@ impl ParseState {
             }
             _ => {}
         }
-        if self_closing {
+        if self_closing || self.stack.len() >= MAX_DEPTH {
             return None;
         }
         let style = attribute("style").unwrap_or_default();
@@ -596,8 +611,9 @@ impl ParseState {
                     ListTag::Unordered
                 };
                 let start = attribute("start")
-                    .and_then(|start| start.trim().parse().ok())
-                    .unwrap_or(1);
+                    .and_then(|start| start.trim().parse::<u32>().ok())
+                    .unwrap_or(1)
+                    .min(MAX_LIST_START);
                 self.lists.push((tag, start));
             }
             "li" => {
@@ -641,7 +657,8 @@ impl ParseState {
         if let Some(tag) = attribute("data-gpux-tag") {
             text_attributes.tag = Some(tag.into());
         }
-        let preserves_whitespace = name == "pre"
+        let preserves_whitespace = self.preserves_whitespace()
+            || name == "pre"
             || style
                 .split(';')
                 .any(|declaration| declaration.replace(' ', "").starts_with("white-space:pre"));
@@ -666,12 +683,16 @@ impl ParseState {
             }
             return;
         }
-        if name == "ul" || name == "ol" {
-            self.lists.pop();
-        }
         let Some(index) = self.stack.iter().rposition(|element| element.name == name) else {
             return;
         };
+        // Every list the end tag closes, even one left unclosed inside it.
+        let closed_lists = self.stack[index..]
+            .iter()
+            .filter(|element| matches!(element.name.as_str(), "ul" | "ol"))
+            .count();
+        self.lists
+            .truncate(self.lists.len().saturating_sub(closed_lists));
         // An empty paragraph element is still a paragraph.
         if self.pending_break && self.pending_owner == Some(index) {
             self.start_paragraph();
@@ -719,7 +740,9 @@ impl ParseState {
                 "margin-top" => format.space_before = length(&value, self.base_font_size),
                 "margin-bottom" => format.space_after = length(&value, self.base_font_size),
                 "line-height" => {
-                    format.line_height = value.trim().parse::<f32>().ok().filter(|m| *m > 0.)
+                    format.line_height = finite(value.trim())
+                        .filter(|multiplier| *multiplier > 0.)
+                        .map(|multiplier| multiplier.min(MAX_LINE_HEIGHT))
                 }
                 "letter-spacing" => {
                     format.letter_spacing = Some(length(&value, self.base_font_size))
@@ -836,7 +859,7 @@ fn apply_span_style(attributes: &mut TextAttributes, style: &str, base: Pixels) 
                 attributes.font_weight = match lower.as_str() {
                     "bold" | "bolder" => Some(FontWeight::BOLD),
                     "normal" | "lighter" => Some(FontWeight::NORMAL),
-                    number => number.parse::<f32>().ok().map(FontWeight),
+                    number => finite(number).map(|weight| FontWeight(weight.clamp(1., 1000.))),
                 }
             }
             "font-style" => {
@@ -919,20 +942,34 @@ fn first_family(value: &str) -> String {
     css_family(value.split(',').next().unwrap_or_default().trim())
 }
 
-/// A CSS length in pixels: `px`, `pt`, `em` or `rem` (of `base`), or a bare number of pixels.
+/// A finite number; `inf`, `infinity` and `NaN`, which Rust's float parser accepts, are not.
+fn finite(value: &str) -> Option<f32> {
+    value
+        .parse::<f32>()
+        .ok()
+        .filter(|number| number.is_finite())
+}
+
+/// A CSS length in pixels: `px`, `pt`, `em` or `rem` (of `base`), or a bare number of pixels;
+/// within [`MAX_LENGTH`] either way, and zero when it is not a finite number.
 fn length(value: &str, base: Pixels) -> Pixels {
     let value = value.trim();
-    let number = |suffix: &str| value.strip_suffix(suffix)?.trim().parse::<f32>().ok();
-    if let Some(pixels) = number("px") {
-        px(pixels)
+    let number = |suffix: &str| finite(value.strip_suffix(suffix)?.trim());
+    let pixels = if let Some(pixels) = number("px") {
+        pixels
     } else if let Some(points) = number("pt") {
-        px(points * 4. / 3.)
+        points * 4. / 3.
     } else if let Some(rems) = number("rem") {
-        base * rems
+        f32::from(base) * rems
     } else if let Some(ems) = number("em") {
-        base * ems
+        f32::from(base) * ems
     } else {
-        px(value.parse::<f32>().unwrap_or(0.))
+        finite(value).unwrap_or(0.)
+    };
+    if pixels.is_finite() {
+        px(pixels.clamp(-MAX_LENGTH, MAX_LENGTH))
+    } else {
+        px(0.)
     }
 }
 
@@ -945,13 +982,14 @@ fn font_size(value: &str, base: Pixels) -> Option<Pixels> {
         "large" => 1.125,
         "x-large" => 1.5,
         "xx-large" => 2.,
-        value if value.ends_with('%') => value.trim_end_matches('%').parse::<f32>().ok()? / 100.,
+        value if value.ends_with('%') => finite(value.trim_end_matches('%'))? / 100.,
         value => {
             let size = length(value, base);
-            return (size > px(0.)).then_some(size);
+            return (size > px(0.)).then(|| size.min(px(MAX_FONT_SIZE)));
         }
     };
-    Some(base * scale)
+    let size = f32::from(base) * scale;
+    (size.is_finite() && size > 0.).then(|| px(size.min(MAX_FONT_SIZE)))
 }
 
 fn parse_color(value: &str) -> Option<Color> {
@@ -997,7 +1035,8 @@ fn parse_color(value: &str) -> Option<Color> {
         let parts: Vec<f32> = arguments
             .split([',', ' ', '/'])
             .filter(|part| !part.is_empty())
-            .filter_map(|part| part.trim().parse().ok())
+            .filter_map(|part| finite(part.trim()))
+            .map(|channel| channel.clamp(0., 255.))
             .collect();
         return match parts.as_slice() {
             [r, g, b] => Some(rgba(*r, *g, *b, 1.)),

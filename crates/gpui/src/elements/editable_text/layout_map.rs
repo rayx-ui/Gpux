@@ -381,7 +381,7 @@ impl TextLayoutMap {
             };
             let count = match &mut counters[level] {
                 Some((counted, _, count)) if *counted == kind => {
-                    *count += 1;
+                    *count = count.saturating_add(1);
                     *count
                 }
                 slot => {
@@ -392,7 +392,9 @@ impl TextLayoutMap {
             let first = counters[level].map_or(start, |(_, first, _)| first);
             let (text, checkbox) = match &item.kind {
                 TextListKind::Bullet => (bullet_marker(level), None),
-                TextListKind::Numbered { .. } => (number_marker(level, first + count), None),
+                TextListKind::Numbered { .. } => {
+                    (number_marker(level, first.saturating_add(count)), None)
+                }
                 TextListKind::Checkbox { checked } => (SharedString::default(), Some(*checked)),
                 TextListKind::Custom(text) => (text.clone(), None),
             };
@@ -1667,6 +1669,8 @@ fn number_marker(level: usize, number: u32) -> SharedString {
             }
             label
         }
+        // Roman numerals stop at 3999; larger numbers stay decimal, which bounds the label.
+        _ if number > 3999 => number.to_string(),
         _ => {
             let mut number = number.max(1);
             let mut label = String::new();
