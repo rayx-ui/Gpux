@@ -4,7 +4,7 @@ agentx:
   scope: decisions
   status: current
   created: 2026-10-05T23:00:00+02:00
-  updated: 2026-10-14T12:00:00+02:00
+  updated: 2026-10-17T12:00:00+02:00
   topics:
     - decisions
     - gpux
@@ -19,6 +19,7 @@ Durable architecture choices for gpux. Current source remains the first evidence
 ## Domains
 
 - gpui
+  - [AccessKit is gpux's one semantic tree, built on demand](gpui/accessibility/2026-10-17-gpui-accessibility-accesskit-one-tree.md)
   - [Use registry Taffy 0.14.0 for gpux layout](gpui/layout-style/2026-08-30-gpui-layout-style-registry-taffy-0-14.md)
   - [Vendor Taffy with two inline child slots](gpui/layout-style/2026-08-30-gpui-layout-style-taffy-inline-children.md) (superseded)
   - [Reuse pre-resolution styles unless sticky publication can change them](gpui/layout-style/2026-08-31-gpui-layout-style-conditional-prepaint-style-recompute.md)
