@@ -1,12 +1,12 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-a11y-devtools",
-  "revision": 185,
-  "planRevision": 23,
+  "revision": 186,
+  "planRevision": 24,
   "specHashes": {
     "requirements": "a54f54ef7a962136f1f0acf82890acc4ed05220e8fcfd89dfbf37c76731ece4d",
-    "design": "29c8317e8f28ccdb5be1543a4566003c6c4a88da4834b0447f42d4561b4fa1f8",
-    "plan": "1cb021f4e48bfdb4e51c965f6334deb50fc32897a33eab2b11e73defd1cde47e"
+    "design": "ae1ba9ea6f1379290972a50d3da68e829005a13031a2b759687244a0934e2feb",
+    "plan": "5c2abe8376885b5d0d7ba740a753367ef2afec6647f694b12d5501a3b878de5f"
   },
   "tasks": {
     "t01-baseline": {

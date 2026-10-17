@@ -1298,6 +1298,10 @@
     {
       "repositoryId": "rayx",
       "path": ".agentx/memory/decisions/ui/virtualization/2026-08-21-ui-virtualization-datatable-thumb-rate.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-16-repository-validation-test-tooling-layout.md"
     }
   ]
 }

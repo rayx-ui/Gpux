@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-a11y-devtools",
-  "revision": 23,
+  "revision": 24,
   "title": "gpux accessibility-first: AccessKit as the one semantic tree for screen readers on every platform, gpux-devtools and its MCP, RayX on both",
   "validationMode": "sprint",
   "repositories": [
@@ -213,7 +213,7 @@
       "criterionIds": [
         "ACT-4"
       ],
-      "descriptionMarkdown": "New spec `tools-node/specs/accessibility.spec.ts` (titles `accessibility: ...`): no tree before inspection, a non-empty tree with the scene's button after it, read through the web host bridge.",
+      "descriptionMarkdown": "New spec `tools/browser/specs/accessibility.spec.ts` (titles `accessibility: ...`): no tree before inspection, a non-empty tree with the scene's button after it, read through the web host bridge.",
       "argv": [
         "bash",
         "-c",
@@ -446,12 +446,12 @@
       "criterionIds": [
         "FAST-3"
       ],
-      "descriptionMarkdown": "New group `crates/gpux_conformance/tests/lane_c_a11y_layers.rs`: a scrolled div and list composited with accessibility on, the tree (bounds stepped, hidden rows absent) equal to the reference window's frame by frame.",
+      "descriptionMarkdown": "New group `crates/gpux_tests_conformance/tests/lane_c_a11y_layers.rs`: a scrolled div and list composited with accessibility on, the tree (bounds stepped, hidden rows absent) equal to the reference window's frame by frame.",
       "argv": [
         "cargo",
         "test",
         "-p",
-        "gpux-conformance",
+        "gpux-tests-conformance",
         "--test",
         "lane_c_a11y_layers"
       ],
@@ -472,7 +472,7 @@
         "crates/gpui_platform/**",
         "Cargo.toml",
         "Cargo.lock",
-        "crates/gpux_conformance/**",
+        "crates/gpux_tests_conformance/**",
         "crates/gpui_wgpu/**",
         "crates/gpui_apple/**",
         "crates/gpui_macos/**",
@@ -557,12 +557,12 @@
       "criterionIds": [
         "QRY-3"
       ],
-      "descriptionMarkdown": "New group `crates/gpux_conformance/tests/conformance_accessibility.rs`: the test host and `app_host` resolve scene queries through the AccessKit tree, `Area::Accessibility` scenes, the status helper.",
+      "descriptionMarkdown": "New group `crates/gpux_tests_conformance/tests/conformance_accessibility.rs`: the test host and `app_host` resolve scene queries through the AccessKit tree, `Area::Accessibility` scenes, the status helper.",
       "argv": [
         "cargo",
         "test",
         "-p",
-        "gpux-conformance",
+        "gpux-tests-conformance",
         "--test",
         "conformance_accessibility"
       ],
@@ -583,7 +583,7 @@
         "crates/gpui_platform/**",
         "Cargo.toml",
         "Cargo.lock",
-        "crates/gpux_conformance/**",
+        "crates/gpux_tests_conformance/**",
         "crates/gpui_wgpu/**",
         "crates/gpui_apple/**",
         "crates/gpui_macos/**",
@@ -872,11 +872,11 @@
       "reuse": false,
       "inputs": [
         "crates/**",
-        "tooling/**",
-        "tools-node/specs/**",
-        "tools-node/fixtures/**",
-        "tools-node/playwright.config.ts",
-        "tools-node/package.json",
+        "tools/**",
+        "tools/browser/specs/**",
+        "tools/browser/fixtures/**",
+        "tools/browser/playwright.config.ts",
+        "tools/browser/package.json",
         "vendor/**",
         "Cargo.toml",
         "Cargo.lock"
@@ -889,7 +889,7 @@
       "criterionIds": [
         "DEV-6"
       ],
-      "descriptionMarkdown": "New spec `tools-node/specs/devtools.spec.ts` (titles `devtools: ...`): the spec's WebSocket server, the `gpux_devtools` parameter, `hello`, a snapshot and a click's effect in the threaded WASM host.",
+      "descriptionMarkdown": "New spec `tools/browser/specs/devtools.spec.ts` (titles `devtools: ...`): the spec's WebSocket server, the `gpux_devtools` parameter, `hello`, a snapshot and a click's effect in the threaded WASM host.",
       "argv": [
         "bash",
         "-c",
@@ -903,11 +903,11 @@
       "reuse": false,
       "inputs": [
         "crates/**",
-        "tooling/**",
-        "tools-node/specs/**",
-        "tools-node/fixtures/**",
-        "tools-node/playwright.config.ts",
-        "tools-node/package.json",
+        "tools/**",
+        "tools/browser/specs/**",
+        "tools/browser/fixtures/**",
+        "tools/browser/playwright.config.ts",
+        "tools/browser/package.json",
         "vendor/**",
         "Cargo.toml",
         "Cargo.lock"
@@ -940,11 +940,11 @@
       "reuse": false,
       "inputs": [
         "crates/**",
-        "tooling/**",
-        "tools-node/specs/**",
-        "tools-node/fixtures/**",
-        "tools-node/playwright.config.ts",
-        "tools-node/package.json",
+        "tools/**",
+        "tools/browser/specs/**",
+        "tools/browser/fixtures/**",
+        "tools/browser/playwright.config.ts",
+        "tools/browser/package.json",
         "vendor/**",
         "Cargo.toml",
         "Cargo.lock"
@@ -971,11 +971,11 @@
       "reuse": false,
       "inputs": [
         "crates/**",
-        "tooling/**",
-        "tools-node/specs/**",
-        "tools-node/fixtures/**",
-        "tools-node/playwright.config.ts",
-        "tools-node/package.json",
+        "tools/**",
+        "tools/browser/specs/**",
+        "tools/browser/fixtures/**",
+        "tools/browser/playwright.config.ts",
+        "tools/browser/package.json",
         "vendor/**",
         "Cargo.toml",
         "Cargo.lock"
@@ -1403,7 +1403,7 @@
       "criterionIds": [
         "SR-1"
       ],
-      "descriptionMarkdown": "New spec `tools-node/specs/screen-reader.spec.ts`, titles `screen-reader: tree ...`: Chromium's accessibility tree of the `accessibility` scene (roles, names, states, values, relations, element boxes against the painted controls), its change after an update, generic containers without elements, an `html_element` ordered in by `aria-owns`.",
+      "descriptionMarkdown": "New spec `tools/browser/specs/screen-reader.spec.ts`, titles `screen-reader: tree ...`: Chromium's accessibility tree of the `accessibility` scene (roles, names, states, values, relations, element boxes against the painted controls), its change after an update, generic containers without elements, an `html_element` ordered in by `aria-owns`.",
       "argv": [
         "bash",
         "-c",
@@ -1953,7 +1953,7 @@
         "-p",
         "gpux",
         "-p",
-        "gpux-conformance",
+        "gpux-tests-conformance",
         "-p",
         "gpux-devtools",
         "-p",
@@ -2525,7 +2525,7 @@
       "criterionIds": [
         "SR-8"
       ],
-      "descriptionMarkdown": "New lane D check `screen-reader-macos-voiceover` (`crates/gpux_conformance/examples/desktop_host/screen_reader.rs`): VoiceOver's view of the `accessibility` scene through the window's `accessibilityChildren` gives the table its rows and cell positions, Details its expanded state, Copies its value, Delete a press action while disabled, and Volume a horizontal orientation and a one-step increment.",
+      "descriptionMarkdown": "New lane D check `screen-reader-macos-voiceover` (`crates/gpux_tests_conformance/examples/desktop_host/screen_reader.rs`): VoiceOver's view of the `accessibility` scene through the window's `accessibilityChildren` gives the table its rows and cell positions, Details its expanded state, Copies its value, Delete a press action while disabled, and Volume a horizontal orientation and a one-step increment.",
       "argv": [
         "cargo",
         "run",
@@ -2545,11 +2545,11 @@
       "reuse": false,
       "inputs": [
         "crates/**",
-        "tooling/**",
-        "tools-node/specs/**",
-        "tools-node/fixtures/**",
-        "tools-node/playwright.config.ts",
-        "tools-node/package.json",
+        "tools/**",
+        "tools/browser/specs/**",
+        "tools/browser/fixtures/**",
+        "tools/browser/playwright.config.ts",
+        "tools/browser/package.json",
         "vendor/**",
         "Cargo.toml",
         "Cargo.lock"
@@ -2562,7 +2562,7 @@
       "criterionIds": [
         "SR-9"
       ],
-      "descriptionMarkdown": "New specs in `tools-node/specs/screen-reader.spec.ts`: `screen-reader: navigation ...` (the IME textarea right after its field and leaving the mirror with focus, hidden before activation, unchanged attributes left alone on a focus move) and `screen-reader: tree a spin button gives its number as its value text`.",
+      "descriptionMarkdown": "New specs in `tools/browser/specs/screen-reader.spec.ts`: `screen-reader: navigation ...` (the IME textarea right after its field and leaving the mirror with focus, hidden before activation, unchanged attributes left alone on a focus move) and `screen-reader: tree a spin button gives its number as its value text`.",
       "argv": [
         "bash",
         "-c",
@@ -2576,11 +2576,11 @@
       "reuse": false,
       "inputs": [
         "crates/**",
-        "tooling/**",
-        "tools-node/specs/**",
-        "tools-node/fixtures/**",
-        "tools-node/playwright.config.ts",
-        "tools-node/package.json",
+        "tools/**",
+        "tools/browser/specs/**",
+        "tools/browser/fixtures/**",
+        "tools/browser/playwright.config.ts",
+        "tools/browser/package.json",
         "vendor/**",
         "Cargo.toml",
         "Cargo.lock"
@@ -2681,11 +2681,11 @@
       "reuse": false,
       "inputs": [
         "crates/**",
-        "tooling/**",
-        "tools-node/specs/**",
-        "tools-node/fixtures/**",
-        "tools-node/playwright.config.ts",
-        "tools-node/package.json",
+        "tools/**",
+        "tools/browser/specs/**",
+        "tools/browser/fixtures/**",
+        "tools/browser/playwright.config.ts",
+        "tools/browser/package.json",
         "vendor/**",
         "Cargo.toml",
         "Cargo.lock"
@@ -2735,11 +2735,11 @@
       "criterionIds": [
         "PERF-3"
       ],
-      "descriptionMarkdown": "`benchmark/tools/hidden-window.sh` on macOS: a run covered after its first frame ends with status 2 and the reason, and a run opened while the screens are covered does not wait.",
+      "descriptionMarkdown": "`crates/gpux_tests_benchmark/tools/hidden-window.sh` on macOS: a run covered after its first frame ends with status 2 and the reason, and a run opened while the screens are covered does not wait.",
       "argv": [
         "bash",
         "-c",
-        "cd benchmark && cargo build --release --bin gpux-bench && caffeinate -d -u -i tools/hidden-window.sh"
+        "cd crates/gpux_tests_benchmark && cargo build --release --bin gpux-bench && caffeinate -d -u -i tools/hidden-window.sh"
       ],
       "expected": {
         "exitCode": 0,
@@ -2748,9 +2748,9 @@
       },
       "reuse": false,
       "inputs": [
-        "benchmark/src/**",
-        "benchmark/tools/**",
-        "benchmark/Cargo.toml",
+        "crates/gpux_tests_benchmark/src/**",
+        "crates/gpux_tests_benchmark/tools/**",
+        "crates/gpux_tests_benchmark/Cargo.toml",
         "crates/**",
         "Cargo.toml",
         "Cargo.lock"
