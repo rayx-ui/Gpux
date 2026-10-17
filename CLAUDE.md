@@ -28,6 +28,14 @@ renamed and only library targets kept; change nothing else there. The upstream r
 tracked in [docs/upstream/wgpu-dx12-swapchain-scaling.md](docs/upstream/wgpu-dx12-swapchain-scaling.md);
 when a wgpu release ships it, delete the fork and return to crates.io `wgpu`.
 
+## The accesskit_macos Fork
+
+`vendor/accesskit_macos` holds `gpux-accesskit-macos`: upstream `accesskit_macos` 0.27.1 renamed
+with version suffix `-gpux.N`, carrying only the VoiceOver changes listed (and marked `gpux
+fork:`) in [docs/upstream/accesskit-macos-tables-expanded.md](docs/upstream/accesskit-macos-tables-expanded.md);
+its manifest is the published one with the package renamed and only the library kept. When an
+AccessKit release ships those changes, delete the fork and return to crates.io `accesskit_macos`.
+
 ## Validation
 
 Test only what you changed. While iterating, run the touched crate's focused checks and tests:

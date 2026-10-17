@@ -78,6 +78,7 @@ fn main() {
 | `crates/util_macros` | `gpux-zed-util-macros` | `util_macros` | Zed's utility macros |
 | `tooling/perf` | `gpux-perf` | `perf` | Test performance measurement |
 | `tooling/testkit` | `gpux-testkit` | `gpux_testkit` | The `gpux-testkit` test-lane runner |
+| `vendor/accesskit_macos` | `gpux-accesskit-macos` | `accesskit_macos` | Temporary AccessKit macOS adapter fork, see below |
 | `vendor/wgpu/...` | `gpux-wgpu`, `gpux-wgpu-core`, `gpux-wgpu-hal`, `gpux-wgpu-core-deps-*` | `wgpu`, ... | Temporary wgpu fork, see below |
 
 ## Fast mode
@@ -98,6 +99,15 @@ Windows window does not stretch the previous frame
 upstream wgpu ships an equivalent option; gpux then returns to the crates.io `wgpu` release.
 [docs/upstream/wgpu-dx12-swapchain-scaling.md](docs/upstream/wgpu-dx12-swapchain-scaling.md)
 tracks the upstream change.
+
+## The accesskit_macos fork
+
+`vendor/accesskit_macos` contains `gpux-accesskit-macos`, upstream `accesskit_macos` 0.27.1 with
+the changes VoiceOver needs to read a table's rows and cells, an expanded state, a range
+widget's value (and to adjust it by increment) and a disabled control as dimmed. The fork exists
+only until an AccessKit release ships them;
+[docs/upstream/accesskit-macos-tables-expanded.md](docs/upstream/accesskit-macos-tables-expanded.md)
+lists the changes and tracks the upstream change.
 
 ## Maintenance
 
