@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-rich-editable-text",
-  "revision": 98,
+  "revision": 105,
   "planRevision": 11,
   "specHashes": {
     "requirements": "50d839c1826723eb62c9eb677b70faa73af1eafaac66832c9d98e282f767a8fb",
@@ -130,10 +130,16 @@
       ]
     },
     "t21-api-compat": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "3b3dd124"
+      ]
     },
     "t22-docs": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "3b3dd124"
+      ]
     }
   },
   "validationBatches": {
@@ -206,6 +212,16 @@
         }
       },
       "recordedAt": "2026-10-17T03:00:56Z"
+    },
+    "5a54f6b8fb77a5c1815720b9df46b862b281e81aa7a88d448e54140396a731b1": {
+      "snapshot": {
+        "specHash": "fefb38ed0a7029b243688ca3f0bea9916b96f9a50646e79c016cab4c149a3a0f",
+        "repositories": {
+          "gpux": "5b70ad50bede7ced4b3f31d2561ec4a6ba5a822c9e6a33e47789341e9ac3aaf2",
+          "rayx": "ac836fea2dcf0ac23852aceb866565ee69425504bc882f0d58533f5a8053bc89"
+        }
+      },
+      "recordedAt": "2026-10-17T03:08:52Z"
     }
   },
   "checkResults": {
@@ -1041,6 +1057,40 @@
       "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s07-rich-clipboard-final-18831e3005aa.log",
       "logSha256": "d64f969d5057ba7f3818d4394e1bbd90739db53fd13737796a3efd106c5b74f8",
       "inputsHash": "3aa62bbd9f8ff771ace1cdd386b3827441045551277773838d78705f14278f91"
+    },
+    "s08-compat-docs/check-a-api-compat/final": {
+      "checkId": "check-a-api-compat",
+      "boundaryId": "s08-compat-docs",
+      "phase": "final",
+      "batchId": "5a54f6b8fb77a5c1815720b9df46b862b281e81aa7a88d448e54140396a731b1",
+      "definitionHash": "99473443ed915512b0e694de692453f8949fb64e4077bd658bbe86b4e7a4fbfa",
+      "basisHash": "c2d7cc3c6ed6b9b42da8c40c0e429a194d0df09b7c4027862a4492b3b31cdb52",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 8,
+      "durationSeconds": 0.3996,
+      "recordedAt": "2026-10-17T03:08:51Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s08-compat-docs-final-3b55fc66fdb1.log",
+      "logSha256": "0f914a9afd2e8b2a3853b6ee2c370215e7a3ee25a388caf6cbe4ba94cf6e1687",
+      "inputsHash": "6c3fa0ac9d86f3b8de43ca6d8dcaee02784099c15b9bb7a5cf9f52db6657a617"
+    },
+    "s08-compat-docs/check-a-rx-check/final": {
+      "checkId": "check-a-rx-check",
+      "boundaryId": "s08-compat-docs",
+      "phase": "final",
+      "batchId": "5a54f6b8fb77a5c1815720b9df46b862b281e81aa7a88d448e54140396a731b1",
+      "definitionHash": "69e0dd880a03c433c3e2eceb59e124feb21ffd502cc7bcbedf5ac0ab734cca5e",
+      "basisHash": "abec714184f5121ba334893cf04027baf7ca03593c122f5187a2d33404515728",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.6669,
+      "recordedAt": "2026-10-17T03:08:52Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s08-compat-docs-final-21d5da22502b.log",
+      "logSha256": "581170486a09c05802b3b4c1f222862da59fac0722c1305845b45dad252ddda5",
+      "inputsHash": "96d2621190a11c064bd9d3c7b142bae18dd2c60f1285d5fa626e5746743412ec"
     }
   },
   "reviews": {
@@ -2035,6 +2085,105 @@
         "s07-host-doc-comments-misplaced"
       ],
       "recordedAt": "2026-10-17T03:01:57Z"
+    },
+    "s08-compat-docs": {
+      "reviewerId": "reviewer-s08-k7q3vz",
+      "snapshotId": "5a54f6b8fb77a5c1815720b9df46b862b281e81aa7a88d448e54140396a731b1",
+      "criterionIds": [
+        "API-1",
+        "DOC-1"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/state.rs",
+          "kind": "source",
+          "criterionIds": [
+            "API-1",
+            "DOC-1"
+          ],
+          "sha256": "8d19384b5a1f4176201d512142bb49e27b837538ea1e80a8fbfa887ee6590d22"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "API-1"
+          ],
+          "sha256": "1e1ad482aecd6f29054695035d7bdeb4d581bc6a1ef838469257e327e10dd12f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_api_compat.rs",
+          "kind": "test",
+          "criterionIds": [
+            "API-1"
+          ],
+          "sha256": "7c319363e47a1e4f0e2ee26c94230a01d71b87905501ed26c4c12aa9b26791d5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/editable-text.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-1"
+          ],
+          "sha256": "7e22e3aa8dde4b10828947cceaa2b205248018873bdcc61643895bde21c491fa"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/references/update-from-zed-gpui-closure.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-1"
+          ],
+          "sha256": "61a8461fbd45664c24090d93cd6f9285ea03e3c8a10b9031fedad52dd669b4a5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/html.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-1"
+          ],
+          "sha256": "ed4c278934cdb7bb26867fdd69a824235eee04d212a579a08b09d626b975ca9b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "README.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-1"
+          ],
+          "sha256": "d5a998e8569205898c5f19f0e1f762d8705e4ed5a188e90731eb2619d5751488"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/history.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-1"
+          ],
+          "sha256": "c0b1c52c899b070aeedc216e8dd8ae0f0fd8800909beae3ee95b32ecf49fa6b4"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_rich_text_editor/src/state.rs",
+          "kind": "source",
+          "criterionIds": [
+            "API-1"
+          ],
+          "sha256": "67f03819863b17b373777331614b9c1d7a497cc738dc2618a26c35e6236c7cd6"
+        }
+      ],
+      "summaryMarkdown": "API-1: the compat group (8 tests) now covers RayX's constructors and methods, including `set_selection`, `set_mode` and the revision-bound owner style runs with their drop-on-edit meaning; irrefutable `Changed`; `TextLayoutMap` accessors including `visual_row_range`; geometry `bounds`/`revision`/`scroll_offset`/`alignment_offset`; `TextRun{..Default::default()}`; `ClipboardString` literals; and exhaustive `TextAlign`. The paired RayX check passes. DOC-1: `docs/editable-text.md` matches source across attributes, rows, paragraphs, lists, objects, history, snapshots and the HTML clipboard, and it states the policy-neutral boundary. The closure checklist carries the per-run metrics and HTML clipboard rules, and the README links the doc. Both earlier findings are resolved.",
+      "findingIds": [
+        "s08-api-compat-style-runs-gap",
+        "s08-doc-boundary-history-gap"
+      ],
+      "recordedAt": "2026-10-17T03:09:36Z"
     }
   },
   "checkpoints": {
@@ -2555,6 +2704,49 @@
         }
       ],
       "boundaryId": "s07-rich-clipboard"
+    },
+    {
+      "id": "s08-api-compat-style-runs-gap",
+      "boundaryId": "s08-compat-docs",
+      "criterionIds": [
+        "API-1"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Expected:** API-1's own group `crates/gpui/tests/editable_text_api_compat.rs` exercises the editable-text methods and `TextLayoutMap`/geometry accessors RayX actually uses, with the same meaning.\n\n**Observed:** the group omits the owner style-run API that two RayX packages depend on and that this epic's edit path touched: `EditableTextStyleRuns::new`/`EditableTextStyleRun::new`, `EditableTextState::set_style_runs`, `style_runs()` (`.len()`, `.revision()`) — used by `rayx_components_rich_text_editor/src/state.rs:292,438,484` and `rayx_components_code/src/editor/state.rs:252-265,781-784`. RayX's rich editor relies on the meaning \"runs are bound to the buffer revision and dropped on the next edit, then reinstalled\" (`invalidate_style_runs`, `state.rs:2013`); no gpux test asserts that contract at the state level (`text_buffer.rs`/`text_layout_map.rs` only validate the run type; `editable_text_attribute_layout.rs` covers paint layering, not the drop-on-edit meaning). The group also skips `TextLayoutMap::visual_row_range` (`rayx_components_core/.../editable_text_selectable.rs:136`, which with `line_height * row` assumes uniform rows for plain fields) and the geometry accessors `scroll_offset()`, `alignment_offset()` and `revision()` (`editable_text_selectable.rs:126-128`, `rayx_components_code/src/editor/gutter.rs:56`), plus `set_selection(EditableSelection::new(..))` and `set_mode`. The RayX `cargo check` proves only that these compile, not that they keep their meaning.\n\n**Repair:** add to `editable_text_api_compat.rs` (a) a test that installs `EditableTextStyleRuns::new(state.revision(), [EditableTextStyleRun::new(range, HighlightStyle{..})])` via `set_style_runs`, asserts `style_runs().len()`/`revision()`, rejects runs for a stale revision, and asserts an edit drops them (`style_runs()` empty at the new revision) while stored attributes, if any, survive; (b) in the layout-map test, assert `visual_row_range(0)`/`(1)` for `\"one\\ntwo\"` and read `geometry.scroll_offset()`, `alignment_offset()` and `revision()`; (c) exercise `set_selection(EditableSelection::new(a, b))`/`EditableSelection::caret` and `set_mode`. Rerun only `cargo test -p gpux --test editable_text_api_compat`.\n\n**Resolved (rev 104):** `owner_style_runs_stay_bound_to_the_revision` installs runs at the current revision, asserts `len()`/`revision()`, a run set for another revision is refused and the installed runs are kept, and an edit drops the runs (empty at the new revision) while the stored bold span moves from 2..4 to 3..5. `selection_and_mode_setters_keep_their_meaning` uses `set_selection(anchor, head, cx)` (the signature RayX calls in `text_field`/`text_area`/`number_field` state) and `set_mode` ReadOnly/Editable. The layout test asserts geometry `revision()`/`scroll_offset()`/`alignment_offset()` and `visual_row_range` 0..3 / 4..7. 8/8 tests pass and the RayX check passes at this snapshot.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_api_compat.rs",
+          "symbol": "owner_style_runs_stay_bound_to_the_revision"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_api_compat.rs",
+          "symbol": "selection_and_mode_setters_keep_their_meaning"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_api_compat.rs",
+          "symbol": "layout_map_and_geometry_accessors_answer_as_before"
+        }
+      ]
+    },
+    {
+      "id": "s08-doc-boundary-history-gap",
+      "boundaryId": "s08-compat-docs",
+      "criterionIds": [
+        "DOC-1"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Expected (DOC-1):** `docs/editable-text.md` describes the editing model including history, the rich clipboard and its HTML subset, and **the policy-neutral boundary**, accurately against source.\n\n**Observed:** every API name and field the doc cites exists and matches source (`state.rs`, `attributes.rs`, `html.rs`, `element.rs`, `layout_map.rs`, `RunMetrics` in `text_system.rs`, `ClipboardItem::new_string_with_html`/`html()` in `platform.rs`), and the closure-update checklist carries the per-run metrics rule (line 200, incl. merge loops, cache keys, `fast/text.rs` `shapes_as`, every platform shaper, the post-pass and paint) and the HTML clipboard entry (line 202); the README section links the doc. But: (1) the policy-neutral boundary is reduced to one sentence (\"the owner decides what to store and when\"); the doc never states what gpux does not do and consumers keep — formatting toolbars and keyboard shortcuts, documents/block structure, Markdown, collaboration, the consumer's own operation/undo-history services — nor that the layout keeps no gutters, folds, search or diagnostics (text rule; scope Boundaries). (2) History has no section: it is not said that undo/redo restore text and formatting together as whole states, that formatting changes (`EditKind::Format`) and pastes are their own steps while typing/composition coalesce, or how `EditableTextEvent` vs `EditableTextFormatEvent` fire on undo of a format change. (3) The HTML subset omits the recorded heading default (`h1`-`h6` paste as bold paragraphs at 2/1.5/1.17/1/0.83/0.67 x base, `HEADING_SCALES` in `html.rs`), checklists (`data-gpux-checklist`/`data-checked`), and `img`/`br` handling. (4) Minor accuracy: `set_attributes` with an empty range sets typing attributes (state.rs:338-357) and insertion over a selection takes the first replaced character's attributes (`insertion_attributes`), neither stated.\n\n**Repair:** add a \"What stays with the owner\" section listing the consumer-owned policy above and the no-gutters/folds/search/diagnostics rule; add a short \"History\" section covering whole-state undo of text plus formatting, step grouping (typing/composition coalesce; format changes, pastes, list edits, object inserts are single steps) and which events fire; extend the Clipboard section with the heading mapping, checklist markup and `br`/`img` handling; mention the empty-range `set_attributes` and replaced-selection rules under typing attributes. Docs only; no test rerun needed.\n\n**Resolved (rev 104):** the doc now has \"What stays with the owner\" (toolbars/shortcuts, documents, Markdown, collaboration and own undo services, no gutters/folds/search/diagnostics in the layout map), a \"History\" section consistent with `restore_history_state` (formatting-only undo emits `EditableTextFormatEvent` and keeps the revision; text undo emits `EditableTextEvent::Changed`) and `history.rs` grouping (only Typing/Composition coalesce), the heading scales matching `HEADING_SCALES`, `br`/`img alt` and checklist markup matching `html.rs`, and both typing-attribute rules matching `set_attributes`/`insertion_attributes`.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/editable-text.md"
+        }
+      ]
     }
   ],
   "handoffMarkdown": "implemented",
