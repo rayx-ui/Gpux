@@ -295,8 +295,10 @@ impl GlobalElementId {
 
     /// Return the stable AccessKit node identifier derived from this element path.
     ///
-    /// Custom [`Element`] implementations can use this during prepaint to register
-    /// action listeners with [`Window::on_a11y_action`].
+    /// An element that shares its path with another (a sibling with the same element id)
+    /// holds another node id; while drawing an element, [`Window::a11y_node_id`] gives the
+    /// one it holds, which custom [`Element`] implementations pass to
+    /// [`Window::on_a11y_action`].
     pub fn accesskit_node_id(&self) -> accesskit::NodeId {
         accesskit::NodeId(self.hash)
     }
@@ -391,6 +393,9 @@ enum ElementDrawPhase<RequestLayoutState, PrepaintState> {
         node_id: DispatchNodeId,
         global_id: Option<GlobalElementId>,
         inspector_id: Option<InspectorElementId>,
+        /// The id of the accessibility node prepaint pushed for the element, which its paint
+        /// registers handlers on.
+        a11y_node: Option<accesskit::NodeId>,
         bounds: Bounds<Pixels>,
         request_layout: RequestLayoutState,
         prepaint: PrepaintState,
@@ -479,7 +484,7 @@ impl<E: Element> Drawable<E> {
                 }
 
                 let bounds = window.layout_bounds(layout_id);
-                let mut pushed_a11y_node = false;
+                let mut a11y_node = None;
                 if window.a11y.is_active() {
                     if let Some(global_id) = global_id.as_ref() {
                         // While inspecting, an element with an id and no role becomes a
@@ -488,20 +493,18 @@ impl<E: Element> Drawable<E> {
                         let container = role.is_none() && window.a11y.nodes.is_inspecting();
                         let role = role.or(container.then_some(accesskit::Role::GenericContainer));
                         if let Some(role) = role {
-                            let node_id = global_id.accesskit_node_id();
                             let mut node = accesskit::Node::new(role);
                             node.set_bounds(a11y_rect(bounds, window.scale_factor()));
                             self.element.write_a11y_info(&mut node);
-                            pushed_a11y_node = window
-                                .a11y
-                                .push_element(node_id, node, global_id, container, bounds);
-                            if pushed_a11y_node {
+                            a11y_node =
+                                window.a11y.push_element(node, global_id, container, bounds);
+                            if let Some(node_id) = a11y_node {
                                 self.element.queue_a11y_relations(
                                     &mut window.a11y.nodes.relation_queue(node_id),
                                 );
                             }
                             #[cfg(debug_assertions)]
-                            if pushed_a11y_node {
+                            if let Some(node_id) = a11y_node {
                                 // The root view's own element is pushed before its view is.
                                 let view = window
                                     .rendered_entity_stack
@@ -540,20 +543,17 @@ impl<E: Element> Drawable<E> {
                 // their layout bounds; accessibility reports where they paint.
                 let visual_bounds = window.take_visual_bounds(node_id);
                 if let Some(visual_bounds) = visual_bounds
-                    && pushed_a11y_node
-                    && let Some(global_id) = global_id.as_ref()
+                    && let Some(a11y_node) = a11y_node
                 {
                     let scale = window.scale_factor();
-                    window
-                        .a11y
-                        .set_visual_bounds(global_id.accesskit_node_id(), visual_bounds);
+                    window.a11y.set_visual_bounds(a11y_node, visual_bounds);
                     if let Some(node) = window.a11y.nodes.current_node_mut() {
                         node.set_bounds(a11y_rect(visual_bounds, scale));
                     }
                 }
                 window.next_frame.dispatch_tree.pop_node();
 
-                if pushed_a11y_node {
+                if let Some(a11y_node) = a11y_node {
                     if let Some(global_id) = global_id.as_ref() {
                         #[cfg(debug_assertions)]
                         let creator = crate::window::a11y::debug::NodeCreator {
@@ -565,10 +565,8 @@ impl<E: Element> Drawable<E> {
                             element_id: global_id.last().map(|id| format!("{id:?}")),
                             source_location: self.element.source_location(),
                         };
-                        let mut builder = A11ySubtreeBuilder::new(
-                            global_id.accesskit_node_id(),
-                            &mut window.a11y.nodes,
-                        );
+                        let mut builder =
+                            A11ySubtreeBuilder::new(a11y_node, &mut window.a11y.nodes);
                         #[cfg(debug_assertions)]
                         {
                             builder = builder.with_creator(creator);
@@ -576,9 +574,7 @@ impl<E: Element> Drawable<E> {
                         self.element
                             .a11y_synthetic_children(&mut prepaint, &mut builder);
                     }
-                    if let Some(global_id) = global_id.as_ref() {
-                        window.a11y.pop_node(global_id.accesskit_node_id());
-                    }
+                    window.a11y.pop_node(a11y_node);
                 }
 
                 if global_id.is_some() {
@@ -589,6 +585,7 @@ impl<E: Element> Drawable<E> {
                     node_id,
                     global_id,
                     inspector_id,
+                    a11y_node,
                     bounds,
                     request_layout,
                     prepaint,
@@ -608,6 +605,7 @@ impl<E: Element> Drawable<E> {
                 node_id,
                 global_id,
                 inspector_id,
+                a11y_node,
                 bounds,
                 mut request_layout,
                 mut prepaint,
@@ -616,6 +614,14 @@ impl<E: Element> Drawable<E> {
                 if let Some(element_id) = self.element.id() {
                     window.element_id_stack.push(element_id);
                     debug_assert_eq!(&**global_id.as_ref().unwrap(), &*window.element_id_stack);
+                }
+                // The node prepaint pushed names the element's handlers.
+                let painting_node = a11y_node.zip(global_id.as_ref());
+                if let Some((id, global_id)) = painting_node {
+                    window
+                        .a11y
+                        .element_nodes
+                        .push((global_id.accesskit_node_id(), id));
                 }
 
                 window.next_frame.dispatch_tree.set_active_node(node_id);
@@ -628,6 +634,9 @@ impl<E: Element> Drawable<E> {
                     window,
                     cx,
                 );
+                if painting_node.is_some() {
+                    window.a11y.element_nodes.pop();
+                }
 
                 if global_id.is_some() {
                     window.element_id_stack.pop();

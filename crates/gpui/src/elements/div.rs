@@ -3009,7 +3009,7 @@ impl Interactivity {
 
             if window.a11y.is_active() {
                 if let Some(global_id) = global_id {
-                    let node_id = global_id.accesskit_node_id();
+                    let node_id = window.a11y_node_id(global_id);
                     let focused = focus_handle.is_focused(window);
                     window
                         .a11y
@@ -3023,9 +3023,8 @@ impl Interactivity {
         }
         if self.report_active_descendant_focus && window.a11y.is_active() {
             if let Some(global_id) = global_id {
-                window
-                    .a11y
-                    .set_active_descendant(global_id.accesskit_node_id());
+                let node_id = window.a11y_node_id(global_id);
+                window.a11y.set_active_descendant(node_id);
             }
         }
         window.with_optional_element_state::<InteractiveElementState, _>(
@@ -3457,7 +3456,7 @@ impl Interactivity {
                                             if window.a11y.is_active()
                                                 && let Some(global_id) = global_id
                                             {
-                                                let node_id = global_id.accesskit_node_id();
+                                                let node_id = window.a11y_node_id(global_id);
                                                 for (action, listener) in
                                                     self.a11y_action_listeners.drain(..)
                                                 {

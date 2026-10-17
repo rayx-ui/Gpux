@@ -9737,6 +9737,17 @@ impl Window {
         self.a11y.debug_tree_json()
     }
 
+    /// The id of the accessibility node of the element at `path` being drawn: the one the
+    /// path derives ([`GlobalElementId::accesskit_node_id`]), or, for an element that shares
+    /// its path with one drawn before it in the frame, the node id the tree gave it instead.
+    pub fn a11y_node_id(&self, path: &GlobalElementId) -> accesskit::NodeId {
+        let derived = path.accesskit_node_id();
+        match self.a11y.element_nodes.last() {
+            Some(&(top, id)) if top == derived => id,
+            _ => derived,
+        }
+    }
+
     /// Register a listener for an accessibility action on a specific node.
     /// The listener will be called when a screen reader requests the given
     /// action on the node identified by `node_id`.

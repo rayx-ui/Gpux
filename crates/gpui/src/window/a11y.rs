@@ -312,6 +312,10 @@ pub(crate) struct A11y {
     /// How far content replayed now has moved since it recorded its events (a composited
     /// layer's scroll since the last frame).
     pub(crate) replay_offset: Point<Pixels>,
+    /// Beside the builder's open element nodes while prepainting, and around each element
+    /// painted with a node: the node id its path derives and the one it holds, which differ
+    /// for a duplicate (see [`A11yNodeBuilder::element_node_id`]).
+    pub(crate) element_nodes: SmallVec<[(NodeId, NodeId); 16]>,
     /// The containers replay opened that the window is not inspecting: their pushes and pops
     /// are skipped. Beside each replayed open node.
     replay_skipped: Vec<bool>,
@@ -371,6 +375,7 @@ impl A11y {
             replay_offset: Point::default(),
             replay_skipped: Vec::new(),
             replay_scroll_parents: Vec::new(),
+            element_nodes: SmallVec::new(),
             last_container_focus: None,
             id_map: FxHashMap::default(),
             scroll_targets: Vec::new(),
@@ -611,10 +616,27 @@ impl A11y {
         self.current_scroll_target = parent;
     }
 
-    /// Pushes an element's node (see [`A11yNodeBuilder::push_element`]), recording its bounds
-    /// for actions and the scroll container it sits in.
+    /// Pushes the node of the element at `path` (see [`A11yNodeBuilder::push_element`]),
+    /// recording its bounds for actions and the scroll container it sits in. Returns the
+    /// node's id, which differs from the one the path derives for a duplicate (see
+    /// [`A11yNodeBuilder::element_node_id`]), or `None` when the node was not pushed.
     pub(crate) fn push_element(
         &mut self,
+        node: accesskit::Node,
+        path: &GlobalElementId,
+        container: bool,
+        bounds: Bounds<Pixels>,
+    ) -> Option<NodeId> {
+        let derived = path.accesskit_node_id();
+        let id = self.nodes.element_node_id(derived, path);
+        self.open_element(derived, id, node, path, container, bounds)
+            .then_some(id)
+    }
+
+    /// Opens the element node `id`, whose path derives `derived`.
+    fn open_element(
+        &mut self,
+        derived: NodeId,
         id: NodeId,
         node: accesskit::Node,
         path: &GlobalElementId,
@@ -625,6 +647,7 @@ impl A11y {
         if !self.nodes.push_element(id, node, path, container) {
             return false;
         }
+        self.element_nodes.push((derived, id));
         self.open_bounds.push(bounds);
         if !hidden {
             self.node_bounds.insert(id, bounds);
@@ -648,6 +671,7 @@ impl A11y {
 
     /// Pops the node of the element being prepainted.
     pub(crate) fn pop_node(&mut self, _id: NodeId) {
+        self.element_nodes.pop();
         let bounds = self.open_bounds.pop();
         self.nodes.pop(bounds);
     }
@@ -720,7 +744,9 @@ impl A11y {
                     }));
                     let bounds = bounds.map(|bounds| bounds + offset).unwrap_or_default();
                     let path = path.clone().unwrap_or_default();
-                    if !self.push_element(*id, node, &path, *container, bounds) {
+                    // Replayed with the id it held, which the handlers reused with it name.
+                    let derived = path.accesskit_node_id();
+                    if !self.open_element(derived, *id, node, &path, *container, bounds) {
                         // A duplicate: it never opened, so its pop is skipped too. Logged as
                         // it was, for the copy to be as long as what it copied.
                         *self.replay_skipped.last_mut().unwrap() = true;
@@ -1102,6 +1128,7 @@ impl A11y {
         self.focus_ids.clear();
         self.node_bounds.clear();
         self.open_bounds.clear();
+        self.element_nodes.clear();
         self.listeners.clear();
         self.replay_skipped.clear();
         self.replay_scroll_parents.clear();
@@ -1262,6 +1289,9 @@ pub(crate) struct A11yNodeBuilder {
     /// `HashMap<NodeId, Node>` to remove the need for `seen_ids`
     all_nodes: Vec<(NodeId, accesskit::Node)>,
     seen_ids: FxHashSet<NodeId>,
+    /// The node ids a duplicate element path took, already reported (debug builds log each
+    /// once per window).
+    reported_duplicates: FxHashSet<NodeId>,
     /// The node that GPUI considers focused. Note that this may be different to
     /// what is reported to accesskit - see [`Self::active_descendant`]
     focus: Option<NodeId>,
@@ -1441,6 +1471,7 @@ impl A11yNodeBuilder {
             nodes_stack: SmallVec::new(),
             all_nodes: Vec::new(),
             seen_ids: FxHashSet::default(),
+            reported_duplicates: FxHashSet::default(),
             focus: None,
             focus_handle: None,
             active_descendant: None,
@@ -1476,6 +1507,34 @@ impl A11yNodeBuilder {
     /// Whether this frame's tree is built for inspection.
     pub(crate) fn is_inspecting(&self) -> bool {
         self.inspecting
+    }
+
+    /// The node id of an element whose path derives `id`: `id` itself, unless another
+    /// element with the same path (a sibling with the same element id) took it this frame.
+    /// Element state tolerates such duplicates, so the tree gives each one a node of its own:
+    /// the first id derived from `id` and a count that no node holds yet, which stays the
+    /// same across frames while the duplicates keep their order.
+    pub(crate) fn element_node_id(&mut self, id: NodeId, path: &GlobalElementId) -> NodeId {
+        if self.in_hidden() || !self.seen_ids.contains(&id) {
+            return id;
+        }
+        if cfg!(debug_assertions) && self.reported_duplicates.insert(id) {
+            log::warn!(
+                "a11y: more than one element in the frame has the element id path {:?}; \
+                 each gets a node of its own, numbered in draw order, so give siblings \
+                 distinct ids to keep their nodes stable when they reorder",
+                &**path
+            );
+        }
+        (1u64..)
+            .map(|count| {
+                let mut hasher = std::hash::DefaultHasher::default();
+                id.0.hash(&mut hasher);
+                count.hash(&mut hasher);
+                NodeId(hasher.finish())
+            })
+            .find(|candidate| *candidate != ROOT_NODE_ID && !self.seen_ids.contains(candidate))
+            .expect("a free node id")
     }
 
     /// Pushes a node for an element and makes it the parent of what follows, recording
