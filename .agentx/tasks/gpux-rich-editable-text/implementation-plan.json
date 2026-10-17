@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-rich-editable-text",
-  "revision": 6,
+  "revision": 9,
   "title": "Rich text in gpux's EditableText: per-run metrics, stored formatting, variable rows, paragraphs and lists, inline objects, rich clipboard",
   "validationMode": "sprint",
   "repositories": [
@@ -746,7 +746,7 @@
       "criterionIds": [
         "ROW-2"
       ],
-      "descriptionMarkdown": "New group `crates/gpui/tests/editable_text_row_alignment.rs`: per-row alignment offsets for caret, selection, hit testing and IME geometry; proved to fail against the old code before the fix.",
+      "descriptionMarkdown": "New group `crates/gpui/tests/editable_text_row_alignment.rs`: per-row alignment offsets for caret, selection, hit testing and IME geometry; proved to fail against the old code before the fix. The pre-fix run (all 3 tests failing on HEAD f593def with only the test added) is kept at `artifacts-temp/agentx/gpux-rich-editable-text/row-alignment-before-fix.log`; the runtime refuses a recorded baseline once the sprint's first task has started.",
       "argv": [
         "cargo",
         "test",

@@ -1,12 +1,12 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-rich-editable-text",
-  "revision": 34,
-  "planRevision": 6,
+  "revision": 46,
+  "planRevision": 9,
   "specHashes": {
     "requirements": "dd2fb980909e8180a8291227ea08cef4d241a5684340cdb66f70c1b4ca539061",
     "design": "75d1477d98b395c22c8d694b837633e4558521317e37d3e2603988ac152f52f5",
-    "plan": "387827add1481b7738d82aede16bf18bfb428c5b88ef106c483d1b9a10f42ccd"
+    "plan": "463152237f680bb54ce7314a76aedfe8bc9ccb27849627d8e686042bbbbffbd0"
   },
   "tasks": {
     "t01-run-metrics-core": {
@@ -58,10 +58,16 @@
       ]
     },
     "t09-variable-rows": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "3b3dd124"
+      ]
     },
     "t10-row-alignment": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "3b3dd124"
+      ]
     },
     "t11-paragraph-store": {
       "status": "pending"
@@ -120,6 +126,16 @@
         }
       },
       "recordedAt": "2026-10-17T00:36:09Z"
+    },
+    "440abd01415a43d45780ad89105a9179c18d8b8181a6d18b4d5d01f7d5ba9a4f": {
+      "snapshot": {
+        "specHash": "8ec331511b6abfa7b5f2fbb62d9fd9aa987abf3a7addba1d4ad7468ce04683cc",
+        "repositories": {
+          "gpux": "5e905ea2c06efd865c2a0098ba49aed00685aec58acf08418e65d0bbab00e9c8",
+          "rayx": "84d2cf241369243da3a9acff3794e5f471dea1a58363826115976742f944428b"
+        }
+      },
+      "recordedAt": "2026-10-17T01:02:11Z"
     }
   },
   "checkResults": {
@@ -479,6 +495,40 @@
       "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s02-attributes-final-1e5075474144.log",
       "logSha256": "4f7c27c684f2d0eab8e7c47fc9937959c5fcecbf4fd6bb4ebd40ac7494cf5b15",
       "inputsHash": "5b15441f7f2bb9299d4114273c1f1d4835b620997a726656dc522281d9364fc2"
+    },
+    "s03-variable-rows/check-a-variable-rows/final": {
+      "checkId": "check-a-variable-rows",
+      "boundaryId": "s03-variable-rows",
+      "phase": "final",
+      "batchId": "440abd01415a43d45780ad89105a9179c18d8b8181a6d18b4d5d01f7d5ba9a4f",
+      "definitionHash": "90fbc890d8b0344ab556fc2db87d39f17da4342669400b12e46c2797f786876c",
+      "basisHash": "9b32afe8cf5fcb4cafeb876bcfa7057bf0f7b3ced75676094f0e9c358be615a6",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 13,
+      "durationSeconds": 20.2686,
+      "recordedAt": "2026-10-17T01:02:09Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s03-variable-rows-final-acd79dce70af.log",
+      "logSha256": "a85393f633dffb3f58dce0a531c5711d631db30d052528af1608d711e641dd4c",
+      "inputsHash": "27ee75f7298cbcc0a35bea68b602170802ae3e1486d8f9c8079d368172055643"
+    },
+    "s03-variable-rows/check-a-row-alignment/final": {
+      "checkId": "check-a-row-alignment",
+      "boundaryId": "s03-variable-rows",
+      "phase": "final",
+      "batchId": "440abd01415a43d45780ad89105a9179c18d8b8181a6d18b4d5d01f7d5ba9a4f",
+      "definitionHash": "3fdb48b02b52e15304aaf8385d1f425e7383f944399c2bfdb5cc67ec10af105b",
+      "basisHash": "b215658f1f919fe2963d639c40bac9a119b59dfa27fff02268618f43b532a4a7",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 1.5204,
+      "recordedAt": "2026-10-17T01:02:10Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s03-variable-rows-final-cf8de49b7c11.log",
+      "logSha256": "277cd78655ff611fc7865423cf802a061c6702bacb2280d8d931f6bf0d39b2ad",
+      "inputsHash": "27ee75f7298cbcc0a35bea68b602170802ae3e1486d8f9c8079d368172055643"
     }
   },
   "reviews": {
@@ -808,6 +858,90 @@
         "s02-reset-leaks-typing-attributes"
       ],
       "recordedAt": "2026-10-17T00:36:35Z"
+    },
+    "s03-variable-rows": {
+      "reviewerId": "reviewer-s03-v4n8x2",
+      "snapshotId": "440abd01415a43d45780ad89105a9179c18d8b8181a6d18b4d5d01f7d5ba9a4f",
+      "criterionIds": [
+        "ROW-1",
+        "ROW-2"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/layout_map.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ROW-1",
+            "ROW-2"
+          ],
+          "sha256": "4a27bdd96d64bdcf503f2ac59570ea166e49985b4a4f689beb06e2437bc7d11a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/element.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ROW-1",
+            "ROW-2"
+          ],
+          "sha256": "ff326c7da66b44bfca18cf68ac804981c337c676203e0b479e4c1b9e30a05d8b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/geometry.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ROW-1",
+            "ROW-2"
+          ],
+          "sha256": "efd5e2940f0cc3f0e0574454c23f617d363b05b4439e6691adb9f062e6b9ef03"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/state.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ROW-1",
+            "ROW-2"
+          ],
+          "sha256": "219478ab5b4214f8027e131a9720dacbc5861e7db73bb69b7ef413465a173676"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/text_system/line.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ROW-1",
+            "ROW-2"
+          ],
+          "sha256": "05bc42c704495331f29712e867f7d86e363d530d33b9f44984c5dfa8d24132be"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_variable_rows.rs",
+          "kind": "test",
+          "criterionIds": [
+            "ROW-1"
+          ],
+          "sha256": "33f5853be52d984e26937d8f7ad84893a0e6b2b9bbe536a3fbc5a25d2c30fe57"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_row_alignment.rs",
+          "kind": "test",
+          "criterionIds": [
+            "ROW-2"
+          ],
+          "sha256": "1529f09b513e8be867788bea054fa1cdae620bf2c96e619c6adaa61b1d4e0ccf"
+        }
+      ],
+      "summaryMarkdown": "ROW-1 and ROW-2 are met. `TextLayoutMap`'s `TextVisualRow` table (uniform rows at exact `lh*index`, mixed rows at the tallest run's scaled line height with a shared baseline, per-row `x_offset` relative to the field's alignment offset) answers paint, positions, hit testing, caret, IME bounds, selection quads, vertical/page movement, reveal, auto-scroll and the visible-row window; the widest-row bug is fixed (alignment group failed 0/3 before the fix, passes 3/3). The single-line redraw loop is resolved by comparing against the recorded requested height, with a regression test across fractional scales; `caret_bounds` now picks the run within the caret's own visual row. Focused groups pass (13 and 3 tests).",
+      "findingIds": [
+        "s03-single-line-redraw-loop"
+      ],
+      "recordedAt": "2026-10-17T01:02:42Z"
     }
   },
   "checkpoints": {
@@ -956,6 +1090,26 @@
         {
           "repositoryId": "gpux",
           "path": "crates/gpui/tests/editable_text_attributes.rs"
+        }
+      ]
+    },
+    {
+      "id": "s03-single-line-redraw-loop",
+      "boundaryId": "s03-variable-rows",
+      "criterionIds": [
+        "ROW-1"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Single-line height re-layout notifies every frame forever when the snapped bounds differ from the requested height.**\n\n**Expected:** a single-line field asks for one extra frame only when its row height actually changed; an idle plain field schedules no frames (constraint: plain path unchanged).\n\n**Observed:** `EditableTextPaintElement::prepaint` (element.rs, after `update_layout`) schedules `window.on_next_frame(.. cx.notify(entity_id))` whenever `line_height.max(map.size().height) != bounds.size.height`. Layout bounds are device-pixel snapped (`ToTaffy for AbsoluteLength` rounds explicit sizes, `layout_bounds_for` rounds edges), so whenever height x scale_factor is not an integer the two never match and the field re-notifies on every frame. Probe (scratch worktree with this diff, plain `\"plain\"` single-line field in a 400x400 div, 10 idle `advance_frame`s after settling): scale 1.0, 1.5, 2.0 -> 0 notifications; **scale 1.25 -> 10 notifications, bounds height 25.6 vs line height 26**. So every plain single-line field on a 125% display (common on Windows) redraws continuously; the same happens at any scale for a row whose height is fractional (e.g. `line_height * size/base` for a 1.17x run), and when a parent's flex constraints shrink the element. The ROW-1 single-line test only uses scale 1 with an integer doubled height, so it cannot see this.\n\n**Repair:** compare like with like, e.g. remember the height `request_layout` last requested (in `EditableTextState` or element state) and notify only when the newly desired height differs from that requested value (or compare against `window.pixel_snap(height)` / the snapped request), never against the laid-out bounds. Add a test to `editable_text_variable_rows.rs` that settles a plain single-line field at `simulate_scale_factor_change(1.25)` and asserts no state notifications over several idle frames (and the same for a tall row with a fractional height).\n\n**Resolution (verified):** `request_layout` records the single-line height it requests in `EditableTextState::requested_height`, and `prepaint` notifies only when `line_height.max(map.size().height)` differs from that request; snapped bounds are no longer compared. Regression test `an_idle_single_line_field_schedules_no_frames` (mirrors the reviewer's probe, which saw 10 notifications at 1.25x) asserts zero idle notifications at 1, 1.25, 1.5 and 2x for a plain field and a 1.17x run; the focused group passes 13/13.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_variable_rows.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/element.rs"
         }
       ]
     }
