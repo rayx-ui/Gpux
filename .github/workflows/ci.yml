@@ -114,7 +114,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           cargo check -p gpux-web --target wasm32-unknown-unknown --no-default-features
-          cargo check -p gpux-conformance --target wasm32-unknown-unknown --no-default-features
+          cargo check -p gpux-tests-conformance --target wasm32-unknown-unknown --no-default-features
 
   test:
     name: test (${{ matrix.os }})
@@ -142,7 +142,7 @@ jobs:
         run: echo "VK_DRIVER_FILES=$(ls /usr/share/vulkan/icd.d/lvp_icd*.json | head -n 1)" >> "$GITHUB_ENV"
       # GPU-backed tests create devices; running them concurrently hangs on DX12. The
       # conformance lanes run in their own jobs.
-      - run: cargo test --workspace --no-fail-fast ${{ env.FORK_EXCLUDES }} --exclude gpux-conformance -- --test-threads=1
+      - run: cargo test --workspace --no-fail-fast ${{ env.FORK_EXCLUDES }} --exclude gpux-tests-conformance -- --test-threads=1
         shell: bash
 
   lane-a:
@@ -220,7 +220,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: lane-c-${{ matrix.backend }}-goldens
-          path: crates/gpux_conformance/tests/goldens/${{ matrix.backend }}/
+          path: crates/gpux_tests_conformance/tests/goldens/${{ matrix.backend }}/
 
   lane-d:
     name: lane D (${{ matrix.os }})

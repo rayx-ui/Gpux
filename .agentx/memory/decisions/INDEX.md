@@ -88,3 +88,4 @@ Durable architecture choices for gpux. Current source remains the first evidence
   - [Fast mode is proved in its own lanes; timings are lane G's and macOS-only](repository/validation/2026-10-13-repository-validation-fast-mode-proof-and-timing.md)
   - [Under WSL only lanes C and D use the GPU, through a locally built Mesa dzn, and prove no timing](repository/validation/2026-10-14-repository-validation-wsl-gpu-lanes-c-d.md)
   - [PERF-4's wgpu-desktop half is closed with stated limits](repository/validation/2026-10-14-repository-validation-wgpu-desktop-perf-4.md)
+  - [Test tooling lives in `crates/gpux_tests_*` and `tools/`](repository/validation/2026-10-16-repository-validation-test-tooling-layout.md)

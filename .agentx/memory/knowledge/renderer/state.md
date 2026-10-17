@@ -32,6 +32,6 @@ Both renderers rasterize scroll-layer tiles (`fast/layers/` in `gpui_wgpu` and `
 - [macOS platform crate](../../../../crates/gpui_macos)
 - [Metal renderer](../../../../crates/gpui_apple/src/metal_renderer.rs)
 - [Metal scroll-layer tiles](../../../../crates/gpui_apple/src/fast/layers/mod.rs)
-- [Lane C scroll layers](../../../../crates/gpux_conformance/tests/lane_c_scroll_layers.rs)
+- [Lane C scroll layers](../../../../crates/gpux_tests_conformance/tests/lane_c_scroll_layers.rs)
 - [gpux_color paint](../../../../crates/gpux_color/src/color/paint.rs)
 - 2026-09-30 current [Encoded sRGB compositing](../../decisions/renderer/wgpu/2026-09-30-renderer-wgpu-srgb-compositing.md)

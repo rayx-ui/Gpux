@@ -124,7 +124,7 @@ The threaded browser build (`gpux-testkit web build`, lanes B and G) also needs 
 
 ```bash
 rustup toolchain install nightly-2026-06-23 --component rust-src --target wasm32-unknown-unknown
-cd tools-node
+cd tools/browser
 pnpm install
 pnpm exec playwright install chromium
 ```

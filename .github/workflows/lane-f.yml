@@ -1,7 +1,7 @@
 name: Gpux lane F
 
 # Lane F: the iOS conformance host on a Simulator of the macOS runner. `gpux-testkit lane f`
-# builds the host for the Simulator, generates and builds the Xcode project of tooling/ios
+# builds the host for the Simulator, generates and builds the Xcode project of tools/ios
 # unsigned, boots the pinned Simulator, and follows the host's console. Where the hosted
 # Simulator offers no Metal device, pixel steps report themselves skipped with the reason.
 
@@ -10,9 +10,9 @@ on:
     paths:
       - crates/gpui_mobile/**
       - crates/gpui_wgpu/**
-      - crates/gpux_conformance/**
-      - tooling/ios/**
-      - tooling/testkit/**
+      - crates/gpux_tests_conformance/**
+      - tools/ios/**
+      - tools/testkit/**
       - .github/workflows/lane-f.yml
   schedule:
     - cron: '7 4 * * *'

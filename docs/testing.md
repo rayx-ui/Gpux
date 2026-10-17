@@ -10,8 +10,11 @@ cargo run -p gpux-testkit -- lane <lane>... [--list] [--scene <id>] [--grep <pat
 Every run ends with `gpux-testkit: <passed> passed, <failed> failed, <skipped> skipped` and
 exits nonzero on any failure or when nothing was selected. `--list` prints the exact selection
 without running it. Raw output goes to `artifacts-temp/testkit/<lane>/`. The conformance scenes the
-lanes share live in [`crates/gpux_conformance`](../crates/gpux_conformance); each scene names the
-lanes it runs in.
+lanes share live in [`crates/gpux_tests_conformance`](../crates/gpux_tests_conformance); each scene
+names the lanes it runs in. The runner, the `#[perf]` timer, lane B's Playwright project and the
+mobile app shells live in [`tools/`](../tools/README.md). The improvement-loop benchmarks in
+[`crates/gpux_tests_benchmark`](../crates/gpux_tests_benchmark/README.md) are not a lane: they run
+locally through their own `run.py` and never in CI.
 
 gpux needs nothing outside this repository to prove itself. RayX consumes gpux, and a change to
 an API RayX uses ships with the matching RayX change, but RayX's tests are not gpux's proof.
@@ -38,8 +41,8 @@ What a run executes is chosen by its `plan` job from the manual inputs, the pull
 | B | `lane-b.yml` | `ubuntu-24.04`: headless Chromium, WebGPU on SwiftShader (profile `ci-linux-swiftshader`), 4 shards | pull requests: `@canary` and `@pr` at DPR 1; nightly at 03:17 UTC (or a dispatch with `all-specs`): every spec except `@timing`, DPR 2 included |
 | C | `ci.yml` lane C | `ubuntu-24.04` (lavapipe), `windows-2025` (WARP), `macos-15` (Metal) | every pull request on lavapipe and Metal, sampled; WARP with `ci-os:windows` or `ci:all`; every platform, in full mode, nightly |
 | D | `ci.yml` lane D | `ubuntu-24.04` (X11 under Xvfb, lavapipe), `windows-2025` (WARP), `macos-15` | every pull request |
-| E | `lane-e.yml` | `ubuntu-24.04`: KVM-accelerated API 34 x86_64 emulator, SwiftShader GL | nightly at 03:47 UTC, and pull requests that touch `gpui_mobile`, `gpui_wgpu`, `gpux_conformance`, `tooling/android` or `tooling/testkit` |
-| F | `lane-f.yml` | `macos-15`: an iPhone 16 Simulator on the newest installed iOS runtime | nightly at 04:07 UTC, and pull requests that touch `gpui_mobile`, `gpui_wgpu`, `gpux_conformance`, `tooling/ios` or `tooling/testkit` |
+| E | `lane-e.yml` | `ubuntu-24.04`: KVM-accelerated API 34 x86_64 emulator, SwiftShader GL | nightly at 03:47 UTC, and pull requests that touch `gpui_mobile`, `gpui_wgpu`, `gpux_tests_conformance`, `tools/android` or `tools/testkit` |
+| F | `lane-f.yml` | `macos-15`: an iPhone 16 Simulator on the newest installed iOS runtime | nightly at 04:07 UTC, and pull requests that touch `gpui_mobile`, `gpui_wgpu`, `gpux_tests_conformance`, `tools/ios` or `tools/testkit` |
 | G | none: local only | the developer's GPU | before releases, and for renderer, platform or performance changes |
 
 `ci.yml` also runs `check` (format, `cargo check --workspace --all-targets`, Clippy, the web
@@ -63,7 +66,7 @@ command that installs a missing one. Platform setup is in
 | Windows | A, C, D | nothing extra: WARP, the DX12 software adapter, ships with Windows. Visual Studio Build Tools as for any gpux build. |
 | Linux | A, C, D | `pkg-config libfreetype6-dev libfontconfig1-dev libxkbcommon-dev libxkbcommon-x11-dev libvulkan1 mesa-vulkan-drivers`; lavapipe through `VK_DRIVER_FILES` for C and D; a display (or `xvfb-run`) and `xdotool` for D. [LINUX-WSL.md](../LINUX-WSL.md) sets up WSL. |
 | macOS | A, C, D | the Xcode command-line tools; Metal is the GPU. |
-| any | B, G | a nightly toolchain with `rust-src` (`nightly-2026-06-23` unless `GPUX_WEB_TOOLCHAIN` names another); `wasm-bindgen-cli` at the version `Cargo.lock` pins; Node.js 22 or later with `pnpm`; in `tools-node`: `pnpm install` and `pnpm exec playwright install chromium`. |
+| any | B, G | a nightly toolchain with `rust-src` (`nightly-2026-06-23` unless `GPUX_WEB_TOOLCHAIN` names another); `wasm-bindgen-cli` at the version `Cargo.lock` pins; Node.js 22 or later with `pnpm`; in `tools/browser`: `pnpm install` and `pnpm exec playwright install chromium`. |
 | any | E | `ANDROID_HOME` with the pinned SDK packages, a JDK 21, `cargo-ndk`, the Android Rust targets, and a device or an emulator with hardware virtualization; see [Lane E](#lane-e-android). |
 | macOS | F | Xcode with an iOS Simulator runtime (`xcodebuild -downloadPlatform iOS`), XcodeGen (`brew install xcodegen`), and `rustup target add aarch64-apple-ios-sim`. |
 | any | G | a hardware GPU, plus everything lanes B, C and D need. |
@@ -99,9 +102,9 @@ What a new window gets with the defaults on, and what each variable turns off, i
 ## Goldens
 
 Lane C compares a curated subset of scenes (those with `golden: true`) with committed PNGs per
-software backend, in `crates/gpux_conformance/tests/goldens/<backend>/`: `lavapipe`, `warp` and
+software backend, in `crates/gpux_tests_conformance/tests/goldens/<backend>/`: `lavapipe`, `warp` and
 `metal`. A golden is at most 32 KiB, all of them together at most 2 MiB, and the published package
-leaves them out (`cargo test -p gpux-conformance --test golden_policy` checks this). Hardware GPUs
+leaves them out (`cargo test -p gpux-tests-conformance --test golden_policy` checks this). Hardware GPUs
 never get goldens: lane C skips golden steps on them, and lane G switches goldens off everywhere.
 
 To update goldens after an intended rendering change:
@@ -111,24 +114,24 @@ To update goldens after an intended rendering change:
    Linux with `VK_DRIVER_FILES` set (WSL works), Metal on macOS.
 2. For the backends you cannot run, dispatch the `Gpux` workflow with `update-goldens` checked.
    Each lane C job uploads its backend's regenerated goldens as `lane-c-<backend>-goldens`;
-   download them into `crates/gpux_conformance/tests/goldens/<backend>/`.
+   download them into `crates/gpux_tests_conformance/tests/goldens/<backend>/`.
 3. Review every changed PNG before committing. A failing comparison writes the actual, expected
    and diff images under `artifacts-temp/testkit/c/`.
 
 ## Lane A: behaviour
 
 `gpux-testkit lane a` runs the lane-A conformance scenes on `TestPlatform` with the bundled
-fonts and the deterministic executor clock, plus every `gpux-conformance` test group that needs
+fonts and the deterministic executor clock, plus every `gpux-tests-conformance` test group that needs
 no renderer: the catalog, image comparison, golden policy, the executor clock, host capabilities,
 RGB565 tolerance, screen probes, fast-mode parity and the hosts on the accessibility tree
-(`conformance_accessibility`) (`LANE_A_GROUPS` in `tooling/testkit/src/lanes.rs`). No GPU or
+(`conformance_accessibility`) (`LANE_A_GROUPS` in `tools/testkit/src/lanes.rs`). No GPU or
 display is involved, so lane A runs identically everywhere. The crates' own focused tests
 (`cargo test -p <package> <filter>`) are lane A too.
 
 ## Lane B: a real browser
 
-Lane B builds the `web_host` example of `gpux-conformance` as a threaded WASM app and drives it
-in Chromium with Playwright, from [`tools-node`](../tools-node):
+Lane B builds the `web_host` example of `gpux-tests-conformance` as a threaded WASM app and drives it
+in Chromium with Playwright, from [`tools/browser`](../tools/browser):
 
 ```text
 cargo run -p gpux-testkit -- web build [--verify]   # target/gpux-web/dist
@@ -145,7 +148,7 @@ actionable message when a prerequisite is missing:
   `GPUX_WEB_TOOLCHAIN` names another), because the threaded build rebuilds `std` with atomics;
 - the `wasm-bindgen` CLI at the version `Cargo.lock` pins
   (`cargo install wasm-bindgen-cli --version <version>`);
-- `pnpm`, and in `tools-node`: `pnpm install` and `pnpm exec playwright install chromium`.
+- `pnpm`, and in `tools/browser`: `pnpm install` and `pnpm exec playwright install chromium`.
 
 `web build --verify` checks the binary: shared memory, the `wasm_thread_entry_point` export, and
 a single explicit constructor call (`gpui_platform::web_init`), so wasm-ld added no
@@ -230,7 +233,7 @@ goldens of the backend. Scenes render one at a time: they share one cached devic
 DX12 stable. `--jobs <n>` runs the lane's test groups (the scenes of `lane_c` and each `lane_c_*`
 group) in up to `n` concurrent processes, each with `--test-threads=1` and its own device; cargo
 builds once before they start, the groups are spread over the processes by recorded weights
-(`LANE_C_WEIGHTS` in `tooling/testkit/src/lanes.rs`, refreshed by hand from a `timings.md`), each
+(`LANE_C_WEIGHTS` in `tools/testkit/src/lanes.rs`, refreshed by hand from a `timings.md`), each
 process's output is printed as one block in a fixed order, and the lane still ends with one
 summary. `--jobs` applies to the full lane c only: a narrowed lane c (`--scene`, `--grep`) and every other
 lane (lane g's lane c part measures timing, so it stays one process) run as usual and say so. The
@@ -263,9 +266,9 @@ renderer's effects pipeline does not validate yet, so lane C fails there: select
 
 ## Lane D: real desktop windows
 
-`gpux-testkit lane d` runs the `desktop_host` example of `gpux-conformance` on
+`gpux-testkit lane d` runs the `desktop_host` example of `gpux-tests-conformance` on
 `gpui_platform::application()`. It runs the platform checks
-(`gpux_conformance::platform_checks`) and every lane-D scene in real windows, with input
+(`gpux_tests_conformance::platform_checks`) and every lane-D scene in real windows, with input
 injected into the window, and pixels read back from the window's own surface with
 `render_to_image`. The `platform-os-input` check drives the real OS input path instead:
 
@@ -310,7 +313,7 @@ WSLg's compositor.
 ## Lane E: Android
 
 `gpux-testkit lane e` (or `android run [--serial <serial>] [--scene <id>] [--grep <pattern>]`)
-builds the `android_host` example of `gpux-conformance` for the device's ABI, installs it on the
+builds the `android_host` example of `gpux-tests-conformance` for the device's ABI, installs it on the
 first attached device or emulator (`ANDROID_SERIAL` or `--serial` picks one), launches it and
 follows logcat. The host runs the startup check, every lane-E scene, and the checks that need the
 operating system, which it asks the testkit to perform: taps and swipes through
@@ -322,7 +325,7 @@ probes saved land in `artifacts-temp/testkit/e/`.
 Gradle: the host is a NativeActivity whose only Java is gpux's own helpers
 (`crates/gpui_mobile/java`, window composition and platform views), which `javac` and `d8` compile
 against the pinned `android.jar` into `classes.dex`; `aapt2` links
-[`tooling/android/AndroidManifest.xml`](../tooling/android/AndroidManifest.xml), the libraries go in
+[`tools/android/AndroidManifest.xml`](../tools/android/AndroidManifest.xml), the libraries go in
 uncompressed and 16 KB aligned, and `apksigner` signs with a local debug key. Prerequisites, each
 reported with the command that installs it:
 
@@ -383,7 +386,7 @@ lane E workflow type-checks (`cargo check -p gpux-mobile --target x86_64-linux-a
 lane runs.
 
 The `scroll-layers-android-div`, `-list`, `-resume` and `-timing` checks scroll the pages of
-`gpux_conformance::scroll_layers` with every fast-mode mechanism and with none: touch pans
+`gpux_tests_conformance::scroll_layers` with every fast-mode mechanism and with none: touch pans
 injected into the window and a swipe through `adb shell input swipe` (a slow one on a software
 renderer, as above) must come from tiles in most of their frames; wheel steps of whole device
 pixels must show the same screen pixels, byte for byte, in the two windows; and the resume check
@@ -419,8 +422,8 @@ skipped on software renderers.
 ## Lane F: iOS
 
 `gpux-testkit lane f` (or `ios run --simulator [--scene <id>] [--grep <pattern>]`) builds the
-`ios_host` example of `gpux-conformance` as a static library for the Simulator, generates the
-Xcode project of [`tooling/ios`](../tooling/ios) with XcodeGen, and builds the app with
+`ios_host` example of `gpux-tests-conformance` as a static library for the Simulator, generates the
+Xcode project of [`tools/ios`](../tools/ios) with XcodeGen, and builds the app with
 `xcodebuild`, unsigned; `ios build --simulator` stops there. It then boots its own Simulator,
 `gpux-conformance`, created on first use as an iPhone 16 on the newest installed iOS runtime,
 installs the app, and launches it with `simctl launch --console-pty`, reading the result lines from
@@ -458,17 +461,17 @@ panics or that dyld cannot load ends the run at once with that line as the failu
 
 The shell force-loads the whole Rust library, including io-surface's OpenGL texture binding, which
 gpux reaches through core-video on every Apple target; its CGL functions exist only on macOS, so
-`tooling/ios/Sources/macos_gl_stubs.c` defines them (aborting, never called). Undefined-symbol
+`tools/ios/Sources/macos_gl_stubs.c` defines them (aborting, never called). Undefined-symbol
 flags (`-Wl,-U`) are not enough: dyld binds them at launch and the app never starts.
 
 ### On a device
 
 Devices need a signing team, so the testkit leaves them to you:
 
-1. `cargo build -p gpux-conformance --no-default-features --features app-host,diagnostics
+1. `cargo build -p gpux-tests-conformance --no-default-features --features app-host,diagnostics
    --example ios_host --target aarch64-apple-ios` (after `rustup target add aarch64-apple-ios`).
-2. `xcodegen generate --spec tooling/ios/project.yml`.
-3. `xcodebuild -project tooling/ios/GpuxConformance.xcodeproj -target GpuxConformance
+2. `xcodegen generate --spec tools/ios/project.yml`.
+3. `xcodebuild -project tools/ios/GpuxConformance.xcodeproj -target GpuxConformance
    -configuration Debug -sdk iphoneos -allowProvisioningUpdates DEVELOPMENT_TEAM=<team id>
    GPUX_IOS_HOST_LIB=$PWD/target/aarch64-apple-ios/debug/examples/libios_host.a
    SYMROOT=$PWD/target/gpux-ios/products build`.

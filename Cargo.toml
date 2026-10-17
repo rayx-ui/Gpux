@@ -6,10 +6,10 @@ members = [
     "crates/gpui",
     "crates/gpui_apple",
     "crates/gpux_color",
-    "crates/gpux_conformance",
     "crates/gpux_devtools",
     "crates/gpux_devtools_mcp",
     "crates/gpux_fonts",
+    "crates/gpux_tests_conformance",
     "crates/gpui_linux",
     "crates/gpui_macos",
     "crates/gpui_macros",
@@ -30,8 +30,8 @@ members = [
     "crates/sum_tree",
     "crates/util",
     "crates/util_macros",
-    "tooling/perf",
-    "tooling/testkit",
+    "tools/perf",
+    "tools/testkit",
     "vendor/accesskit_macos",
     "vendor/wgpu/wgpu",
     "vendor/wgpu/wgpu-core",
@@ -57,10 +57,10 @@ collections = { package = "gpux-collections", path = "crates/collections", versi
 derive_refineable = { package = "gpux-derive-refineable", path = "crates/refineable/derive_refineable", version = "0.3.0" }
 gpux = { path = "crates/gpui", version = "0.3.0", default-features = false }
 gpux_color = { package = "gpux-color", path = "crates/gpux_color", version = "0.3.0" }
-gpux_conformance = { package = "gpux-conformance", path = "crates/gpux_conformance", version = "0.3.0", default-features = false }
 gpux_devtools = { package = "gpux-devtools", path = "crates/gpux_devtools", version = "0.3.0" }
 gpux_devtools_mcp = { package = "gpux-devtools-mcp", path = "crates/gpux_devtools_mcp", version = "0.3.0" }
 gpux_fonts = { package = "gpux-fonts", path = "crates/gpux_fonts", version = "0.3.0" }
+gpux_tests_conformance = { package = "gpux-tests-conformance", path = "crates/gpux_tests_conformance", version = "0.3.0", default-features = false }
 gpui_shared_string = { package = "gpux-shared-string", path = "crates/gpui_shared_string", version = "0.3.0" }
 gpui_apple = { package = "gpux-apple", path = "crates/gpui_apple", version = "0.3.0" }
 gpui_linux = { package = "gpux-linux", path = "crates/gpui_linux", version = "0.3.0", default-features = false }
@@ -75,7 +75,7 @@ gpui_util = { package = "gpux-util", path = "crates/gpui_util", version = "0.3.0
 http_client = { package = "gpux-http-client", path = "crates/http_client", version = "0.3.0" }
 http_client_tls = { package = "gpux-http-client-tls", path = "crates/http_client_tls", version = "0.3.0" }
 path = { package = "gpux-path", path = "crates/path", version = "0.3.0" }
-perf = { package = "gpux-perf", path = "tooling/perf", version = "0.3.0" }
+perf = { package = "gpux-perf", path = "tools/perf", version = "0.3.0" }
 refineable = { package = "gpux-refineable", path = "crates/refineable", version = "0.3.0" }
 reqwest_client = { package = "gpux-reqwest-client", path = "crates/reqwest_client", version = "0.3.0" }
 scheduler = { package = "gpux-scheduler", path = "crates/scheduler", version = "0.3.0" }

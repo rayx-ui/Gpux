@@ -56,14 +56,14 @@ cargo package --workspace                      # manifest, dependency, or includ
 The web check disables default features only because the default multithreaded build needs nightly `-Z build-std`, which `gpux-testkit web build` provides; browser apps stay multithreaded. Runtime proof runs in gpux's lanes through `cargo run -p gpux-testkit -- lane <lane>... [--scene <id>] [--grep <pattern>]` ([docs/testing.md](../../../docs/testing.md)):
 
 - behaviour (layout, input, focus, text, scrolling, semantics): lane A;
-- the browser and WASM/WebGPU: lane B, narrowed with `--grep` to the touched area's Playwright specs in `tools-node/specs/`; `gpux-testkit web build --verify`, `web serve` and `web e2e` build, serve and test the threaded host by hand;
+- the browser and WASM/WebGPU: lane B, narrowed with `--grep` to the touched area's Playwright specs in `tools/browser/specs/`; `gpux-testkit web build --verify`, `web serve` and `web e2e` build, serve and test the threaded host by hand;
 - pixels and the renderer: lane C, plus lane B for WebGPU;
 - real windows, OS input, clipboard and scale changes (Windows DX12 included): lane D;
 - Android: lane E (`gpux-testkit android build` / `android run`);
 - iOS: lane F (`gpux-testkit ios build --simulator` / `ios run --simulator`, on a Mac or the `lane-f` CI job);
 - renderer, platform or performance changes before a release: lane G on a real GPU, which also runs the `#[gpux::bench]` suites.
 
-New coverage belongs in gpux: a conformance scene in `crates/gpux_conformance/src/scenes/`, a Playwright spec in `tools-node/specs/`, or a focused test beside the crate.
+New coverage belongs in gpux: a conformance scene in `crates/gpux_tests_conformance/src/scenes/`, a Playwright spec in `tools/browser/specs/`, or a focused test beside the crate.
 
 ## Core Rules
 

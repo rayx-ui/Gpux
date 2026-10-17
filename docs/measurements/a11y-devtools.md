@@ -447,13 +447,13 @@ reported it occluded (`windowDidChangeOcclusionState` without `NSWindowOcclusion
 `gpui_macos` stopped the link, and no later notification reported it visible. Every other launch
 started the link once, when AppKit first reported the window visible. A window covered after it
 drew and uncovered again resumed in every trial (a full-screen window from another process,
-`benchmark/tools/cover.swift`), and the stop/start churn of a CVDisplayLink lost no ticks in 300
+`crates/gpux_tests_benchmark/tools/cover.swift`), and the stop/start churn of a CVDisplayLink lost no ticks in 300
 rounds, so the platform code behaves as designed: a window AppKit does not present gets no frames.
 The benchmark's 1280 by 800 window, centred, sits where other apps' windows are, and one coming
 to the front for the rest of a run stops it for good. The evidence points to such covering, not to
 a gpux defect, and it does not depend on the epic (the before build hung the same way). The
 benchmark now ends such a run with status 2 and the reason, and `run.py` takes it again
-(`benchmark/tools/hidden-window.sh`).
+(`crates/gpux_tests_benchmark/tools/hidden-window.sh`).
 
 ### Findings after the epic
 

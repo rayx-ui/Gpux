@@ -208,7 +208,7 @@ its view until then (also while no window is open), or until an embedded host cl
 
 - Lane A (test platform): the `crates/gpui/tests/a11y_*` groups, `semantic_query_accesskit`, the
   conformance `accessibility` scene.
-- Lane B (Chromium): `tools-node/specs/accessibility.spec.ts` (inspection) and
+- Lane B (Chromium): `tools/browser/specs/accessibility.spec.ts` (inspection) and
   `screen-reader.spec.ts` (the mirror).
 - Lane E (Android): the host's `screen-reader-android-*` checks (`uiautomator dump`, actions
   through the adapter's node provider).
@@ -230,7 +230,7 @@ the Title field. Record what each screen reader announced, and anything missing 
 - **macOS desktop (VoiceOver, Cmd-F5):**
 
   ```bash
-  cargo run -p gpux-conformance --no-default-features --features app-host --example desktop_host -- --show accessibility
+  cargo run -p gpux-tests-conformance --no-default-features --features app-host --example desktop_host -- --show accessibility
   ```
 
 - **Web (VoiceOver in Safari and in Chrome):** `gpux-testkit web build`, then
