@@ -23,6 +23,7 @@ pub static CATALOG: &[SceneSpec] = &[
     layout::FIXED_STICKY,
     text::SHAPING,
     text::RUNS,
+    text::RUN_METRICS,
     text::DECORATIONS,
     text::WRAPPING,
     text::TRUNCATION,

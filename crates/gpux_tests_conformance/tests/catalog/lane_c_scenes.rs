@@ -11,6 +11,7 @@ macro_rules! lane_c_scenes {
             layout_fixed_sticky => "layout-fixed-sticky",
             text_shaping => "text-shaping",
             text_runs => "text-runs",
+            rich_text_runs => "rich-text-runs",
             text_decorations => "text-decorations",
             text_wrapping => "text-wrapping",
             text_truncation => "text-truncation",

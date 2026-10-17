@@ -38,10 +38,11 @@ pub const HOST_MARKER: &str = "gpux-conformance-host:";
 pub const RUN_TIMEOUT: Duration = Duration::from_secs(20 * 60);
 
 /// The ids of the iOS platform checks the host reports, in order.
-pub const PLATFORM_CHECKS: [&str; 13] = [
+pub const PLATFORM_CHECKS: [&str; 14] = [
     "ios-startup",
     "ios-metal",
     "ios-text-metrics",
+    "text-run-metrics-ios",
     "ios-touch-tap",
     "ios-lifecycle",
     "composition-ios-order",
