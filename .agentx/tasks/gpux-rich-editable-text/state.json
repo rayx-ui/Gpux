@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-rich-editable-text",
-  "revision": 22,
+  "revision": 33,
   "planRevision": 6,
   "specHashes": {
     "requirements": "dd2fb980909e8180a8291227ea08cef4d241a5684340cdb66f70c1b4ca539061",
@@ -34,16 +34,28 @@
       ]
     },
     "t05-attribute-store": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "3b3dd124"
+      ]
     },
     "t06-typing-attributes": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "3b3dd124"
+      ]
     },
     "t07-format-history": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "3b3dd124"
+      ]
     },
     "t08-attribute-rendering": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "3b3dd124"
+      ]
     },
     "t09-variable-rows": {
       "status": "pending"
@@ -98,6 +110,16 @@
         }
       },
       "recordedAt": "2026-10-17T00:07:51Z"
+    },
+    "c1c8b7f9acecd1555754817070bf37f74a5e5d2a7e136288080ec1d6ea6df803": {
+      "snapshot": {
+        "specHash": "dadc3f11539d86a77722b71a211a313e9f94a770def16f9341708741008cd020",
+        "repositories": {
+          "gpux": "c4561df6b9fae58c54aa0b06d6045feda128ab528c8572cd49b24d833ad582b4",
+          "rayx": "84d2cf241369243da3a9acff3794e5f471dea1a58363826115976742f944428b"
+        }
+      },
+      "recordedAt": "2026-10-17T00:36:09Z"
     }
   },
   "checkResults": {
@@ -338,6 +360,125 @@
       "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s01-run-metrics-final-7e0817d532f8.log",
       "logSha256": "1962886ca6694147826885cbf750b68484499eeb0b29dc6249aed046e01364b8",
       "inputsHash": "39f32326016e4456f1b1d19b8f72036a3413f732787761d7f535e3fbd4e2eab7"
+    },
+    "s02-attributes/check-a-attributes/final": {
+      "checkId": "check-a-attributes",
+      "boundaryId": "s02-attributes",
+      "phase": "final",
+      "batchId": "c1c8b7f9acecd1555754817070bf37f74a5e5d2a7e136288080ec1d6ea6df803",
+      "definitionHash": "6bfe53ddf24eec36099c5b7459801649864c0101d9c2ff902589c0f67eea9421",
+      "basisHash": "6ab768caf3b67aea5172ae6a933bef71a6d8b466d698e9749c0702358d581442",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 14,
+      "durationSeconds": 0.6088,
+      "recordedAt": "2026-10-17T00:33:57Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s02-attributes-final-482ae375a28c.log",
+      "logSha256": "b0551b6916f03a62d56549bb53d37bafe0a6d1bc1e2d5d9dd7810760d5af71a6",
+      "inputsHash": "9bdad36b8911fe55430161d806781af6f9d2a406fe887c4685f9b1ec3083be5f"
+    },
+    "s02-attributes/check-a-typing-attributes/final": {
+      "checkId": "check-a-typing-attributes",
+      "boundaryId": "s02-attributes",
+      "phase": "final",
+      "batchId": "c1c8b7f9acecd1555754817070bf37f74a5e5d2a7e136288080ec1d6ea6df803",
+      "definitionHash": "aa2947fb8a2cec4f50abade5d82b00eda91394072d53e9b3c21aa2473208ef6b",
+      "basisHash": "97b0acd22172512e733e9945bac6682f59ff6810059b129a0a30cd972cde74ea",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 7,
+      "durationSeconds": 1.2025,
+      "recordedAt": "2026-10-17T00:33:58Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s02-attributes-final-0afae1ae5f72.log",
+      "logSha256": "c2c264d8089b203058fc48549c4e05088fc0782e1470c811dfa5ce6ca03e4c9c",
+      "inputsHash": "9bdad36b8911fe55430161d806781af6f9d2a406fe887c4685f9b1ec3083be5f"
+    },
+    "s02-attributes/check-a-format-history/final": {
+      "checkId": "check-a-format-history",
+      "boundaryId": "s02-attributes",
+      "phase": "final",
+      "batchId": "c1c8b7f9acecd1555754817070bf37f74a5e5d2a7e136288080ec1d6ea6df803",
+      "definitionHash": "3715243b79a822ed0f3cb0eb140229a0b315e364ccd9e36fafff8a8c7be6c804",
+      "basisHash": "f932fa47c8f276a7b01370be4c9bc2724793921f879317cbdd4b57065b674af7",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 6,
+      "durationSeconds": 0.9747,
+      "recordedAt": "2026-10-17T00:33:59Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s02-attributes-final-10521771176d.log",
+      "logSha256": "997671301f9f336aa6fd450fdd8f346a061cb64a2b20ce44f287ec5621906da8",
+      "inputsHash": "9bdad36b8911fe55430161d806781af6f9d2a406fe887c4685f9b1ec3083be5f"
+    },
+    "s02-attributes/check-a-attribute-layout/final": {
+      "checkId": "check-a-attribute-layout",
+      "boundaryId": "s02-attributes",
+      "phase": "final",
+      "batchId": "c1c8b7f9acecd1555754817070bf37f74a5e5d2a7e136288080ec1d6ea6df803",
+      "definitionHash": "486d469a55edf461c210d051b9c7292d7cf0f854e9e02c3968cef177c71e77a6",
+      "basisHash": "83af49759ed543aca23aca7bee3caa7876caa95a20ab0b75bb4f49d7afa754ca",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 0.99,
+      "recordedAt": "2026-10-17T00:34:00Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s02-attributes-final-ddd5b9ec476a.log",
+      "logSha256": "17f1724aa0b25c47bd3adba4b3a41180f91e279af437b61df95fde766c571bb2",
+      "inputsHash": "9bdad36b8911fe55430161d806781af6f9d2a406fe887c4685f9b1ec3083be5f"
+    },
+    "s02-attributes/check-a-attributes-lane-a/final": {
+      "checkId": "check-a-attributes-lane-a",
+      "boundaryId": "s02-attributes",
+      "phase": "final",
+      "batchId": "c1c8b7f9acecd1555754817070bf37f74a5e5d2a7e136288080ec1d6ea6df803",
+      "definitionHash": "1e552a0e2a78c4300c9267c2b053f4ce1d94e1f3431a2891bd62fee318569373",
+      "basisHash": "29bd9aaec68f4217e34db64555933bcbfae9067f70cddf28cc268a88b404a99d",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 32.3224,
+      "recordedAt": "2026-10-17T00:34:32Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s02-attributes-final-b2177aef3530.log",
+      "logSha256": "dfc44802c92f8b92e9fd7c3d517753c2d9ebf6a8a1c9b6f5cc0c4297c8561cb6",
+      "inputsHash": "5b15441f7f2bb9299d4114273c1f1d4835b620997a726656dc522281d9364fc2"
+    },
+    "s02-attributes/check-a-attributes-lane-c/final": {
+      "checkId": "check-a-attributes-lane-c",
+      "boundaryId": "s02-attributes",
+      "phase": "final",
+      "batchId": "c1c8b7f9acecd1555754817070bf37f74a5e5d2a7e136288080ec1d6ea6df803",
+      "definitionHash": "cacc92349f4e573f54fa64663ac742d4975c94b279bd205716a2e00831017e9a",
+      "basisHash": "46888ad9fe1297e80532917574cadb78ddda7719f7fc38aa1bb2684537e338c7",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 2.2756,
+      "recordedAt": "2026-10-17T00:34:35Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s02-attributes-final-7350e943de46.log",
+      "logSha256": "715bef600e37962d42883988638d7bdbfb017755a133108a0b662d42cbb4f4a5",
+      "inputsHash": "5b15441f7f2bb9299d4114273c1f1d4835b620997a726656dc522281d9364fc2"
+    },
+    "s02-attributes/check-a-attributes-lane-b/final": {
+      "checkId": "check-a-attributes-lane-b",
+      "boundaryId": "s02-attributes",
+      "phase": "final",
+      "batchId": "c1c8b7f9acecd1555754817070bf37f74a5e5d2a7e136288080ec1d6ea6df803",
+      "definitionHash": "ac428d7d5f59f7254f8dec4cd56de4b6301fac678276520a3de5de5307710a42",
+      "basisHash": "462028f8da433c6929eb60bc7cca410593cc047bfd4f2aee774618acd167290a",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 93.9733,
+      "recordedAt": "2026-10-17T00:36:09Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s02-attributes-final-1e5075474144.log",
+      "logSha256": "4f7c27c684f2d0eab8e7c47fc9937959c5fcecbf4fd6bb4ebd40ac7494cf5b15",
+      "inputsHash": "5b15441f7f2bb9299d4114273c1f1d4835b620997a726656dc522281d9364fc2"
     }
   },
   "reviews": {
@@ -528,6 +669,145 @@
         "s01-provenance-patch-surface"
       ],
       "recordedAt": "2026-10-17T00:08:44Z"
+    },
+    "s02-attributes": {
+      "reviewerId": "reviewer-s02-k7q3m9",
+      "snapshotId": "c1c8b7f9acecd1555754817070bf37f74a5e5d2a7e136288080ec1d6ea6df803",
+      "criterionIds": [
+        "ATTR-1",
+        "ATTR-2",
+        "ATTR-3",
+        "ATTR-4"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/attributes.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ATTR-1",
+            "ATTR-2"
+          ],
+          "sha256": "04fefca38dc4f9f723ec0d3dfb436d58118f3c4788ff574e926f75f67b9ed05d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/state.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ATTR-1",
+            "ATTR-2",
+            "ATTR-3"
+          ],
+          "sha256": "a11caef5b98d8671489e267d31346f00c9445a2a8bbeed79c1bc04381599ce2c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/history.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ATTR-3"
+          ],
+          "sha256": "c0b1c52c899b070aeedc216e8dd8ae0f0fd8800909beae3ee95b32ecf49fa6b4"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/event.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ATTR-3"
+          ],
+          "sha256": "05e3731a22b4860e2a8506b96eb7523b4a834e0f57be5781b43c8128fe9b8970"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/layout_map.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ATTR-4"
+          ],
+          "sha256": "0e2edd81c34cf1218abeb116e84e05cf7b34e3925be6f248b5d5bc833a70ae42"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/layout_cache.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ATTR-4"
+          ],
+          "sha256": "c09f372d64e653fd9fdbf164c3573c8e73c96dfba19d6ed5ad60aa081065d95a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/element.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ATTR-4"
+          ],
+          "sha256": "969ed7bd5051b81bda6c5fbcedd3bde7fa35b66a4f1b4697dbc274c683ad0008"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_attributes.rs",
+          "kind": "test",
+          "criterionIds": [
+            "ATTR-1"
+          ],
+          "sha256": "2dc642f579abb24096452a739fa17925f133fc411bbda4d49fb0af5574b8307f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_typing_attributes.rs",
+          "kind": "test",
+          "criterionIds": [
+            "ATTR-2"
+          ],
+          "sha256": "894579093344b162d987931e441fea20ebc1705b4d4ac5af52aabb5fb3c1d91f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_format_history.rs",
+          "kind": "test",
+          "criterionIds": [
+            "ATTR-3"
+          ],
+          "sha256": "60fef9026dc11a02b982a31c09485328e31b00ada19f4936ec2e38c65309f197"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_attribute_layout.rs",
+          "kind": "test",
+          "criterionIds": [
+            "ATTR-4"
+          ],
+          "sha256": "ae16095e3c7c33d61dc0071722ec7d712c2ebda861e1303d71b02dabafca7e9c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/scenes/editing.rs",
+          "kind": "test",
+          "criterionIds": [
+            "ATTR-4"
+          ],
+          "sha256": "9aefc626f67e6d44fb0577ba71bfcf8c222f40840f73052bd0e8acae873fb041"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/movement.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ATTR-1"
+          ],
+          "sha256": "f8ad46c8cd8d44c8a4b8a4c026a882f6beb5524ed96bb35c5db00b49dce75767"
+        }
+      ],
+      "summaryMarkdown": "Remap at the single `apply_buffer_edit` choke point is correct for every edit path (typing, platform input, IME mark/unmark/commit, paste, cut, deletes, newline, diff-scoped `rewrite_current_edit` and its rollback, undo/redo restore from history). Spans stay normalized; plain fields allocate nothing and keep the single-row splice. Typing-attribute rules, exclusive link/tag ends, IME attribute lifetime, Format history kind (never merged), Arc-shared formatting, separate format revision and `EditableTextFormatEvent` are implemented and covered by the four new groups; shaping vs paint split, metrics in `ShapeRunKey`, paint-only no-reshape and owner runs over stored paint fields hold, with the `editable-rich-attributes` scene passing lanes A, B and C. Paragraph formats and objects in `AttributedText` are planned for t11/OBJ and not required here. Both earlier findings are repaired: `set_attributed_text` maps spans through line-break normalization onto character boundaries, and `reset` leaves no typing attributes; each has a regression test in `editable_text_attributes.rs`.",
+      "findingIds": [
+        "s02-attributed-text-span-alignment",
+        "s02-reset-leaks-typing-attributes"
+      ],
+      "recordedAt": "2026-10-17T00:36:35Z"
     }
   },
   "checkpoints": {
@@ -632,6 +912,43 @@
         }
       ],
       "boundaryId": "s01-run-metrics"
+    },
+    {
+      "id": "s02-attributed-text-span-alignment",
+      "boundaryId": "s02-attributes",
+      "criterionIds": [
+        "ATTR-1"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Expected.** `set_attributed_text` replaces everything with the snapshot so that each span still covers the same characters of `AttributedText.text` (ATTR-1 'a setter that replaces everything'; d-attribute-store invariant 'spans are always normalized and within the buffer'; `AttributedText.spans` is documented as byte ranges of `text`, and it is the type the CLIP-2 HTML codec and rich paste will feed in).\n\n**Observed.** `state.rs` `set_attributed_text` runs `normalize_input(&text.text)` (CRLF/CR become LF in multi-line fields; CR, LF and CRLF become one space in single-line fields), then builds spans with `AttributeSpans::from_spans(text.spans, replacement.len())`, which only clamps to the new length. Whenever normalization shortens the text the spans are not remapped: e.g. multi-line `AttributedText { text: \"a\\r\\nbc\", spans: [3..5 bold] }` (bold \"bc\") stores `3..4`, i.e. only \"c\" is bold; any span after a CRLF shifts right by one byte per CRLF. Neither path checks char boundaries, so a span from a caller or a shifted span can start or end inside a multi-byte character; `shape_runs_for_line` then cuts `TextRun`s mid-character and `decoration_runs` emits a mid-character run length. `attributed_text_round_trips_and_replaces_everything` only uses LF-free ASCII text.\n\n**Repair.** In `set_attributed_text`, map each span's offsets from `text.text` to the normalized replacement (normalize while recording an old->new offset map, or reject/normalize spans through the same CRLF fold), then snap or reject span boundaries that are not char boundaries of the replacement (`is_char_boundary`) before `from_spans`. Add cases to `editable_text_attributes.rs`: CRLF text in a multi-line field, CR/LF in a single-line field, and a span boundary inside a multi-byte character.\n\n**Resolved.** `normalize_with_offsets` (movement.rs) applies the same line-break normalization as `normalize_single_line`/`normalize_multiline` and maps every input byte offset (inside a character or CRLF pair -> start of its replacement); `set_attributed_text` maps span ranges through it before `from_spans`. Regression test `attributed_text_spans_follow_normalized_line_breaks` (CRLF+CR multi-line, CRLF+LF single-line, boundary inside a multi-byte character).",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_attributes.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/movement.rs"
+        }
+      ]
+    },
+    {
+      "id": "s02-reset-leaks-typing-attributes",
+      "boundaryId": "s02-attributes",
+      "criterionIds": [
+        "ATTR-1",
+        "ATTR-2"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Expected.** `reset` returns the field to a clean, plain state (history cleared; `reset_clears_formatting` asserts text typed after a reset is unformatted). The 'empty paragraph keeps its last attributes' rule (ATTR-2) is for user deletions, not for a reset.\n\n**Observed.** `reset` calls `replace_byte_range(0..len, \"\")`, so `apply_edit` captures `deleted = stored_attributes(0)`; the resulting buffer is an empty paragraph, so `self.typing_attributes = Some(deleted)`. `reset` then clears history but not `typing_attributes`. If the first character was formatted (e.g. `set_attributes(0..5, bold)` on \"hello world\"), the next `replace_selection(\"new\")` after `reset` is bold. The existing test passes only because its bold span starts at 2, so `stored_attributes(0)` is `None`.\n\n**Repair.** After a successful reset clear `typing_attributes` and `composition_attributes` (or route reset through a path that skips the empty-paragraph rule). Extend `reset_clears_formatting` with a span starting at offset 0 and assert `typing_attributes().is_none()` and that text typed after the reset has no spans.\n\n**Resolved.** `reset` now clears `typing_attributes` and `composition_attributes` after a successful reset. Regression test `reset_leaves_no_typing_attributes` (bold from offset 0; text typed after reset has no spans).",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_attributes.rs"
+        }
+      ]
     }
   ],
   "handoffMarkdown": "",
