@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list-layer-kinds",
-  "revision": 39,
+  "revision": 46,
   "planRevision": 7,
   "specHashes": {
     "requirements": "6624ffc34f924fe7c0c2363d3e6013bf10669885d6b44b6f000d06f239120c33",
@@ -34,7 +34,10 @@
       ]
     },
     "t05-synchronized-layer": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
     },
     "t06-parent-promoted": {
       "status": "pending"
@@ -133,6 +136,16 @@
         }
       },
       "recordedAt": "2026-10-16T23:47:50Z"
+    },
+    "e30c8a1ac02a7eedf88637f3beca839ed89ea5057dcce3369d87ee8fdb6908d5": {
+      "snapshot": {
+        "specHash": "28a51104afbdb1d6f3ab6ae37dc87cb3b7bdfbe6da710a052430a1a0303cf3b4",
+        "repositories": {
+          "gpux": "ac2a2b17fefffe6b833767266fc7e1665ce0a3d1d8ef19b8fdb11f8b6b633c9f",
+          "rayx": "2259122bb457510a8253c47d59a730b4864bddde1a4562ac19edad6c655041b0"
+        }
+      },
+      "recordedAt": "2026-10-17T00:20:35Z"
     }
   },
   "checkResults": {
@@ -339,6 +352,23 @@
       "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s02-sticky-final-65adfbd7f6e8.log",
       "logSha256": "d095f4fec98164d318010868e00fe1b052a13568a994d2cdf0aee93663a0c430",
       "inputsHash": "9a6a792217ac72e48c0f61b0fa1b5572fa69798d7b33f9fd9b11a72c00f66091"
+    },
+    "s03-synchronized/c-synchronized/final": {
+      "checkId": "c-synchronized",
+      "boundaryId": "s03-synchronized",
+      "phase": "final",
+      "batchId": "e30c8a1ac02a7eedf88637f3beca839ed89ea5057dcce3369d87ee8fdb6908d5",
+      "definitionHash": "11e6ca6c48a0124c0e1781386c93abf649d7129e86fc39886c677b7b5423dea1",
+      "basisHash": "6a6e215e9edc9418bdb847a59ac2d75d6d41989f198d5259b019b5d71df517a2",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 0.8128,
+      "recordedAt": "2026-10-17T00:20:34Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s03-synchronized-final-31e1e58798c0.log",
+      "logSha256": "e168ed177bdf7a1b03a796e237558ab42eac290de93f70109ea0c4c0dfd5fdd4",
+      "inputsHash": "cb9e06965e674be93acd7152bf70b3ec976afdc77b8c5e5581eff6c7f060d6e6"
     }
   },
   "reviews": {
@@ -704,6 +734,75 @@
         "lk-s02-F2"
       ],
       "recordedAt": "2026-10-16T23:49:28Z"
+    },
+    "s03-synchronized": {
+      "reviewerId": "reviewer-lk-s03",
+      "snapshotId": "e30c8a1ac02a7eedf88637f3beca839ed89ea5057dcce3369d87ee8fdb6908d5",
+      "criterionIds": [
+        "SO-1"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/virtual_list/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SO-1"
+          ],
+          "sha256": "dc73caf365e28581e1685f03d5631ecfb5621c901a3cf537d3e8098763a200d4"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/invalidate.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SO-1"
+          ],
+          "sha256": "bde1c94fc4332817083ba5989fa85e0066c832a1d49d82d0bcb0f1e5175dae8b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SO-1"
+          ],
+          "sha256": "7408e01808864017210557859bef070edf6a7dd82fed5cdde18521f13781660a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/synchronized.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SO-1"
+          ],
+          "sha256": "e4cdbc0c793f9ac82eab7a1a85bcd752fbc7fd811905caaec196e5e5c74c829c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/ineligible.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SO-1"
+          ],
+          "sha256": "d0ebe61b138df26af316a429e5c716107b707932eb3f651fb4503a70f76ad8ce"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/mod.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SO-1"
+          ],
+          "sha256": "be0be96fb55f8597ffc42ec47ac3aa310e80b349db89eeb376daaac84e8abaa2"
+        }
+      ],
+      "summaryMarkdown": "Passed. A `SynchronizedOffset` list gets its own list layer keyed by its id, at the shared handle's snapped offset, with the driver's published offsets and dependent notifications counted as its scroll (`invalidate::painted_synchronized`). This holds only while what holds the list clips it within its bounds. Otherwise it is counted ineligible and drawn exactly as before. Paint is unchanged in every mode, so frames with fast mode off are today's. `synchronized` covers both axes (counters, comparisons with layers off, whole-frame histories) and the unclipped ineligible case. Consequence recorded for s05: RayX's ListView, TreeView and DataTable body in this mode get a layer only where their container clips them. The sprint checks are fresh at revision 44.",
+      "findingIds": [
+        "lk-s03-F1"
+      ],
+      "recordedAt": "2026-10-17T00:21:53Z"
     }
   },
   "checkpoints": {
@@ -742,6 +841,15 @@
       },
       "reviewHash": "9c9dcf2105f58fd14209b26553bd10e095d079c71c7fd637a8dc7463cb35e139",
       "recordedAt": "2026-10-16T23:49:45Z"
+    },
+    "s03-synchronized": {
+      "snapshotId": "e30c8a1ac02a7eedf88637f3beca839ed89ea5057dcce3369d87ee8fdb6908d5",
+      "commits": {
+        "gpux": "36d481ff9add951bf8f4c50300ffb3887bb2107c",
+        "rayx": "ddaba825ef2ff9958bab1e464e52ba020ddd3239"
+      },
+      "reviewHash": "153bdfd54f3780392d28e5c5308f06b043ad4c3d083517eb7b0f3080ab5a5189",
+      "recordedAt": "2026-10-17T00:22:10Z"
     }
   },
   "findings": [
@@ -889,9 +997,25 @@
         }
       ],
       "boundaryId": "s02-sticky"
+    },
+    {
+      "id": "lk-s03-F1",
+      "criterionIds": [
+        "SO-1"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved. Both clips are removed, so a `SynchronizedOffset` list paints as before in every mode, fast mode off included. Eligibility is now gated instead. The list is `carried` only when the content mask of what holds it lies within its bounds (`mask.intersect(&bounds) == mask`, read in prepaint before the list pushes its own rectangular mask). On such frames the layer's viewport clip and the prepaint hitbox clip coincide with what the frame without a layer shows. Otherwise the list is counted ineligible and drawn as today. Regression: `an_unclipped_synchronized_list_is_ineligible_and_draws_as_without_layers` (`clipped: false`, compared with layers off, ineligible ≥ 30, no rows kept, no list layer) fails with the gate forced open. The clipped page variant (an `overflow_hidden` container of the list's size, the DataTable-body pattern) keeps the four existing tests passing.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/synchronized.rs"
+        }
+      ],
+      "boundaryId": "s03-synchronized"
     }
   ],
-  "handoffMarkdown": "virtual_list_layers::sticky_oracle (3): quads at 1 and 1.25 with fractional rows, gap, padding (Styled, Levels, StackIds) comparing sticky state events per step; whole-frame histories in separate apps with Levels, StackIds, Styled and event logs. It found nothing to fix.",
+  "handoffMarkdown": "SynchronizedOffset lists take the layered path (own_scroll = !ParentViewport): snapped offset, begin_virtual_list inside a ContentMask of the list's bounds, row hooks, measure_item. invalidate::painted_synchronized remembers the list id as a container sourced by the shared handle's state. Paint clips such a list to its bounds (needed for a baked background; prepaint already clipped). New group virtual_list_layers::synchronized (4); ineligible's synchronized case removed; Kind::SynchronizedHorizontal page.",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",
