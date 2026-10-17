@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-a11y-devtools",
-  "revision": 165,
+  "revision": 169,
   "planRevision": 21,
   "specHashes": {
     "requirements": "828bce0b1e3d55e899e87d78d9f8ac18362f50db8456cdca27205f783b5760b3",
@@ -268,13 +268,13 @@
       ]
     },
     "t31-voiceover-macos": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "local_a11y_impl"
       ]
     },
     "t32-voiceover-web": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "local_a11y_impl"
       ]
@@ -420,6 +420,16 @@
         }
       },
       "recordedAt": "2026-10-17T01:15:19Z"
+    },
+    "4bf09d9d826da976bc92240fc12cd30e78577c5697989bf994716f7c867852bc": {
+      "snapshot": {
+        "specHash": "d080e4557750917d291f3c81b20930ddf31752747343f2301e555a2a56b41df1",
+        "repositories": {
+          "gpux": "ecb68f0376008cc8d903c470d7cd6b140c8528dc5442f037691c7b6bb5e6c43d",
+          "rayx": "8cfb3352ceb22853b42bd54b9eddbe1ec1b13e7425417a72efe39dcedc88bc2e"
+        }
+      },
+      "recordedAt": "2026-10-17T01:20:23Z"
     }
   },
   "checkResults": {
@@ -1574,35 +1584,35 @@
       "checkId": "check-sr-macos-voiceover",
       "boundaryId": "s10a-voiceover-fixes",
       "phase": "final",
-      "batchId": "fce4d43e57838251fc3c305c868513a8541493de3aae707d46d8953d9b013aeb",
+      "batchId": "4bf09d9d826da976bc92240fc12cd30e78577c5697989bf994716f7c867852bc",
       "definitionHash": "48ff5c84ba358186b31fe26fa5a06a328f4a361afeac93ba600b1d0c886a4f1c",
-      "basisHash": "2e1208c5980230d85849c0abf58120968c11cfb6cc4b03f59b1bf81fdb893734",
+      "basisHash": "8aee9a9aa42e62c96561acb66054371879d8b4c4f5d9d295eeffa5aba249c88f",
       "status": "passed",
       "exitCode": 0,
       "testCount": 1,
-      "durationSeconds": 7.3678,
-      "recordedAt": "2026-10-17T01:15:03Z",
+      "durationSeconds": 3.1837,
+      "recordedAt": "2026-10-17T01:20:15Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s10a-voiceover-fixes-final-bd044d15c8cb.log",
-      "logSha256": "c86a16de8073c526ce0c6141d466dd8fe8e0070efda111e3086c8d4de2e8ad10",
-      "inputsHash": "fea04cc133d61b7e6a4a615781e94336f31bfe9942a19da728ae353c747d5aa2"
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s10a-voiceover-fixes-final-513facf74b6f.log",
+      "logSha256": "d960e109a5a70bf4dd28527e69c6c17ca109de73eecefc137bf05c53bfb280ad",
+      "inputsHash": "c475f1abea8a1c929254f14490c54c55c5c6573ca64c4230dafc4469aaf012d4"
     },
     "s10a-voiceover-fixes/check-sr-web-navigation/final": {
       "checkId": "check-sr-web-navigation",
       "boundaryId": "s10a-voiceover-fixes",
       "phase": "final",
-      "batchId": "fce4d43e57838251fc3c305c868513a8541493de3aae707d46d8953d9b013aeb",
+      "batchId": "4bf09d9d826da976bc92240fc12cd30e78577c5697989bf994716f7c867852bc",
       "definitionHash": "ad518e029483bf872523a74424b6605b1b9571723bdeb0a55cd123a571a76c93",
-      "basisHash": "0fc0afb304f44accb0160c21cf87e2b9035919481106d6dd82b700d17cf50173",
+      "basisHash": "271e1d6eb4b23c7e0c8ddc246ab74154b9fe003081ac29acad4481aa2197e12e",
       "status": "passed",
       "exitCode": 0,
       "testCount": 5,
-      "durationSeconds": 9.0634,
-      "recordedAt": "2026-10-17T01:15:13Z",
+      "durationSeconds": 6.6173,
+      "recordedAt": "2026-10-17T01:20:22Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s10a-voiceover-fixes-final-eac788f6e609.log",
-      "logSha256": "13790f3bbaeca76fff47990737a4c163a88b77cb3d32bf65eeb18f55ce1901ae",
-      "inputsHash": "fea04cc133d61b7e6a4a615781e94336f31bfe9942a19da728ae353c747d5aa2"
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s10a-voiceover-fixes-final-42750456c5a0.log",
+      "logSha256": "7bddecf683b43bd83a79b8c98ddb71956f2f0bd053b32ecdca4eda0d9c9d4201",
+      "inputsHash": "c475f1abea8a1c929254f14490c54c55c5c6573ca64c4230dafc4469aaf012d4"
     },
     "s10a-voiceover-fixes/check-sr-aria-defaults/final": {
       "checkId": "check-sr-aria-defaults",
@@ -3727,6 +3737,128 @@
         "gpux:docs/measurements/a11y-devtools.md": "e8e4f95bb77b8676c4816348f8b46089ace75a88346c2e467c5535803f54ed31",
         "gpux:docs/measurements/screen-reader-walkthrough.md": "d647a0e88aa62a59cdf656ee35ff14469a1fb2b392066e9cb655cf15f229abd5"
       }
+    },
+    "s10a-voiceover-fixes": {
+      "reviewerId": "independent-reviewer-s08-rayx-opus-091c999e",
+      "snapshotId": "4bf09d9d826da976bc92240fc12cd30e78577c5697989bf994716f7c867852bc",
+      "criterionIds": [
+        "SR-8",
+        "SR-9"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "vendor/accesskit_macos/src/node.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SR-8"
+          ],
+          "sha256": "b48a477d50ebb411a9b200291d59b991d5bac56f1a4fc3f640341c3f3402c537"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "vendor/accesskit_macos/src/event.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SR-8"
+          ],
+          "sha256": "c798fec383c5a010a350d3c522ade2c58713ce5377b900c4f5a77e825342032a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "vendor/accesskit_macos/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "SR-8"
+          ],
+          "sha256": "8d721a25e02021183c92aea35f658250b3a05c49a9f7640ac6d563187d05a368"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SR-8"
+          ],
+          "sha256": "c58ffb3973bf3abbbc3e1e8aed2c86c43412aa91d12c452303f4c34815063649"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/desktop_host/screen_reader.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SR-8"
+          ],
+          "sha256": "bde13906815410bc2b9254bd6a104ff58f0deab71c2f1cb8cc50f04d22191cbb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/a11y_aria_defaults.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SR-8"
+          ],
+          "sha256": "b30bdc30de270eda07689581c1e4933e7c7174ca717dd1fdec1db8a817a1e188"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/accessibility.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SR-9"
+          ],
+          "sha256": "8ac06393c4fb40a65fbfb78c1a99a8540967545c3bdb4c56ea51dc538b666d11"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/ime_mirror.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SR-9"
+          ],
+          "sha256": "d6ae8b29a62397590d62e57c7d06f7790e4643fc4374b938bfa46e5eaded671e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/screen-reader.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "SR-9"
+          ],
+          "sha256": "e2655ce7d95747299015a150e228a75dc5ceac445b08fc3210b031401dc4c246"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/upstream/accesskit-macos-tables-expanded.md",
+          "kind": "source",
+          "criterionIds": [
+            "SR-8"
+          ],
+          "sha256": "7628b913c55406276c0fa52ac95932375c5baeb3942b70532c5b75edf88c2c68"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/measurements/screen-reader-walkthrough.md",
+          "kind": "source",
+          "criterionIds": [
+            "SR-8",
+            "SR-9"
+          ],
+          "sha256": "2bab086d258a9549048cee3b8c5abbe24bfce974efaf42acfacad111fc661b74"
+        }
+      ],
+      "deltaSummaryMarkdown": "Inspected gpux 81d3b88. The walkthrough summary now says the epic fixed findings 1–6 and part of 7, and lists as open for the owner's next walk: Safari's Copies speaking no value despite `aria-valuenow`/`aria-valuetext` \"1\" (cause not established; macOS says \"1, Copies, stepper\"), and the IME textarea still announced once at load because it holds keyboard focus, though it is no longer navigated onto. The Safari walk line records that Copies spoke no value. The scene fix in `web_scenes.rs` gives the composition page's \"exits\" status its own `div().id(\"exits\")` parent, so it is no longer a same-id sibling of \"status\" that the AccessKit tree, keyed by global element id, merged away. It is a test-scene correction with no effect on the sprint's code. The duplicate-sibling-id behaviour of the tree predates this sprint; the coordinator is recording it as a follow-up, which I could not yet find recorded in the repository. Checks passed 3/3 at revision 167.",
+      "reattestedFrom": "fce4d43e57838251fc3c305c868513a8541493de3aae707d46d8953d9b013aeb",
+      "summaryMarkdown": "**Fork scope.** The fork is within CLAUDE.md's rules on the wgpu precedent. d3ff359's `src/` is byte-identical to crates.io `accesskit_macos-0.27.1` (diff -r), and its manifest is the published normalized one with only the package name, version (`0.27.1-gpux.1`), description and repository changed. The workspace keeps the Rust name through `package = \"gpux-accesskit-macos\"` with an exact path+version dependency: no `[patch]`, no git dependency, and the lockfile holds one `accesskit` (0.25.1). CLAUDE.md, the README and docs/upstream document the fork and its removal path.\n\n**Fork changes (5fbb6a2).** Every change is marked `gpux fork:` and stays within d-macos-adapter-fork: table rows and row/cell index ranges, `isAccessibilityExpanded` plus `AXExpandedChanged`, `accessibilityValueDescription` for range roles, refusing `setAccessibilityValue:` where increment/decrement exists, and allowing press on disabled controls. That last change is safe: `press()` still sends Click only when the node is clickable, and gpux advertises Click only for elements with click listeners, so a disabled control without a handler does nothing. The slider default is the ARIA one, with `a11y_aria_defaults`. The lane D check reads the real NSAccessibility surface in process and fails on each property.\n\n**Web (e521be1).** `place_after` keeps focus: it re-focuses if the move blurred the element, the window-level blur listener is unaffected, and mirror listeners ignore events whose target is the textarea, so keys go through the textarea's own path once. The fixed-position textarea's containing block becomes the mirror root's transform, which only moves its 1px box to the canvas origin. Moving the textarea mid-composition on a reorder is possible but rare. The attribute/style skips are covered by a MutationObserver spec that fails without them, and the fixed walk passes Details to the end of the page, which supports the cause.\n\n**One gap.** The walkthrough record overstates the web results (the finding). Separately, outside this sprint: RayX's decision `2026-08-08-ui-accessibility-component-accesskit-contract` (\"leave WASM accessibility unsupported\") is still `status: current`; the design declares it superseded, so the epic's closing memory promotion should mark it.",
+      "findingIds": [
+        "s10a-walkthrough-overstates-web-fixes"
+      ],
+      "recordedAt": "2026-10-17T01:21:03Z",
+      "recordHashes": {
+        "gpux:docs/measurements/a11y-devtools.md": "e8e4f95bb77b8676c4816348f8b46089ace75a88346c2e467c5535803f54ed31",
+        "gpux:docs/measurements/screen-reader-walkthrough.md": "152a5d2a5d854f8f546ac3681f5472e4b8f7cd267ce40e55fb6f1ba1b1ab779c"
+      }
     }
   },
   "checkpoints": {
@@ -3846,6 +3978,15 @@
       },
       "reviewHash": "2dddfbd8ab5bacf0bc3133f25939f3658e088d6684d7825b247b94b4418545be",
       "recordedAt": "2026-10-17T00:00:23Z"
+    },
+    "s10a-voiceover-fixes": {
+      "snapshotId": "4bf09d9d826da976bc92240fc12cd30e78577c5697989bf994716f7c867852bc",
+      "commits": {
+        "gpux": "f491afc8f4e139e5d497d99d1611aa053fb5bc09",
+        "rayx": "3716df725aec4fe9923900b6aa79350f1342dc09"
+      },
+      "reviewHash": "329a6c07a68b085b835ebfd50c1c1a11f51c8b43ad849a5832ae5a99cb4c0e4f",
+      "recordedAt": "2026-10-17T01:21:34Z"
     }
   },
   "findings": [
@@ -4921,6 +5062,22 @@
         {
           "repositoryId": "gpux",
           "path": ".agentx/memory/knowledge/platform/desktop/state.md"
+        }
+      ]
+    },
+    {
+      "id": "s10a-walkthrough-overstates-web-fixes",
+      "boundaryId": "s10a-voiceover-fixes",
+      "criterionIds": [
+        "SR-9"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "The walkthrough record called findings 1–7 fixed although the Safari walk showed Copies speaking no value and the IME textarea still announced at load. Resolved: the summary now records both as open, with evidence, for the owner's next walk.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/measurements/screen-reader-walkthrough.md"
         }
       ]
     }
