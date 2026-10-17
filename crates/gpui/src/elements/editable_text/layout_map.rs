@@ -1,14 +1,14 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    Font, Pixels, Point, RunMetrics, SharedString, Size, TextRun, WindowTextSystem,
-    WrappedLineLayout, point, px, size,
+    Font, FontId, Pixels, Point, RunMetrics, SharedString, Size, TextAlign, TextRun,
+    WindowTextSystem, WrappedLineLayout, point, px, size,
 };
 
 use super::{
     AttributeSpan, EditableTextProjection, EditableTextStyleRun, EditableTextStyleRuns, Formatting,
     LayoutStyleKey, RowLayoutKey, ShapeRunKey, TextBufferError, TextBufferSnapshot, TextEdit,
-    TextLayoutCache, TextLayoutCacheStats, TextLayoutUpdate,
+    TextLayoutCache, TextLayoutCacheStats, TextLayoutUpdate, editable_text_alignment_offset,
 };
 
 /// A byte-based point in the visual rows produced by soft wrapping.
@@ -114,6 +114,11 @@ pub trait TextLayoutShaper {
         &self,
         request: TextLayoutShapeRequest<'_>,
     ) -> Result<Arc<WrappedLineLayout>, String>;
+
+    /// The ascent and descent (both positive) of a font at a size, for rows that mix sizes.
+    fn font_ascent_descent(&self, _font_id: FontId, font_size: Pixels) -> (Pixels, Pixels) {
+        (font_size * 0.8, font_size * 0.2)
+    }
 }
 
 impl TextLayoutShaper for WindowTextSystem {
@@ -136,6 +141,13 @@ impl TextLayoutShaper for WindowTextSystem {
             .next()
             .map(|line| line.layout)
             .ok_or_else(|| "text shaper returned no logical line".to_owned())
+    }
+
+    fn font_ascent_descent(&self, font_id: FontId, font_size: Pixels) -> (Pixels, Pixels) {
+        (
+            self.ascent(font_id, font_size),
+            -self.descent(font_id, font_size),
+        )
     }
 }
 
@@ -160,6 +172,35 @@ struct LayoutRow {
     visual_len: usize,
     character_boundaries: Arc<[usize]>,
     layout: Arc<WrappedLineLayout>,
+    /// One entry per visual row of the logical row.
+    shapes: Arc<[RowShape]>,
+}
+
+/// A visual row's own height and baseline, and where its glyphs start and end in the logical
+/// row's layout.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct RowShape {
+    height: Pixels,
+    baseline: Pixels,
+    start_x: Pixels,
+    width: Pixels,
+}
+
+/// The geometry of one visual row of a [`TextLayoutMap`].
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct TextVisualRow {
+    /// The row's top, from the top of the text.
+    pub top: Pixels,
+    /// The row's height.
+    pub height: Pixels,
+    /// The distance from the row's top to its baseline, shared by every run in it.
+    pub baseline: Pixels,
+    /// How far the row's start is moved from the field's alignment offset
+    /// ([`super::EditableTextGeometry::alignment_offset`]) by its own alignment; positions the
+    /// map reports include it.
+    pub x_offset: Pixels,
+    /// The width of the row's glyphs.
+    pub width: Pixels,
 }
 
 /// Revision-tagged wrapping and geometry for neutral editable text.
@@ -178,6 +219,10 @@ pub struct TextLayoutMap {
     installed_formatting: Option<Arc<Formatting>>,
     /// The installed formatting's spans in display coordinates.
     projected_attributes: Vec<AttributeSpan>,
+    /// Every visual row's geometry, in order.
+    visual_rows: Vec<TextVisualRow>,
+    alignment: TextAlign,
+    align_width: Option<Pixels>,
 }
 
 impl TextLayoutMap {
@@ -204,6 +249,112 @@ impl TextLayoutMap {
     /// Returns the maximum row width and total visual height.
     pub fn size(&self) -> Size<Pixels> {
         self.size
+    }
+
+    /// The geometry of one visual row.
+    pub fn visual_row(&self, row: usize) -> Option<TextVisualRow> {
+        self.visual_rows.get(row).copied()
+    }
+
+    /// The visual row at `y` (from the top of the text), or the row count past the last row.
+    pub fn visual_row_at_y(&self, y: Pixels) -> usize {
+        if y >= self.size.height {
+            return self.visual_rows.len();
+        }
+        self.visual_rows
+            .partition_point(|row| row.top <= y)
+            .saturating_sub(1)
+    }
+
+    /// The caret's rectangle at a buffer offset, from the top of the text: as tall as the
+    /// line height of the run at the caret, around the row's baseline.
+    pub fn caret_bounds(&self, offset: usize) -> Option<crate::Bounds<Pixels>> {
+        let position = self.position_for_index(offset)?;
+        let display = self.buffer_to_display(offset)?;
+        let row = self.visual_rows.get(display.row)?;
+        let logical = self.row_for_buffer_offset(offset)?;
+        let local = self
+            .buffer_offset_to_display(offset)
+            .saturating_sub(logical.display_start);
+        let line = &logical.layout.unwrapped_layout;
+        // The run of the character before the caret within its row, else the one after it.
+        let row_start = row_boundary_index(&logical.layout, display.row - logical.visual_start);
+        let mut glyphs = line.runs.iter().flat_map(|run| {
+            run.glyphs
+                .iter()
+                .map(move |glyph| (glyph.index, run.font_size))
+        });
+        let run_size = glyphs
+            .clone()
+            .filter(|(index, _)| *index >= row_start)
+            .take_while(|(index, _)| *index < local.max(row_start + 1))
+            .last()
+            .or_else(|| glyphs.find(|(index, _)| *index >= local))
+            .or_else(|| line.runs.first().map(|run| (0, run.font_size)))
+            .map(|(_, size)| size);
+        let height = match run_size {
+            Some(size) if line.font_size > px(0.) && size != line.font_size => {
+                (self.line_height * (size / line.font_size)).min(row.height)
+            }
+            _ => self.line_height.min(row.height),
+        };
+        let top = if height >= row.height {
+            row.top
+        } else {
+            (row.top + row.baseline - height * (row.baseline / row.height)).max(row.top)
+        };
+        Some(crate::Bounds::new(
+            point(position.x, top),
+            size(px(0.), height),
+        ))
+    }
+
+    /// Aligns each visual row within `width` as paint does; a row's offset from the field's
+    /// alignment offset then enters every position the map reports.
+    pub(crate) fn set_alignment(&mut self, alignment: TextAlign, width: Option<Pixels>) {
+        if self.alignment != alignment || self.align_width != width {
+            self.alignment = alignment;
+            self.align_width = width;
+            self.rebuild_visual_rows();
+        }
+    }
+
+    fn rebuild_visual_rows(&mut self) {
+        self.visual_rows.clear();
+        let global = self.align_width.map_or(px(0.), |width| {
+            editable_text_alignment_offset(self.alignment, width, self.size.width)
+        });
+        let line_height = self.line_height;
+        let mut uniform = true;
+        let mut next_top = px(0.);
+        for row in &self.rows {
+            for shape in row.shapes.iter() {
+                let index = self.visual_rows.len();
+                // Rows of the configured height sit exactly where uniform rows always did.
+                let top = if uniform {
+                    line_height * index
+                } else {
+                    next_top
+                };
+                uniform &= shape.height == line_height;
+                next_top = top + shape.height;
+                let x_offset = self.align_width.map_or(px(0.), |width| {
+                    editable_text_alignment_offset(self.alignment, width, shape.width) - global
+                });
+                self.visual_rows.push(TextVisualRow {
+                    top,
+                    height: shape.height,
+                    baseline: shape.baseline,
+                    x_offset,
+                    width: shape.width,
+                });
+            }
+        }
+        self.size.height = if uniform {
+            line_height * self.visual_rows.len()
+        } else {
+            next_top
+        };
     }
 
     /// Sets the stored formatting the next update lays out with the text.
@@ -385,6 +536,7 @@ impl TextLayoutMap {
             };
             let visual_len = layout.wrap_boundaries().len() + 1;
             max_width = max_width.max(layout.width());
+            let shapes = row_shapes(&layout, style, shaper);
             let character_boundaries = line
                 .char_indices()
                 .map(|(offset, _)| offset)
@@ -401,6 +553,7 @@ impl TextLayoutMap {
                 visual_len,
                 character_boundaries,
                 layout: layout.clone(),
+                shapes,
             });
             next_cache.insert(row_key, layout);
             visual_start += visual_len;
@@ -443,6 +596,7 @@ impl TextLayoutMap {
         self.projection = projection.cloned();
         self.installed_formatting = self.formatting.clone();
         self.projected_attributes = projected_attributes;
+        self.rebuild_visual_rows();
         self.cache
             .install(snapshot.revision(), style_key, next_cache, update);
         Ok(update)
@@ -528,6 +682,7 @@ impl TextLayoutMap {
                 .collect::<Vec<_>>()
                 .into(),
             layout: layout.clone(),
+            shapes: row_shapes(&layout, style, shaper),
         };
         self.rows[row_index] = replacement;
         if visual_delta != 0 {
@@ -539,6 +694,7 @@ impl TextLayoutMap {
         self.size.width = self.size.width.max(layout.width());
         self.size.height = style.line_height * self.visual_line_count;
         self.installed_style_runs = Some(style_runs.clone());
+        self.rebuild_visual_rows();
         let update = TextLayoutUpdate {
             shaped_rows: 1,
             reused_rows: self.rows.len().saturating_sub(1),
@@ -554,11 +710,8 @@ impl TextLayoutMap {
         let row = self.row_for_buffer_offset(offset)?;
         let display_offset = self.buffer_offset_to_display(offset);
         let local_offset = display_offset.saturating_sub(row.display_start);
-        let position = row
-            .layout
-            .position_for_index(local_offset, self.line_height)?;
-        let local_visual_row = visual_row(position.y, self.line_height).min(row.visual_len - 1);
-        let visual_start = row_boundary_index(&row.layout, local_visual_row, self.line_height);
+        let local_visual_row = local_visual_row(&row.layout, local_offset)?.min(row.visual_len - 1);
+        let visual_start = row_boundary_index(&row.layout, local_visual_row);
         Some(TextDisplayPoint::new(
             row.visual_start + local_visual_row,
             local_offset.saturating_sub(visual_start),
@@ -569,8 +722,8 @@ impl TextLayoutMap {
     pub fn display_to_buffer(&self, point: TextDisplayPoint) -> Option<usize> {
         let row = self.row_for_visual_row(point.row)?;
         let local_visual_row = point.row - row.visual_start;
-        let start = row_boundary_index(&row.layout, local_visual_row, self.line_height);
-        let end = row_boundary_end(&row.layout, local_visual_row, self.line_height);
+        let start = row_boundary_index(&row.layout, local_visual_row);
+        let end = row_boundary_end(&row.layout, local_visual_row);
         let requested = start + point.column.min(end.saturating_sub(start));
         let boundary = row
             .character_boundaries
@@ -584,11 +737,13 @@ impl TextLayoutMap {
     pub fn position_for_index(&self, offset: usize) -> Option<Point<Pixels>> {
         let row = self.row_for_buffer_offset(offset)?;
         let display_offset = self.buffer_offset_to_display(offset);
-        let local = row.layout.position_for_index(
-            display_offset.saturating_sub(row.display_start),
-            self.line_height,
-        )?;
-        Some(local + point(px(0.), self.line_height * row.visual_start))
+        let local = row
+            .layout
+            .position_for_index(display_offset.saturating_sub(row.display_start), UNIT_ROW)?;
+        let visual = self
+            .visual_rows
+            .get(row.visual_start + f32::from(local.y) as usize)?;
+        Some(point(local.x + visual.x_offset, visual.top))
     }
 
     /// Returns the configured height of one visual row.
@@ -600,8 +755,8 @@ impl TextLayoutMap {
     pub fn visual_row_range(&self, visual_row: usize) -> Option<std::ops::Range<usize>> {
         let row = self.row_for_visual_row(visual_row)?;
         let local_visual_row = visual_row - row.visual_start;
-        let start = row_boundary_index(&row.layout, local_visual_row, self.line_height);
-        let end = row_boundary_end(&row.layout, local_visual_row, self.line_height);
+        let start = row_boundary_index(&row.layout, local_visual_row);
+        let end = row_boundary_end(&row.layout, local_visual_row);
         Some(
             self.display_offset_to_buffer(row.display_start + start)
                 ..self.display_offset_to_buffer(row.display_start + end),
@@ -612,17 +767,18 @@ impl TextLayoutMap {
     pub fn position_for_display(&self, display: TextDisplayPoint) -> Option<Point<Pixels>> {
         let row = self.row_for_visual_row(display.row)?;
         let local_visual_row = display.row - row.visual_start;
-        let start = row_boundary_index(&row.layout, local_visual_row, self.line_height);
-        let end = row_boundary_end(&row.layout, local_visual_row, self.line_height);
+        let start = row_boundary_index(&row.layout, local_visual_row);
+        let end = row_boundary_end(&row.layout, local_visual_row);
         let index = start + display.column.min(end.saturating_sub(start));
         let x = if index == start {
             px(0.)
         } else {
             row.layout
-                .position_for_index(index, self.line_height)
+                .position_for_index(index, UNIT_ROW)
                 .map(|position| position.x)?
         };
-        Some(point(x, self.line_height * display.row))
+        let visual = self.visual_rows.get(display.row)?;
+        Some(point(x + visual.x_offset, visual.top))
     }
 
     pub(crate) fn logical_rows_for_visual_range(
@@ -660,13 +816,14 @@ impl TextLayoutMap {
         if position.y < px(0.) || self.line_height <= px(0.) {
             return None;
         }
-        let visual_row = visual_row(position.y, self.line_height);
+        let visual_row = self.visual_row_at_y(position.y);
         let row = self.row_for_visual_row(visual_row)?;
-        let local = point(position.x, position.y - self.line_height * row.visual_start);
-        let index = match row
-            .layout
-            .closest_index_for_position(local, self.line_height)
-        {
+        let visual = self.visual_rows.get(visual_row)?;
+        let local = point(
+            position.x - visual.x_offset,
+            UNIT_ROW * (visual_row - row.visual_start) + UNIT_ROW / 2.,
+        );
+        let index = match row.layout.closest_index_for_position(local, UNIT_ROW) {
             Ok(index) | Err(index) => index,
         };
         Some(self.display_offset_to_buffer(row.display_start + index.min(row.display_len)))
@@ -855,26 +1012,115 @@ fn shape_runs_for_line(
     (text_runs, keys)
 }
 
-fn visual_row(y: Pixels, line_height: Pixels) -> usize {
-    if line_height <= px(0.) {
-        0
-    } else {
-        (f32::from(y) / f32::from(line_height)).max(0.) as usize
-    }
+/// Wrapped-layout queries take a row height; the map asks them in rows of one pixel and keeps
+/// each visual row's own height and top itself.
+const UNIT_ROW: Pixels = px(1.);
+
+fn local_visual_row(layout: &WrappedLineLayout, local_offset: usize) -> Option<usize> {
+    layout
+        .position_for_index(local_offset, UNIT_ROW)
+        .map(|position| f32::from(position.y) as usize)
 }
 
-fn row_boundary_index(layout: &WrappedLineLayout, visual_row: usize, line_height: Pixels) -> usize {
-    let position = point(px(0.), line_height * visual_row);
-    match layout.closest_index_for_position(position, line_height) {
+/// Each visual row's height, baseline and horizontal extent. Logical rows whose runs all sit
+/// at the field's size and baseline keep exactly the uniform geometry; rows mixing sizes or
+/// shifts are as tall as their tallest run's line height and share one baseline.
+fn row_shapes(
+    layout: &WrappedLineLayout,
+    style: &TextLayoutStyle,
+    shaper: &impl TextLayoutShaper,
+) -> Arc<[RowShape]> {
+    let line = &layout.unwrapped_layout;
+    let line_height = style.line_height;
+    let mut extents = Vec::with_capacity(layout.wrap_boundaries().len() + 1);
+    let mut start_x = px(0.);
+    for boundary in layout.wrap_boundaries() {
+        let x = line.runs[boundary.run_ix].glyphs[boundary.glyph_ix]
+            .position
+            .x;
+        extents.push((start_x, x - start_x));
+        start_x = x;
+    }
+    extents.push((start_x, line.width - start_x));
+    let uniform_baseline = (line_height - line.ascent - line.descent) / 2. + line.ascent;
+    let uniform = line
+        .runs
+        .iter()
+        .all(|run| run.font_size == style.font_size && run.baseline_shift == Pixels::ZERO);
+    if uniform || style.font_size <= px(0.) {
+        return extents
+            .into_iter()
+            .map(|(start_x, width)| RowShape {
+                height: line_height,
+                baseline: uniform_baseline,
+                start_x,
+                width,
+            })
+            .collect();
+    }
+
+    // The distinct (size, shift, font) of the runs in each visual row.
+    let mut row_runs: Vec<Vec<(Pixels, Pixels, FontId)>> = vec![Vec::new(); extents.len()];
+    let mut boundaries = layout.wrap_boundaries().iter().peekable();
+    let mut row = 0;
+    for (run_ix, run) in line.runs.iter().enumerate() {
+        for glyph_ix in 0..run.glyphs.len() {
+            while boundaries
+                .peek()
+                .is_some_and(|boundary| (boundary.run_ix, boundary.glyph_ix) <= (run_ix, glyph_ix))
+            {
+                boundaries.next();
+                row = (row + 1).min(row_runs.len() - 1);
+            }
+            let entry = (run.font_size, run.baseline_shift, run.font_id);
+            if !row_runs[row].contains(&entry) {
+                row_runs[row].push(entry);
+            }
+        }
+    }
+    extents
+        .into_iter()
+        .zip(row_runs)
+        .map(|((start_x, width), runs)| {
+            if runs.is_empty() {
+                return RowShape {
+                    height: line_height,
+                    baseline: uniform_baseline,
+                    start_x,
+                    width,
+                };
+            }
+            let mut height = line_height;
+            let mut ascent = px(0.);
+            let mut descent = px(0.);
+            for (size, shift, font_id) in runs {
+                height = height.max(line_height * (size / style.font_size));
+                let (run_ascent, run_descent) = shaper.font_ascent_descent(font_id, size);
+                ascent = ascent.max(run_ascent + shift);
+                descent = descent.max(run_descent - shift);
+            }
+            RowShape {
+                height,
+                baseline: (height - ascent - descent) / 2. + ascent,
+                start_x,
+                width,
+            }
+        })
+        .collect()
+}
+
+fn row_boundary_index(layout: &WrappedLineLayout, visual_row: usize) -> usize {
+    let position = point(px(0.), UNIT_ROW * visual_row);
+    match layout.closest_index_for_position(position, UNIT_ROW) {
         Ok(index) | Err(index) => index,
     }
 }
 
-fn row_boundary_end(layout: &WrappedLineLayout, visual_row: usize, line_height: Pixels) -> usize {
+fn row_boundary_end(layout: &WrappedLineLayout, visual_row: usize) -> usize {
     if visual_row + 1 > layout.wrap_boundaries().len() {
         layout.len()
     } else {
-        row_boundary_index(layout, visual_row + 1, line_height)
+        row_boundary_index(layout, visual_row + 1)
     }
 }
 

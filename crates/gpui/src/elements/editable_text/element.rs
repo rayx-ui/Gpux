@@ -1,9 +1,10 @@
 use crate::{
     App, Bounds, Color, ContentMask, CursorStyle, DecorationRun, DispatchPhase, Element, ElementId,
-    ElementInputHandler, Entity, GlobalElementId, IntoElement, KeyDownEvent, LayoutId, MouseButton,
-    MouseDownEvent, MouseMoveEvent, MouseUpEvent, PaintQuad, Pixels, RenderOnce, ScrollWheelEvent,
-    ShapedLine, SharedString, Style, TextAlign, TextRun, UnderlineStyle, WeakEntity, Window,
-    WrappedLine, div, fill, point, prelude::*, px, relative, size,
+    ElementInputHandler, Entity, GlobalElementId, IntoElement, KeyDownEvent, LayoutId,
+    LineRowGeometry, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, PaintQuad, Pixels,
+    RenderOnce, ScrollWheelEvent, ShapedLine, SharedString, Style, TextAlign, TextRun,
+    UnderlineStyle, WeakEntity, Window, WrappedLine, div, fill, point, prelude::*, px, relative,
+    size,
 };
 use std::ops::Range;
 
@@ -243,14 +244,16 @@ struct EditableTextPrepaintState {
     lines: Vec<EditableTextPaintLine>,
     placeholder: Option<ShapedLine>,
     text_align: TextAlign,
-    scroll_offset: crate::Point<Pixels>,
+    /// Where the text's first row starts: the viewport origin, scroll and alignment offset.
+    content_origin: crate::Point<Pixels>,
     cursor: Option<PaintQuad>,
     selection: Vec<PaintQuad>,
 }
 
 struct EditableTextPaintLine {
     line: WrappedLine,
-    visual_start: usize,
+    /// Each visual row's geometry, from the top of the text.
+    rows: Vec<LineRowGeometry>,
 }
 
 impl IntoElement for EditableTextPaintElement {
@@ -283,7 +286,15 @@ impl Element for EditableTextPaintElement {
         let mut style = Style::default();
         style.size.width = relative(1.).into();
         style.size.height = match self.state.read(cx).line_mode() {
-            EditableTextLineMode::SingleLine => window.line_height().into(),
+            // A single row as tall as its tallest run.
+            EditableTextLineMode::SingleLine => {
+                let height = window
+                    .line_height()
+                    .max(self.state.read(cx).layout_map().size().height);
+                self.state
+                    .update(cx, |state, _| state.requested_height = Some(height));
+                height.into()
+            }
             EditableTextLineMode::MultiLine => relative(1.).into(),
         };
         (window.request_layout(style, [], cx), ())
@@ -336,6 +347,18 @@ impl Element for EditableTextPaintElement {
                 )
                 .is_ok()
         });
+        // A single-line field asks layout for its row's height; when the row's height changed
+        // since it last asked, lay the field out again next frame. (Laid-out bounds are snapped
+        // to device pixels, so they are not compared.)
+        let height_changed = {
+            let state = self.state.read(cx);
+            state.line_mode() == EditableTextLineMode::SingleLine
+                && state.requested_height != Some(line_height.max(state.layout_map().size().height))
+        };
+        if height_changed && layout_ready {
+            let entity_id = self.state.entity_id();
+            window.on_next_frame(move |_, cx| cx.notify(entity_id));
+        }
         if let Some(generation) = self
             .state
             .update(cx, |state, _| state.take_pending_programmatic_generation())
@@ -360,11 +383,9 @@ impl Element for EditableTextPaintElement {
 
         let mut lines = Vec::new();
         let paint_rows = if layout_ready && line_height > px(0.) {
-            let first_visible_row =
-                ((-f32::from(scroll_offset.y) / f32::from(line_height)).max(0.)) as usize;
-            let visible_row_end = ((f32::from(bounds.size.height - scroll_offset.y)
-                / f32::from(line_height))
-            .ceil()) as usize;
+            let map = state.layout_map();
+            let first_visible_row = map.visual_row_at_y((-scroll_offset.y).max(px(0.)));
+            let visible_row_end = map.visual_row_at_y(bounds.size.height - scroll_offset.y) + 1;
             let visible_rows = first_visible_row.saturating_sub(1)
                 ..visible_row_end
                     .saturating_add(1)
@@ -389,13 +410,23 @@ impl Element for EditableTextPaintElement {
                 marked_range.clone(),
                 style.color.clone(),
             );
+            let visual_len = layout.wrap_boundaries().len() + 1;
+            let rows = (visual_start..visual_start + visual_len)
+                .filter_map(|row| state.layout_map().visual_row(row))
+                .map(|row| LineRowGeometry {
+                    top: row.top,
+                    height: row.height,
+                    baseline: row.baseline,
+                    x: row.x_offset,
+                })
+                .collect();
             lines.push(EditableTextPaintLine {
                 line: WrappedLine {
                     layout,
                     text,
                     decoration_runs: decorations,
                 },
-                visual_start,
+                rows,
             });
         }
 
@@ -427,14 +458,19 @@ impl Element for EditableTextPaintElement {
             })
             .unwrap_or_default();
         let cursor = (layout_ready && state.is_focused() && state.caret_visible()).then(|| {
-            let position = state
+            let caret = state
                 .layout_map()
-                .position_for_index(selection.head())
-                .unwrap_or_default();
+                .caret_bounds(selection.head())
+                .unwrap_or_else(|| {
+                    Bounds::new(
+                        crate::Point::default(),
+                        size(px(0.), state.layout_map().line_height()),
+                    )
+                });
             fill(
                 Bounds::new(
-                    content_origin + position,
-                    size(px(2.), state.layout_map().line_height()),
+                    content_origin + caret.origin,
+                    size(px(2.), caret.size.height),
                 ),
                 caret_color,
             )
@@ -444,7 +480,7 @@ impl Element for EditableTextPaintElement {
             lines,
             placeholder,
             text_align: style.text_align,
-            scroll_offset,
+            content_origin,
             cursor,
             selection: selection_quads,
         }
@@ -476,16 +512,7 @@ impl Element for EditableTextPaintElement {
             for paint_line in &prepaint.lines {
                 paint_line
                     .line
-                    .paint_background(
-                        bounds.origin
-                            + prepaint.scroll_offset
-                            + point(px(0.), line_height * paint_line.visual_start),
-                        line_height,
-                        prepaint.text_align,
-                        Some(bounds),
-                        window,
-                        cx,
-                    )
+                    .paint_background_rows(prepaint.content_origin, &paint_line.rows, window, cx)
                     .expect("editable text line background should paint");
             }
             for selection in prepaint.selection.drain(..) {
@@ -494,16 +521,7 @@ impl Element for EditableTextPaintElement {
             for paint_line in &prepaint.lines {
                 paint_line
                     .line
-                    .paint(
-                        bounds.origin
-                            + prepaint.scroll_offset
-                            + point(px(0.), line_height * paint_line.visual_start),
-                        line_height,
-                        prepaint.text_align,
-                        Some(bounds),
-                        window,
-                        cx,
-                    )
+                    .paint_rows(prepaint.content_origin, &paint_line.rows, window, cx)
                     .expect("editable text line should paint");
             }
             if let Some(placeholder) = &prepaint.placeholder {
@@ -723,16 +741,15 @@ pub fn editable_text_selection_quads(
     let Some(end) = map.buffer_to_display(range.end) else {
         return Vec::new();
     };
-    let line_height = map.line_height();
-    if line_height <= px(0.) {
+    if map.line_height() <= px(0.) {
         return Vec::new();
     }
-    let first_visible_row = (f32::from(viewport.top() - origin.y) / f32::from(line_height))
-        .floor()
-        .max(0.) as usize;
-    let visible_row_end = (f32::from(viewport.bottom() - origin.y) / f32::from(line_height))
-        .ceil()
-        .max(0.) as usize;
+    let first_visible_row = map.visual_row_at_y((viewport.top() - origin.y).max(px(0.)));
+    let visible_row_end = if viewport.bottom() <= origin.y {
+        0
+    } else {
+        map.visual_row_at_y(viewport.bottom() - origin.y) + 1
+    };
     let first_row = start.row.max(first_visible_row);
     let row_end = (end.row + 1)
         .min(visible_row_end)
@@ -762,10 +779,11 @@ pub fn editable_text_selection_quads(
             let start_position =
                 map.position_for_display(TextDisplayPoint::new(row, start_column))?;
             let end_position = map.position_for_display(TextDisplayPoint::new(row, end_column))?;
+            let height = map.visual_row(row)?.height;
             Some(fill(
                 Bounds::new(
                     origin + start_position,
-                    size((end_position.x - start_position.x).max(px(1.)), line_height),
+                    size((end_position.x - start_position.x).max(px(1.)), height),
                 ),
                 color.clone(),
             ))

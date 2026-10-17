@@ -63,6 +63,8 @@ pub struct EditableTextState {
     typing_attributes: Option<Arc<TextAttributes>>,
     /// Attributes an IME composition keeps for its whole life.
     composition_attributes: Option<Arc<TextAttributes>>,
+    /// The height a single-line field last asked layout for.
+    pub(crate) requested_height: Option<Pixels>,
 }
 
 #[allow(missing_docs)]
@@ -116,6 +118,7 @@ impl EditableTextState {
             format_revision: 0,
             typing_attributes: None,
             composition_attributes: None,
+            requested_height: None,
         }
     }
 
@@ -449,6 +452,8 @@ impl EditableTextState {
         let snapshot = self.snapshot();
         let projection = display_transform.project(&snapshot.text());
         self.layout_map.set_formatting(self.formatting.clone());
+        self.layout_map
+            .set_alignment(text_align, Some(bounds.size.width));
         let update_result = match (&projection, self.pending_layout_edit.as_ref()) {
             (None, Some(edit)) => self.layout_map.update_after_layout_edit_with_shaper(
                 &snapshot,
@@ -810,11 +815,11 @@ impl EditableTextState {
     }
 
     pub fn move_page_up(&mut self, extend: bool, cx: &mut Context<Self>) {
-        self.move_vertical(-self.page_row_count(), extend, cx);
+        self.move_page(-1., extend, cx);
     }
 
     pub fn move_page_down(&mut self, extend: bool, cx: &mut Context<Self>) {
-        self.move_vertical(self.page_row_count(), extend, cx);
+        self.move_page(1., extend, cx);
     }
 
     pub fn insert_newline(&mut self, cx: &mut Context<Self>) -> bool {
@@ -1187,10 +1192,10 @@ impl EditableTextState {
         let preferred_x = self.preferred_vertical_x.unwrap_or(position.x);
         let last_row = self.layout_map.visual_line_count().saturating_sub(1) as isize;
         let target_row = (display.row as isize + row_delta).clamp(0, last_row) as usize;
-        let target_position = point(
-            preferred_x,
-            self.layout_map.line_height() * target_row + self.layout_map.line_height() / 2.0,
-        );
+        let Some(target) = self.layout_map.visual_row(target_row) else {
+            return;
+        };
+        let target_position = point(preferred_x, target.top + target.height / 2.0);
         let Some(offset) = self.layout_map.index_for_position(target_position) else {
             return;
         };
@@ -1198,19 +1203,45 @@ impl EditableTextState {
         self.preferred_vertical_x = Some(preferred_x);
     }
 
-    fn page_row_count(&self) -> isize {
+    /// Moves by the viewport's height (in whole rows of the field's line height), keeping the
+    /// preferred x, whatever the heights of the rows in between.
+    fn move_page(&mut self, direction: f32, extend: bool, cx: &mut Context<Self>) {
+        if self.mode == EditableTextMode::Disabled
+            || self.line_mode != EditableTextLineMode::MultiLine
+        {
+            return;
+        }
         let line_height = self.layout_map.line_height();
         if line_height <= px(0.) {
-            return 1;
+            return;
         }
-        self.geometry
-            .as_ref()
-            .map(|geometry| {
-                (f32::from(geometry.bounds().size.height) / f32::from(line_height))
+        let page = self.geometry.as_ref().map_or(line_height, |geometry| {
+            line_height
+                * (f32::from(geometry.bounds().size.height) / f32::from(line_height))
                     .floor()
-                    .max(1.) as isize
-            })
-            .unwrap_or(1)
+                    .max(1.)
+        });
+        let Some(display) = self.layout_map.buffer_to_display(self.selection.head()) else {
+            return;
+        };
+        let (Some(position), Some(row)) = (
+            self.layout_map.position_for_index(self.selection.head()),
+            self.layout_map.visual_row(display.row),
+        ) else {
+            return;
+        };
+        let preferred_x = self.preferred_vertical_x.unwrap_or(position.x);
+        let height = self.layout_map.size().height;
+        let target_y = (row.top + row.height / 2. + page * direction)
+            .clamp(px(0.), (height - px(0.5)).max(px(0.)));
+        let Some(offset) = self
+            .layout_map
+            .index_for_position(point(preferred_x, target_y))
+        else {
+            return;
+        };
+        self.move_to(offset.min(self.buffer.len()), extend, cx);
+        self.preferred_vertical_x = Some(preferred_x);
     }
 
     fn normalize_input(&self, text: &str) -> String {
@@ -1244,7 +1275,11 @@ impl EditableTextState {
         }
         if self.line_mode == EditableTextLineMode::MultiLine {
             let visible_y = caret.y + self.scroll_offset.y;
-            let line_height = self.layout_map.line_height();
+            let line_height = self
+                .layout_map
+                .buffer_to_display(self.selection.head())
+                .and_then(|display| self.layout_map.visual_row(display.row))
+                .map_or(self.layout_map.line_height(), |row| row.height);
             if visible_y < px(0.) {
                 self.scroll_offset.y = -caret.y;
             } else if visible_y + line_height > bounds.size.height {
@@ -1263,10 +1298,17 @@ impl EditableTextState {
         };
         let bounds = geometry.bounds();
         let line_height = self.layout_map.line_height().max(px(1.));
+        // Scroll by the height of the row coming into view at the edge.
+        let edge_row_height = |y: Pixels| {
+            let row = self.layout_map.visual_row_at_y(y.max(px(0.)));
+            self.layout_map
+                .visual_row(row.min(self.layout_map.visual_line_count().saturating_sub(1)))
+                .map_or(line_height, |row| row.height.max(px(1.)))
+        };
         if position.y < bounds.top() {
-            self.scroll_offset.y += line_height;
+            self.scroll_offset.y += edge_row_height(-self.scroll_offset.y - px(1.));
         } else if position.y > bounds.bottom() {
-            self.scroll_offset.y -= line_height;
+            self.scroll_offset.y -= edge_row_height(bounds.size.height - self.scroll_offset.y);
         }
         if !self.soft_wrap && position.x < bounds.left() {
             self.scroll_offset.x += line_height;
