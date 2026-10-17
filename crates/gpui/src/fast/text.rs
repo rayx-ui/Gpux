@@ -144,9 +144,9 @@ impl TextMeasureInputs {
         }
         let (self_runs, other_runs) = (self.runs(), other.runs());
         runs(&self_runs).count() == runs(&other_runs).count()
-            && runs(&self_runs)
-                .zip(runs(&other_runs))
-                .all(|(run, other)| run.len == other.len && run.font == other.font)
+            && runs(&self_runs).zip(runs(&other_runs)).all(|(run, other)| {
+                run.len == other.len && run.font == other.font && run.metrics == other.metrics
+            })
             && joins_previous(runs(&self_runs)).eq(joins_previous(runs(&other_runs)))
     }
 

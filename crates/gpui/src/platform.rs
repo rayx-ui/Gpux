@@ -1543,6 +1543,65 @@ impl NoopTextSystem {
     pub fn new() -> Self {
         Self
     }
+
+    /// Lays out a line whose runs set their own sizes: one shaped run per
+    /// input run, each glyph an em of its run's size wide, and ascent and
+    /// descent from the largest run.
+    fn layout_sized_runs(&self, text: &str, font_size: Pixels, runs: &[FontRun]) -> LineLayout {
+        let metrics = self.font_metrics(FontId(0));
+        let em = self
+            .advance(FontId(0), self.glyph_for_char(FontId(0), 'm').unwrap())
+            .unwrap()
+            .width
+            / metrics.units_per_em as f32;
+        let mut position = px(0.);
+        let mut ascent = px(0.);
+        let mut descent = px(0.);
+        let mut shaped = Vec::new();
+        let mut start = 0;
+        for run in runs {
+            let end = (start + run.len).min(text.len());
+            let size = run.metrics.font_size_or(font_size);
+            let em_width = size * em;
+            ascent = ascent.max(size * (metrics.ascent / metrics.units_per_em as f32));
+            // The test text system's descent keeps the font's (negative) sign, as unsized
+            // lines report it.
+            descent = descent.min(size * (metrics.descent / metrics.units_per_em as f32));
+            let mut glyphs = Vec::new();
+            for (ix, c) in text[start..end].char_indices() {
+                let glyph = self.glyph_for_char(FontId(0), c).unwrap();
+                glyphs.push(ShapedGlyph {
+                    id: glyph,
+                    position: point(position, px(0.)),
+                    index: start + ix,
+                    is_emoji: glyph.0 == 2,
+                });
+                position += if glyph.0 == 2 {
+                    em_width * 2.0
+                } else {
+                    em_width
+                };
+            }
+            if !glyphs.is_empty() {
+                shaped.push(ShapedRun {
+                    font_id: FontId(0),
+                    font_size: size,
+                    baseline_shift: Default::default(),
+                    glyphs,
+                });
+            }
+            start = end;
+        }
+        LineLayout {
+            font_size,
+            letter_spacing: Pixels::ZERO,
+            width: position,
+            ascent,
+            descent,
+            runs: shaped,
+            len: text.len(),
+        }
+    }
 }
 
 impl PlatformTextSystem for NoopTextSystem {
@@ -1608,7 +1667,10 @@ impl PlatformTextSystem for NoopTextSystem {
         Ok((raster_bounds.size, Vec::new()))
     }
 
-    fn layout_line(&self, text: &str, font_size: Pixels, _runs: &[FontRun]) -> LineLayout {
+    fn layout_line(&self, text: &str, font_size: Pixels, runs: &[FontRun]) -> LineLayout {
+        if runs.iter().any(|run| run.metrics.font_size.is_some()) {
+            return self.layout_sized_runs(text, font_size, runs);
+        }
         let mut position = px(0.);
         let metrics = self.font_metrics(FontId(0));
         let em_width = font_size
@@ -1639,6 +1701,8 @@ impl PlatformTextSystem for NoopTextSystem {
         if !glyphs.is_empty() {
             runs.push(ShapedRun {
                 font_id: FontId(0),
+                font_size,
+                baseline_shift: Default::default(),
                 glyphs,
             });
         } else {
@@ -3034,6 +3098,8 @@ pub enum ClipboardEntry {
     Image(Image),
     /// A file entry
     ExternalPaths(crate::ExternalPaths),
+    /// HTML carried beside an item's plain-text entry, the same content as markup.
+    Html(String),
 }
 
 impl ClipboardItem {
@@ -3061,6 +3127,25 @@ impl ClipboardItem {
                 ClipboardString::new(text).with_json_metadata(metadata),
             )],
         }
+    }
+
+    /// Creates an item holding plain text and the same content as HTML, written to the
+    /// platform clipboard together.
+    pub fn new_string_with_html(text: String, html: String) -> Self {
+        Self {
+            entries: vec![
+                ClipboardEntry::String(ClipboardString::new(text)),
+                ClipboardEntry::Html(html),
+            ],
+        }
+    }
+
+    /// The item's HTML entry, if it has one. [`Self::text`] never returns HTML.
+    pub fn html(&self) -> Option<&str> {
+        self.entries.iter().find_map(|entry| match entry {
+            ClipboardEntry::Html(html) => Some(html.as_str()),
+            _ => None,
+        })
     }
 
     /// Create a new ClipboardItem::Image with the given image with no associated metadata
@@ -3099,11 +3184,16 @@ impl ClipboardItem {
         }
     }
 
-    /// If this item is one ClipboardEntry::String, returns its metadata.
+    /// If this item is one ClipboardEntry::String (with or without HTML beside it), returns
+    /// its metadata.
     #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
     pub fn metadata(&self) -> Option<&String> {
-        match self.entries().first() {
-            Some(ClipboardEntry::String(clipboard_string)) if self.entries.len() == 1 => {
+        let mut entries = self
+            .entries()
+            .iter()
+            .filter(|entry| !matches!(entry, ClipboardEntry::Html(_)));
+        match (entries.next(), entries.next()) {
+            (Some(ClipboardEntry::String(clipboard_string)), None) => {
                 clipboard_string.metadata.as_ref()
             }
             _ => None,

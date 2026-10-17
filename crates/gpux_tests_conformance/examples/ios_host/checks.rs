@@ -6,8 +6,8 @@ use crate::ios::{request, selected};
 use gpux::semantic_query::Query;
 use gpux::{
     AnyWindowHandle, AppContext as _, AsyncApp, Context, IntoElement, ParentElement as _,
-    PlatformInput, Point, Render, Styled as _, Subscription, TextRun, TouchEvent, TouchId,
-    TouchPhase, Window, WindowOptions, div, font, point, px, rgb,
+    PlatformInput, Point, Render, RunMetrics, Styled as _, Subscription, TextRun, TouchEvent,
+    TouchId, TouchPhase, Window, WindowOptions, div, font, point, px, rgb,
 };
 use gpux_tests_conformance::{
     SceneSpec,
@@ -218,6 +218,7 @@ async fn text_metrics(cx: &mut AsyncApp) -> ResultLine {
                 background_color: None,
                 underline: None,
                 strikethrough: None,
+                metrics: Default::default(),
             }],
             None,
         );
@@ -270,6 +271,77 @@ async fn text_metrics(cx: &mut AsyncApp) -> ResultLine {
     }
 }
 
+/// CoreText shapes each run of a mixed-size line at its own size through `WindowTextSystem`:
+/// the runs report their sizes, glyphs advance left to right, and the line is as tall as its
+/// larger run.
+async fn text_run_metrics(cx: &mut AsyncApp) -> ResultLine {
+    const ID: &str = "text-run-metrics-ios";
+    const TEXT: &str = "small LARGE";
+    let Some(scene) = scene("paint-borders") else {
+        return fail(ID, "the catalog has no paint-borders scene");
+    };
+    let window = match open(cx, scene).await {
+        Ok(window) => window,
+        Err(error) => return fail(ID, format!("the window never drew: {error:#}")),
+    };
+    let measured = window.update(cx, |_, window, cx| {
+        let plex = font("IBM Plex Sans");
+        let id = cx.text_system().resolve_font(&plex);
+        let large_ascent = f32::from(cx.text_system().ascent(id, px(28.)));
+        let run = |len, size: f32| TextRun {
+            len,
+            font: plex.clone(),
+            metrics: RunMetrics {
+                font_size: Some(px(size)),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let line = window.text_system().layout_line(
+            TEXT,
+            px(FONT_SIZE),
+            px(0.),
+            &[run(6, 12.), run(5, 28.)],
+            None,
+        );
+        let sizes = line
+            .runs
+            .iter()
+            .map(|run| f32::from(run.font_size))
+            .collect::<Vec<_>>();
+        let xs = line
+            .runs
+            .iter()
+            .flat_map(|run| run.glyphs.iter().map(|glyph| f32::from(glyph.position.x)))
+            .collect::<Vec<_>>();
+        (sizes, xs, f32::from(line.ascent), large_ascent)
+    });
+    close(cx, window);
+    let Ok((sizes, xs, ascent, large_ascent)) = measured else {
+        return fail(ID, "the window closed before measuring");
+    };
+    let mut wrong = Vec::new();
+    if sizes != [12., 28.] {
+        wrong.push(format!("run sizes {sizes:?}, expected [12, 28]"));
+    }
+    if xs.len() != TEXT.len() || !xs.windows(2).all(|pair| pair[0] < pair[1]) {
+        wrong.push(format!("glyph x positions {xs:?} do not increase"));
+    }
+    if ascent + METRIC_TOLERANCE < large_ascent {
+        wrong.push(format!(
+            "ascent {ascent} below the 28 px run's {large_ascent}"
+        ));
+    }
+    if wrong.is_empty() {
+        pass(
+            ID,
+            format!("runs at {sizes:?} px, ascent {ascent} (28 px run {large_ascent})"),
+        )
+    } else {
+        fail(ID, wrong.join("; "))
+    }
+}
+
 fn touch(
     window: &mut Window,
     cx: &mut gpux::App,
@@ -287,6 +359,20 @@ fn touch(
         }),
         cx,
     );
+}
+
+/// `clipboard-ios`: the system clipboard round-trips plain text with HTML beside it, the text exactly
+/// (no terminator or coercion), the HTML unchanged.
+async fn clipboard(cx: &mut AsyncApp) -> ResultLine {
+    use gpux_tests_conformance::platform_checks::clipboard_html;
+    const ID: &str = "clipboard-ios";
+    let item = clipboard_html::item(std::process::id());
+    cx.update(|cx| cx.write_to_clipboard(item.clone()));
+    let read = cx.update(|cx| cx.read_from_clipboard());
+    match clipboard_html::verify(&item, read.as_ref()) {
+        Ok(summary) => pass(ID, summary),
+        Err(error) => fail(ID, error),
+    }
 }
 
 /// A touch injected into the window taps the element under it.
@@ -426,6 +512,9 @@ pub async fn platform_checks(cx: &mut AsyncApp) -> Vec<ResultLine> {
     if selected("ios-text-metrics") {
         lines.push(text_metrics(cx).await);
     }
+    if selected("text-run-metrics-ios") {
+        lines.push(text_run_metrics(cx).await);
+    }
     if selected("ios-touch-tap") {
         lines.push(touch_tap(cx).await);
     }
@@ -464,6 +553,9 @@ pub async fn platform_checks(cx: &mut AsyncApp) -> Vec<ResultLine> {
     }
     if selected("devtools-ios") {
         lines.push(crate::devtools::tap(cx).await);
+    }
+    if selected("clipboard-ios") {
+        lines.push(clipboard(cx).await);
     }
     lines
 }

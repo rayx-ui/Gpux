@@ -73,11 +73,13 @@ impl Pasteboard {
                 }
             }
 
-            // Next, check for a plain string.
+            // Next, check for a plain string, and HTML beside it.
             if let Some(string_entry) = self.read_string_from_pasteboard() {
-                return Some(ClipboardItem {
-                    entries: vec![string_entry],
-                });
+                let mut entries = vec![string_entry];
+                if let Some(html) = self.read_html_from_pasteboard() {
+                    entries.push(html);
+                }
+                return Some(ClipboardItem { entries });
             }
 
             // Finally, try the various supported image types.
@@ -141,6 +143,20 @@ impl Pasteboard {
         }
     }
 
+    unsafe fn read_html_from_pasteboard(&self) -> Option<ClipboardEntry> {
+        unsafe {
+            let html_type: id = ns_string("public.html");
+            let pasteboard_types: id = self.inner.types();
+            if !msg_send![pasteboard_types, containsObject: html_type] {
+                return None;
+            }
+            let bytes = self.data_for_type(html_type)?;
+            Some(ClipboardEntry::Html(
+                String::from_utf8_lossy(&bytes).into_owned(),
+            ))
+        }
+    }
+
     unsafe fn data_for_type(&self, kind: id) -> Option<Vec<u8>> {
         unsafe {
             let data = self.inner.dataForType(kind);
@@ -165,6 +181,19 @@ impl Pasteboard {
                 }
                 [ClipboardEntry::String(string)] => {
                     self.write_plaintext(string);
+                }
+                // Plain text and HTML in one write: setting the HTML type after the plain text
+                // keeps both representations of the same item.
+                [ClipboardEntry::String(string), ClipboardEntry::Html(html)]
+                | [ClipboardEntry::Html(html), ClipboardEntry::String(string)] => {
+                    self.write_plaintext(string);
+                    let html_bytes = NSData::dataWithBytes_length_(
+                        nil,
+                        html.as_ptr() as *const c_void,
+                        html.len() as u64,
+                    );
+                    self.inner
+                        .setData_forType(html_bytes, ns_string("public.html"));
                 }
                 [ClipboardEntry::Image(image)] => {
                     self.write_image(image);
@@ -368,6 +397,19 @@ mod tests {
                 .inner
                 .setData_forType(bytes, NSPasteboardTypeString);
         }
+    }
+
+    #[test]
+    fn html_is_written_and_read_beside_plain_text() {
+        let pasteboard = Pasteboard::unique();
+        let item =
+            ClipboardItem::new_string_with_html("bold".to_string(), "<b>bold</b>".to_string());
+        pasteboard.write(item.clone());
+        assert_eq!(pasteboard.read(), Some(item));
+        // A plain item leaves no HTML behind.
+        let plain = ClipboardItem::new_string("plain".to_string());
+        pasteboard.write(plain.clone());
+        assert_eq!(pasteboard.read(), Some(plain));
     }
 
     #[test]

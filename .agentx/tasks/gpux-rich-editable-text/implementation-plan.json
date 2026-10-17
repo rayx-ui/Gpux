@@ -1,0 +1,2918 @@
+{
+  "schemaVersion": 7,
+  "epicId": "gpux-rich-editable-text",
+  "revision": 12,
+  "title": "Rich text in gpux's EditableText: per-run metrics, stored formatting, variable rows, paragraphs and lists, inline objects, rich clipboard",
+  "validationMode": "sprint",
+  "repositories": [
+    {
+      "id": "gpux",
+      "path": ".",
+      "role": "execution"
+    },
+    {
+      "id": "rayx",
+      "path": "../RayX",
+      "role": "execution"
+    },
+    {
+      "id": "rayx-dtcg",
+      "path": "../RayX.Dtcg",
+      "role": "reference"
+    },
+    {
+      "id": "rayx-reactive",
+      "path": "../RayX.Reactive",
+      "role": "reference"
+    },
+    {
+      "id": "rayx-signalr",
+      "path": "../RayX.SignalR",
+      "role": "reference"
+    }
+  ],
+  "boundaries": {
+    "repositoryIds": [
+      "gpux",
+      "rayx"
+    ],
+    "forbiddenPaths": [
+      "gpux:.agentx/tasks/frame-effects-navigation-transitions/**",
+      "gpux:.agentx/tasks/frame-family-component-transitions/**",
+      "gpux:.agentx/tasks/gpux-cross-platform-test-lanes/**",
+      "gpux:.agentx/tasks/gpux-fast-mode/**",
+      "gpux:.agentx/tasks/gpux-faster-test-lanes/**",
+      "gpux:.agentx/tasks/gpux-fixed-sticky-positioning/**",
+      "gpux:.agentx/tasks/gpux-text-rendering-quality-performance/**",
+      "gpux:.agentx/tasks/gpux-tools-layout/**",
+      "gpux:.agentx/tasks/gpux-wgpu-platform-renderers/**",
+      "gpux:.agentx/tasks/high-quality-wasm-text-rendering/**",
+      "gpux:.agentx/tasks/html-element-dom-overlay/**",
+      "gpux:.agentx/tasks/html-island-wasm/**",
+      "gpux:.agentx/tasks/keyed-sticky-stacking/**",
+      "gpux:.agentx/tasks/macos-only-metal-port-and-ci-repair/**",
+      "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**",
+      "gpux:.agentx/tasks/gpux-platform-text-input/requirements.json",
+      "gpux:.agentx/tasks/gpux-platform-text-input/design.json",
+      "gpux:.agentx/tasks/gpux-platform-text-input/implementation-plan.json",
+      "gpux:.agentx/tasks/gpux-platform-text-input/state.json",
+      "gpux:.agentx/experiments/**",
+      "gpux:docs/changelog/2026-09-01-gpux-performance-improvement-sprint.md",
+      "gpux:docs/changelog/2026-10-16-macos-fast-mode-improvement-loop.md",
+      "gpux:ToFix/**",
+      "gpux:vendor/wgpu/**",
+      "rayx:.agentx/tasks/**",
+      "rayx:.agentx/experiments/**",
+      "rayx:vendor/**"
+    ]
+  },
+  "checks": [
+    {
+      "id": "check-a-run-metrics",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "RUN-1"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/text_run_metrics.rs`: per-run size, spacing and shift in `LineLayout`, merge loops, cache keys, the fast-mode text carry, hit testing across sizes, test text systems, and runs without metrics identical to today.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "text_run_metrics"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 8
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-run-metrics-macos",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "RUN-2"
+      ],
+      "descriptionMarkdown": "New test module `run_metrics` in `crates/gpui_macos/src/text_system.rs`: CoreText per-run sizes, no merge of same-font different-size runs, fallback runs keep size, per-run ascent.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-macos",
+        "--features",
+        "font-kit",
+        "run_metrics"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui_macos/**",
+        "crates/gpui_apple/**"
+      ]
+    },
+    {
+      "id": "check-a-ios-build",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "RUN-2"
+      ],
+      "descriptionMarkdown": "`gpux-mobile` type-checked for iOS.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-mobile",
+        "--target",
+        "aarch64-apple-ios"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui_mobile/**",
+        "crates/gpui_wgpu/**",
+        "crates/gpui_apple/**"
+      ]
+    },
+    {
+      "id": "check-a-run-metrics-lane-f",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "RUN-2"
+      ],
+      "descriptionMarkdown": "New lane F check `text-run-metrics-ios` in `ios_host`: a mixed-size line through `WindowTextSystem` on the Simulator.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "f",
+        "--grep",
+        "text-run-metrics-ios"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-run-metrics-cosmic",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "RUN-3"
+      ],
+      "descriptionMarkdown": "New test module `run_metrics` in `crates/gpui_wgpu/src/cosmic_text_system.rs`: per-span sizes, output split on font and size, a size change inside a word.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-wgpu-renderer",
+        "run_metrics"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui_wgpu/**"
+      ]
+    },
+    {
+      "id": "check-a-web-build",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "RUN-3"
+      ],
+      "descriptionMarkdown": "`gpux-web` with the run-size fallback compiled for wasm32.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-web",
+        "--target",
+        "wasm32-unknown-unknown",
+        "--no-default-features"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui_web/**",
+        "crates/gpui_wgpu/**"
+      ]
+    },
+    {
+      "id": "check-a-runs-lane-a",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "RUN-4"
+      ],
+      "descriptionMarkdown": "The `rich-text-runs` scene's script on the test platform.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "a",
+        "--scene",
+        "rich-text-runs"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-runs-lane-c",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "RUN-4"
+      ],
+      "descriptionMarkdown": "The `rich-text-runs` scene's probes through the headless renderer (Metal locally; lavapipe and WARP in CI).",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "c",
+        "--scene",
+        "rich-text-runs"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-runs-lane-b",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "RUN-4"
+      ],
+      "descriptionMarkdown": "The `rich-text-runs` scene in Chromium on WebGPU.",
+      "argv": [
+        "bash",
+        "-c",
+        "PATH=/opt/homebrew/opt/node@22/bin:$PATH cargo run -p gpux-testkit -- lane b --scene rich-text-runs"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-runs-lane-e",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "RUN-4"
+      ],
+      "descriptionMarkdown": "The `rich-text-runs` scene on the Android emulator or device.",
+      "argv": [
+        "bash",
+        "-c",
+        "ANDROID_HOME=$HOME/Library/Android/sdk JAVA_HOME=/Library/Java/JavaVirtualMachines/microsoft-21.jdk/Contents/Home PATH=/Library/Java/JavaVirtualMachines/microsoft-21.jdk/Contents/Home/bin:$PATH cargo run -p gpux-testkit -- lane e --scene rich-text-runs"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-runs-lane-f",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "RUN-4"
+      ],
+      "descriptionMarkdown": "The `rich-text-runs` scene on the iOS Simulator.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "f",
+        "--scene",
+        "rich-text-runs"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-rx-textrun",
+      "repositoryId": "rayx",
+      "kind": "build",
+      "criterionIds": [
+        "API-1"
+      ],
+      "descriptionMarkdown": "The paired RayX change: `rayx_components_core` (the exhaustive `TextRun` literal) compiles against this branch in the sibling RayX worktree.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "rayx_components_core",
+        "--all-targets"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "inputs": [
+        "crates/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "gpux:crates/gpui/**"
+      ]
+    },
+    {
+      "id": "check-a-attributes",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "ATTR-1"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/editable_text_attributes.rs`: span storage, normalization, remap through every edit path, patch/read/state API, `AttributedText` round trip.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "editable_text_attributes"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 12
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-typing-attributes",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "ATTR-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/editable_text_typing_attributes.rs`: inheritance rules, explicit typing attributes, IME composition, exclusive link ends.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "editable_text_typing_attributes"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 6
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-format-history",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "ATTR-3"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/editable_text_format_history.rs`: undo/redo of spans, format steps, typing coalescing, format revision and event.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "editable_text_format_history"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 6
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-attribute-layout",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "ATTR-4"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/editable_text_attribute_layout.rs`: shaping vs paint runs, owner style runs on top, plain path and splice unchanged, cache hits for unchanged rows.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "editable_text_attribute_layout"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-attributes-lane-a",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "ATTR-4"
+      ],
+      "descriptionMarkdown": "The `editable-rich-attributes` scene's script on the test platform.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "a",
+        "--scene",
+        "editable-rich-attributes"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-attributes-lane-c",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "ATTR-4"
+      ],
+      "descriptionMarkdown": "The `editable-rich-attributes` scene's probes through the headless renderer.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "c",
+        "--scene",
+        "editable-rich-attributes"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-attributes-lane-b",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "ATTR-4"
+      ],
+      "descriptionMarkdown": "The `editable-rich-attributes` scene in Chromium on WebGPU.",
+      "argv": [
+        "bash",
+        "-c",
+        "PATH=/opt/homebrew/opt/node@22/bin:$PATH cargo run -p gpux-testkit -- lane b --scene editable-rich-attributes"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-variable-rows",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "ROW-1"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/editable_text_variable_rows.rs`: per-row heights and baselines and every geometry consumer, uniform rows equal to today.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "editable_text_variable_rows"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 12
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-row-alignment",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "ROW-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/editable_text_row_alignment.rs`: per-row alignment offsets for caret, selection, hit testing and IME geometry; proved to fail against the old code before the fix. The pre-fix run (all 3 tests failing on HEAD f593def with only the test added) is kept at `artifacts-temp/agentx/gpux-rich-editable-text/row-alignment-before-fix.log`; the runtime refuses a recorded baseline once the sprint's first task has started.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "editable_text_row_alignment"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-paragraphs",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "PARA-1"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/editable_text_paragraphs.rs`: paragraph format storage and movement through edits, undo, `AttributedText`.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "editable_text_paragraphs"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 8
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-paragraph-alignment",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "PARA-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/editable_text_paragraph_alignment.rs`: left/center/right/justify, last row and one-word rows, geometry on justified rows.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "editable_text_paragraph_alignment"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-paragraph-spacing",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "PARA-3"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/editable_text_paragraph_spacing.rs`: first-line, hanging, leading and trailing indents, spacing, line-height multiplier, paragraph letter spacing.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "editable_text_paragraph_spacing"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 6
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-paragraphs-lane-a",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "PARA-3"
+      ],
+      "descriptionMarkdown": "The `editable-paragraphs` scene's script on the test platform.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "a",
+        "--scene",
+        "editable-paragraphs"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-paragraphs-lane-c",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "PARA-3"
+      ],
+      "descriptionMarkdown": "The `editable-paragraphs` scene's probes through the headless renderer.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "c",
+        "--scene",
+        "editable-paragraphs"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-paragraphs-lane-b",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "PARA-3"
+      ],
+      "descriptionMarkdown": "The `editable-paragraphs` scene in Chromium on WebGPU.",
+      "argv": [
+        "bash",
+        "-c",
+        "PATH=/opt/homebrew/opt/node@22/bin:$PATH cargo run -p gpux-testkit -- lane b --scene editable-paragraphs"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-lists",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LIST-1"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/editable_text_lists.rs`: list kinds, levels, numbering rules, marker exclusion from text, checkbox toggle.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "editable_text_lists"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 8
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-list-editing",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LIST-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/editable_text_list_editing.rs`: Enter, empty-item Enter, Backspace at start, Tab/Shift-Tab, public methods, the switch, one undo step each.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "editable_text_list_editing"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 7
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-lists-lane-a",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "LIST-1"
+      ],
+      "descriptionMarkdown": "The `editable-lists` scene's script on the test platform.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "a",
+        "--scene",
+        "editable-lists"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-lists-lane-c",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "LIST-1"
+      ],
+      "descriptionMarkdown": "The `editable-lists` scene's probes through the headless renderer.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "c",
+        "--scene",
+        "editable-lists"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-lists-lane-b",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "LIST-1"
+      ],
+      "descriptionMarkdown": "The `editable-lists` scene in Chromium on WebGPU.",
+      "argv": [
+        "bash",
+        "-c",
+        "PATH=/opt/homebrew/opt/node@22/bin:$PATH cargo run -p gpux-testkit -- lane b --scene editable-lists"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-inline-objects",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "OBJ-1"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/editable_text_inline_objects.rs`: object attribute, reserved advance and height, unbreakable wrapping, one-character editing, fallbacks in text and export.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "editable_text_inline_objects"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 8
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-inline-render",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "OBJ-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/editable_text_inline_render.rs`: renderer placement, clipping, pointer events to the object first, no-renderer objects.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "editable_text_inline_render"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-inline-lane-a",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "OBJ-2"
+      ],
+      "descriptionMarkdown": "The `editable-inline-objects` scene's script on the test platform.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "a",
+        "--scene",
+        "editable-inline-objects"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-inline-lane-c",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "OBJ-2"
+      ],
+      "descriptionMarkdown": "The `editable-inline-objects` scene's probes through the headless renderer.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "c",
+        "--scene",
+        "editable-inline-objects"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-inline-lane-b",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "OBJ-2"
+      ],
+      "descriptionMarkdown": "The `editable-inline-objects` scene in Chromium on WebGPU.",
+      "argv": [
+        "bash",
+        "-c",
+        "PATH=/opt/homebrew/opt/node@22/bin:$PATH cargo run -p gpux-testkit -- lane b --scene editable-inline-objects"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-clipboard-html",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "CLIP-1"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/clipboard_html.rs`: the HTML entry beside text, `text()` unchanged, test-platform round trip.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "clipboard_html"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-clipboard-lane-d",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "CLIP-1"
+      ],
+      "descriptionMarkdown": "New lane D check `platform-clipboard-html` against the real OS clipboard (macOS locally; Windows and X11 in the pull request's CI).",
+      "argv": [
+        "bash",
+        "-c",
+        "caffeinate -d cargo run -p gpux-testkit -- lane d --grep platform-clipboard-html"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-clipboard-lane-b",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "CLIP-1"
+      ],
+      "descriptionMarkdown": "New `tools/browser/specs/clipboard.spec.ts` titles `clipboard: html ...`: copy and paste events and the async API with both types.",
+      "argv": [
+        "bash",
+        "-c",
+        "PATH=/opt/homebrew/opt/node@22/bin:$PATH cargo run -p gpux-testkit -- lane b --grep \"clipboard: html\""
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-clipboard-lane-e",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "CLIP-1"
+      ],
+      "descriptionMarkdown": "New lane E check `clipboard-android`: the JNI `ClipboardManager` with plain and HTML clips.",
+      "argv": [
+        "bash",
+        "-c",
+        "ANDROID_HOME=$HOME/Library/Android/sdk JAVA_HOME=/Library/Java/JavaVirtualMachines/microsoft-21.jdk/Contents/Home PATH=/Library/Java/JavaVirtualMachines/microsoft-21.jdk/Contents/Home/bin:$PATH cargo run -p gpux-testkit -- lane e --grep clipboard-android"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-clipboard-lane-f",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "CLIP-1"
+      ],
+      "descriptionMarkdown": "New lane F check `clipboard-ios`: `UIPasteboard` items with plain and HTML, text without a NUL terminator.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "f",
+        "--grep",
+        "clipboard-ios"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-android-build",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "CLIP-1"
+      ],
+      "descriptionMarkdown": "`gpux-mobile`'s embedded host (default features) type-checked for Android.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-mobile",
+        "--target",
+        "x86_64-linux-android"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui_mobile/**",
+        "crates/gpui_wgpu/**"
+      ]
+    },
+    {
+      "id": "check-a-android-native-build",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "CLIP-1"
+      ],
+      "descriptionMarkdown": "`gpux-mobile` with `android-native-activity` type-checked for Android.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-mobile",
+        "--target",
+        "x86_64-linux-android",
+        "--features",
+        "android-native-activity"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui_mobile/**",
+        "crates/gpui_wgpu/**"
+      ]
+    },
+    {
+      "id": "check-a-html-codec",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "CLIP-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/editable_text_html.rs`: serialization, round trip, the external subset, dropped content, entities, the size cap.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "editable_text_html"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 12
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-rich-clipboard",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "CLIP-3"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/editable_text_rich_clipboard.rs`: rich copy only with formatting, rich paste switch, paste as its own undo step through both paths, single-line flattening.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "editable_text_rich_clipboard"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 6
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-api-compat",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "API-1"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/editable_text_api_compat.rs`: RayX's uses of the editable-text, text-run, clipboard and alignment APIs compile and behave as before.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "editable_text_api_compat"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-rx-check",
+      "repositoryId": "rayx",
+      "kind": "build",
+      "criterionIds": [
+        "API-1"
+      ],
+      "descriptionMarkdown": "The RayX packages using text, editable text and the clipboard compile against this branch in the sibling RayX worktree.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "rayx_components_core",
+        "-p",
+        "rayx_components_code",
+        "-p",
+        "rayx_components_rich_text_editor",
+        "-p",
+        "rayx_components_document",
+        "--all-targets"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "inputs": [
+        "crates/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "gpux:crates/**"
+      ]
+    },
+    {
+      "id": "final-a-fmt",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [],
+      "descriptionMarkdown": "Formatting of gpux.",
+      "argv": [
+        "cargo",
+        "fmt",
+        "--check"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-a-clippy",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [],
+      "descriptionMarkdown": "Clippy over the gpux packages the epic touches (host targets).",
+      "argv": [
+        "cargo",
+        "clippy",
+        "-p",
+        "gpux",
+        "-p",
+        "gpux-macos",
+        "-p",
+        "gpux-wgpu-renderer",
+        "-p",
+        "gpux-web",
+        "-p",
+        "gpux-mobile",
+        "-p",
+        "gpux-platform",
+        "-p",
+        "gpux-tests-conformance",
+        "--all-targets",
+        "--no-deps",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-a-web-check",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [],
+      "descriptionMarkdown": "The web platform for wasm32.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-web",
+        "--target",
+        "wasm32-unknown-unknown",
+        "--no-default-features"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-a-ios-check",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [],
+      "descriptionMarkdown": "The mobile platform for iOS.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-mobile",
+        "--target",
+        "aarch64-apple-ios"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-a-android-check",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [],
+      "descriptionMarkdown": "The Android embedded host.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-mobile",
+        "--target",
+        "x86_64-linux-android"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-a-android-native-check",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [],
+      "descriptionMarkdown": "The Android NativeActivity host.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-mobile",
+        "--target",
+        "x86_64-linux-android",
+        "--features",
+        "android-native-activity"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-a-package",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [],
+      "descriptionMarkdown": "A new crates.io dependency (the HTML tokenizer) changes manifests: every crate still packages.",
+      "argv": [
+        "cargo",
+        "package",
+        "--workspace"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "timeoutSeconds": 3600
+    },
+    {
+      "id": "final-a-rx-fmt",
+      "repositoryId": "rayx",
+      "kind": "static",
+      "criterionIds": [],
+      "descriptionMarkdown": "Formatting of RayX after the paired change.",
+      "argv": [
+        "cargo",
+        "fmt",
+        "--check"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-a-lane-a",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [],
+      "descriptionMarkdown": "Lane A in full, including fast-mode parity over the new scenes. Left to the pull request's CI.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "a"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 30,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false
+    },
+    {
+      "id": "final-a-lane-c",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [],
+      "descriptionMarkdown": "Lane C in full, including fast-mode parity over the new scenes. Left to the pull request's CI.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "c"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 30,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false
+    },
+    {
+      "id": "check-a-run-metrics-web",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "RUN-3"
+      ],
+      "descriptionMarkdown": "Test `run_metrics_candidates_take_their_runs_size` in `crates/gpui_web/src/run_replacements.rs`: a canvas-fallback candidate carries its run's size, which `apply_fallback` measures and rasterizes at.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-web",
+        "--lib",
+        "run_metrics"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui_web/**",
+        "crates/gpui_wgpu/**"
+      ]
+    },
+    {
+      "id": "check-a-run-metrics-paint",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "RUN-4"
+      ],
+      "descriptionMarkdown": "Unit tests `run_metrics_strikethrough_*` in `crates/gpui/src/text_system/line.rs`: a strikethrough sits at each run's own middle, and a shaper's glyph y never moves or splits it on runs without metrics (review finding s01-strikethrough-glyph-y).",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--lib",
+        "run_metrics_"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-workspace-package",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "CLIP-2"
+      ],
+      "descriptionMarkdown": "`cargo package --workspace` (no verify, dirty tree allowed) succeeds with the `html5ever` workspace dependency.",
+      "argv": [
+        "cargo",
+        "package",
+        "--workspace",
+        "--no-verify",
+        "--allow-dirty"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-html-limits",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "CLIP-2",
+        "CLIP-3",
+        "LIST-1"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/editable_text_html_limits.rs`: non-finite pasted numbers dropped and the rest bounded, a huge `ol start` bounded, list counters saturating with short labels, and deep nesting and many alternating runs within the cap parsing and pasting in linear time.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "editable_text_html_limits"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-html-limits-regressions",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "CLIP-2",
+        "CLIP-3",
+        "LIST-1"
+      ],
+      "descriptionMarkdown": "The existing groups that exercise the touched codec, span store and list markers: `editable_text_html`, `editable_text_rich_clipboard` and `editable_text_lists`.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "editable_text_html",
+        "--test",
+        "editable_text_rich_clipboard",
+        "--test",
+        "editable_text_lists"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 30
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    }
+  ],
+  "finalCheckIds": [
+    "final-a-fmt",
+    "final-a-clippy",
+    "final-a-web-check",
+    "final-a-ios-check",
+    "final-a-android-check",
+    "final-a-android-native-check",
+    "final-a-package",
+    "final-a-rx-fmt",
+    "final-a-lane-a",
+    "final-a-lane-c"
+  ],
+  "sprints": [
+    {
+      "id": "s01-run-metrics",
+      "title": "Per-run font size, letter spacing and baseline shift in the text system",
+      "dependsOn": [],
+      "tasks": [
+        {
+          "id": "t01-run-metrics-core",
+          "title": "RunMetrics through TextRun, FontRun, ShapedRun, caches, post-pass and paint",
+          "descriptionMarkdown": "**Core changes:**\n- Add `RunMetrics` to `TextRun` and the resolved fields to `FontRun` and `ShapedRun`.\n- Update the four merge loops, the cache keys (derived), and `fast/text.rs` `shapes_as`.\n- Generalize `apply_letter_spacing_to_layout` into the per-run spacing and shift post-pass, including ascent and descent.\n- Read `run.font_size` in `paint_line`.\n- Make the test text systems honor run sizes: `NoopTextSystem`, `GlyphBoxTextSystem` and the text-carry `WideningTextSystem`.\n\n**Struct literals.** Fix gpux's own `FontRun`, `ShapedRun` and `TextRun` literals, preferring `..Default::default()` where the type has a `Default`.\n\n**Paired RayX change.** In the sibling RayX worktree (`../RayX`, branch `feature/editable-text`), make `charts/plot/label.rs`'s `TextRun` literal use `..Default::default()`.\n\nNew group `crates/gpui/tests/text_run_metrics.rs`.",
+          "criterionIds": [
+            "RUN-1"
+          ],
+          "designIds": [
+            "d-run-metrics",
+            "d-proof-and-pairing"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-a-run-metrics",
+            "check-a-rx-textrun"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/text_system.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/text_system/line_layout.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/text_system/line.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/text.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/glyphs.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/platform.rs",
+              "symbol": "NoopTextSystem"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_core/src/charts/plot/label.rs"
+            }
+          ],
+          "supportingCriterionIds": [
+            "API-1"
+          ]
+        },
+        {
+          "id": "t02-run-metrics-coretext",
+          "title": "CoreText per-run sizes on macOS and iOS",
+          "descriptionMarkdown": "**What to change, in `MacTextSystem` and `IosTextSystem`:**\n- Size each run's `CTFont`.\n- Map output glyph runs to input runs by string index; this must hold with the `next_up` ligature trick and with fallback fonts.\n- Split merged output on size.\n- Compute ascent and descent per run.\n\n**Tests:**\n- macOS: test module `run_metrics`.\n- iOS: lane F check `text-run-metrics-ios` in `crates/gpux_tests_conformance/examples/ios_host/checks.rs`.",
+          "criterionIds": [
+            "RUN-2"
+          ],
+          "designIds": [
+            "d-run-metrics"
+          ],
+          "dependsOn": [
+            "t01-run-metrics-core"
+          ],
+          "checkIds": [
+            "check-a-run-metrics-macos",
+            "check-a-ios-build",
+            "check-a-run-metrics-lane-f"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_macos/src/text_system.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/ios/text_system.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_tests_conformance/examples/ios_host/checks.rs"
+            }
+          ]
+        },
+        {
+          "id": "t03-run-metrics-cosmic",
+          "title": "cosmic-text per-span sizes and the web fallback",
+          "descriptionMarkdown": "**cosmic-text:**\n- Set `Attrs::metrics` per span.\n- Split output runs on font and size, both in the paragraph-separator path and in the main path.\n\n**Web text system.** Make the canvas fallback (`apply_fallback`, `run_replacements.rs`) measure and rasterize at the candidate's run size.\n\nNew test module `run_metrics` in `cosmic_text_system.rs`.",
+          "criterionIds": [
+            "RUN-3"
+          ],
+          "designIds": [
+            "d-run-metrics"
+          ],
+          "dependsOn": [
+            "t01-run-metrics-core"
+          ],
+          "checkIds": [
+            "check-a-run-metrics-cosmic",
+            "check-a-web-build",
+            "check-a-run-metrics-web"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_wgpu/src/cosmic_text_system.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/text_system.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/run_replacements.rs"
+            }
+          ]
+        },
+        {
+          "id": "t04-run-metrics-scene",
+          "title": "The rich-text-runs scene in lanes A, B, C, E and F",
+          "descriptionMarkdown": "**Scene.** Add the `rich-text-runs` conformance scene, with a new `Area` and its probes. Register it so catalog coverage stays complete.\n\n**Paint check.** Confirm in lane C that strikethrough sits at each run's own middle and backgrounds cover the row.",
+          "criterionIds": [
+            "RUN-4"
+          ],
+          "designIds": [
+            "d-run-metrics",
+            "d-proof-and-pairing"
+          ],
+          "dependsOn": [
+            "t02-run-metrics-coretext",
+            "t03-run-metrics-cosmic"
+          ],
+          "checkIds": [
+            "check-a-runs-lane-a",
+            "check-a-runs-lane-c",
+            "check-a-runs-lane-b",
+            "check-a-runs-lane-e",
+            "check-a-runs-lane-f",
+            "check-a-run-metrics-paint"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_tests_conformance/src/scenes/text.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_tests_conformance/src/scene.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/text_system/line.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s02-attributes",
+      "title": "Stored character formatting",
+      "dependsOn": [
+        "s01-run-metrics"
+      ],
+      "tasks": [
+        {
+          "id": "t05-attribute-store",
+          "title": "TextAttributes spans remapped at the edit choke point",
+          "descriptionMarkdown": "**Storage.**\n- Add `TextAttributes`, the span set (created on first use) and the patch API.\n- Add `AttributedText` and its replace-all setter.\n\n**Remapping.**\n- Remap in `apply_buffer_edit` instead of `invalidate_style_runs`.\n- Cover the rollback bypass in `rewrite_current_edit`.\n\nNew group `editable_text_attributes.rs`.",
+          "criterionIds": [
+            "ATTR-1"
+          ],
+          "designIds": [
+            "d-attribute-store"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-a-attributes"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/state.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/buffer.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/mod.rs"
+            }
+          ]
+        },
+        {
+          "id": "t06-typing-attributes",
+          "title": "Typing attributes and IME composition",
+          "descriptionMarkdown": "**What to build:**\n- the inheritance rules;\n- `set_typing_attributes` and when it is discarded;\n- attributes during composition (`replace_and_mark`, `unmark`);\n- exclusive ends for links and tags.\n\nNew group `editable_text_typing_attributes.rs`.",
+          "criterionIds": [
+            "ATTR-2"
+          ],
+          "designIds": [
+            "d-attribute-store"
+          ],
+          "dependsOn": [
+            "t05-attribute-store"
+          ],
+          "checkIds": [
+            "check-a-typing-attributes"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/state.rs"
+            }
+          ]
+        },
+        {
+          "id": "t07-format-history",
+          "title": "Formatting in history, the format revision and event",
+          "descriptionMarkdown": "**History.**\n- `HistoryState` holds `Arc`-shared formatting.\n- Add a format edit kind.\n- Record attribute-only changes without `buffer.apply`.\n- Undo and redo restore formatting.\n\n**Revision and event.** Add the format revision and the new event type; `EditableTextEvent` is unchanged.\n\nNew group `editable_text_format_history.rs`.",
+          "criterionIds": [
+            "ATTR-3"
+          ],
+          "designIds": [
+            "d-attribute-store"
+          ],
+          "dependsOn": [
+            "t05-attribute-store"
+          ],
+          "checkIds": [
+            "check-a-format-history"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/history.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/state.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/event.rs"
+            }
+          ]
+        },
+        {
+          "id": "t08-attribute-rendering",
+          "title": "Render stored attributes through shaping and paint runs",
+          "descriptionMarkdown": "**Runs.**\n- Map stored attributes to shaping runs (`RunMetrics`, family) and paint runs.\n- Overlay owner style runs.\n- Extend `RowLayoutKey`.\n\n**Plain path.** Keep the splice and the cache counts for plain fields.\n\n**Tests:**\n- new group `editable_text_attribute_layout.rs`;\n- new scene `editable-rich-attributes` (lanes A, B and C).",
+          "criterionIds": [
+            "ATTR-4"
+          ],
+          "designIds": [
+            "d-attribute-rendering",
+            "d-proof-and-pairing"
+          ],
+          "dependsOn": [
+            "t05-attribute-store"
+          ],
+          "checkIds": [
+            "check-a-attribute-layout",
+            "check-a-attributes-lane-a",
+            "check-a-attributes-lane-c",
+            "check-a-attributes-lane-b"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/layout_map.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/layout_cache.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/element.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_tests_conformance/src/scenes/editing.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s03-variable-rows",
+      "title": "Rows of different heights and per-row alignment",
+      "dependsOn": [
+        "s02-attributes"
+      ],
+      "tasks": [
+        {
+          "id": "t09-variable-rows",
+          "title": "Per-row metrics table and every geometry consumer",
+          "descriptionMarkdown": "**What to build:**\n- The row table in `TextLayoutMap`: tops, heights, baselines and prefix sums.\n- Move every uniform-height consumer onto it: `layout_map.rs`, `geometry.rs`, `state.rs` (vertical and page movement, reveal, auto-scroll), `element.rs` (visible rows, caret, row paint, single-line height) and `editable_text_selection_quads`.\n\nNew group `editable_text_variable_rows.rs`.",
+          "criterionIds": [
+            "ROW-1"
+          ],
+          "designIds": [
+            "d-variable-rows"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-a-variable-rows"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/layout_map.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/geometry.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/state.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/element.rs"
+            }
+          ]
+        },
+        {
+          "id": "t10-row-alignment",
+          "title": "Per-row alignment offsets for geometry",
+          "descriptionMarkdown": "**Fix.** Compute alignment offsets per visual row with paint's function, and use them in caret, selection, hit testing and IME geometry.\n\n**Test order.**\n1. Write group `editable_text_row_alignment.rs` first.\n2. Show that it fails against the old code.\n3. Then fix.",
+          "criterionIds": [
+            "ROW-2"
+          ],
+          "designIds": [
+            "d-variable-rows"
+          ],
+          "dependsOn": [
+            "t09-variable-rows"
+          ],
+          "checkIds": [
+            "check-a-row-alignment"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/geometry.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/state.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/text_system/line.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s04-paragraphs",
+      "title": "Paragraph formatting: alignment, indents, spacing, line height, letter spacing",
+      "dependsOn": [
+        "s03-variable-rows"
+      ],
+      "tasks": [
+        {
+          "id": "t11-paragraph-store",
+          "title": "Paragraph formats that move with edits",
+          "descriptionMarkdown": "**What to build:**\n- the `ParagraphFormat` table, remapped on line breaks inserted or deleted;\n- the API;\n- formats in `AttributedText` and in history.\n\nNew group `editable_text_paragraphs.rs`.",
+          "criterionIds": [
+            "PARA-1"
+          ],
+          "designIds": [
+            "d-paragraphs",
+            "d-attribute-store"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-a-paragraphs"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/state.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/history.rs"
+            }
+          ]
+        },
+        {
+          "id": "t12-paragraph-alignment",
+          "title": "Paragraph alignment including justify",
+          "descriptionMarkdown": "**What to build:**\n- the paragraph-alignment enum;\n- justify, as per-row extra space advance read by paint and geometry;\n- left alignment for the last row and for one-word rows.\n\nNew group `editable_text_paragraph_alignment.rs`.",
+          "criterionIds": [
+            "PARA-2"
+          ],
+          "designIds": [
+            "d-paragraphs"
+          ],
+          "dependsOn": [
+            "t11-paragraph-store"
+          ],
+          "checkIds": [
+            "check-a-paragraph-alignment"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/layout_map.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/text_system/line.rs"
+            }
+          ]
+        },
+        {
+          "id": "t13-paragraph-spacing",
+          "title": "Indents, spacing, line height and paragraph letter spacing",
+          "descriptionMarkdown": "**What to build:**\n- wrap boundaries from glyph positions against first-row and remaining-row widths;\n- hanging indents;\n- spacing before and after, and the line-height multiplier, in the row table;\n- the paragraph's default letter spacing.\n\n**Tests:**\n- new group `editable_text_paragraph_spacing.rs`;\n- new scene `editable-paragraphs` (lanes A, B and C).",
+          "criterionIds": [
+            "PARA-3"
+          ],
+          "designIds": [
+            "d-paragraphs",
+            "d-proof-and-pairing"
+          ],
+          "dependsOn": [
+            "t12-paragraph-alignment"
+          ],
+          "checkIds": [
+            "check-a-paragraph-spacing",
+            "check-a-paragraphs-lane-a",
+            "check-a-paragraphs-lane-c",
+            "check-a-paragraphs-lane-b"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/layout_map.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/text_system/line_layout.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_tests_conformance/src/scenes/editing.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s05-lists",
+      "title": "Lists",
+      "dependsOn": [
+        "s04-paragraphs"
+      ],
+      "tasks": [
+        {
+          "id": "t14-list-markers",
+          "title": "List items, markers, numbering and checkboxes",
+          "descriptionMarkdown": "**What to build:**\n- the list item as a field of the paragraph format, with a level indent step;\n- marker painting;\n- numbering;\n- checkbox hit testing and toggling;\n- marker exclusion from text, IME and plain export.\n\n**Naming.** Avoid the forbidden layout-file tokens (`text_layout_map.rs` guard). Name everything as list markers.\n\n**Tests:**\n- new group `editable_text_lists.rs`;\n- new scene `editable-lists` (lanes A, B and C).",
+          "criterionIds": [
+            "LIST-1"
+          ],
+          "designIds": [
+            "d-paragraphs",
+            "d-proof-and-pairing"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-a-lists",
+            "check-a-lists-lane-a",
+            "check-a-lists-lane-c",
+            "check-a-lists-lane-b"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/element.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/layout_map.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/state.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_tests_conformance/src/scenes/editing.rs"
+            }
+          ]
+        },
+        {
+          "id": "t15-list-editing",
+          "title": "List editing defaults as public methods",
+          "descriptionMarkdown": "**What to build:**\n- Enter, Enter in an empty item, Backspace at the start, and Tab/Shift-Tab, as public state methods;\n- the key table wired to them;\n- the per-state switch;\n- one undo step each.\n\nNew group `editable_text_list_editing.rs`.",
+          "criterionIds": [
+            "LIST-2"
+          ],
+          "designIds": [
+            "d-paragraphs"
+          ],
+          "dependsOn": [
+            "t14-list-markers"
+          ],
+          "checkIds": [
+            "check-a-list-editing"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/element.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/state.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s06-inline-objects",
+      "title": "Inline objects",
+      "dependsOn": [
+        "s05-lists"
+      ],
+      "tasks": [
+        {
+          "id": "t16-inline-model",
+          "title": "Inline objects in the buffer, layout and export",
+          "descriptionMarkdown": "**What to build:**\n- the U+FFFC object attribute;\n- the advance and height post-pass;\n- unbreakable wrapping;\n- one-character editing;\n- the fallbacks in `text()`, IME and export.\n\nNew group `editable_text_inline_objects.rs`.",
+          "criterionIds": [
+            "OBJ-1"
+          ],
+          "designIds": [
+            "d-inline-objects",
+            "d-attribute-store"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-a-inline-objects"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/layout_map.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/state.rs"
+            }
+          ]
+        },
+        {
+          "id": "t17-inline-render",
+          "title": "Owner-rendered inline elements",
+          "descriptionMarkdown": "**What to build:**\n- `EditableText::inline_object_renderer`;\n- the child elements' layout, prepaint and paint inside the content mask;\n- pointer precedence for objects.\n\n**Tests:**\n- new group `editable_text_inline_render.rs`;\n- new scene `editable-inline-objects` (lanes A, B and C).",
+          "criterionIds": [
+            "OBJ-2"
+          ],
+          "designIds": [
+            "d-inline-objects",
+            "d-proof-and-pairing"
+          ],
+          "dependsOn": [
+            "t16-inline-model"
+          ],
+          "checkIds": [
+            "check-a-inline-render",
+            "check-a-inline-lane-a",
+            "check-a-inline-lane-c",
+            "check-a-inline-lane-b"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/element.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_tests_conformance/src/scenes/editing.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s07-rich-clipboard",
+      "title": "Rich clipboard",
+      "dependsOn": [
+        "s06-inline-objects"
+      ],
+      "tasks": [
+        {
+          "id": "t18-clipboard-html",
+          "title": "The HTML clipboard entry on every platform",
+          "descriptionMarkdown": "**Core.** Add `ClipboardEntry::Html`, `new_string_with_html` and `html()`, and update the Windows exhaustive match.\n\n**Backends:**\n- macOS, Windows, Wayland, X11 and the web;\n- iOS, which also fixes the NUL read;\n- Android: a real JNI `ClipboardManager` with `ClipData.newHtmlText`, on the UI thread;\n- the test platform.\n\n**Tests:**\n- new group `clipboard_html.rs`;\n- lane D check `platform-clipboard-html`;\n- lane B titles `clipboard: html ...`;\n- lane E check `clipboard-android`;\n- lane F check `clipboard-ios`.",
+          "criterionIds": [
+            "CLIP-1"
+          ],
+          "designIds": [
+            "d-clipboard-html",
+            "d-proof-and-pairing"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-a-clipboard-html",
+            "check-a-clipboard-lane-d",
+            "check-a-clipboard-lane-b",
+            "check-a-clipboard-lane-e",
+            "check-a-clipboard-lane-f",
+            "check-a-android-build",
+            "check-a-android-native-build"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/platform.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_macos/src/pasteboard.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_windows/src/clipboard.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_linux/src/linux/wayland/clipboard.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_linux/src/linux/x11/clipboard.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/platform.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/events.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/ios/platform.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/android/platform.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_tests_conformance/src/platform_checks.rs"
+            }
+          ]
+        },
+        {
+          "id": "t19-html-codec",
+          "title": "The HTML codec for AttributedText",
+          "descriptionMarkdown": "**What to build:**\n- add the crates.io tokenizer dependency (`html5ever`) as a workspace dependency;\n- serialization;\n- parsing of the subset;\n- the safety rules and the 4 MiB cap.\n\nNew group `editable_text_html.rs`.",
+          "criterionIds": [
+            "CLIP-2"
+          ],
+          "designIds": [
+            "d-clipboard-html"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-a-html-codec",
+            "check-a-workspace-package"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "Cargo.toml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/Cargo.toml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/mod.rs"
+            }
+          ]
+        },
+        {
+          "id": "t20-rich-copy-paste",
+          "title": "Rich copy, cut and paste in EditableText",
+          "descriptionMarkdown": "**Copy and cut** write HTML when the selection is formatted.\n\n**Paste:**\n- the rich-paste switch;\n- every paste as its own undo step, including the item-aware `InputHandler` paste;\n- single-line flattening.\n\nNew group `editable_text_rich_clipboard.rs`.",
+          "criterionIds": [
+            "CLIP-3"
+          ],
+          "designIds": [
+            "d-clipboard-html",
+            "d-attribute-store"
+          ],
+          "dependsOn": [
+            "t18-clipboard-html",
+            "t19-html-codec"
+          ],
+          "checkIds": [
+            "check-a-rich-clipboard"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/state.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/input.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/platform.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s08-compat-docs",
+      "title": "Compatibility proof and documentation",
+      "dependsOn": [
+        "s07-rich-clipboard"
+      ],
+      "tasks": [
+        {
+          "id": "t21-api-compat",
+          "title": "RayX-facing compatibility",
+          "descriptionMarkdown": "**gpux side.** New group `editable_text_api_compat.rs` covers RayX's uses: constructors and methods, irrefutable `EditableTextEvent::Changed`, `TextRun` with defaults, `ClipboardString` literals and exhaustive `TextAlign`.\n\n**RayX side.** In the sibling RayX worktree, check the RayX packages that use text, editable text and the clipboard. Fix only compatibility breakage there, paired with this branch.",
+          "criterionIds": [
+            "API-1"
+          ],
+          "designIds": [
+            "d-attribute-store",
+            "d-proof-and-pairing"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-a-api-compat",
+            "check-a-rx-check"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/mod.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/gpui.rs"
+            }
+          ]
+        },
+        {
+          "id": "t22-docs",
+          "title": "Editable-text documentation and the upstream checklist",
+          "descriptionMarkdown": "**What to write:**\n- `docs/editable-text.md`;\n- the closure-update checklist rule for per-run metrics;\n- a link from the README's documentation list, if it has one.",
+          "criterionIds": [
+            "DOC-1"
+          ],
+          "designIds": [
+            "d-run-metrics",
+            "d-attribute-store",
+            "d-paragraphs",
+            "d-inline-objects",
+            "d-clipboard-html"
+          ],
+          "dependsOn": [],
+          "checkIds": [],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "docs/editable-text.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": ".claude/skills/gpux/references/update-from-zed-gpui-closure.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s09-html-limits",
+      "title": "Bounded HTML paste",
+      "dependsOn": [
+        "s08-compat-docs"
+      ],
+      "tasks": [
+        {
+          "id": "t23-html-limits",
+          "title": "Bound pasted HTML numbers and parse work",
+          "descriptionMarkdown": "**Final-review repair** (`final-html-unbounded-numeric-values`, `final-html-quadratic-within-cap`).\n\n- The codec drops non-finite numbers and bounds lengths, font sizes, line-height multipliers, font weights, color channels and `ol start`.\n- List counters saturate; roman labels above 3999 fall back to digits.\n- Whitespace preservation is inherited per element instead of scanned, element depth is capped, and sorted spans (from the parser and in `insert_attributed_text`) are built in one pass.\n\nNew group `editable_text_html_limits.rs`.",
+          "criterionIds": [],
+          "designIds": [
+            "d-clipboard-html"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-a-html-limits",
+            "check-a-html-limits-regressions"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/html.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/attributes.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/state.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/layout_map.rs"
+            }
+          ],
+          "supportingCriterionIds": [
+            "CLIP-2",
+            "CLIP-3",
+            "LIST-1"
+          ]
+        }
+      ]
+    }
+  ]
+}

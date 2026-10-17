@@ -21,6 +21,7 @@ fn run(len: usize, font: Font) -> TextRun {
         background_color: None,
         underline: None,
         strikethrough: None,
+        metrics: Default::default(),
     }
 }
 

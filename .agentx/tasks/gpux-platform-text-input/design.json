@@ -1,0 +1,460 @@
+{
+  "schemaVersion": 7,
+  "epicId": "gpux-platform-text-input",
+  "decisions": [
+    {
+      "id": "d-config",
+      "requirementIds": [
+        "CFG"
+      ],
+      "descriptionMarkdown": "**Configuration.**\n- `TextInputConfiguration` grows additively (it already derives `Default`).\n- `EditableTextState` owns its configuration; secure overrides suggestions and autocorrect.\n- `Window`'s per-frame configuration comparison forwards it unchanged.\n\n**State sync.**\n- Edits that arrive through `PlatformInputHandler` are tagged platform-originated.\n- At the end of each frame, `Window` compares the focused handler's text revision and selection with what the platform last saw. It reports `ContentChanged` or `SelectionChanged` only for changes the platform did not make.\n- The element calls `invalidate_character_coordinates` from prepaint when the caret's window rectangle changes.\n\n**Soft-keyboard Return** is one shared helper on `PlatformInputHandler`. It dispatches `enter` through the keymap, then falls back to a newline for multi-line fields. iOS and Android call it.\n\n**Reveal** is one window-level operation. It scrolls the focused element's scrolling ancestors through their programmatic path. It is the same mechanism the a11y epic's `ScrollIntoView` uses: whichever lands first owns it, and the other reuses it.",
+      "invariantsMarkdown": "- No echo of platform-originated edits back to the platform.\n- Desktop windows see no new calls.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/input.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/state.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/element.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform/test/window.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/input/2026-10-05-gpui-input-upstream-input-model.md"
+        }
+      ]
+    },
+    {
+      "id": "d-ios-text-input",
+      "requirementIds": [
+        "IOS"
+      ],
+      "descriptionMarkdown": "**The class.** `GPUITextInputView` stays the one first-responder view. It is built with the objc2 runtime class builder, as today, and adds:\n- the `UITextInput` methods, over `UITextPosition` and `UITextRange` subclasses that hold UTF-16 offsets;\n- a `UITextInputStringTokenizer`;\n- the traits.\n\n**Calls into Rust** reach the window's `PlatformInputHandler` on the main thread.\n\n**Placement.**\n- `PlatformWindow` gains `set_text_input_bounds(Option<Bounds<Pixels>>)` (a default no-op). `Window` calls it when the focused handler's clipped element bounds change.\n- iOS moves and sizes the input view with it.\n- A `UITextInteraction` is attached while a field is editable and focused.\n\n**No double caret.** `PlatformWindow` gains `draws_text_selection()` (default false). `EditableText` reads it to skip painting its own caret and selection.\n\n**Hardware keys and inset.** `pressesBegan:`/`pressesEnded:` forward to the existing key-event path. Keyboard frame notifications feed `insets().ime`.",
+      "invariantsMarkdown": "- UIKit objects stay on the main thread.\n- The input view takes no touches without a focused editable field.\n- The legacy callback is consulted only when no handler accepts text.",
+      "rationaleMarkdown": "**Why `UITextInteraction`.** `UITextInput` with `UITextInteraction` (iOS 13+; the deployment target is 16.0) gives a custom text engine UIKit's own caret, handles, loupe and edit menu. There is nothing to imitate.\n\n**Prior art.** Flutter's and Compose's iOS text input use the same protocol.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/ios/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/ios/text_input.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/ios/ffi.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/lib.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/examples/ios_host/checks.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/mobile/2026-10-07-platform-mobile-ios-lane-f.md"
+        }
+      ]
+    },
+    {
+      "id": "d-android-input-connection",
+      "requirementIds": [
+        "AND"
+      ],
+      "descriptionMarkdown": "**The view.** A gpux Java view, `GpuxTextInputView`, in `dev.gpux.mobile`. It overrides `onCreateInputConnection` and `onCheckIsTextEditor`, and returns a `BaseInputConnection` subclass over an `Editable` mirror.\n\n**Where it lives.** A gpux-owned panel window: the composition helper's panel machinery, `FLAG_NOT_TOUCHABLE` so touches stay with GPUI, and focusable only while a field is focused. The embedded host may place it in its own view hierarchy (`Composition.setHostView`).\n\n**Threads and the mirror.**\n- IME calls run on the UI thread and post versioned operations to Rust on the GPUI thread.\n- Rust applies them to the input handler and posts back the resulting text window and selection.\n- The mirror answers IME reads in between. This is the pattern of Flutter's `ListenableEditingState`.\n\n**First task: a spike.** It proves the panel-hosted connection receives IME calls under NativeActivity, which takes the activity's input queue, and in the embedded host. If the panel cannot take IME focus under NativeActivity, the documented fallback is a view added to the activity's content through `addContentView`, with the same mirror. The spike records which host uses which.",
+      "invariantsMarkdown": "- No blocking cross-thread waits.\n- Panels other than the text input view keep their focus rules.\n- GPUI stays active across the focus handoff.",
+      "rationaleMarkdown": "**Why a new path is needed.** NativeActivity key events cannot carry modern IME input: Gboard commits through `InputConnection`. The existing panel focus handoff (`platform-view-android-text`) already shows a gpux panel can take the soft keyboard without pausing GPUI.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/jni.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/platform.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/java/dev/gpux/mobile/Composition.java"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/examples/android_host/platform_views.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/mobile/2026-10-07-platform-mobile-android-lane-e.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-window-composition.md"
+        }
+      ]
+    },
+    {
+      "id": "d-web-mirror",
+      "requirementIds": [
+        "WEB"
+      ],
+      "descriptionMarkdown": "**Placement.** `WebWindow::update_ime_position` positions the mirror textarea, fixed and transparent, at the caret rectangle in CSS pixels, with the field's font size. Blur parks it again.\n\n**Configuration** maps onto mirror attributes. Secure fields add `-webkit-text-security: disc` and turn suggestions off.\n\n**IME inset.** `visualViewport` changes feed `insets().ime` as the covered bottom height.",
+      "invariantsMarkdown": "- The mirror never takes pointer input.\n- The a11y epic's mirror semantics are preserved.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/ime_mirror.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/events.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/viewport.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/web/2026-10-07-platform-web-browser-lane-b.md"
+        }
+      ]
+    },
+    {
+      "id": "d-touch-editing",
+      "requirementIds": [
+        "TCH"
+      ],
+      "descriptionMarkdown": "**Telling touch from mouse.** `Window` records whether the current pointer interaction began as a raw `Touch`: a gpux addition beside Zed's model.\n\n**What `EditableText` does on touch:**\n- It handles `LongPressEvent` and touch-synthesized taps.\n- It draws handles as deferred overlay elements with hitboxes.\n- It moves handles with `TouchDragEvent` claims.\n\n**The toolbar.**\n- `PlatformWindow` gains `show_text_edit_menu(rect, actions) -> bool` (default false) and `hide_text_edit_menu()`.\n- Android implements them with a floating `ActionMode`.\n- When the hook returns false, `EditableText` draws its own toolbar in the overlay. That is the web.\n\n**The magnifier.** `PlatformWindow` gains `show_text_magnifier(point)` and `hide_text_magnifier()` (default no-op). Android implements them with `android.widget.Magnifier`.",
+      "invariantsMarkdown": "- Mouse behavior is unchanged.\n- iOS never draws gpux handles while UIKit's interaction is attached.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/gestures.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/element.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/deferred.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/window.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/input/2026-10-05-gpui-input-upstream-input-model.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-06-29-gpui-frame-pipeline-unclipped-deferred-overlays.md"
+        }
+      ]
+    },
+    {
+      "id": "d-native-field",
+      "requirementIds": [
+        "NAT"
+      ],
+      "descriptionMarkdown": "**Core API.** gpux core owns `NativeTextFieldState` and the `native_text_field` element. Platforms implement `PlatformWindow::create_native_text_field(config) -> Option<Box<dyn PlatformNativeTextField>>`, with methods to:\n- set and get the value, the configuration, the style and the bounds;\n- focus and blur;\n- report changes, focus and submit through callbacks.\n\n**Platform backends:**\n- **iOS** places a `UITextField` in a window-composition native surface.\n- **Android** places an `EditText` in a composition native surface, its panel.\n- **Web.** `gpui_web` creates an `<input>` inside a `<form>` in the `html_element` overlay root, owning the DOM node directly, and syncs it each frame.\n- **Desktop and test platforms** return `None`. The element then renders an `EditableText`.",
+      "invariantsMarkdown": "- The native control is placed only where the element is laid out, and clipped by its content mask.\n- gpux overlays draw above it.\n- Dropping the element removes the control.",
+      "rationaleMarkdown": "**Why a native field.** Password managers and platform autofill fill only real platform text fields and DOM inputs. Credentials are the one place where that beats gpux drawing; the owner chose an opt-in for it (2026-10-16).",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/composition.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/components/platform_view_element.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/platform_view.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/html_element.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-window-composition.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/web/2026-07-03-platform-web-html-element-dom-overlay.md"
+        }
+      ]
+    },
+    {
+      "id": "d-proof",
+      "requirementIds": [
+        "CFG",
+        "IOS",
+        "AND",
+        "WEB",
+        "TCH",
+        "NAT",
+        "OWN"
+      ],
+      "descriptionMarkdown": "**Core behavior** is proved by new groups in `crates/gpui/tests`.\n\n**Platforms:**\n- **iOS** by new lane F checks in `ios_host`, which drive `UITextInput` methods on the live view in the host's process.\n- **Android** by new lane E checks in `android_host`, which call the live `InputConnection` through JNI and use `adb shell input` for keys.\n- **The web** by new Playwright specs in `tools/browser/specs` (`text-input.spec.ts`, `native-field` titles), with CDP touch, IME and device metrics.\n\n**Real keyboards, IMEs and autofill** are the owner's walkthrough, in its own final sprint.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/examples/android_host/checks.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/examples/ios_host/checks.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/browser/specs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-test-lanes.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-gpux-owns-runtime-proof.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-gpux-testkit.md"
+        }
+      ]
+    }
+  ],
+  "memoryDecisionsConsidered": [
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-effects/2026-07-06-gpui-frame-effects-frame-effects-elements.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-effects/2026-07-07-gpui-frame-effects-frame-family-naming.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-07-24-gpui-frame-pipeline-cached-thermal-frame-throttling.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-05-gpui-frame-pipeline-frame-demand-follow-up.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-oracle.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-switches.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-scroll-layers.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-30-gpui-layout-style-registry-taffy-0-14.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-conditional-prepaint-style-recompute.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-disable-taffy-content-size.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-frame-bounded-prepaint-style-handoff.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-measured-layout-invalidation.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-request-style-handoff.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-text-measurement-scope.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-fixed-sticky-positioned-scene-order.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-fixed-sticky-positioning.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-nested-scroll-wheel-propagation.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-06-gpui-positioning-scroll-fixed-containing-block.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-opaque-scroll-capture-owner.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-sticky-hierarchy-traversal-order.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-universal-sticky-push-out.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-08-21-gpui-positioning-scroll-immediate-scrollbar-publication.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/desktop/2026-07-08-platform-desktop-windows-wgpu-dx12-policy.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/desktop/2026-07-08-platform-desktop-windows-wgpu-dxgi-scaling.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-06-24-platform-web-multithreaded-wasm.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-06-29-platform-web-wasm-svg-asset-loading.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-07-01-platform-web-html-island-url-opt-in.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-07-02-platform-web-html-island-canonical-roots.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-07-03-platform-web-html-element-fit-styles-wheel.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-08-31-platform-web-explicit-wasm-constructors.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/renderer/wgpu/2026-07-04-renderer-wgpu-shader-effects-backend-capabilities.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/renderer/wgpu/2026-08-07-renderer-wgpu-browser-backend-fallback.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/renderer/wgpu/2026-09-30-renderer-wgpu-srgb-compositing.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/renderer/wgpu/2026-10-13-renderer-wgpu-transformed-sprites-filtered-by-hand.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/renderer/wgpu/2026-10-14-renderer-wgpu-noncompliant-adapter-variable.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/agentx-memory/2026-10-05-repository-agentx-memory-taxonomy-transplant.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-crates-io-packaging.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-drop-z-crates.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-gpux-wgpu-fork.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/upstream-sync/2026-08-07-repository-upstream-sync-self-contained-upstream-provenance.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-local-gpu-lane-g.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-13-repository-validation-fast-mode-proof-and-timing.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-14-repository-validation-wgpu-desktop-perf-4.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-14-repository-validation-wsl-gpu-lanes-c-d.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-16-repository-validation-test-tooling-layout.md"
+    }
+  ]
+}

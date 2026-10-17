@@ -603,6 +603,7 @@ impl TextStyle {
             background_color: self.background_color.clone(),
             underline: self.underline.clone(),
             strikethrough: self.strikethrough.clone(),
+            metrics: Default::default(),
         }
     }
 }

@@ -334,10 +334,33 @@ impl Platform for IosPlatform {
     fn write_to_clipboard(&self, item: ClipboardItem) {
         unsafe {
             let pasteboard: *mut AnyObject = msg_send![class!(UIPasteboard), generalPasteboard];
-            if let Some(text) = item.text() {
-                let ns_string: *mut AnyObject =
-                    msg_send![class!(NSString), stringWithUTF8String: text.as_ptr()];
-                let _: () = msg_send![pasteboard, setString: ns_string];
+            let Some(text) = item.text() else {
+                return;
+            };
+            // The string is made from the text's bytes and length: a Rust string has no
+            // terminating NUL for `stringWithUTF8String:` to stop at.
+            let ns_text = clipboard_ns_string(&text);
+            match item.html() {
+                // Text and HTML as one item, so other apps paste either representation.
+                Some(html) => {
+                    let keys = [
+                        clipboard_ns_string("public.utf8-plain-text"),
+                        clipboard_ns_string("public.html"),
+                    ];
+                    let values = [ns_text, clipboard_ns_string(html)];
+                    let dictionary: *mut AnyObject = msg_send![
+                        class!(NSDictionary),
+                        dictionaryWithObjects: values.as_ptr(),
+                        forKeys: keys.as_ptr(),
+                        count: 2usize
+                    ];
+                    let items: *mut AnyObject =
+                        msg_send![class!(NSArray), arrayWithObject: dictionary];
+                    let _: () = msg_send![pasteboard, setItems: items];
+                }
+                None => {
+                    let _: () = msg_send![pasteboard, setString: ns_text];
+                }
             }
         }
     }
@@ -349,12 +372,29 @@ impl Platform for IosPlatform {
             if string.is_null() {
                 return None;
             }
-            let utf8: *const i8 = msg_send![string, UTF8String];
-            if utf8.is_null() {
-                return None;
+            let mut item = ClipboardItem::new_string(clipboard_string_from(string)?);
+            let html_type = clipboard_ns_string("public.html");
+            let html: *mut AnyObject = msg_send![pasteboard, valueForPasteboardType: html_type];
+            if !html.is_null() {
+                let is_string: bool = msg_send![html, isKindOfClass: class!(NSString)];
+                let html = if is_string {
+                    clipboard_string_from(html)
+                } else {
+                    let length: usize = msg_send![html, length];
+                    let bytes: *const std::ffi::c_void = msg_send![html, bytes];
+                    (!bytes.is_null()).then(|| {
+                        String::from_utf8_lossy(std::slice::from_raw_parts(
+                            bytes.cast::<u8>(),
+                            length,
+                        ))
+                        .into_owned()
+                    })
+                };
+                if let Some(html) = html {
+                    item.entries.push(gpui::ClipboardEntry::Html(html));
+                }
             }
-            let text = std::ffi::CStr::from_ptr(utf8).to_str().ok()?;
-            Some(ClipboardItem::new_string(text.to_string()))
+            Some(item)
         }
     }
 
@@ -393,5 +433,38 @@ impl Platform for IosPlatform {
 
     fn keyboard_mapper(&self) -> Rc<dyn PlatformKeyboardMapper> {
         Rc::new(DummyKeyboardMapper)
+    }
+}
+
+/// An autoreleased `NSString` with `text`'s UTF-8 bytes, which need no terminating NUL.
+unsafe fn clipboard_ns_string(text: &str) -> *mut AnyObject {
+    unsafe {
+        let string: *mut AnyObject = msg_send![class!(NSString), alloc];
+        let string: *mut AnyObject = msg_send![
+            string,
+            initWithBytes: text.as_ptr() as *const std::ffi::c_void,
+            length: text.len(),
+            encoding: 4u64
+        ];
+        msg_send![string, autorelease]
+    }
+}
+
+/// The UTF-8 text of an `NSString`, read by length rather than to a NUL.
+unsafe fn clipboard_string_from(string: *mut AnyObject) -> Option<String> {
+    unsafe {
+        let data: *mut AnyObject = msg_send![string, dataUsingEncoding: 4u64];
+        if data.is_null() {
+            return None;
+        }
+        let length: usize = msg_send![data, length];
+        let bytes: *const std::ffi::c_void = msg_send![data, bytes];
+        if bytes.is_null() {
+            return Some(String::new());
+        }
+        Some(
+            String::from_utf8_lossy(std::slice::from_raw_parts(bytes.cast::<u8>(), length))
+                .into_owned(),
+        )
     }
 }

@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{Font, Pixels, WrappedLineLayout};
+use crate::{Font, Pixels, RunMetrics, WrappedLineLayout};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub(super) struct LayoutStyleKey {
@@ -39,12 +39,17 @@ impl LayoutStyleKey {
 pub(super) struct ShapeRunKey {
     pub(super) len: usize,
     pub(super) font: Font,
+    pub(super) metrics: RunMetrics,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub(super) struct RowLayoutKey {
     text: Arc<str>,
     runs: Arc<[ShapeRunKey]>,
+    /// The first-row and other-row wrap widths of a paragraph with indents.
+    wrap_widths: Option<(Pixels, Pixels)>,
+    /// Each inline object's character offset and reserved width.
+    objects: Arc<[(usize, Pixels)]>,
 }
 
 impl RowLayoutKey {
@@ -52,7 +57,19 @@ impl RowLayoutKey {
         Self {
             text,
             runs: runs.into(),
+            wrap_widths: None,
+            objects: Arc::from([]),
         }
+    }
+
+    pub(super) fn with_objects(mut self, objects: Vec<(usize, Pixels)>) -> Self {
+        self.objects = objects.into();
+        self
+    }
+
+    pub(super) fn with_wrap_widths(mut self, wrap_widths: Option<(Pixels, Pixels)>) -> Self {
+        self.wrap_widths = wrap_widths;
+        self
     }
 }
 

@@ -1,19 +1,23 @@
-use std::ops::Range;
+use std::{ops::Range, sync::Arc};
 
-use super::EditableSelection;
+use super::{EditableSelection, Formatting};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum EditKind {
     Typing,
     Composition,
+    /// A formatting-only change: never merged with another step.
+    Format,
     Other,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct HistoryState {
     pub text: String,
     pub selection: EditableSelection,
     pub marked_range: Option<Range<usize>>,
+    /// Shared with the state and other entries, never copied per keystroke.
+    pub formatting: Option<Arc<Formatting>>,
 }
 
 #[derive(Clone, Debug)]
