@@ -8,7 +8,7 @@ use accesskit_consumer::{FilterResult, FullNodeId, NodeRef, TreeChangeHandler};
 use hashbrown::HashSet;
 use objc2::runtime::{AnyObject, ProtocolObject};
 use objc2_app_kit::*;
-use objc2_foundation::{NSMutableDictionary, NSNumber, NSString};
+use objc2_foundation::{NSMutableDictionary, NSNumber, NSString, ns_string};
 use std::{collections::VecDeque, rc::Rc};
 
 use crate::{
@@ -287,6 +287,13 @@ impl TreeChangeHandler for EventGenerator {
                     notification: unsafe { NSAccessibilityValueChangedNotification },
                 });
             }
+        }
+        // gpux fork: VoiceOver announces a change of the expanded state.
+        if old_node.data().is_expanded() != new_node.data().is_expanded() {
+            self.events.push(QueuedEvent::Generic {
+                node_id,
+                notification: ns_string!("AXExpandedChanged"),
+            });
         }
         if old_wrapper.supports_text_ranges()
             && new_wrapper.supports_text_ranges()

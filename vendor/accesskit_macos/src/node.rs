@@ -295,6 +295,106 @@ fn ns_sub_role(node: &NodeRef) -> Option<&'static NSAccessibilitySubrole> {
     }
 }
 
+// gpux fork: a table exposes its rows (and its rows and cells their positions) to VoiceOver,
+// which otherwise announces a table without selectable rows as empty.
+fn is_table(node: &NodeRef) -> bool {
+    node.role() == Role::Table
+}
+
+fn table_rows<'a>(node: &NodeRef<'a>) -> Vec<NodeRef<'a>> {
+    let mut rows = Vec::new();
+    for child in node.filtered_children(filter) {
+        match child.role() {
+            Role::Row => rows.push(child),
+            Role::RowGroup | Role::GenericContainer => rows.extend(
+                child
+                    .filtered_children(filter)
+                    .filter(|row| row.role() == Role::Row),
+            ),
+            _ => {}
+        }
+    }
+    rows
+}
+
+fn in_table(node: &NodeRef) -> bool {
+    let mut parent = node.filtered_parent(&filter);
+    while let Some(ancestor) = parent {
+        if is_table(&ancestor) {
+            return true;
+        }
+        parent = ancestor.filtered_parent(&filter);
+    }
+    false
+}
+
+fn row_position(row: &NodeRef) -> Option<usize> {
+    row.data().row_index().or_else(|| {
+        let mut parent = row.filtered_parent(&filter);
+        while let Some(ancestor) = parent {
+            if is_table(&ancestor) {
+                return table_rows(&ancestor)
+                    .iter()
+                    .position(|other| other.id() == row.id());
+            }
+            parent = ancestor.filtered_parent(&filter);
+        }
+        None
+    })
+}
+
+// gpux fork: a range widget (slider, spin button, ...) VoiceOver adjusts.
+fn is_range(node: &NodeRef) -> bool {
+    matches!(
+        node.role(),
+        Role::Slider | Role::SpinButton | Role::ScrollBar | Role::ProgressIndicator | Role::Meter
+    )
+}
+
+// gpux fork: a control that would take a press were it enabled. VoiceOver announces a disabled
+// control as dimmed only when it has a press action, and as having no action otherwise.
+fn is_disabled_control(node: &NodeRef) -> bool {
+    node.is_disabled()
+        && matches!(
+            node.role(),
+            Role::Button
+                | Role::DefaultButton
+                | Role::CheckBox
+                | Role::RadioButton
+                | Role::Switch
+                | Role::Link
+                | Role::MenuItem
+                | Role::Tab
+        )
+}
+
+fn number_text(value: f64) -> String {
+    if value.fract() == 0.0 && value.abs() < 1e15 {
+        format!("{}", value as i64)
+    } else {
+        format!("{value}")
+    }
+}
+
+fn node_span(node: &PlatformNode, span: impl Fn(&NodeRef) -> Option<usize>) -> usize {
+    node.resolve(|node| span(node))
+        .flatten()
+        .unwrap_or(1)
+        .max(1)
+}
+
+fn cell_position(cell: &NodeRef) -> Option<(usize, usize)> {
+    let row = cell
+        .filtered_parent(&filter)
+        .filter(|row| row.role() == Role::Row)?;
+    let row_index = cell.data().row_index().or_else(|| row_position(&row))?;
+    let column_index = cell.data().column_index().or_else(|| {
+        row.filtered_children(filter)
+            .position(|other| other.id() == cell.id())
+    })?;
+    Some((row_index, column_index))
+}
+
 pub(crate) fn can_be_focused(node: &NodeRef) -> bool {
     filter(node) == FilterResult::Include && node.role() != Role::Window
 }
@@ -602,6 +702,21 @@ declare_class!(
                     }
                 });
             }
+        }
+
+        // gpux fork: what VoiceOver reads as a range widget's value: its value text, else its
+        // number, rather than the percentage of its range it computes otherwise.
+        #[method_id(accessibilityValueDescription)]
+        fn value_description(&self) -> Option<Id<NSString>> {
+            self.resolve(|node| {
+                if !is_range(node) {
+                    return None;
+                }
+                node.value()
+                    .or_else(|| node.numeric_value().map(number_text))
+                    .map(|text| NSString::from_str(&text))
+            })
+            .flatten()
         }
 
         #[method_id(accessibilityMinValue)]
@@ -1107,6 +1222,13 @@ declare_class!(
         fn rows(&self) -> Option<Id<NSArray<PlatformNode>>> {
             self.resolve_with_context(|node, _, context| {
                 let wrapper = NodeWrapper(node);
+                if is_table(node) {
+                    let platform_nodes = table_rows(node)
+                        .into_iter()
+                        .map(|row| context.get_or_create_platform_node(row.id()))
+                        .collect::<Vec<Id<PlatformNode>>>();
+                    return Some(NSArray::from_vec(platform_nodes));
+                }
                 if !wrapper.is_container_with_selectable_children() {
                     return None;
                 }
@@ -1117,6 +1239,39 @@ declare_class!(
                 Some(NSArray::from_vec(platform_nodes))
             })
             .flatten()
+        }
+
+        #[method(accessibilityIndex)]
+        fn index(&self) -> NSInteger {
+            self.resolve(|node| row_position(node).map(|index| index as NSInteger))
+                .flatten()
+                .unwrap_or(0)
+        }
+
+        #[method(accessibilityRowIndexRange)]
+        fn row_index_range(&self) -> NSRange {
+            self.resolve(cell_position)
+                .flatten()
+                .map(|(row, _)| NSRange::new(row, node_span(self, |node| node.data().row_span())))
+                .unwrap_or(NSRange::new(0, 0))
+        }
+
+        #[method(accessibilityColumnIndexRange)]
+        fn column_index_range(&self) -> NSRange {
+            self.resolve(cell_position)
+                .flatten()
+                .map(|(_, column)| {
+                    NSRange::new(column, node_span(self, |node| node.data().column_span()))
+                })
+                .unwrap_or(NSRange::new(0, 0))
+        }
+
+        // gpux fork: the expanded state, which VoiceOver announces as "collapsed" or
+        // "expanded".
+        #[method(isAccessibilityExpanded)]
+        fn is_expanded(&self) -> bool {
+            self.resolve(|node| node.data().is_expanded() == Some(true))
+                .unwrap_or(false)
         }
 
         #[method_id(accessibilitySelectedRows)]
@@ -1237,6 +1392,9 @@ declare_class!(
                 if selector == sel!(setAccessibilityFocused:) {
                     return node.is_focusable(&filter);
                 }
+                if selector == sel!(accessibilityPerformPress) && is_disabled_control(node) {
+                    return true;
+                }
                 if selector == sel!(accessibilityPerformPress) {
                     return node.is_clickable(&filter);
                 }
@@ -1263,17 +1421,43 @@ declare_class!(
                     return node.supports_text_ranges();
                 }
                 if selector == sel!(setAccessibilityValue:) {
+                    // gpux fork: VoiceOver adjusts a range widget with increment and decrement
+                    // when it offers them. Through `setAccessibilityValue:` it reads the value
+                    // back before the app's next frame updates it and keeps raising its step,
+                    // so one adjustment jumps to the range's end.
+                    if is_range(node)
+                        && (node.supports_increment(&filter) || node.supports_decrement(&filter))
+                    {
+                        return false;
+                    }
                     return (node.supports_text_ranges() && !node.is_read_only()) || node.supports_action(Action::SetValue, &filter);
+                }
+                if selector == sel!(accessibilityValueDescription) {
+                    return is_range(node);
                 }
                 if selector == sel!(isAccessibilitySelected) {
                     let wrapper = NodeWrapper(node);
                     return wrapper.is_item_like();
+                }
+                if selector == sel!(accessibilityRows) && is_table(node) {
+                    return true;
                 }
                 if selector == sel!(accessibilityRows)
                     || selector == sel!(accessibilitySelectedRows)
                 {
                     let wrapper = NodeWrapper(node);
                     return wrapper.is_container_with_selectable_children()
+                }
+                if selector == sel!(accessibilityIndex) {
+                    return node.role() == Role::Row && in_table(node);
+                }
+                if selector == sel!(accessibilityRowIndexRange)
+                    || selector == sel!(accessibilityColumnIndexRange)
+                {
+                    return cell_position(node).is_some();
+                }
+                if selector == sel!(isAccessibilityExpanded) {
+                    return node.data().is_expanded().is_some();
                 }
                 if selector == sel!(setAccessibilitySelected:)
                     || selector == sel!(accessibilityPerformPick)
