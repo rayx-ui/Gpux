@@ -4,8 +4,9 @@ use super::common::*;
 use crate::scene::{Area, Expect, Lane, SceneSpec, Step};
 use gpux::prelude::*;
 use gpux::{
-    AnyView, App, Context, DevtoolsSemantics, EditableText, EditableTextState, Entity, IntoElement,
-    Render, Window, div, px, semantic_query::Query,
+    AnyView, App, AttributeChange, AttributeState, Context, DevtoolsSemantics, EditableText,
+    EditableTextState, Entity, FontStyle, FontWeight, IntoElement, Render, TextAttributes,
+    TextAttributesPatch, UnderlineStyle, Window, div, px, rgb, semantic_query::Query,
 };
 
 const ALL_LANES: &[Lane] = &[Lane::A, Lane::B, Lane::C, Lane::D, Lane::E, Lane::F];
@@ -122,6 +123,190 @@ pub const IME: SceneSpec = SceneSpec {
             Step::ImeCompose("ご".into(), 1),
             Step::ImeCancel,
             value_is("日本"),
+        ]
+    },
+};
+
+/// One field holding Lilex "H"s (0.6 em each) formatted in place, and buttons that make its
+/// first two glyphs bold and the next two italic.
+struct RichAttributes {
+    state: Entity<EditableTextState>,
+}
+
+impl RichAttributes {
+    fn new(cx: &mut Context<Self>) -> Self {
+        let state = cx.new(|cx| {
+            let mut state = EditableTextState::with_text("HHHHHHHHHHHH", cx);
+            let mut set = |range: std::ops::Range<usize>, attributes: TextAttributes| {
+                state.set_attributes(range, &TextAttributesPatch::setting(&attributes), cx);
+            };
+            set(
+                4..6,
+                TextAttributes {
+                    font_size: Some(px(28.)),
+                    ..Default::default()
+                },
+            );
+            set(
+                6..8,
+                TextAttributes {
+                    color: Some(rgb(RED_HEX).into()),
+                    // An underline without a color of its own takes the run's.
+                    underline: Some(UnderlineStyle {
+                        thickness: px(2.),
+                        color: None,
+                        wavy: false,
+                    }),
+                    ..Default::default()
+                },
+            );
+            set(
+                8..10,
+                TextAttributes {
+                    background_color: Some(rgb(BLUE_HEX).into()),
+                    ..Default::default()
+                },
+            );
+            set(
+                10..11,
+                TextAttributes {
+                    baseline_shift: Some(px(8.)),
+                    ..Default::default()
+                },
+            );
+            set(
+                11..12,
+                TextAttributes {
+                    baseline_shift: Some(px(-6.)),
+                    ..Default::default()
+                },
+            );
+            state
+        });
+        cx.observe(&state, |_, _, cx| cx.notify()).detach();
+        Self { state }
+    }
+}
+
+fn apply_attributes(
+    state: &Entity<EditableTextState>,
+    range: std::ops::Range<usize>,
+    patch: TextAttributesPatch,
+    cx: &mut App,
+) {
+    state.update(cx, |state, cx| {
+        state.set_attributes(range, &patch, cx);
+    });
+}
+
+impl Render for RichAttributes {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let state = self.state.read(cx);
+        let on = |state: AttributeState| match state {
+            AttributeState::On => "on",
+            AttributeState::Off => "off",
+            AttributeState::Mixed => "mixed",
+        };
+        let bold = on(state.attribute_state(0..2, |attributes| {
+            attributes.font_weight == Some(FontWeight::BOLD)
+        }));
+        let italic = on(state.attribute_state(2..4, |attributes| {
+            attributes.font_style == Some(FontStyle::Italic)
+        }));
+        let field = self.state.clone();
+        let button = |id: &'static str, x: f32| {
+            div()
+                .id(id)
+                .absolute()
+                .left(px(x))
+                .top(px(80.))
+                .w(px(60.))
+                .h(px(20.))
+                .bg(rgb(GRAY_HEX))
+        };
+        root()
+            .font_family("Lilex")
+            .child(
+                div()
+                    .absolute()
+                    .left(px(10.))
+                    .top(px(10.))
+                    .w(px(280.))
+                    .line_height(px(48.))
+                    .child(EditableText::new(&self.state)),
+            )
+            .child(button("make-bold", 10.).on_click({
+                let field = field.clone();
+                move |_, _, cx| {
+                    apply_attributes(
+                        &field,
+                        0..2,
+                        TextAttributesPatch {
+                            font_weight: AttributeChange::Set(FontWeight::BOLD),
+                            ..Default::default()
+                        },
+                        cx,
+                    )
+                }
+            }))
+            .child(button("make-italic", 80.).on_click(move |_, _, cx| {
+                apply_attributes(
+                    &field,
+                    2..4,
+                    TextAttributesPatch {
+                        font_style: AttributeChange::Set(FontStyle::Italic),
+                        ..Default::default()
+                    },
+                    cx,
+                )
+            }))
+            .child(
+                div()
+                    .absolute()
+                    .left(px(150.))
+                    .top(px(80.))
+                    .child(status(format!("bold {bold} italic {italic}"))),
+            )
+    }
+}
+
+/// Stored formatting in one field. The 48 px row's ascent comes from the 28 px run (28.7) and
+/// its descent from the subscript (10.4), so the baseline sits at y 43.15 and the underline at
+/// about y 49.6. The runs span x 10-29.2 (bold target), 29.2-48.4 (italic target), 48.4-82
+/// (28 px), 82-101.2 (red, underlined), 101.2-120.4 (blue background), 120.4-130 (superscript,
+/// raised 8) and 130-139.6 (subscript, lowered 6).
+pub const RICH_ATTRIBUTES: SceneSpec = SceneSpec {
+    id: "editable-rich-attributes",
+    areas: &[Area::EditableRichAttributes, Area::EditableText],
+    size: (300., 110.),
+    scales: &[1., 2.],
+    lanes: &[Lane::A, Lane::B, Lane::C],
+    golden: false,
+    build: |_, cx| cx.new(RichAttributes::new).into(),
+    script: || {
+        vec![
+            Step::Expect(Expect::Exists(status_is("bold off italic off"))),
+            // The 28 px run's ink reaches above the 16 px runs'.
+            Step::ProbeDiffer((52., 26., 26., 5.), (200., 26., 26., 5.), 40),
+            Step::ProbeUniform((11., 26., 36., 5.), WHITE, 0),
+            // The red run's underline takes its color.
+            Step::ProbeUniform((84., 50.2, 15., 1.5), RED, 0),
+            // The background covers the row above and below the glyphs.
+            Step::ProbeUniform((103., 12., 15., 3.), BLUE, 0),
+            Step::ProbeUniform((103., 54., 15., 3.), BLUE, 0),
+            // The superscript sits above the baseline runs' x-height; the subscript reaches
+            // below the baseline.
+            Step::ProbeDiffer((122., 26., 6., 7.), (200., 26., 6., 7.), 40),
+            Step::ProbeUniform((121., 37., 8., 5.), WHITE, 0),
+            Step::ProbeDiffer((131., 45., 7., 3.), (200., 45., 7., 3.), 40),
+            Step::Capture("regular"),
+            Step::Click(id("make-bold")),
+            Step::Expect(Expect::Exists(status_is("bold on italic off"))),
+            Step::ChangedSince("regular", (10., 30., 19., 14.)),
+            Step::Capture("bold"),
+            Step::Click(id("make-italic")),
+            Step::Expect(Expect::Exists(status_is("bold on italic on"))),
+            Step::ChangedSince("bold", (29., 30., 19., 14.)),
         ]
     },
 };

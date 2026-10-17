@@ -17,6 +17,7 @@ macro_rules! lane_c_scenes {
             text_truncation => "text-truncation",
             text_interactive => "text-interactive",
             editable_text => "editable-text",
+            editable_rich_attributes => "editable-rich-attributes",
             editable_ime => "editable-ime",
             list_uniform => "list-uniform",
             list_variable => "list-variable",
