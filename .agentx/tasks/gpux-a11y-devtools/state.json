@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-a11y-devtools",
-  "revision": 153,
+  "revision": 156,
   "planRevision": 18,
   "specHashes": {
     "requirements": "4a6c683aa102b8f1030e274bee5dff3347e540bfc919978760a9eff0017628d4",
@@ -178,7 +178,7 @@
       ]
     },
     "t29-after-measurements": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "local_a11y_impl"
       ]
@@ -3600,7 +3600,7 @@
       "criterionIds": [
         "PERF-2"
       ],
-      "verdict": "failed",
+      "verdict": "passed",
       "anchors": [
         {
           "repositoryId": "gpux",
@@ -3609,7 +3609,7 @@
           "criterionIds": [
             "PERF-2"
           ],
-          "sha256": "19c97e9cddcde9d72ffe9d20fc7df5ec92e1484c637c6a7210558eb3d4c89234"
+          "sha256": "fbf65f64fa2baf0d2ff369aa46fe3e0803269c801ef2ec58a2924bb4da3fc910"
         },
         {
           "repositoryId": "gpux",
@@ -3639,16 +3639,16 @@
           "sha256": "574db00c3e526daaa84da1adbd63f5bbd5ebccb306ace8ca7e82c7774469e68e"
         }
       ],
-      "deltaSummaryMarkdown": "Inspected gpux 1466e49 and 23e21c4 and the new data. The benchmark's `--accessibility inspect` passes `--inspect` on the desktop and `&inspect=1` in the browser, and `driver::open` holds `begin_a11y_inspection()` in the run state for the whole run. Every i′ report carries `inspecting: true` with fast mode on and no inactive frames; every a′ report carries `false`. The node counts (always from c′, inspecting from i′: 868→920, 151→304, ...) and the live-heap deltas i′ − a′ in the new tree table match my medians of `inspect-a`/`inspect-i`. The macOS (a′)/(i′) table matches. The hang paragraph now rests on evidence: 0 of 12 back-to-back launches with the 58257fe binary, a `CVDisplayLink` thread in the healthy sample and none in the hung one. It is correctly no longer called pre-existing. A new defect is in the inspection-cost claims for the browser.",
-      "reattestedFrom": "78c6b540da0b892ffff586e6615c2d275f71f867225826aaa3caf8103a9db223",
+      "deltaSummaryMarkdown": "Inspected gpux 619a011 and 6db56e2. The setup note now names the browser list scrolls' two CPU levels, with the per-repetition figures, and leaves those two scenarios out of the browser ranges while keeping their cells in the tables. I recomputed the ranges from the raw medians. Browser c′/a′ without the list scrolls is 0.90× (`dashboard-clock` 1.207/1.348) to 1.48× (`table-stream`). Browser i′/a′ without them is 1.10× (`dashboard-all-panels`) to 1.87× (`scroll-div-cards`). macOS i′/a′ is 0.94–1.44×. The examples now match the tables and name their target: macOS 0.62 → 0.89 and 1.68 → 2.38 ms, browser 1.29 → 1.83 and 2.16 → 4.04 ms. The \"unexplained\" wording is replaced by the two-level cause. 6db56e2 records the macOS first-frame hang (no `CVDisplayLink` subscription; about 5 of 200 epic-binary launches against 0 of 78 for b) as an open follow-up in `.agentx/memory/knowledge/platform/desktop/state.md`. The change is docs and memory only; there are no checks.",
+      "reattestedFrom": "e78ad3e6b5499aac93bcfe001d4a8a0921fe323df9863d0cf0f70868d9d7a933",
       "summaryMarkdown": "Every other part of PERF-2 holds up under the raw reports. All 4×66 reports are fast mode on (`FastMode { layout_retention, view_retention, splice, scroll_layers: true }`) with no inactive frames, and `a11y_nodes` is set only in c′, so the switch took effect. (1) a′ vs b: I recomputed the per-repetition CPU and `draw` p50 of the same-session control from `control-a`/`control-b`. The ranges overlap on every scenario on both targets (repetition spread is ±20–40%, so CPU alone could not resolve a ~10–20% change), and the allocation counts and bytes per frame are identical to within 1–6 allocations. That is the decisive evidence that a′ does no extra per-frame work, so \"no regression above the noise\" is supported. Using the same-session b instead of the day-earlier before-b is right given the 1.05–1.42× drift. (2) c′: the medians match the doc (CPU 0.96–1.34× on macOS; allocations 1.3–33×). The named cause is well supported: the extra allocations scale at about 7 per tree node on every scenario (dashboard-clock +6,095 for 868 nodes, scroll-div-cards +19,580 for 2,801, text-typing +1,071 for 151). The browser list-scroll drop (c′ faster in 2 of 3 repetitions) is honestly reported as unexplained, and it is not a regression. (3) The live-heap deltas match the medians; values ≤0.1 MB sit within repetition spread. (4) The hang sample shows the main thread blocked in the AppKit run loop with no display-link thread. The pre-existing claim rests on the before-(a) `table-stream` timeout in a 58257fe build, which is plausible but indirect; running `hang/loop.sh` against the wt-b binary would settle it. Failing only on the tree-size table, which was measured without inspection.",
       "findingIds": [
         "s10-perf2-tree-size-not-inspection",
         "s10-perf2-browser-bimodal-ratios"
       ],
-      "recordedAt": "2026-10-16T23:56:10Z",
+      "recordedAt": "2026-10-16T23:58:39Z",
       "recordHashes": {
-        "gpux:docs/measurements/a11y-devtools.md": "2dfbd0172c4e67983796cbd22de23a79ed559e6338c30c7fbb771692f11b08d7",
+        "gpux:docs/measurements/a11y-devtools.md": "e8e4f95bb77b8676c4816348f8b46089ace75a88346c2e467c5535803f54ed31",
         "gpux:docs/measurements/screen-reader-walkthrough.md": "d647a0e88aa62a59cdf656ee35ff14469a1fb2b392066e9cb655cf15f229abd5"
       }
     }
@@ -3761,6 +3761,15 @@
       },
       "reviewHash": "40c1a8f9d187eb7782c2135c0100763efedb163ac7f8b1800d0aafd09b621248",
       "recordedAt": "2026-10-16T22:18:49Z"
+    },
+    "s10-after": {
+      "snapshotId": "e78ad3e6b5499aac93bcfe001d4a8a0921fe323df9863d0cf0f70868d9d7a933",
+      "commits": {
+        "gpux": "6db56e2a20cc6a2b63ad28c81eab5f78c5c89ba7",
+        "rayx": "3716df725aec4fe9923900b6aa79350f1342dc09"
+      },
+      "reviewHash": "2dddfbd8ab5bacf0bc3133f25939f3658e088d6684d7825b247b94b4418545be",
+      "recordedAt": "2026-10-17T00:00:23Z"
     }
   },
   "findings": [
@@ -4826,8 +4835,18 @@
         "PERF-2"
       ],
       "severity": "minor",
-      "status": "open",
-      "descriptionMarkdown": "The browser inspection-cost range is read from a bimodal measurement, and the bullet's examples do not match its own table. (1) Browser main-thread CPU on the list scrolls jumps between two levels from run to run, whatever the variant. Per repetition, `scroll-uniform-list` ran 0.60/0.66/1.10 ms for (a′, inspect series), 1.10/1.11/1.20 for (a′, after series), 0.67/0.68/1.56 for (c′) and 1.47/1.50/1.50 for (i′); `scroll-variable-list` shows the same split. The findings bullet's \"1.10–2.26× in the browser\" for (i′) is therefore set by its two list scrolls (2.26×, 1.94×), which compare an (a′) that mostly landed on the low level with an (i′) that always landed on the high one. The same split also explains the c′ list-scroll \"0.61×/0.63×\" the doc calls unexplained. Against the after-series (a′) these scrolls cost about 1.1–1.3×, in line with only 2–3 more nodes. (2) The bullet's examples \"`scroll-div-cards` 2.20 → 4.04 ms, `dashboard-clock` 1.06 → 1.83 ms\" match neither table: the browser table reads 2.16 → 4.04 and 1.29 → 1.83, and the macOS table 1.68 → 2.38 and 0.62 → 0.89. Expected: CPU ratios that come from comparable runs, examples that match the tables, and the bimodality named so the c′ and i′ browser list scrolls are not read as results. Repair: name the two-level browser CPU in the setup notes, exclude the browser list scrolls from the (c′) and (i′) ranges (or rerun them until both variants land on the same level, reporting `draw` p50 per level), and correct the bullet's example numbers and their target. Optional: the hang paragraph calls the epic-binary hangs (about 5 of 200 vs 0 of 78 for b) an open follow-up but tracks it only in this document; record it where it will be picked up (an epic follow-up item or a ToFix entry)."
+      "status": "resolved",
+      "descriptionMarkdown": "The browser inspection and always-on ranges were set by the list scrolls' two CPU levels, and the bullet's examples did not match its tables. Resolved: the two levels are named, the ranges exclude the two list scrolls, and the examples match the tables per target.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/measurements/a11y-devtools.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/platform/desktop/state.md"
+        }
+      ]
     }
   ],
   "handoffMarkdown": "PERF-2 recorded in docs/measurements/a11y-devtools.md (87c5046): same-session b vs a', alternated a' vs c', tree sizes, session drift; benchmark switch f6a5207, README 912507f. Raw in artifacts-temp/agentx/gpux-a11y-devtools/after/.",
