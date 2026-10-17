@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-rich-editable-text",
-  "revision": 33,
+  "revision": 34,
   "planRevision": 6,
   "specHashes": {
     "requirements": "dd2fb980909e8180a8291227ea08cef4d241a5684340cdb66f70c1b4ca539061",
@@ -819,6 +819,15 @@
       },
       "reviewHash": "348832355dfd8ce8a5d1d7a27b4904b098b771f08d5adeef1355c3445ffe9116",
       "recordedAt": "2026-10-17T00:09:07Z"
+    },
+    "s02-attributes": {
+      "snapshotId": "c1c8b7f9acecd1555754817070bf37f74a5e5d2a7e136288080ec1d6ea6df803",
+      "commits": {
+        "gpux": "346ba2754ce4716066dd95cc715a6c24c1ab1e21",
+        "rayx": "e1279848a5861313e30b6e79b122a2825dd8544d"
+      },
+      "reviewHash": "b1939c8d9d881e4094a3c70787e400a9f9491f0a71f5537b588a301088800bc5",
+      "recordedAt": "2026-10-17T00:37:13Z"
     }
   },
   "findings": [
