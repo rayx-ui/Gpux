@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-rich-editable-text",
-  "revision": 11,
+  "revision": 12,
   "title": "Rich text in gpux's EditableText: per-run metrics, stored formatting, variable rows, paragraphs and lists, inline objects, rich clipboard",
   "validationMode": "sprint",
   "repositories": [
@@ -1970,6 +1970,88 @@
         "Cargo.toml",
         "Cargo.lock"
       ]
+    },
+    {
+      "id": "check-a-html-limits",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "CLIP-2",
+        "CLIP-3",
+        "LIST-1"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/editable_text_html_limits.rs`: non-finite pasted numbers dropped and the rest bounded, a huge `ol start` bounded, list counters saturating with short labels, and deep nesting and many alternating runs within the cap parsing and pasting in linear time.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "editable_text_html_limits"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-a-html-limits-regressions",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "CLIP-2",
+        "CLIP-3",
+        "LIST-1"
+      ],
+      "descriptionMarkdown": "The existing groups that exercise the touched codec, span store and list markers: `editable_text_html`, `editable_text_rich_clipboard` and `editable_text_lists`.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "editable_text_html",
+        "--test",
+        "editable_text_rich_clipboard",
+        "--test",
+        "editable_text_lists"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 30
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "crates/gpux_color/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
     }
   ],
   "finalCheckIds": [
@@ -2782,6 +2864,52 @@
               "repositoryId": "gpux",
               "path": ".claude/skills/gpux/references/update-from-zed-gpui-closure.md"
             }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s09-html-limits",
+      "title": "Bounded HTML paste",
+      "dependsOn": [
+        "s08-compat-docs"
+      ],
+      "tasks": [
+        {
+          "id": "t23-html-limits",
+          "title": "Bound pasted HTML numbers and parse work",
+          "descriptionMarkdown": "**Final-review repair** (`final-html-unbounded-numeric-values`, `final-html-quadratic-within-cap`).\n\n- The codec drops non-finite numbers and bounds lengths, font sizes, line-height multipliers, font weights, color channels and `ol start`.\n- List counters saturate; roman labels above 3999 fall back to digits.\n- Whitespace preservation is inherited per element instead of scanned, element depth is capped, and sorted spans (from the parser and in `insert_attributed_text`) are built in one pass.\n\nNew group `editable_text_html_limits.rs`.",
+          "criterionIds": [],
+          "designIds": [
+            "d-clipboard-html"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-a-html-limits",
+            "check-a-html-limits-regressions"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/html.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/attributes.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/state.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/layout_map.rs"
+            }
+          ],
+          "supportingCriterionIds": [
+            "CLIP-2",
+            "CLIP-3",
+            "LIST-1"
           ]
         }
       ]
