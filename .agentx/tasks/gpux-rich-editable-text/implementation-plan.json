@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-rich-editable-text",
-  "revision": 9,
+  "revision": 10,
   "title": "Rich text in gpux's EditableText: per-run metrics, stored formatting, variable rows, paragraphs and lists, inline objects, rich clipboard",
   "validationMode": "sprint",
   "repositories": [

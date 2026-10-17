@@ -1,12 +1,12 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-rich-editable-text",
-  "revision": 73,
-  "planRevision": 9,
+  "revision": 85,
+  "planRevision": 10,
   "specHashes": {
-    "requirements": "dd2fb980909e8180a8291227ea08cef4d241a5684340cdb66f70c1b4ca539061",
+    "requirements": "50d839c1826723eb62c9eb677b70faa73af1eafaac66832c9d98e282f767a8fb",
     "design": "75d1477d98b395c22c8d694b837633e4558521317e37d3e2603988ac152f52f5",
-    "plan": "463152237f680bb54ce7314a76aedfe8bc9ccb27849627d8e686042bbbbffbd0"
+    "plan": "ee8553bf8ccaadaafe16bcba857b80d43050443b89db918dac0b0a34ae448a0a"
   },
   "tasks": {
     "t01-run-metrics-core": {
@@ -100,10 +100,16 @@
       ]
     },
     "t16-inline-model": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "3b3dd124"
+      ]
     },
     "t17-inline-render": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "3b3dd124"
+      ]
     },
     "t18-clipboard-html": {
       "status": "pending"
@@ -171,6 +177,16 @@
         }
       },
       "recordedAt": "2026-10-17T01:52:21Z"
+    },
+    "063a9e0c1f0e66f9aa7ffb3e7c9085b1788fd3076efebd0c81972f74a065ba45": {
+      "snapshot": {
+        "specHash": "87ce408ac84a6ec02bfc645ca3445318fecef0c084a03f114a3d5b2dc96b1ef7",
+        "repositories": {
+          "gpux": "a5c01049e18b48306800ac5bec762d354a57032ba5b48ae112c0afcf58acb960",
+          "rayx": "84d2cf241369243da3a9acff3794e5f471dea1a58363826115976742f944428b"
+        }
+      },
+      "recordedAt": "2026-10-17T02:10:54Z"
     }
   },
   "checkResults": {
@@ -751,6 +767,91 @@
       "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s05-lists-final-2650fb2e938c.log",
       "logSha256": "ee2b6153d50be4147da5af14d96e613178057ac6a89405405474cbf3a7b9e05d",
       "inputsHash": "9acf97afbf143fbc65184190f43317ad5181fe1c12611aff286513238c2ef960"
+    },
+    "s06-inline-objects/check-a-inline-objects/final": {
+      "checkId": "check-a-inline-objects",
+      "boundaryId": "s06-inline-objects",
+      "phase": "final",
+      "batchId": "063a9e0c1f0e66f9aa7ffb3e7c9085b1788fd3076efebd0c81972f74a065ba45",
+      "definitionHash": "a8d0758388a1c86bcf77641bc4447a463683a60fff50800848dc6d2dce20f1c6",
+      "basisHash": "e2e0dd3c7b70e6bc5169c088b496cf0de9f9e123070701f45405ad3edfa58fab",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 11,
+      "durationSeconds": 1.3035,
+      "recordedAt": "2026-10-17T02:08:23Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s06-inline-objects-final-5d6ae00afd44.log",
+      "logSha256": "f5eb0c913c7d49395fb5e8f655b9de14138d94e8ba43c6009df80fe8d1142744",
+      "inputsHash": "0d6016c7fd177cc5676ab2ff93d094cd74befbb629e91a0a37768bca8781ad8c"
+    },
+    "s06-inline-objects/check-a-inline-render/final": {
+      "checkId": "check-a-inline-render",
+      "boundaryId": "s06-inline-objects",
+      "phase": "final",
+      "batchId": "063a9e0c1f0e66f9aa7ffb3e7c9085b1788fd3076efebd0c81972f74a065ba45",
+      "definitionHash": "12d3c9782fa56fc4fcddd4dd0245cea62e106d4ed565e74b86c06c5894e510cc",
+      "basisHash": "58e5914b9b5a1915ed4ef08cfeae42a47148cd148a89f257ff4fc98fe55f3238",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 1.1441,
+      "recordedAt": "2026-10-17T02:08:24Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s06-inline-objects-final-403f3cc29a4e.log",
+      "logSha256": "1d1f0930e9b0de366ec043a2193769b0f0cf3eb72496f308bc88f792cae78839",
+      "inputsHash": "0d6016c7fd177cc5676ab2ff93d094cd74befbb629e91a0a37768bca8781ad8c"
+    },
+    "s06-inline-objects/check-a-inline-lane-a/final": {
+      "checkId": "check-a-inline-lane-a",
+      "boundaryId": "s06-inline-objects",
+      "phase": "final",
+      "batchId": "063a9e0c1f0e66f9aa7ffb3e7c9085b1788fd3076efebd0c81972f74a065ba45",
+      "definitionHash": "5c3a7a7580e7d8c40b565d7c44ddc3ae35af3046f8bff437c42caff6550ca23f",
+      "basisHash": "c4ead1c965c64780cf1ed5a11bd4aec137728af0d5ac05ddbab2ea882f008ba5",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 38.1124,
+      "recordedAt": "2026-10-17T02:09:02Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s06-inline-objects-final-5b6f28f4d76b.log",
+      "logSha256": "f039309ec7e82922a4c3aab8fcf0675e5f5389f4c9b1da5c1e28c1ed73b372b6",
+      "inputsHash": "23882bcaab72409275d1c435148a608d2f75c03f57cbe16f4dd962f0b485a667"
+    },
+    "s06-inline-objects/check-a-inline-lane-c/final": {
+      "checkId": "check-a-inline-lane-c",
+      "boundaryId": "s06-inline-objects",
+      "phase": "final",
+      "batchId": "063a9e0c1f0e66f9aa7ffb3e7c9085b1788fd3076efebd0c81972f74a065ba45",
+      "definitionHash": "d3fda955ee3a2a39da4eed18516c176b226c23acbcbff51b34a8186952c3a662",
+      "basisHash": "b2053b2140949c4f69e95bb7201b484b2ef48dfe64838df1294b2d6861f25a5d",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 2.4945,
+      "recordedAt": "2026-10-17T02:09:05Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s06-inline-objects-final-fb9f0b3ffc54.log",
+      "logSha256": "6139f69f8cd3f51e05c75c4249763159ca8f9f48dfdbb9d8088142c9e0461a7f",
+      "inputsHash": "23882bcaab72409275d1c435148a608d2f75c03f57cbe16f4dd962f0b485a667"
+    },
+    "s06-inline-objects/check-a-inline-lane-b/final": {
+      "checkId": "check-a-inline-lane-b",
+      "boundaryId": "s06-inline-objects",
+      "phase": "final",
+      "batchId": "063a9e0c1f0e66f9aa7ffb3e7c9085b1788fd3076efebd0c81972f74a065ba45",
+      "definitionHash": "ea79c49b88dec579a0bcdcf24d6bd99e628d320880441ce0435cd29da74570db",
+      "basisHash": "0e89e433beadcc5a18590bbfb48d8cc5f29792fb7ae5908a830dedaa611f5b6c",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 108.1424,
+      "recordedAt": "2026-10-17T02:10:53Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s06-inline-objects-final-7e220514a95d.log",
+      "logSha256": "dcd3c07ad0cc9f2e494286cafcab74eca1060c341718ea2704457968c112f9d7",
+      "inputsHash": "23882bcaab72409275d1c435148a608d2f75c03f57cbe16f4dd962f0b485a667"
     }
   },
   "reviews": {
@@ -1383,6 +1484,134 @@
         "s05-number-markers-overflow-default-step"
       ],
       "recordedAt": "2026-10-17T01:52:54Z"
+    },
+    "s06-inline-objects": {
+      "reviewerId": "reviewer-s06-k7q2m9",
+      "snapshotId": "063a9e0c1f0e66f9aa7ffb3e7c9085b1788fd3076efebd0c81972f74a065ba45",
+      "criterionIds": [
+        "OBJ-1",
+        "OBJ-2"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/attributes.rs",
+          "kind": "source",
+          "criterionIds": [
+            "OBJ-1"
+          ],
+          "sha256": "096e6781b4605a330af0444729b8997aaacf8c2b8430b95966379343f2e86217"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/state.rs",
+          "kind": "source",
+          "criterionIds": [
+            "OBJ-1"
+          ],
+          "sha256": "58fb3b21bc1ed45320294d73e482fae7715f36633773d120b99ae98ec162489f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/layout_map.rs",
+          "kind": "source",
+          "criterionIds": [
+            "OBJ-1",
+            "OBJ-2"
+          ],
+          "sha256": "49d6cfb572b871bcc04f75006c04f0aa3b5e2d5c3c00cd55460e44098fc2653d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/layout_cache.rs",
+          "kind": "source",
+          "criterionIds": [
+            "OBJ-1"
+          ],
+          "sha256": "343e909ee38d2d6b109da83dd467354cf1c612eb0403896e832d3641352c9b9f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/text_system/line.rs",
+          "kind": "source",
+          "criterionIds": [
+            "OBJ-2"
+          ],
+          "sha256": "99203db5f2a0e6b2ba080bf1d00e73827d9a9a44202902897ebf981e5cc6b0ee"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/element.rs",
+          "kind": "source",
+          "criterionIds": [
+            "OBJ-2"
+          ],
+          "sha256": "b72d2c6ddbeb7b37430d913f99ed0c6a71f7edf6f2b4237a8c35b93c791835b0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/scenes/editing.rs",
+          "kind": "source",
+          "criterionIds": [
+            "OBJ-2"
+          ],
+          "sha256": "ab0859b23dc848a8298e8113b18a1587627f9d10338d5b19c967396aefcb9100"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_inline_objects.rs",
+          "kind": "test",
+          "criterionIds": [
+            "OBJ-1"
+          ],
+          "sha256": "c25c5efde3c88a523610b1bc5e9190c4e2b6f7d76d26df106bbf9104e8a12cc4"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_inline_render.rs",
+          "kind": "test",
+          "criterionIds": [
+            "OBJ-2"
+          ],
+          "sha256": "0e59061b6766f97a2d2e9224ffbf55026bccb57ef9707839169738dc1d687730"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/catalog/lane_a_scenes.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "OBJ-2"
+          ],
+          "sha256": "4bb16bf0540b9e5c12c5ce18bb48aeaf4849fc68d17d1eb9de4b193cd5a5cbed"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/catalog/lane_c_scenes.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "OBJ-2"
+          ],
+          "sha256": "65a7c95bf0f0afec9426e714295c9f1d6187962789695db0f6dfb2d6c6c62265"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/text_system/line_layout.rs",
+          "kind": "source",
+          "criterionIds": [
+            "OBJ-1"
+          ],
+          "sha256": "9294d88c7d3aaa6320b5d7d441a3e4ef47cefb2a097694ba3a258af61ba4d2c2"
+        }
+      ],
+      "summaryMarkdown": "OBJ-1 and OBJ-2 are met at this snapshot. The four first-review findings are resolved: the HTML-copy clause is now proved with the HTML codec in sprint 7 (CLIP-2/CLIP-3 name the object cases), a row breaks after an object, deleting a lone object no longer leaks it into typing, and only object characters skip painting in editable rows. Evidence: inline objects 11 tests, inline render 5, and lanes A, B and C for `editable-inline-objects` all pass. Note: the U+FFFC wrap candidate in `line_layout.rs` also applies to a plain U+FFFC in wrapped text, which is harmless.",
+      "findingIds": [
+        "s06-obj-html-copy-missing",
+        "s06-obj-no-break-after",
+        "s06-obj-typing-after-delete-takes-object",
+        "s06-obj-fffc-paint-skip-global"
+      ],
+      "recordedAt": "2026-10-17T02:11:40Z"
     }
   },
   "checkpoints": {
@@ -1645,6 +1874,90 @@
         }
       ],
       "boundaryId": "s05-lists"
+    },
+    {
+      "id": "s06-obj-html-copy-missing",
+      "boundaryId": "s06-inline-objects",
+      "criterionIds": [
+        "OBJ-1"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Expected (OBJ-1):** HTML copy writes each object's HTML fallback, or else its escaped text fallback, proved in `editable_text_inline_objects.rs`.\n\n**Observed:** `InlineObject::html_fallback` is stored but nothing reads it. `copy()` (state.rs) writes only `ClipboardItem::new_string(plain_text)`; there is no HTML entry, codec or test. The HTML clipboard (CLIP-1), codec (CLIP-2, which already lists \"objects as their HTML fallback, or escaped text fallback\") and rich copy (CLIP-3) belong to s07, so this OBJ-1 clause cannot be met in s06 as written.\n\n**Repair:** amend the specs so the clause is owned where it can be proved: move \"HTML copy writes its HTML fallback, or else its escaped text fallback\" out of OBJ-1 into CLIP-2/CLIP-3 (with explicit cases in `editable_text_html.rs` for an object with and without `html_fallback`, the latter escaping `<`/`&` in the text fallback, and in `editable_text_rich_clipboard.rs` for copy of a selection holding an object). Alternatively record a user-decided deferral disposition for that clause. Re-review OBJ-1 after the amendment.\n\n**Resolution (verified):** specification revision 79 keeps the HTML-copy clause in OBJ-1 and states that it is proved with the HTML codec: an object with and without an HTML fallback in `editable_text_html.rs` (CLIP-2) and `editable_text_rich_clipboard.rs` (CLIP-3), whose criteria now name the object cases. Sprint 7 owns that proof; the final review must confirm those cases exist.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/tasks/gpux-rich-editable-text/requirements.json"
+        }
+      ]
+    },
+    {
+      "id": "s06-obj-no-break-after",
+      "boundaryId": "s06-inline-objects",
+      "criterionIds": [
+        "OBJ-1"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Expected (OBJ-1, d-inline-objects):** \"a row may break before or after it\"; wrapping treats the object as an unbreakable word.\n\n**Observed:** wrap boundaries for rows with objects come from `LineLayout::compute_wrap_boundaries_with` (line_layout.rs ~303). U+FFFC is not a `LineWrapper::is_word_char`, so it is a candidate *before* itself, but a following word character only becomes a candidate after a space (`prev_ch == ' '`). There is no break opportunity after an object followed directly by text. Example (200 px field, ~9.6 px glyphs, 40 px object): `\"aa \\u{FFFC}\" + 20×'b'`. Breaking after the object would give rows `aa ￼` / `bbbb…` (192 px fits). Observed: the break falls before the object (`aa ` / `￼bbbb…`), and since `￼bbbb…` is 232 px with no further candidate, the b-word is force-split mid-word into a third row. The test group only proves the break *before* an object (`an_object_never_splits_and_a_row_may_break_before_it`).\n\n**Repair:** make the position right after an inline object a wrap candidate (e.g. in the editable layout's wrap step, or in `compute_wrap_boundaries_with` treat `prev_ch == '\\u{FFFC}'` as a candidate, recording the gpux-local patch in the closure-update checklist since line_layout.rs is a Zed closure file), and add a test `a_row_may_break_after_an_object` to `editable_text_inline_objects.rs` with the example above, proved failing on the current code.\n\n**Resolution (verified):** `compute_wrap_boundaries_with` treats a word character after U+FFFC as a wrap candidate, as after a space. The closure-update checklist records the gpux patch. Regression `a_row_may_break_after_an_object` (rows `aa ￼` / 16 b's); the coordinator reports it failed with the change reverted (row 0 was 0..3).",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/text_system/line_layout.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_inline_objects.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/references/update-from-zed-gpui-closure.md"
+        }
+      ]
+    },
+    {
+      "id": "s06-obj-typing-after-delete-takes-object",
+      "boundaryId": "s06-inline-objects",
+      "criterionIds": [
+        "OBJ-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Expected (OBJ-1 editing, `TextAttributes::object` doc \"Typing never takes it\"):** text typed where an object was never carries the object attribute.\n\n**Observed:** in `apply_edit_then` (state.rs ~1812-1832), a deletion that leaves its paragraph empty sets `typing_attributes = Some(self.stored_attributes(range.start))`, and `stored_attributes` returns the span's attributes unchanged, object included. `insertion_attributes` returns explicit typing attributes before its new `without_object` stripping. Scenario: text `\\u{FFFC}` (object alone in its paragraph), caret after it, `delete_backward`, then type `x` -> `attributes_at(0).object == Some(chip)`; the span on `x` and `AttributedText.spans` carry the object (and a later owner HTML/serialization of spans sees it).\n\n**Repair:** strip the object when saving deleted attributes for the empty paragraph (e.g. store `deleted.without_exclusive()`-like value with `object: None`, keeping link/tag behaviour as today), and add a case to `attribute_changes_keep_objects_and_typing_never_takes_them` (or a new test) deleting a lone object then typing.\n\n**Resolution (verified):** `apply_edit_then` saves `without_exclusive()` attributes when the deleted character carried an object. Regression `typing_after_deleting_a_lone_object_takes_no_object`.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/state.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_inline_objects.rs"
+        }
+      ]
+    },
+    {
+      "id": "s06-obj-fffc-paint-skip-global",
+      "boundaryId": "s06-inline-objects",
+      "criterionIds": [
+        "OBJ-2"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Expected:** only an inline object's character goes unpainted (the task notes \"rows-mode paint skips the U+FFFC glyph\"); plain text paths are unchanged.\n\n**Observed:** the skip is in the shared `paint_line` (line.rs ~902), used by `ShapedLine::paint`, `WrappedLine::paint`, the rows-mode paths and the fast-mode path alike. Every U+FFFC in any `Text`/`StyledText`/label, and a U+FFFC typed or pasted into an editable field without an object attribute, now reserves its glyph advance but paints nothing (it used to paint the font's glyph). It also adds a per-glyph byte comparison to the hottest text paint loop for all text.\n\n**Repair:** limit the skip to editable rows painting objects: pass the row's object offsets (or a flag set only when the row has objects) from `EditableTextPaintElement` into `paint_rows`, and skip only those glyph indices; add a test that a plain U+FFFC without an object attribute still paints.\n\n**Resolution (verified):** `paint_line` takes `hidden_glyphs`; every caller passes `&[]` except `WrappedLine::paint_rows` from the editable element, which passes `logical_row_object_offsets(row)` (only characters carrying an object attribute, in the same display-line coordinates as glyph indices). Other text paints U+FFFC as before, and the empty-slice check keeps the plain loop cost unchanged. Regression `a_plain_replacement_character_is_not_an_object` proves a typed U+FFFC is no object and gets no box; the paint side holds by construction (empty offsets).",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/text_system/line.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/element.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_inline_objects.rs"
+        }
+      ]
     }
   ],
   "handoffMarkdown": "",
