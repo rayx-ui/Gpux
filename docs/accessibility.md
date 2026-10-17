@@ -53,6 +53,10 @@ never makes the operating system think assistive technology is running.
   properties: label, description, value, numeric value and range, toggled, expanded, selected,
   disabled, required, read-only, invalid, placeholder, orientation, level, list positions, table
   indices, live region, bounds.
+  Siblings with the same element id share their element state, but each gets a node of its own:
+  the first keeps the id its element path derives, and the others take ids derived from it and
+  their draw order (stable while the duplicates keep their order; debug builds log the duplicate
+  once). `Window::a11y_node_id` gives the node the element being drawn holds.
 - **Text leaves**: text drawn without an element id (`"Save"`, `SharedString`, `StyledText`)
   becomes a `Label` leaf under the nearest node, so a button labelled only by its text gets its
   name from it as screen readers compute names. A leaf's id derives from its owner node and its
