@@ -101,7 +101,7 @@ attributes left alone, a spin button's value text), the same walk announced, in 
 "Subscribe, unchecked, checkbox", "5, Volume, slider", "Title Untitled, text entry area",
 "Email", "ada@example.com, Email We never share it, required, edit text", "list Fruits 3
 items", "Apple, 1 of 3", "Pear, 2 of 3", "Plum", "Details, collapsed, button",
-"Copies, stepper" (its value text is now "1"), "pad", "Delete, dimmed, button",
+"Copies, stepper" (no value spoken: the mirror gives it `aria-valuetext="1"`, which VoiceOver in Safari does not read; before it said "0%"), "pad", "Delete, dimmed, button",
 "12, Code, invalid data, text", "Six digits", "Scores, table, 2 columns, 2 rows",
 "Ada, column 1 of 2", "3, column 2 of 2", "row 2 of 2 Max, column 1 of 2", "5, column 2 of 2",
 "end of table", "Pin, button", "link, Alpha", "link, Beta", "list Shelf 5 items",
@@ -135,10 +135,20 @@ Not available on this machine.
 
 ## Findings
 
-Findings 1–7 were fixed in the epic at the owner's request (2026-10-17); the tables above
-record the walk again after each fix. A further problem the fixed walk found, VoiceOver in
+At the owner's request (2026-10-17) the epic fixed findings 1–6 and part of 7; the tables above
+record the walk again after the fixes. A further problem the fixed walk found, VoiceOver in
 Safari jumping from Details back to the window's start (the mirror rewrote unchanged role and
-tabindex attributes on every focus change), was fixed with them.
+tabindex attributes on every focus change), was fixed with them. Still open, for the owner's
+next walk:
+
+- **Safari: Copies speaks no value.** The spin button's mirror element carries
+  `aria-valuenow="1"` and `aria-valuetext="1"`; VoiceOver in Safari says "Copies, stepper"
+  (before the value text it said "0%"). Whether WebKit needs the value as text content or
+  another attribute is not established. On the macOS desktop it says "1, Copies, stepper".
+- **Safari: finding 7 in part.** The IME textarea is now `aria-hidden` while it stands for no
+  field, so VoiceOver no longer navigates onto it, but VoiceOver still announces it once when
+  it starts on the page before activation ("text entry area, blank, has keyboard focus"),
+  because it holds keyboard focus.
 
 VoiceOver, macOS desktop (the `accesskit_macos` 0.27 adapter):
 

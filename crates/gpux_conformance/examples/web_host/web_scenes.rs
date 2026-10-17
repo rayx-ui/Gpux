@@ -149,7 +149,12 @@ impl Render for ComposedPage {
                 "composition {} clicks {}",
                 self.composition, self.popover_clicks
             )))
-            .child(status(format!("exits {}", self.exits)))
+            // Its own id: two siblings with the same id would be one node of the tree.
+            .child(
+                div()
+                    .id("exits")
+                    .child(status(format!("exits {}", self.exits))),
+            )
             .child(
                 canvas(
                     |_, _, _| {},
