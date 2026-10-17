@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/gpui/text
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-10T00:30:00+02:00
+  updated: 2026-10-17T03:30:00+02:00
   topics:
     - text-system
     - line-layout-cache
@@ -30,6 +30,8 @@ The ordinary line-layout cache keeps two generations (current and previous frame
 Text measurement is `TextLayout::measure` (shared by the ordinary path and layout retention). Under layout retention (`crates/gpui/src/fast/text.rs`) a text leaf carries last frame's measurement at its key when it shapes the same way (decorations rewritten in place if only colours changed), replays its logged sizes with the new closure, or is measured afresh; and the line layout cache's rollover also keeps lines that carried text still holds (only under retention; lines nothing holds are evicted exactly).
 
 Shaped lines paint their glyphs a run at a time through `fast::glyphs::LineGlyphPainter`: font, size, color, subpixel mode and paint color are worked out once per run, each glyph is quantized exactly as `Window::paint_glyph` does, and glyph bounding boxes are kept per frame (`GlyphBoundsCache`). Number shaping and gpui-fast's path tessellation cache were measured and reverted (no scenario was faster), so every line not in the layout cache is shaped by the platform.
+
+Runs carry their own metrics (`TextRun.metrics: RunMetrics`: optional font size and letter spacing, and a baseline shift; the default inherits the line's). `FontRun.metrics` keeps runs that differ only in metrics apart through the four merge loops, so the metrics are part of every line-layout cache key, and `fast/text.rs` `shapes_as` compares them. Platform shapers shape each run at its own size and report it on `ShapedRun.font_size` (CoreText maps output glyph runs back to input runs by string index, which survives the `next_up` ligature-break sizes and fallback fonts; cosmic sets `Attrs::metrics` per span). One shared pass after shaping (`apply_run_metrics_to_layout`) applies per-run letter spacing and baseline shift, splitting shaped runs where the shift changes (`ShapedRun.baseline_shift`) and widening ascent and descent; lines whose runs space alike and shift nothing take the old letter-spacing path unchanged. Paint reads each run's size and strikes each run through at its own middle, never from a shaper's glyph y.
 
 `editable_text` is GPUI's public, policy-neutral editing foundation: revisioned UTF-8 buffers and snapshots, selection, history, IME, single-line and multiline modes, and `TextLayoutMap`. The layout map maps buffer offsets, visual rows, and pixel geometry for soft-wrap and no-wrap text, retains unaffected shaped rows across incremental edits, and invalidates for text, width, DPR, font metrics/features/fallbacks, tabs, and font-affecting style runs; paint-only color changes reuse shaping. `EditableText` uses it for vertical and page movement, wrapped selection, horizontal and vertical viewport scrolling, drag auto-scroll, resize, and IME geometry. Selection paint intersects the normalized byte range with each visible visual row (including empty and newline rows). Platform `secondary()+Shift+Up/Down` extends to logical-line boundaries independent of soft wrap. The shared epoch-guarded drag loop keeps selecting and scrolling with a stationary pointer outside the viewport and stops after release.
 

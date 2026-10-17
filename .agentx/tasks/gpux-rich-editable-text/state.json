@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-rich-editable-text",
-  "revision": 21,
+  "revision": 22,
   "planRevision": 6,
   "specHashes": {
     "requirements": "dd2fb980909e8180a8291227ea08cef4d241a5684340cdb66f70c1b4ca539061",
@@ -530,7 +530,17 @@
       "recordedAt": "2026-10-17T00:08:44Z"
     }
   },
-  "checkpoints": {},
+  "checkpoints": {
+    "s01-run-metrics": {
+      "snapshotId": "701029920a252d850baa156c15c05b681bb42f1fb899d55315c7ff977d8c7ffd",
+      "commits": {
+        "gpux": "c6ce846d1b84fb412462cc546dc87c08cacd234e",
+        "rayx": "e1279848a5861313e30b6e79b122a2825dd8544d"
+      },
+      "reviewHash": "348832355dfd8ce8a5d1d7a27b4904b098b771f08d5adeef1355c3445ffe9116",
+      "recordedAt": "2026-10-17T00:09:07Z"
+    }
+  },
   "findings": [
     {
       "id": "s01-strikethrough-glyph-y",
