@@ -754,6 +754,31 @@
           "path": "benchmark/README.md"
         }
       ]
+    },
+    {
+      "id": "d-macos-adapter-fork",
+      "requirementIds": [
+        "SR"
+      ],
+      "descriptionMarkdown": "gpux vendors `accesskit_macos` 0.27.1 as `gpux-accesskit-macos` 0.27.1-gpux.1 in `vendor/accesskit_macos` (the published crate, renamed, library only), carrying only the VoiceOver changes marked `gpux fork:` and listed in `docs/upstream/accesskit-macos-tables-expanded.md`: table rows and cell positions, `isAccessibilityExpanded` with `AXExpandedChanged`, `accessibilityValueDescription` for range widgets, increment instead of `setAccessibilityValue:` for a range widget that supports it, and a press action on disabled controls. The workspace dependency keeps the Rust name `accesskit_macos`.",
+      "invariantsMarkdown": "- The fork changes nothing beyond the listed VoiceOver behaviour.\n- When an AccessKit release ships the changes, the fork is deleted and gpux returns to crates.io `accesskit_macos`.",
+      "rationaleMarkdown": "The owner chose a vendored fork (2026-10-17) over an upstream-only fix or a workaround in gpux: `accesskit_macos` 0.27.1 is the latest release and implements none of these, and VoiceOver users meet them on every RayX app. It follows the wgpu fork's pattern.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-crates-io-packaging.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "vendor/accesskit_macos/src/node.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/upstream/accesskit-macos-tables-expanded.md"
+        }
+      ]
     }
   ],
   "memoryDecisionsConsidered": [

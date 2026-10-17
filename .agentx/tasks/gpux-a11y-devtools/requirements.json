@@ -185,6 +185,16 @@
           "id": "SR-7",
           "verification": "manual",
           "descriptionMarkdown": "Owner-run: with the steps in `docs/accessibility.md`, the owner uses VoiceOver on the macOS desktop conformance host (the 0.27 adapter), VoiceOver in Safari and Chrome on macOS on the web conformance host, VoiceOver on the iOS Simulator or a device, and TalkBack on an Android emulator or device (Narrator or NVDA on Windows and Orca on Linux where the owner has them) to move through the `accessibility` scene, hear each control's role, name and state, activate a button, toggle a check box and type into a text field, and records what each one announced and anything missing in `docs/measurements/screen-reader-walkthrough.md`."
+        },
+        {
+          "id": "SR-8",
+          "verification": "automated",
+          "descriptionMarkdown": "Finding-driven scope the owner chose (2026-10-17: \"Fix in this epic\", and a vendored fork for the macOS adapter): on macOS, VoiceOver gets what the walkthrough (`docs/measurements/screen-reader-walkthrough.md`, findings 1-5) found missing: a table's rows and cell positions, a disclosure's expanded state, a spin button's value (not a percentage), a disabled control as dimmed, and a slider that is horizontal by default and steps once per increment, through the vendored fork `vendor/accesskit_macos` (`gpux-accesskit-macos`) and ARIA's default slider orientation in gpux. Proved by the lane D check `screen-reader-macos-voiceover` (which fails on the unmodified adapter) and the gpui group `a11y_aria_defaults`."
+        },
+        {
+          "id": "SR-9",
+          "verification": "automated",
+          "descriptionMarkdown": "Finding-driven scope the owner chose (2026-10-17): in the web mirror, VoiceOver moves past a focused text field (the IME textarea stands right after its field, which screen readers then do not see, and leaves the mirror with focus), the textarea is hidden while it stands for no field, an update leaves unchanged attributes alone (Safari rebuilt an element written unchanged and sent VoiceOver back to the window's start), and a spin button gives its number as its value text (walkthrough findings 6-7 and the jump back after Details). Proved by the lane B specs `screen-reader: navigation ...` and `screen-reader: tree a spin button ...`."
         }
       ]
     },

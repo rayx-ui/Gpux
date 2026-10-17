@@ -1,12 +1,12 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-a11y-devtools",
-  "revision": 156,
-  "planRevision": 18,
+  "revision": 165,
+  "planRevision": 21,
   "specHashes": {
-    "requirements": "4a6c683aa102b8f1030e274bee5dff3347e540bfc919978760a9eff0017628d4",
-    "design": "8fac3da2bc816a9bf6df4fb9326d95ba71cbd30363d6ce20f8af9da98a56bec8",
-    "plan": "411fd08ed90ce433ab80239442d7722d47d54ea5ac027668da536aee5dc43b3f"
+    "requirements": "828bce0b1e3d55e899e87d78d9f8ac18362f50db8456cdca27205f783b5760b3",
+    "design": "e7f5200d01257c5ecb829e0ba83cf7725b091c667adbae7739200e039f685af0",
+    "plan": "dbb9d6bd2c9b94a1517561a822df69aff5a8bcbf117952900ac41c984ab53df9"
   },
   "tasks": {
     "t01-baseline": {
@@ -220,7 +220,10 @@
       ]
     },
     "t30-owner-walkthrough": {
-      "status": "pending"
+      "status": "in_progress",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t01b-accesskit-025": {
       "status": "done",
@@ -260,6 +263,18 @@
     },
     "t25c-editor-select-all": {
       "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
+    },
+    "t31-voiceover-macos": {
+      "status": "implemented",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
+    },
+    "t32-voiceover-web": {
+      "status": "implemented",
       "workerIds": [
         "local_a11y_impl"
       ]
@@ -395,6 +410,16 @@
         }
       },
       "recordedAt": "2026-10-16T22:14:35Z"
+    },
+    "fce4d43e57838251fc3c305c868513a8541493de3aae707d46d8953d9b013aeb": {
+      "snapshot": {
+        "specHash": "d080e4557750917d291f3c81b20930ddf31752747343f2301e555a2a56b41df1",
+        "repositories": {
+          "gpux": "58b7da6dd8b52df5c54535eee4626bfe6ba76874e36eb182d378cc6c0c4f7534",
+          "rayx": "8cfb3352ceb22853b42bd54b9eddbe1ec1b13e7425417a72efe39dcedc88bc2e"
+        }
+      },
+      "recordedAt": "2026-10-17T01:15:19Z"
     }
   },
   "checkResults": {
@@ -1544,6 +1569,57 @@
       "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s09-removal-final-a67d1b708bf9.log",
       "logSha256": "d913d6323d47920417b98abe39e65734afe9e3128b5e965858ecc902f5c55d03",
       "inputsHash": "2a8c576f72bbe12b29f78d923c148098e1ad1608c4152b01191d45a56ad0944b"
+    },
+    "s10a-voiceover-fixes/check-sr-macos-voiceover/final": {
+      "checkId": "check-sr-macos-voiceover",
+      "boundaryId": "s10a-voiceover-fixes",
+      "phase": "final",
+      "batchId": "fce4d43e57838251fc3c305c868513a8541493de3aae707d46d8953d9b013aeb",
+      "definitionHash": "48ff5c84ba358186b31fe26fa5a06a328f4a361afeac93ba600b1d0c886a4f1c",
+      "basisHash": "2e1208c5980230d85849c0abf58120968c11cfb6cc4b03f59b1bf81fdb893734",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 7.3678,
+      "recordedAt": "2026-10-17T01:15:03Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s10a-voiceover-fixes-final-bd044d15c8cb.log",
+      "logSha256": "c86a16de8073c526ce0c6141d466dd8fe8e0070efda111e3086c8d4de2e8ad10",
+      "inputsHash": "fea04cc133d61b7e6a4a615781e94336f31bfe9942a19da728ae353c747d5aa2"
+    },
+    "s10a-voiceover-fixes/check-sr-web-navigation/final": {
+      "checkId": "check-sr-web-navigation",
+      "boundaryId": "s10a-voiceover-fixes",
+      "phase": "final",
+      "batchId": "fce4d43e57838251fc3c305c868513a8541493de3aae707d46d8953d9b013aeb",
+      "definitionHash": "ad518e029483bf872523a74424b6605b1b9571723bdeb0a55cd123a571a76c93",
+      "basisHash": "0fc0afb304f44accb0160c21cf87e2b9035919481106d6dd82b700d17cf50173",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 9.0634,
+      "recordedAt": "2026-10-17T01:15:13Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s10a-voiceover-fixes-final-eac788f6e609.log",
+      "logSha256": "13790f3bbaeca76fff47990737a4c163a88b77cb3d32bf65eeb18f55ce1901ae",
+      "inputsHash": "fea04cc133d61b7e6a4a615781e94336f31bfe9942a19da728ae353c747d5aa2"
+    },
+    "s10a-voiceover-fixes/check-sr-aria-defaults/final": {
+      "checkId": "check-sr-aria-defaults",
+      "boundaryId": "s10a-voiceover-fixes",
+      "phase": "final",
+      "batchId": "fce4d43e57838251fc3c305c868513a8541493de3aae707d46d8953d9b013aeb",
+      "definitionHash": "d853f02b15e56ff35e25817e77849e7ce30e7bb45d121d347562267673fdd53a",
+      "basisHash": "a05ce83f3ea5927dcc9434df1fffc42316e79f908426810ee7ffbce865ad0102",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 5.6781,
+      "recordedAt": "2026-10-17T01:15:18Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s10a-voiceover-fixes-final-e7d031b40c53.log",
+      "logSha256": "3748d43f3a3468ac9a3ed43e1a868f892e09abb1a28bfd00eb3aee08bf7a30da",
+      "inputsHash": "dff0a04f6dad8fdc2a6944a1281c27061112c8c0e33f6259ffeac04913ea079d"
     }
   },
   "reviews": {
@@ -4849,7 +4925,7 @@
       ]
     }
   ],
-  "handoffMarkdown": "PERF-2 recorded in docs/measurements/a11y-devtools.md (87c5046): same-session b vs a', alternated a' vs c', tree sizes, session drift; benchmark switch f6a5207, README 912507f. Raw in artifacts-temp/agentx/gpux-a11y-devtools/after/.",
+  "handoffMarkdown": "IME textarea right after its field, hidden standing for none, unchanged attributes left alone, spin button value text (e521be1); specs screen-reader: navigation ... and tree a spin button (fa3e98b); Safari VoiceOver walk now reaches the whole scene (b4be969).",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-a11y-devtools",
-  "revision": 18,
+  "revision": 21,
   "title": "gpux accessibility-first: AccessKit as the one semantic tree for screen readers on every platform, gpux-devtools and its MCP, RayX on both",
   "validationMode": "sprint",
   "repositories": [
@@ -2517,6 +2517,109 @@
         "apps/test_suite/**",
         "apps/lab/application-input-map.json"
       ]
+    },
+    {
+      "id": "check-sr-macos-voiceover",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "SR-8"
+      ],
+      "descriptionMarkdown": "New lane D check `screen-reader-macos-voiceover` (`crates/gpux_conformance/examples/desktop_host/screen_reader.rs`): VoiceOver's view of the `accessibility` scene through the window's `accessibilityChildren` gives the table its rows and cell positions, Details its expanded state, Copies its value, Delete a press action while disabled, and Volume a horizontal orientation and a one-step increment.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "d",
+        "--grep",
+        "screen-reader-macos"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tooling/**",
+        "tools-node/specs/**",
+        "tools-node/fixtures/**",
+        "tools-node/playwright.config.ts",
+        "tools-node/package.json",
+        "vendor/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-sr-web-navigation",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "SR-9"
+      ],
+      "descriptionMarkdown": "New specs in `tools-node/specs/screen-reader.spec.ts`: `screen-reader: navigation ...` (the IME textarea right after its field and leaving the mirror with focus, hidden before activation, unchanged attributes left alone on a focus move) and `screen-reader: tree a spin button gives its number as its value text`.",
+      "argv": [
+        "bash",
+        "-c",
+        "PATH=/opt/homebrew/opt/node@22/bin:$PATH cargo run -p gpux-testkit -- lane b --grep \"screen-reader: (navigation|tree a spin button)\""
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tooling/**",
+        "tools-node/specs/**",
+        "tools-node/fixtures/**",
+        "tools-node/playwright.config.ts",
+        "tools-node/package.json",
+        "vendor/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-sr-aria-defaults",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "SR-8"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/a11y_aria_defaults.rs`: a slider without an orientation is horizontal; one that sets an orientation keeps it.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "a11y_aria_defaults"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
     }
   ],
   "finalCheckIds": [
@@ -4140,10 +4243,83 @@
       ]
     },
     {
+      "id": "s10a-voiceover-fixes",
+      "title": "Fix what VoiceOver found on macOS and in Safari",
+      "dependsOn": [
+        "s10-after"
+      ],
+      "memoryScopes": [
+        "platform/desktop",
+        "platform/web",
+        "gpui"
+      ],
+      "tasks": [
+        {
+          "id": "t31-voiceover-macos",
+          "title": "VoiceOver on macOS: the adapter fork and slider orientation",
+          "descriptionMarkdown": "Vendor `accesskit_macos` 0.27.1 as `gpux-accesskit-macos` with the VoiceOver changes (table rows and cells, expanded state, range values and increment, dimmed disabled controls), give a slider without an orientation ARIA's horizontal default, and prove them in the lane D check `screen-reader-macos-voiceover` and the gpui group `a11y_aria_defaults`.",
+          "criterionIds": [
+            "SR-8"
+          ],
+          "designIds": [
+            "d-macos-adapter-fork"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-sr-macos-voiceover",
+            "check-sr-aria-defaults"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "vendor/accesskit_macos/src/node.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/div.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/examples/desktop_host/screen_reader.rs"
+            }
+          ]
+        },
+        {
+          "id": "t32-voiceover-web",
+          "title": "VoiceOver in Safari: moving through the mirror",
+          "descriptionMarkdown": "Place the IME textarea right after the field it stands for (hiding the field's element), hide it while it stands for none, leave unchanged attributes alone, and give a spin button its number as value text; specs `screen-reader: navigation ...` and `screen-reader: tree a spin button ...`.",
+          "criterionIds": [
+            "SR-9"
+          ],
+          "designIds": [
+            "d-web-adapter"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-sr-web-navigation"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/accessibility.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/ime_mirror.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tools-node/specs/screen-reader.spec.ts"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "s11-owner-screen-readers",
       "title": "Owner-run: real screen readers on the web, iOS and Android",
       "dependsOn": [
-        "s10-after"
+        "s10a-voiceover-fixes"
       ],
       "memoryScopes": [
         "platform/web",
