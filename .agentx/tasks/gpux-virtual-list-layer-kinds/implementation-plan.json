@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list-layer-kinds",
-  "revision": 10,
+  "revision": 11,
   "title": "Measured leaves kept under view retention, and every VirtualList kind on scroll layers: horizontal, sticky, SynchronizedOffset and ParentViewport lists composite, RayX's parent-viewport invalidation narrowed, timings measured",
   "validationMode": "sprint",
   "repositories": [
@@ -55,10 +55,13 @@
       "gpux:.agentx/tasks/gpux-virtual-list/*.json",
       "gpux:vendor/wgpu/**",
       "gpux:ToFix/**",
-      "gpux:benchmark/results/**",
       "rayx:.agentx/tasks/**",
       "rayx:.agentx/experiments/**",
-      "rayx:vendor/**"
+      "rayx:vendor/**",
+      "gpux:crates/gpux_tests_benchmark/results/**",
+      "gpux:vendor/accesskit_macos/**",
+      "gpux:.agentx/tasks/gpux-a11y-devtools/**",
+      "gpux:.agentx/tasks/gpux-tools-layout/**"
     ]
   },
   "checks": [

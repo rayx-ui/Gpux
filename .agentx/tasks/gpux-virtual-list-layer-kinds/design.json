@@ -443,6 +443,10 @@
     {
       "repositoryId": "gpux",
       "path": ".agentx/memory/decisions/gpui/input/2026-10-05-gpui-input-upstream-input-model.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-16-repository-validation-test-tooling-layout.md"
     }
   ]
 }

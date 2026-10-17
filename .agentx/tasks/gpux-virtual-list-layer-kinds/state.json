@@ -1,12 +1,12 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list-layer-kinds",
-  "revision": 69,
-  "planRevision": 10,
+  "revision": 75,
+  "planRevision": 11,
   "specHashes": {
     "requirements": "7dd07c3bc333cb4d53c03d1f459a2f2bc63c9c39fbe2c76e94389b8b285e411c",
-    "design": "c44e8ede1354c6cccc34dcf108a2d1da0c10660049fc2c7f7ab0a4da3df5ecef",
-    "plan": "2186bbcc43986902fca1a2f239eaaec204fc318b4c921c300aa53402d7768f0d"
+    "design": "212382eef99e0944f41307b820c7e7ae536103234fe17cc47920ab832f62fd68",
+    "plan": "fe67c6302815607f8cd0a4e4d208e453af4e83b5499195c99aecb078df79c8bd"
   },
   "tasks": {
     "t01-axis-slots": {
@@ -86,7 +86,10 @@
       ]
     },
     "t-merge-main": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
     },
     "t09b-parent-scenario": {
       "status": "pending"
@@ -198,6 +201,16 @@
         }
       },
       "recordedAt": "2026-10-17T08:00:02Z"
+    },
+    "465b2aba284dda10b044d73882240d70c384b3e40967c22c29d8345adc295331": {
+      "snapshot": {
+        "specHash": "a2f4a5600f5216d5f4a70979791d9e727b1cf94edeec4c22cdc046788abbba3e",
+        "repositories": {
+          "gpux": "b93f9d5e4abc17f4631d904522f565815fb88205c0bdbb0c4deb027f48bc0f35",
+          "rayx": "f2108d911b63f969800968f0893d74846754c461dfa22383bfddc55f9eefb390"
+        }
+      },
+      "recordedAt": "2026-10-17T23:25:21Z"
     }
   },
   "checkResults": {
@@ -489,6 +502,57 @@
       "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s06c-datatable-frames-final-9bc336920903.log",
       "logSha256": "128cf3828c9a394e0f19f8215388236ae26dc022bc5ddc78c351083ea34f56ca",
       "inputsHash": "187560c29cd877f3791638aa90f0d680ea387cfddff78db55b76a43e169ab871"
+    },
+    "s06b-accesskit-merge/c-merge-gpux-groups/final": {
+      "checkId": "c-merge-gpux-groups",
+      "boundaryId": "s06b-accesskit-merge",
+      "phase": "final",
+      "batchId": "465b2aba284dda10b044d73882240d70c384b3e40967c22c29d8345adc295331",
+      "definitionHash": "dd2273f5f7321fea4684119b2bb9884dabf592d125f467f4279580fe75ef8ee7",
+      "basisHash": "b05aa844884afc004c9c2016a2f6bd21414e2f6ac771c11a9761673b7446c51e",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 123,
+      "durationSeconds": 66.0695,
+      "recordedAt": "2026-10-17T23:25:16Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s06b-accesskit-merge-final-360ed40a32b7.log",
+      "logSha256": "44987505301d7171d2f5cd110ec3d6d9abc571b18965a6b1075b3d1c85a2170e",
+      "inputsHash": "99e0b20c5feda44d44ab770e84589ffba4cf1f0a5ea3dd091f5773b7c8363473"
+    },
+    "s06b-accesskit-merge/c-merge-gpux-integration/final": {
+      "checkId": "c-merge-gpux-integration",
+      "boundaryId": "s06b-accesskit-merge",
+      "phase": "final",
+      "batchId": "465b2aba284dda10b044d73882240d70c384b3e40967c22c29d8345adc295331",
+      "definitionHash": "c6366658e95ec8b92cef9f1cb3efb42b9892d62ef37a3f3d2a37cb3b7e60efcc",
+      "basisHash": "fdf9bcd6e071b00b357daae5959331760b14c7661574bbba0f63911a886c4c78",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 55,
+      "durationSeconds": 3.4809,
+      "recordedAt": "2026-10-17T23:25:19Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s06b-accesskit-merge-final-094c4048ce97.log",
+      "logSha256": "c44690b97cc3557a13489cba07c889587ec4f782b5853ebe2bdb136fc6036db6",
+      "inputsHash": "99e0b20c5feda44d44ab770e84589ffba4cf1f0a5ea3dd091f5773b7c8363473"
+    },
+    "s06b-accesskit-merge/c-merge-rayx-groups/final": {
+      "checkId": "c-merge-rayx-groups",
+      "boundaryId": "s06b-accesskit-merge",
+      "phase": "final",
+      "batchId": "465b2aba284dda10b044d73882240d70c384b3e40967c22c29d8345adc295331",
+      "definitionHash": "d67531a7f56b8950c2495a09a81b62721489d99918c6ad82fd9abfcce78946f2",
+      "basisHash": "9484d6e1686bd9531d1146a045b5f57bb1631859a754ea9329a5e95dead7948c",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 12,
+      "durationSeconds": 1.584,
+      "recordedAt": "2026-10-17T23:25:21Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s06b-accesskit-merge-final-1e26a7e595b7.log",
+      "logSha256": "0177535ceebc4852342a1af8d0e322736fab625e1036fc8584eaba719f985f91",
+      "inputsHash": "c74d8919a8f27b755fd967a7d42c82f4eb76bdfe81b0aa2df1340ebde32f6324"
     }
   },
   "reviews": {
@@ -1090,6 +1154,73 @@
       "summaryMarkdown": "Passed, with no findings. The fix landed in s05, already reviewed: `ScrollableMask` publishes the turn through gpux's `ScrollHandle::publish_wheel_offset`, clamped and as a `Wheel` in its input turn, instead of `request_offset(Programmatic)` plus `cx.notify`. The new RayX group `wheel_frames.rs` names that cause in its doc comment. It turns the wheel 20 times across and 20 times down over a 40×400 DataTable, with fast mode OFF and ALL, with drawing on flush and no manual draw. Each turn must draw exactly one frame through `run_until_parked`, so a deferred frame left by a turn is drawn and counted in that turn's run. The recorded red run with the old handler fails both tests at 'across, turn 0: a wheel turn drew 2 frames' (dt-frames-red.log). The sprint check is fresh at revision 67.",
       "findingIds": [],
       "recordedAt": "2026-10-17T08:00:49Z"
+    },
+    "s06b-accesskit-merge": {
+      "reviewerId": "reviewer-lk-s06b",
+      "snapshotId": "465b2aba284dda10b044d73882240d70c384b3e40967c22c29d8345adc295331",
+      "criterionIds": [
+        "MG-1"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "MG-1"
+          ],
+          "sha256": "bc683245b57c8526b0929fca3ece0504e4e011655152854c5f45f1c8b5882f68"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/stats.rs",
+          "kind": "source",
+          "criterionIds": [
+            "MG-1"
+          ],
+          "sha256": "61f692dac50ed157a81eb6c9436b096fe1e7cdce6836744b7d5b0f0419fc62e5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/scenes/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "MG-1"
+          ],
+          "sha256": "ad43606c883766a2f3d4520215b49887f56210cbb95cd364999627ef703b6954"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/mod.rs",
+          "kind": "test",
+          "criterionIds": [
+            "MG-1"
+          ],
+          "sha256": "be0be96fb55f8597ffc42ec47ac3aa310e80b349db89eeb376daaac84e8abaa2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/fast_mode_attribution.rs",
+          "kind": "test",
+          "criterionIds": [
+            "MG-1"
+          ],
+          "sha256": "c9cbaa2e37021f12920e682db15eb4a5bdf6a11b5ea02cfb5bb7177d732392d4"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/virtual_list_layer_kinds.rs",
+          "kind": "test",
+          "criterionIds": [
+            "MG-1"
+          ],
+          "sha256": "ffa14dffaafccfb03fe90c9ba8779b77b3cd22ab44baae09a1fb7b266d0f2604"
+        }
+      ],
+      "summaryMarkdown": "Passed, with no findings.\n\n**The merge.** gpux 69cb322 merges main 6b9e126 with `--no-ff`, and RayX 2c14e4ed merges master df471457.\n\n**AccessKit model.** `lists.rs` follows main's model: rows tell the a11y builder `a11y.nodes.row = (layer key, row, loose)` and `hidden = !visible.contains(row)`, in `prepaint_row` and the `list` row hooks, in place of `NodeRow`, `devtools_nodes` and `hidden_hitboxes`, and none of those remain in `crates/`. This branch's later row changes sit on that model without overlap: axis-generic slots (`visible` is along the axis), sticky candidates prepainted after `end_rows` as frame content as without a layer, and `SynchronizedOffset` layers. The whole-frame oracles of horizontal, sticky and synchronized lists, which describe the a11y-bearing frame, pass in the sprint checks.\n\n**Conflicts.** `stats.rs` is main's set (accessibility bypass gone) plus `views_built_for_measured_leaves` at the end of `MECHANISM` (22), `counters`, `accumulate` and both totals. The `list-virtual` scene uses main's role- and label-annotated `row()`. The boundary moves to main's layout (`crates/gpux_tests_benchmark/results/**`, `vendor/accesskit_macos/**`, the new epic records protected). The sprint's three checks are fresh at revision 73.\n\n**Follow-on.** s00b's sealed `c-lane-c-layers-full` still names `-p gpux-conformance`, now `gpux-tests-conformance`. It must be corrected through the runtime's errata path before epic closure, or the closing proof cannot rerun it.",
+      "findingIds": [],
+      "recordedAt": "2026-10-17T23:26:58Z"
     }
   },
   "checkpoints": {
@@ -1164,6 +1295,15 @@
       },
       "reviewHash": "05813eac86dcd43149d012124c60e762a5cc7e9740fe965a0bf1ce7234338ee3",
       "recordedAt": "2026-10-17T08:01:09Z"
+    },
+    "s06b-accesskit-merge": {
+      "snapshotId": "465b2aba284dda10b044d73882240d70c384b3e40967c22c29d8345adc295331",
+      "commits": {
+        "gpux": "69cb322896d00148e3eca2b245a12852952519cb",
+        "rayx": "2c14e4eda4b0241cf6802bcbaa2da36fe937f7f1"
+      },
+      "reviewHash": "bb94671bde67e531d0184caa809011095bcb9d15c452d769ec544712b51508d7",
+      "recordedAt": "2026-10-17T23:27:15Z"
     }
   },
   "findings": [
@@ -1345,7 +1485,7 @@
       "boundaryId": "s05-rayx-kinds"
     }
   ],
-  "handoffMarkdown": "RayX group rayx_components_datatable/tests/wheel_frames.rs (2): 20 turns across and 20 down a DataTable, fast mode off and ALL, each drawing exactly one frame with drawing on flush; doc names the cause (ScrollableMask's request_offset(Programmatic) plus cx.notify). Red with the mask at ddaba825 restored for the run (both modes: 'a wheel turn drew 2 frames'; log artifacts-temp/agentx/gpux-virtual-list-layer-kinds/dt-frames-red.log); the fix is RayX 5b839689 / gpux a4131c8.",
+  "handoffMarkdown": "gpux main merged (69cb322): conflicts in fast/stats.rs (22 mechanism counters), gpux_tests_conformance scenes/lists.rs (main's AccessKit rows + list-virtual imports), positioning-scroll state memory. RayX master merged without conflicts (2c14e4ed). No NodeRow/devtools_nodes/DevtoolsSemantics/hidden_hitboxes remain in crates/. gpux full suite 1462/1462, lane A lists 3/3, lane C scroll layers full 12+18 (package now gpux-tests-conformance); RayX workspace check clean, core/datatable/base tests 800/800. Boundary amended to main's layout (rev 71).",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",
@@ -1366,7 +1506,10 @@
       "gpux:.agentx/tasks/gpux-virtual-list/*.json": "0ba06cd6a00ff5bcb0256bcf5e9854652538c5bc5f339afa58cb67fab2052c79",
       "gpux:vendor/wgpu/**": "a4c4ab1992f6a0aeeca032fedb82b953741f6d547ac517ef15467c67dffa69e5",
       "gpux:ToFix/**": "e72e6c15df92515c9a96c1ef2a6db675ce345e0eb600212658582f156b1beb64",
-      "gpux:benchmark/results/**": "fda69a574a3d60d835127b7455d8db6d7a300a8ce3e3752a3e30a48f2dc96756"
+      "gpux:crates/gpux_tests_benchmark/results/**": "4c6327a6e9b7781bd33d082c61bdb1cfd0c894c660451d890a30152a01cd513b",
+      "gpux:vendor/accesskit_macos/**": "5795a9deda5ff2ca5a2fd3dd0fae7ac7e4e89572f4da0fe9d8af66aad29437f1",
+      "gpux:.agentx/tasks/gpux-a11y-devtools/**": "762d9bf1df2816239c5527ae7b5e34efbb2abfd6b5622ede17f29ffbb88698c7",
+      "gpux:.agentx/tasks/gpux-tools-layout/**": "1f3b772faf12c40336c91f4c6a7384ac9b71b3c82eda9ffe40e3368d597706ee"
     },
     "rayx": {
       "rayx:.agentx/tasks/**": "d92d223a99c82b9742398b05452477042917508f7f0ca5fa8b30f6bb8b985362",
