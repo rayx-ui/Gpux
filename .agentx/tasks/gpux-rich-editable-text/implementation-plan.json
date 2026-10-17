@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-rich-editable-text",
-  "revision": 10,
+  "revision": 11,
   "title": "Rich text in gpux's EditableText: per-run metrics, stored formatting, variable rows, paragraphs and lists, inline objects, rich clipboard",
   "validationMode": "sprint",
   "repositories": [
@@ -1945,6 +1945,31 @@
         "Cargo.toml",
         "Cargo.lock"
       ]
+    },
+    {
+      "id": "check-a-workspace-package",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "CLIP-2"
+      ],
+      "descriptionMarkdown": "`cargo package --workspace` (no verify, dirty tree allowed) succeeds with the `html5ever` workspace dependency.",
+      "argv": [
+        "cargo",
+        "package",
+        "--workspace",
+        "--no-verify",
+        "--allow-dirty"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "inputs": [
+        "crates/**",
+        "tools/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
     }
   ],
   "finalCheckIds": [
@@ -2645,7 +2670,8 @@
           ],
           "dependsOn": [],
           "checkIds": [
-            "check-a-html-codec"
+            "check-a-html-codec",
+            "check-a-workspace-package"
           ],
           "sourceRefs": [
             {

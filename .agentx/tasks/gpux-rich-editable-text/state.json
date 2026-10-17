@@ -1,12 +1,12 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-rich-editable-text",
-  "revision": 86,
-  "planRevision": 10,
+  "revision": 98,
+  "planRevision": 11,
   "specHashes": {
     "requirements": "50d839c1826723eb62c9eb677b70faa73af1eafaac66832c9d98e282f767a8fb",
     "design": "75d1477d98b395c22c8d694b837633e4558521317e37d3e2603988ac152f52f5",
-    "plan": "ee8553bf8ccaadaafe16bcba857b80d43050443b89db918dac0b0a34ae448a0a"
+    "plan": "440ca1c62baee4be438ccdffe714c84251a647d43563000d19a397a9ce3fd9d4"
   },
   "tasks": {
     "t01-run-metrics-core": {
@@ -112,13 +112,22 @@
       ]
     },
     "t18-clipboard-html": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "3b3dd124"
+      ]
     },
     "t19-html-codec": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "3b3dd124"
+      ]
     },
     "t20-rich-copy-paste": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "3b3dd124"
+      ]
     },
     "t21-api-compat": {
       "status": "pending"
@@ -187,6 +196,16 @@
         }
       },
       "recordedAt": "2026-10-17T02:10:54Z"
+    },
+    "5c83ff912857816460fed692b830b6d357c9db597fedc258ac3f41c94773d6ad": {
+      "snapshot": {
+        "specHash": "fefb38ed0a7029b243688ca3f0bea9916b96f9a50646e79c016cab4c149a3a0f",
+        "repositories": {
+          "gpux": "7c22b4e7a9bdcc4e604cae0910b89a07e96d2838881f9111657f91241a4d98ff",
+          "rayx": "84d2cf241369243da3a9acff3794e5f471dea1a58363826115976742f944428b"
+        }
+      },
+      "recordedAt": "2026-10-17T03:00:56Z"
     }
   },
   "checkResults": {
@@ -852,6 +871,176 @@
       "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s06-inline-objects-final-7e220514a95d.log",
       "logSha256": "dcd3c07ad0cc9f2e494286cafcab74eca1060c341718ea2704457968c112f9d7",
       "inputsHash": "23882bcaab72409275d1c435148a608d2f75c03f57cbe16f4dd962f0b485a667"
+    },
+    "s07-rich-clipboard/check-a-clipboard-html/final": {
+      "checkId": "check-a-clipboard-html",
+      "boundaryId": "s07-rich-clipboard",
+      "phase": "final",
+      "batchId": "5c83ff912857816460fed692b830b6d357c9db597fedc258ac3f41c94773d6ad",
+      "definitionHash": "f1df4f9daaef675ee5ba16e8116eebc159a7314ece2da42a02b45e75352a47cc",
+      "basisHash": "36bb894bbcfe1c2ff98e78110bcd6fb8424283c54c491bbfe7f6a5cf4066eadd",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 1.3049,
+      "recordedAt": "2026-10-17T02:57:15Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s07-rich-clipboard-final-a3d0b1af31f3.log",
+      "logSha256": "4fd8e36c29e7f09104df2eca27d101d094d007121af3e59bd63dbde0d31f003e",
+      "inputsHash": "053ef41844f569a8ad2428e69c5a0f294054b8ab94a188570c6212b86322b0d5"
+    },
+    "s07-rich-clipboard/check-a-clipboard-lane-d/final": {
+      "checkId": "check-a-clipboard-lane-d",
+      "boundaryId": "s07-rich-clipboard",
+      "phase": "final",
+      "batchId": "5c83ff912857816460fed692b830b6d357c9db597fedc258ac3f41c94773d6ad",
+      "definitionHash": "7f01fbb0060cc7c53adf55b132e3e115477b83c1b171867ab6a8c3a5ef3a11e5",
+      "basisHash": "c67dc746cc9f90276be08825725e9a160d90d98fdb9acb12e2d087ccfc990e83",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 22.3704,
+      "recordedAt": "2026-10-17T02:57:37Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s07-rich-clipboard-final-321b38aa75cd.log",
+      "logSha256": "1045a81ec34386044677c96bd8c212340d18b0f12de9b02d36b7076812e3e463",
+      "inputsHash": "3aa62bbd9f8ff771ace1cdd386b3827441045551277773838d78705f14278f91"
+    },
+    "s07-rich-clipboard/check-a-clipboard-lane-b/final": {
+      "checkId": "check-a-clipboard-lane-b",
+      "boundaryId": "s07-rich-clipboard",
+      "phase": "final",
+      "batchId": "5c83ff912857816460fed692b830b6d357c9db597fedc258ac3f41c94773d6ad",
+      "definitionHash": "0c8525ab558a720377dbec6bf45b7f9867c23b6336956b5813c39fb24de654a2",
+      "basisHash": "c98ebd66bfae4b0584e2faa256cbf51b7fdad3f2a3f2a9ce105a4961ac095f34",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 93.5753,
+      "recordedAt": "2026-10-17T02:59:11Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s07-rich-clipboard-final-a47f0c52aab2.log",
+      "logSha256": "fa3cad164bfbfba50f93442b3951ac978a6eb4cd464e87c659ae5759689fb292",
+      "inputsHash": "3aa62bbd9f8ff771ace1cdd386b3827441045551277773838d78705f14278f91"
+    },
+    "s07-rich-clipboard/check-a-clipboard-lane-e/final": {
+      "checkId": "check-a-clipboard-lane-e",
+      "boundaryId": "s07-rich-clipboard",
+      "phase": "final",
+      "batchId": "5c83ff912857816460fed692b830b6d357c9db597fedc258ac3f41c94773d6ad",
+      "definitionHash": "c864bf29c4afff7f4674d2824c9ee86c6a61d8fe85dd8a5fcd92bbff827a8ff5",
+      "basisHash": "621b6dbbd69b7425623034b682ccf7ceab76ee31cce42a317d37b4dbf1d5a61b",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 44.2661,
+      "recordedAt": "2026-10-17T02:59:55Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s07-rich-clipboard-final-b2b548f00ed5.log",
+      "logSha256": "7022fddc08d00b56a64b8aca29a01b7bb4133d45951cefeb8f2ffb92dfca5189",
+      "inputsHash": "3aa62bbd9f8ff771ace1cdd386b3827441045551277773838d78705f14278f91"
+    },
+    "s07-rich-clipboard/check-a-clipboard-lane-f/final": {
+      "checkId": "check-a-clipboard-lane-f",
+      "boundaryId": "s07-rich-clipboard",
+      "phase": "final",
+      "batchId": "5c83ff912857816460fed692b830b6d357c9db597fedc258ac3f41c94773d6ad",
+      "definitionHash": "d85c179c7aefc3d1eca090ad6b8f3e88df6e891c1ca0a6573d417ceff8541c00",
+      "basisHash": "1db6c5b57fd4a2c1ba6717cd2653ccb3d2d3bc04279f5f1a0ae7d6b60a15c4b5",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 15.7095,
+      "recordedAt": "2026-10-17T03:00:11Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s07-rich-clipboard-final-2ae9db117864.log",
+      "logSha256": "2d0754f424e67da5e53d9dd2bc0e9057781fe0aa0e3b7e1a4d611f5bb2ca6500",
+      "inputsHash": "3aa62bbd9f8ff771ace1cdd386b3827441045551277773838d78705f14278f91"
+    },
+    "s07-rich-clipboard/check-a-android-build/final": {
+      "checkId": "check-a-android-build",
+      "boundaryId": "s07-rich-clipboard",
+      "phase": "final",
+      "batchId": "5c83ff912857816460fed692b830b6d357c9db597fedc258ac3f41c94773d6ad",
+      "definitionHash": "6b75e42c9ab5247fe208aa2bb0ac84eae7395063602835784a911d1ef7a67119",
+      "basisHash": "a3493666335de8471a1fd52529e9d410cd85795b1e341507c951a432f7527b17",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.3412,
+      "recordedAt": "2026-10-17T03:00:11Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s07-rich-clipboard-final-b2b57dfeafab.log",
+      "logSha256": "8a2933ae25e59188be988ea6218274cb341f13d8bc4b533f57b12ececd4be8b3",
+      "inputsHash": "40bb6dfbbc2ea96189ee69bb83628f347c414fa8409fd92ed8f6d9702c4411a1"
+    },
+    "s07-rich-clipboard/check-a-android-native-build/final": {
+      "checkId": "check-a-android-native-build",
+      "boundaryId": "s07-rich-clipboard",
+      "phase": "final",
+      "batchId": "5c83ff912857816460fed692b830b6d357c9db597fedc258ac3f41c94773d6ad",
+      "definitionHash": "0c5e143a92e86990ac52a73e1e844fcd5697ec4872db09556d84eabe4ac8ea88",
+      "basisHash": "ef4342c317abb3b637bd52afd12f5dd523a7ca70bbde734b5995e5c6a0c1be33",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 1.0388,
+      "recordedAt": "2026-10-17T03:00:12Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s07-rich-clipboard-final-1c5cfdf51a4c.log",
+      "logSha256": "9e6ac588f9fb9435cae58151b61c28b7c335bd9506549b1d86d6f14093569673",
+      "inputsHash": "40bb6dfbbc2ea96189ee69bb83628f347c414fa8409fd92ed8f6d9702c4411a1"
+    },
+    "s07-rich-clipboard/check-a-html-codec/final": {
+      "checkId": "check-a-html-codec",
+      "boundaryId": "s07-rich-clipboard",
+      "phase": "final",
+      "batchId": "5c83ff912857816460fed692b830b6d357c9db597fedc258ac3f41c94773d6ad",
+      "definitionHash": "4429ca0fe027ab25fff9a66c5e43416aa58ff661f3e96898ff499aa085409051",
+      "basisHash": "7613a83c6bf7868bc171c199c4c58f5a280fc3774d5528f3e386e4bb28ebd681",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 15,
+      "durationSeconds": 0.6121,
+      "recordedAt": "2026-10-17T03:00:13Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s07-rich-clipboard-final-13f14e15bd36.log",
+      "logSha256": "1679d9602027d37fb113a318e643e0c6653606709e85b7f6fd990588120bcdff",
+      "inputsHash": "053ef41844f569a8ad2428e69c5a0f294054b8ab94a188570c6212b86322b0d5"
+    },
+    "s07-rich-clipboard/check-a-rich-clipboard/final": {
+      "checkId": "check-a-rich-clipboard",
+      "boundaryId": "s07-rich-clipboard",
+      "phase": "final",
+      "batchId": "5c83ff912857816460fed692b830b6d357c9db597fedc258ac3f41c94773d6ad",
+      "definitionHash": "63d75ecfa9172d74dee0f29ed1d516a9c42b42539a270ae8221618392562ac7a",
+      "basisHash": "b5488e20d9ebabaa09b7bbd2197259e2f78fe0182a5d3109ee06a31a7954e7f6",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 13,
+      "durationSeconds": 0.3392,
+      "recordedAt": "2026-10-17T03:00:13Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s07-rich-clipboard-final-d182938369dd.log",
+      "logSha256": "3850a6fbeb6db776290324b82a407970ad755d28aec95f62ffb02dc0fb7b9636",
+      "inputsHash": "053ef41844f569a8ad2428e69c5a0f294054b8ab94a188570c6212b86322b0d5"
+    },
+    "s07-rich-clipboard/check-a-workspace-package/final": {
+      "checkId": "check-a-workspace-package",
+      "boundaryId": "s07-rich-clipboard",
+      "phase": "final",
+      "batchId": "5c83ff912857816460fed692b830b6d357c9db597fedc258ac3f41c94773d6ad",
+      "definitionHash": "38e02619f5376bf4d01118e06595d052d285a4d535133f4a0af12f33946967a7",
+      "basisHash": "e5bbdaa76dc0a630d558e4e7bfb0fa1021052e1d4ae78efbcee7a9016da6fd2e",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 42.3424,
+      "recordedAt": "2026-10-17T03:00:56Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s07-rich-clipboard-final-18831e3005aa.log",
+      "logSha256": "d64f969d5057ba7f3818d4394e1bbd90739db53fd13737796a3efd106c5b74f8",
+      "inputsHash": "3aa62bbd9f8ff771ace1cdd386b3827441045551277773838d78705f14278f91"
     }
   },
   "reviews": {
@@ -1612,6 +1801,240 @@
         "s06-obj-fffc-paint-skip-global"
       ],
       "recordedAt": "2026-10-17T02:11:40Z"
+    },
+    "s07-rich-clipboard": {
+      "reviewerId": "reviewer-s07b-r4w9tn",
+      "snapshotId": "5c83ff912857816460fed692b830b6d357c9db597fedc258ac3f41c94773d6ad",
+      "criterionIds": [
+        "CLIP-1",
+        "CLIP-2",
+        "CLIP-3"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CLIP-1",
+            "CLIP-3"
+          ],
+          "sha256": "36766846fffcbe5dbaba524aff575630f2fc1b22e3055f27862f4f7c684daba8"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_macos/src/pasteboard.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CLIP-1"
+          ],
+          "sha256": "a27c582be7984b15c11103760cf20d6e0403b40ffdc8957d00f47bce25211566"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_windows/src/clipboard.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CLIP-1"
+          ],
+          "sha256": "a355f8c8d864609a64588f7994d3cc2f55fd951dc39c3a3b480c02e6b63e0c86"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_linux/src/linux/wayland/clipboard.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CLIP-1"
+          ],
+          "sha256": "e0ab6014122ca727a5e27ab172a4adc771d76dc57bb6535807d5a10899de96ae"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_linux/src/linux/x11/clipboard.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CLIP-1"
+          ],
+          "sha256": "fdee2749bbe4285ced32bfb5172d7df6eea8516d4a5e78ff13f74a21881a8555"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/platform.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CLIP-1"
+          ],
+          "sha256": "128372f7d48ddc84ee93211ce0702c0de352a718e2ac46621e3d802e8aad0def"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/events.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CLIP-1"
+          ],
+          "sha256": "3c39cd2ac281ae24bd936cbc80756534f9bea60e70f6ed64c7fc0b89cb27b8a3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/ios/platform.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CLIP-1"
+          ],
+          "sha256": "ba0cd99bdde3f33d47fb13230805c97d44b4909921e5f07b19df538e5541e8a4"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/clipboard.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CLIP-1"
+          ],
+          "sha256": "8339028542af080c8ccf73df9aeedb5fcd55ac69cdc83f7c7b75048b39813e18"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/platform.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CLIP-1"
+          ],
+          "sha256": "c7b11f469507009e88688f15abe1b87a6bb972204489fe9261ed43779da63747"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/java/dev/gpux/mobile/Clipboard.java",
+          "kind": "source",
+          "criterionIds": [
+            "CLIP-1"
+          ],
+          "sha256": "17f89eb34917371100f0816d7d4d25799d143a2e46ab56dd3cd73e5dc5199ee3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/html.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CLIP-2",
+            "CLIP-3"
+          ],
+          "sha256": "ed4c278934cdb7bb26867fdd69a824235eee04d212a579a08b09d626b975ca9b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "CLIP-2"
+          ],
+          "sha256": "4ec9b689c839eafa1ae3115adcc895500e98ef8ea1b697056f5a99ad5eb6ee83"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/state.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CLIP-3"
+          ],
+          "sha256": "8d19384b5a1f4176201d512142bb49e27b837538ea1e80a8fbfa887ee6590d22"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/clipboard_html.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CLIP-1"
+          ],
+          "sha256": "d7dcfd676f090f948a97a6d73075f690879bdd62c378d78ec76efc2efb36e28b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/platform_checks.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "CLIP-1"
+          ],
+          "sha256": "f9a448135a89721fa0cf42b1f33573d1d9a56d159e3e1eb08a8861c038aae8d6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/examples/desktop_host/checks.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "CLIP-1"
+          ],
+          "sha256": "e7e746f68d808ecc73604ffb99dd715542d5c706802ad45e5d0b6aa59031c2bb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/examples/android_host/checks.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "CLIP-1"
+          ],
+          "sha256": "1486f621a8e6e0df14646ef252717072b13a54e2dbb57df6c9d4ca733a0dc6ce"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/examples/ios_host/checks.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "CLIP-1"
+          ],
+          "sha256": "d5c037317689e0471ac7b99e3c2a31a66d39fa7e5668b060f4328dbb1c9f0f53"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/browser/specs/clipboard.spec.ts",
+          "kind": "runtime",
+          "criterionIds": [
+            "CLIP-1",
+            "CLIP-3"
+          ],
+          "sha256": "9191075daaa95f878a36c3679bf062c17808bf91537471f443cb437d9b2deee3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_html.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CLIP-2"
+          ],
+          "sha256": "20a1731b4afe9e2220e74aed65c199ca4e3c0ed00dd08243af6523415316e450"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_rich_clipboard.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CLIP-3"
+          ],
+          "sha256": "26c716cf2dcb05bfeeb87bfddc0f675e0c22b98a342e9a533795c024bbd71b39"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "CLIP-2"
+          ],
+          "sha256": "de57861cfff2fd02864b0fa9fc102d6a1783d5127190c5700180fa795aad6960"
+        }
+      ],
+      "summaryMarkdown": "All eight findings of the failed s07 review are repaired, and I checked each one in source:\n- **Style escaping:** style values go through `escape_attribute`, and `css_family` sanitizes families on write and on parse.\n- **Lane E:** the check reads back through `android::clipboard::read()`, which has no in-process fallback.\n- **Packaging:** `check-a-workspace-package` packages every workspace crate.\n- **Empty HTML paste:** `paste_item` takes the HTML path only for a non-empty parse.\n- **X11:** `read_if_offered` requests `text/html` only when the owner's TARGETS lists it.\n- **Android read:** one Java `read` returns text and HTML from the same clip.\n- **Unclosed head:** body content ends the head, and head scripts and styles stay raw.\n- **Host doc comments:** restored above `touch_tap` in both hosts.\n\nNew tests cover the escaping, empty-paste and head repairs, and all 10 sprint checks pass at this snapshot. CLIP-1, CLIP-2 and CLIP-3 are met.",
+      "findingIds": [
+        "s07-html-style-attribute-unescaped",
+        "s07-android-lane-e-cannot-see-fallback",
+        "s07-packaging-unproved",
+        "s07-rich-paste-empty-parse-deletes-selection",
+        "s07-x11-html-probe-on-plain-clipboards",
+        "s07-android-read-not-one-transaction",
+        "s07-unclosed-head-drops-document",
+        "s07-host-doc-comments-misplaced"
+      ],
+      "recordedAt": "2026-10-17T03:01:57Z"
     }
   },
   "checkpoints": {
@@ -1668,6 +2091,15 @@
       },
       "reviewHash": "46bf1873ada25924b6f1787815124a535ab18509df763d551f35ffc47783b10c",
       "recordedAt": "2026-10-17T02:11:58Z"
+    },
+    "s07-rich-clipboard": {
+      "snapshotId": "5c83ff912857816460fed692b830b6d357c9db597fedc258ac3f41c94773d6ad",
+      "commits": {
+        "gpux": "5f283f7af49f7c5e1fb7d0cd7792b6da6e2baf93",
+        "rayx": "e1279848a5861313e30b6e79b122a2825dd8544d"
+      },
+      "reviewHash": "57a4ca47a53742d4ae0e43595759c725009872e5c01588ef88358e40c543d078",
+      "recordedAt": "2026-10-17T03:02:32Z"
     }
   },
   "findings": [
@@ -1967,9 +2399,165 @@
           "path": "crates/gpui/tests/editable_text_inline_objects.rs"
         }
       ]
+    },
+    {
+      "id": "s07-html-style-attribute-unescaped",
+      "criterionIds": [
+        "CLIP-2",
+        "CLIP-3"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Expected:** serialization escapes everything it writes into attributes, so any `AttributedText` produces well-formed HTML that round-trips.\n\n**Observed:** `html.rs` `write_formatted` writes `span_style(..)` into `style=\"{style}\"` without `escape`, and `span_style` puts `font_family` there after only removing `'`. `first_family` (parse side) trims quotes only at the ends, so a family keeps an interior `\"`. A pasted `<span style=\"font-family:'x&quot;&gt;&lt;img src=x onerror=alert(1)&gt;'\">t</span>` (or an owner-set family containing `\"`) is stored as `x\"><img src=x onerror=alert(1)>`, and the next rich copy emits `<span style=\"font-family:'x\"><img src=x onerror=alert(1)>';\">` to the system clipboard: live markup injected into whatever app pastes it, and the round trip breaks. A `;` in the family likewise injects CSS declarations on re-parse.\n\n**Repair:** attribute-escape the whole `style` value (and paragraph style) on write (`escape(&style)`), and make the written family CSS-safe (quote it and drop or escape `\"`, `;`, `<`, `>`, `\\\\`); optionally reject such characters in `first_family`. Add an `editable_text_html.rs` test: a family containing `\"`, `<` and `;` serializes to well-formed HTML whose parse equals the input (or the sanitized family) and contains no extra element.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_html.rs",
+          "symbol": "style_values_are_escaped_and_families_sanitized"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/html.rs",
+          "symbol": "css_family"
+        }
+      ],
+      "boundaryId": "s07-rich-clipboard"
+    },
+    {
+      "id": "s07-android-lane-e-cannot-see-fallback",
+      "criterionIds": [
+        "CLIP-1"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Expected:** lane E's `clipboard-android` proves the real `ClipboardManager` through JNI replaced the in-process stub.\n\n**Observed:** `AndroidClipboard::write_item`/`read_item` (`android/platform.rs`) fall back silently (`log::debug!`) to the in-memory item on any JNI error, and `clipboard_html::verify` only compares the item read back with the one written. A broken helper (class not found, signature mismatch, timeout) still makes the check PASS through the fallback, so the passing log (`PASS clipboard-android 16 text characters, 25 HTML bytes`) does not show that the system clipboard was used.\n\n**Repair:** make the check observe the system clipboard itself: for example, have the android host read back through `android::clipboard::read()` (no fallback) or expose whether the last write reached the system clipboard, and fail when it did not. Alternatively have testkit read the device clipboard independently. Then rerun only `lane e --grep clipboard-android`.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/examples/android_host/checks.rs",
+          "symbol": "clipboard"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/clipboard.rs",
+          "symbol": "read"
+        }
+      ],
+      "boundaryId": "s07-rich-clipboard"
+    },
+    {
+      "id": "s07-packaging-unproved",
+      "criterionIds": [
+        "CLIP-2"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Expected:** CLIP-2 requires that \"the workspace still packages\" after adding `html5ever`. The packaging rule (`knowledge/repository/packaging/rules.md`) also asks for `cargo package --workspace` after dependency changes.\n\n**Observed:** none of the sprint's nine checks packages anything, and the artifacts contain no packaging log. `cargo package -p gpux --no-verify` cannot stand in, because it fails resolving unpublished sibling crates (`gpux-bench-metrics`).\n\n**Repair:** add a sprint check that runs `cargo package --workspace --no-verify --allow-dirty` (or the documented packaging gate), using `Cargo.toml`/`Cargo.lock`/`crates/gpui/Cargo.toml` as inputs, and record its passing result.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.toml"
+        }
+      ],
+      "boundaryId": "s07-rich-clipboard"
+    },
+    {
+      "id": "s07-rich-paste-empty-parse-deletes-selection",
+      "criterionIds": [
+        "CLIP-3"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Expected:** a rich paste whose HTML yields nothing falls back to the item's plain text. Pasting an item with no text never deletes the selection.\n\n**Observed:** `paste_item` calls `insert_attributed_text` whenever `attributed_text_from_html` returns `Some`, even when its text is empty. Some cases hit this:\n- An image copied from a browser on Windows reads as `[Image, Html(\"<img src=..>\")]` with no alt.\n- Some HTML holds only `<meta>` or a `<script>`.\n\nWith rich paste on, such a paste replaces the selection with nothing and records an undo step, while the plain path returns `false`. With text present, a parse to empty text also discards the plain text.\n\n**Repair:** take the HTML path only when the parsed text is non-empty, else fall back to `item.text()`. Add a test to `editable_text_rich_clipboard.rs`.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_rich_clipboard.rs",
+          "symbol": "rich_paste_of_html_without_text_pastes_the_plain_text"
+        }
+      ],
+      "boundaryId": "s07-rich-clipboard"
+    },
+    {
+      "id": "s07-x11-html-probe-on-plain-clipboards",
+      "criterionIds": [
+        "CLIP-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Expected:** a clipboard holding no HTML reads as today.\n\n**Observed:** `x11/clipboard.rs` `get_any` calls `inner.read(&[HTML])` after every foreign text read. When the owner's TARGETS lacks `text/html`, `read` falls through to \"attempting to convert clipboard to each format\". That costs a second TARGETS round trip plus a refused conversion, on the main thread, on every plain paste. It waits up to `LONG_TIMEOUT_DUR` (4 s) on an owner that does not answer unsupported targets.\n\n**Repair:** query TARGETS once in `get_any`, and request `text/html` only when it is listed (or give the HTML probe its own read that never takes the per-format fallback).",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_linux/src/linux/x11/clipboard.rs",
+          "symbol": "read_if_offered"
+        }
+      ],
+      "boundaryId": "s07-rich-clipboard"
+    },
+    {
+      "id": "s07-android-read-not-one-transaction",
+      "criterionIds": [
+        "CLIP-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Expected (d-clipboard-html):** backends read both representations in one clipboard transaction.\n\n**Observed:** `android/clipboard.rs` `read` makes two JNI calls, `readText` then `readHtml`. Each one posts to the UI thread and calls `getPrimaryClip` separately, so the text and HTML can come from different clips if the clipboard changes in between. It also doubles the UI-thread hops and clipboard-access notifications.\n\n**Repair:** add one Java method that reads the first item once and returns both strings (for example a `String[2]`), and call it once from Rust.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/java/dev/gpux/mobile/Clipboard.java",
+          "symbol": "read"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/clipboard.rs",
+          "symbol": "read"
+        }
+      ],
+      "boundaryId": "s07-rich-clipboard"
+    },
+    {
+      "id": "s07-unclosed-head-drops-document",
+      "criterionIds": [
+        "CLIP-2"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Expected:** the common subset parses, and dropped `head` content ends where the body starts.\n\n**Observed:** `ParseState::start_tag` sets `dropping = \"head\"` and returns early for every start tag while dropping. Only a literal `</head>` clears it. HTML allows `</head>` to be omitted (`<html><head><meta ...><body><p>x</p>`), and for such input the whole document is dropped and the paste is empty. Because a `<style>`/`<script>` inside `<head>` is not switched to raw text, a `</head>` inside script text ends the drop early and leaks the script's text.\n\n**Repair:** end head-dropping on a `body` start tag (or any flow-content start tag), and still switch `script`/`style` inside `head` to raw text. Add a case to `editable_text_html.rs`.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_html.rs",
+          "symbol": "an_unclosed_head_ends_at_the_body_and_its_scripts_stay_raw"
+        }
+      ],
+      "boundaryId": "s07-rich-clipboard"
+    },
+    {
+      "id": "s07-host-doc-comments-misplaced",
+      "criterionIds": [
+        "CLIP-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Expected:** each lane host function keeps its own doc comment.\n\n**Observed:** in `examples/android_host/checks.rs` and `examples/ios_host/checks.rs`, the new `clipboard` function was inserted between `touch_tap` and its doc comment. `clipboard`'s rustdoc now starts with \"A tap through the operating system clicks the element under it.\" (or \"A touch injected into the window taps the element under it.\"), and `touch_tap` has none.\n\n**Repair:** move the existing comment line back above `touch_tap` in both files.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/examples/android_host/checks.rs",
+          "symbol": "touch_tap"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/examples/ios_host/checks.rs",
+          "symbol": "touch_tap"
+        }
+      ],
+      "boundaryId": "s07-rich-clipboard"
     }
   ],
-  "handoffMarkdown": "",
+  "handoffMarkdown": "implemented",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/tasks/frame-effects-navigation-transitions/**": "97cc9f821c990f4d3560b1c4726ede795e7d91f4329839215674e7649efd8747",
