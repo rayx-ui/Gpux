@@ -554,26 +554,26 @@ impl<E: Element> Drawable<E> {
                 window.next_frame.dispatch_tree.pop_node();
 
                 if let Some(a11y_node) = a11y_node {
-                    if let Some(global_id) = global_id.as_ref() {
-                        #[cfg(debug_assertions)]
-                        let creator = crate::window::a11y::debug::NodeCreator {
-                            view: window
-                                .rendered_entity_stack
-                                .last()
-                                .and_then(|view| window.a11y.view_type_names.get(view))
-                                .copied(),
-                            element_id: global_id.last().map(|id| format!("{id:?}")),
-                            source_location: self.element.source_location(),
-                        };
-                        let mut builder =
-                            A11ySubtreeBuilder::new(a11y_node, &mut window.a11y.nodes);
-                        #[cfg(debug_assertions)]
-                        {
-                            builder = builder.with_creator(creator);
-                        }
-                        self.element
-                            .a11y_synthetic_children(&mut prepaint, &mut builder);
+                    #[cfg(debug_assertions)]
+                    let creator = crate::window::a11y::debug::NodeCreator {
+                        view: window
+                            .rendered_entity_stack
+                            .last()
+                            .and_then(|view| window.a11y.view_type_names.get(view))
+                            .copied(),
+                        element_id: global_id
+                            .as_ref()
+                            .and_then(|global_id| global_id.last())
+                            .map(|id| format!("{id:?}")),
+                        source_location: self.element.source_location(),
+                    };
+                    let mut builder = A11ySubtreeBuilder::new(a11y_node, &mut window.a11y.nodes);
+                    #[cfg(debug_assertions)]
+                    {
+                        builder = builder.with_creator(creator);
                     }
+                    self.element
+                        .a11y_synthetic_children(&mut prepaint, &mut builder);
                     window.a11y.pop_node(a11y_node);
                 }
 
