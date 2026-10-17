@@ -5,8 +5,9 @@ use crate::scene::{Area, Expect, Lane, SceneSpec, Step};
 use gpux::prelude::*;
 use gpux::{
     AnyView, App, AttributeChange, AttributeState, Context, DevtoolsSemantics, EditableText,
-    EditableTextState, Entity, FontStyle, FontWeight, IntoElement, Render, TextAttributes,
-    TextAttributesPatch, UnderlineStyle, Window, div, px, rgb, semantic_query::Query,
+    EditableTextLineMode, EditableTextState, Entity, FontStyle, FontWeight, IntoElement,
+    ParagraphAlignment, ParagraphFormat, Render, TextAttributes, TextAttributesPatch,
+    UnderlineStyle, Window, div, px, rgb, semantic_query::Query,
 };
 
 const ALL_LANES: &[Lane] = &[Lane::A, Lane::B, Lane::C, Lane::D, Lane::E, Lane::F];
@@ -308,6 +309,121 @@ pub const RICH_ATTRIBUTES: SceneSpec = SceneSpec {
             Step::Click(id("make-italic")),
             Step::Expect(Expect::Exists(status_is("bold on italic on"))),
             Step::ChangedSince("bold", (29., 29., 19., 11.)),
+        ]
+    },
+};
+
+/// Six paragraphs of Lilex "H" words, one per paragraph format.
+const PARAGRAPH_TEXT: &str =
+    "HHHH\nHHHH\nHHH HHH HHH HHH HHH HHH HHH HHH\nHHHH\nHHH HHH HHH HHH HHH HHH HHH HHH\nHHHH";
+
+struct Paragraphs {
+    state: Entity<EditableTextState>,
+}
+
+impl Paragraphs {
+    fn new(cx: &mut Context<Self>) -> Self {
+        let state = cx.new(|cx| {
+            let mut state = EditableTextState::with_line_mode(
+                PARAGRAPH_TEXT,
+                EditableTextLineMode::MultiLine,
+                cx,
+            );
+            let starts = std::iter::once(0)
+                .chain(
+                    PARAGRAPH_TEXT
+                        .match_indices('\n')
+                        .map(|(index, _)| index + 1),
+                )
+                .collect::<Vec<_>>();
+            let formats = [
+                ParagraphFormat {
+                    alignment: Some(ParagraphAlignment::Center),
+                    ..Default::default()
+                },
+                ParagraphFormat {
+                    alignment: Some(ParagraphAlignment::Right),
+                    ..Default::default()
+                },
+                ParagraphFormat {
+                    alignment: Some(ParagraphAlignment::Justify),
+                    ..Default::default()
+                },
+                ParagraphFormat {
+                    leading_indent: px(40.),
+                    ..Default::default()
+                },
+                ParagraphFormat {
+                    leading_indent: px(40.),
+                    first_line_indent: px(-40.),
+                    ..Default::default()
+                },
+                ParagraphFormat {
+                    space_before: px(20.),
+                    ..Default::default()
+                },
+            ];
+            for (start, format) in starts.into_iter().zip(formats) {
+                state.set_paragraph_format(start..start, format, cx);
+            }
+            state
+        });
+        Self { state }
+    }
+}
+
+impl Render for Paragraphs {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        root().font_family("Lilex").child(
+            div()
+                .id("paragraphs")
+                .absolute()
+                .left(px(10.))
+                .top(px(10.))
+                .w(px(240.))
+                .h(px(230.))
+                .line_height(px(24.))
+                .child(EditableText::new(&self.state)),
+        )
+    }
+}
+
+/// Paragraph formats in one field, 240 px wide with 24 px rows of 16 px Lilex (0.6 em glyphs;
+/// ink from 6.8 to 18 px down each row). Rows (tops from the field's top at y 10): centered
+/// "HHHH" (0, x 100.8-139.2), right-aligned "HHHH" (24, x 201.6-240), a justified paragraph
+/// (48: six words widened to end at 240; 72: its last row, left), "HHHH" indented 40 (96), a
+/// hanging indent (120: first row at 0; 144: at 40), and "HHHH" 20 px below the paragraph before
+/// (188).
+pub const PARAGRAPHS: SceneSpec = SceneSpec {
+    id: "editable-paragraphs",
+    areas: &[Area::EditableParagraphs, Area::EditableText],
+    size: (260., 250.),
+    scales: &[1., 2.],
+    lanes: &[Lane::A, Lane::B, Lane::C],
+    golden: false,
+    build: |_, cx| cx.new(Paragraphs::new).into(),
+    script: || {
+        vec![
+            Step::Expect(Expect::Size(id("paragraphs"), 240., 230., 0.5)),
+            // Centered: ink from x 110.8, none before.
+            Step::ProbeUniform((12., 18., 90., 8.), WHITE, 0),
+            Step::ProbeDiffer((112., 18., 30., 8.), (12., 18., 30., 8.), 40),
+            // Right-aligned: ink from x 211.6, none before.
+            Step::ProbeUniform((12., 42., 190., 8.), WHITE, 0),
+            Step::ProbeDiffer((215., 42., 30., 8.), (12., 42., 30., 8.), 40),
+            // Justified: the first row's last word reaches the field's edge; unjustified it
+            // would end at x 230.8. The last row stays left.
+            Step::ProbeDiffer((242., 66., 6., 8.), (242., 90., 6., 8.), 40),
+            Step::ProbeUniform((150., 90., 95., 8.), WHITE, 0),
+            // Indented 40: nothing before x 50.
+            Step::ProbeUniform((12., 114., 36., 8.), WHITE, 0),
+            Step::ProbeDiffer((52., 114., 30., 8.), (12., 114., 30., 8.), 40),
+            // Hanging indent: the first row starts at the edge, the second at 40.
+            Step::ProbeDiffer((12., 138., 30., 8.), (12., 162., 30., 8.), 40),
+            Step::ProbeUniform((12., 162., 36., 8.), WHITE, 0),
+            // Spacing: an empty 20 px band above the last paragraph.
+            Step::ProbeUniform((12., 180., 230., 16.), WHITE, 0),
+            Step::ProbeDiffer((12., 206., 30., 8.), (12., 180., 30., 8.), 40),
         ]
     },
 };
