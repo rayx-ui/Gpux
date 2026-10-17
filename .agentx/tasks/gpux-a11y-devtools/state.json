@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-a11y-devtools",
-  "revision": 192,
+  "revision": 193,
   "planRevision": 26,
   "specHashes": {
     "requirements": "a54f54ef7a962136f1f0acf82890acc4ed05220e8fcfd89dfbf37c76731ece4d",
@@ -5585,6 +5585,1219 @@
       "recordedAt": "2026-10-17T03:08:39Z",
       "recordHashes": {
         "gpux:docs/measurements/a11y-devtools.md": "56054dc432b5d47e5d9bad64495d389f07d8824e3728b4d4d4bf74c99a14870d",
+        "gpux:docs/measurements/screen-reader-walkthrough.md": "152a5d2a5d854f8f546ac3681f5472e4b8f7cd267ce40e55fb6f1ba1b1ab779c"
+      }
+    },
+    "final": {
+      "reviewerId": "final-reviewer-gpux-a11y-devtools-fresh-20261017",
+      "snapshotId": "df7820ec5ba86aba10834ecd384aee0c88bbdc9fdc2af8d59096dfcdd1076d0a",
+      "criterionIds": [
+        "PERF-1",
+        "PERF-2",
+        "PERF-3",
+        "AK-1",
+        "AK-2",
+        "ACT-1",
+        "ACT-2",
+        "ACT-3",
+        "ACT-4",
+        "ACT-5",
+        "TREE-1",
+        "TREE-2",
+        "TREE-3",
+        "TREE-4",
+        "TREE-5",
+        "TREE-6",
+        "FAST-1",
+        "FAST-2",
+        "FAST-3",
+        "QRY-1",
+        "QRY-2",
+        "QRY-3",
+        "SR-1",
+        "SR-2",
+        "SR-3",
+        "SR-4",
+        "SR-5",
+        "SR-6",
+        "SR-8",
+        "SR-9",
+        "DEV-1",
+        "DEV-2",
+        "DEV-3",
+        "DEV-4",
+        "DEV-5",
+        "DEV-6",
+        "DEV-7",
+        "MCP-1",
+        "MCP-2",
+        "MCP-3",
+        "RX-1",
+        "RX-2",
+        "RX-3",
+        "RX-4",
+        "RX-5",
+        "RX-6",
+        "RX-7",
+        "RX-8",
+        "RX-9",
+        "REM-1",
+        "REM-2",
+        "REM-3",
+        "REM-4",
+        "REM-5"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/measurements/a11y-devtools.md",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-1",
+            "PERF-2"
+          ],
+          "sha256": "3c7ee14cb1369aa05089ba84ca8a2831a218852685c36e9afb26c73e3781562f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_benchmark/run.py",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-2",
+            "PERF-3"
+          ],
+          "sha256": "c022f6e55168c4a08ffbc78ee0f0904515eddb42bdcaa17a90956a03af037dac"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_benchmark/src/driver.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-3"
+          ],
+          "sha256": "5649913d1decf23b05b4beecf5f9168206c244525ebf2a03685d4bcda59c54c3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_benchmark/tools/hidden-window.sh",
+          "kind": "runtime",
+          "criterionIds": [
+            "PERF-3"
+          ],
+          "sha256": "49244266ee87f35ebecbfcb21599dc919f5e1a45d6078452623267f9c6dde054"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "AK-1",
+            "REM-5"
+          ],
+          "sha256": "e6844f77d05572d83e2d00be7243d3884ba69466f3bab7994285616a79422369"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.lock",
+          "kind": "source",
+          "criterionIds": [
+            "AK-1"
+          ],
+          "sha256": "f8e4453a2f02016150ef570640a9174a54d1b2a108eb9c0d592721a26b012fb5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window/a11y.rs",
+          "kind": "source",
+          "criterionIds": [
+            "AK-1",
+            "ACT-1",
+            "ACT-3",
+            "TREE-1",
+            "TREE-2",
+            "TREE-3",
+            "TREE-4",
+            "TREE-5",
+            "TREE-6",
+            "FAST-1",
+            "REM-4"
+          ],
+          "sha256": "89f4392164a071650b3e91a07ee4856af0bf2dd2b8b345d70b43507f697a0662"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/accesskit_025.rs",
+          "kind": "test",
+          "criterionIds": [
+            "AK-1"
+          ],
+          "sha256": "44f8306d203865b1d0a4dbe4853b891d2d990290764cf03c3e32b9952dfa6fe6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/upstream/accesskit-0.25.md",
+          "kind": "source",
+          "criterionIds": [
+            "AK-2"
+          ],
+          "sha256": "06cded23b5cd15eefdc1b2fc85e77d33d48aec1f8cea74f14ef5488b9c072198"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/history/upstream-provenance.md",
+          "kind": "source",
+          "criterionIds": [
+            "AK-2"
+          ],
+          "sha256": "1d10e092ec4e797824823f09ee1988e1f5067473801a6f089dfc837299b967f3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/references/update-from-zed-gpui-closure.md",
+          "kind": "source",
+          "criterionIds": [
+            "AK-2",
+            "REM-3"
+          ],
+          "sha256": "9d2ed63c4f50daccc328ef27119feba1b2d7df6034f951a397318f7d694eca1d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "REM-2",
+            "ACT-1",
+            "ACT-2",
+            "ACT-3",
+            "ACT-4",
+            "TREE-5",
+            "TREE-6"
+          ],
+          "sha256": "622fadfcb9a5d4a3078c07d8a95df2f388983e2da0f8240d8ed350d04d147d37"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/app.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ACT-2"
+          ],
+          "sha256": "deddc1490bbaf0ae0c5af18a5ea616afaabd745ae7ec2e2b61057358f4dc2bda"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/a11y_activation.rs",
+          "kind": "test",
+          "criterionIds": [
+            "ACT-1",
+            "ACT-2",
+            "ACT-5"
+          ],
+          "sha256": "d77c906a2a0c436909bb3afd8e559e98c6504db9f735254892b0ab5118ef8ed4"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/a11y_inspection_guard.rs",
+          "kind": "test",
+          "criterionIds": [
+            "ACT-3"
+          ],
+          "sha256": "5833734c4ed2d98dee00a9a53f65a6a8840594978cb669aeb480850e6b9262ac"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/browser/specs/accessibility.spec.ts",
+          "kind": "runtime",
+          "criterionIds": [
+            "ACT-4"
+          ],
+          "sha256": "5ade0b00f3096ff2bbce41986e23c8def9911e0cdc17d9bf18ad84c281bdabd5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "ACT-5"
+          ],
+          "sha256": "fafbeb4529f826eaa0262da588a17b34bf4959dd8d5c6a5c5b4504d81e7af5bb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_macos/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "ACT-5"
+          ],
+          "sha256": "9455a5e198b7af608b082f818427a7f04e896f89358f665f46f77bea89d0d771"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "ACT-5",
+            "SR-4",
+            "SR-5"
+          ],
+          "sha256": "c6645834c5d82526c0f24164fd8ebc53fc7fc0c5c39eec09e3cc3db0873b0058"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "ACT-5"
+          ],
+          "sha256": "b72ef3b6957ad827cdabbbbeb767927343cd6461ca7eed96f8a0d7a497e0e65d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TREE-4",
+            "TREE-5",
+            "TREE-6",
+            "SR-8"
+          ],
+          "sha256": "bd076e10e0ae9bb84639439e7ac3f157d9347e971910a7832935d6b20c40a690"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/a11y_text_leaves.rs",
+          "kind": "test",
+          "criterionIds": [
+            "TREE-1"
+          ],
+          "sha256": "63aedf98ef22df2678b04ef4a99aba667a3a1bede8180a25e4fa9f001d5a7348"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/a11y_inspection_tree.rs",
+          "kind": "test",
+          "criterionIds": [
+            "TREE-2",
+            "TREE-3"
+          ],
+          "sha256": "4d6e18ac749537525bcd8db2008411499605abd834eff44f9b2885f9a2f56aff"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/a11y_shared_focus.rs",
+          "kind": "test",
+          "criterionIds": [
+            "TREE-2"
+          ],
+          "sha256": "221d504324fcbc3edce0e28cba0981a5ff2f1d029145608593f5b757b11e1012"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/a11y_relations.rs",
+          "kind": "test",
+          "criterionIds": [
+            "TREE-4"
+          ],
+          "sha256": "e89f9924707013e889f24b76b23e0199e395f729df886b530cd8e0f0b5386e28"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/a11y_actions.rs",
+          "kind": "test",
+          "criterionIds": [
+            "TREE-5"
+          ],
+          "sha256": "777cdf98d98c1514b9d438f7752feecc4c12c63a70164fa60cf83d17ccdae7cc"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/a11y_duplicate_ids.rs",
+          "kind": "test",
+          "criterionIds": [
+            "TREE-6"
+          ],
+          "sha256": "fc2a3a1ab2bd6fb6222403e9b806f8707e9ec2a7bef456962c32652d90f03c72"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/verify.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FAST-1",
+            "REM-4"
+          ],
+          "sha256": "6e4a24708f25875c8d2c81c1f53144565200d7596a0a244c6430c15e786a790d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/a11y_describe.rs",
+          "kind": "test",
+          "criterionIds": [
+            "FAST-1",
+            "REM-4"
+          ],
+          "sha256": "28798dd0f3fa769d2aa18df05cbcf9dfc9013b6bfd67a24e1e2c7b849c3ce2f6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/a11y_retention.rs",
+          "kind": "test",
+          "criterionIds": [
+            "FAST-2"
+          ],
+          "sha256": "3974c908fb55ad15b9d81b61b71eb819b2264ec19b9ba4ec6ac855a1ce58f930"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/view.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FAST-2"
+          ],
+          "sha256": "03d246d80fea944420234fa48613f90e63f84db2e145ff6971ac3bafd082d012"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/retained.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FAST-2"
+          ],
+          "sha256": "d9f154da5c1e241bad6d953d59da171c95df4e643239aaa8712c4ac66f7910e8"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FAST-3"
+          ],
+          "sha256": "193a30b614944326976225b9b6499287db004d814d3c39d1737b3cd694da53ce"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/lane_c_a11y_layers.rs",
+          "kind": "test",
+          "criterionIds": [
+            "FAST-3"
+          ],
+          "sha256": "17934da8ed66c70e349c4a353ce124f81c23798a8ce05bd8b6ba14da128453c4"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/fast_mode_a11y.rs",
+          "kind": "test",
+          "criterionIds": [
+            "FAST-3"
+          ],
+          "sha256": "765cedc8c953cbc66e512c61168923e2b1e6d9281ef75733f8b3de9a866d2d65"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/verify_mode.rs",
+          "kind": "test",
+          "criterionIds": [
+            "REM-4"
+          ],
+          "sha256": "3867bedf40413f64aae2c9093b771f77615ddb00c3d0186799ac51894c5a6479"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/semantic_query.rs",
+          "kind": "source",
+          "criterionIds": [
+            "QRY-1",
+            "QRY-2"
+          ],
+          "sha256": "89048cc62fd153fe53c49686f50d702eea287eb6f26f7a898fbe73d6cb01a59d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/semantic_query/locator.rs",
+          "kind": "source",
+          "criterionIds": [
+            "QRY-2"
+          ],
+          "sha256": "1255be83e7fdc79df91dafcf501eaa554f6526f0d1e191761d835ee510c4f8db"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/semantic_query_accesskit.rs",
+          "kind": "test",
+          "criterionIds": [
+            "QRY-1",
+            "QRY-2"
+          ],
+          "sha256": "6bd4761a05ac5772d555b0f3cdfc2c3be519797e000e61f458f585c964b13196"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/evaluate.rs",
+          "kind": "source",
+          "criterionIds": [
+            "QRY-3"
+          ],
+          "sha256": "368a4508a1cec4e8b60d5b6971dca57443a29d155b3e11b08069031541369fce"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/conformance_accessibility.rs",
+          "kind": "test",
+          "criterionIds": [
+            "QRY-3"
+          ],
+          "sha256": "7175391c8800a14c899d265d14870277f61ce28e22e0d81806d1eddb6371299e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/accessibility.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SR-1",
+            "SR-2",
+            "SR-3",
+            "SR-9"
+          ],
+          "sha256": "8ac06393c4fb40a65fbfb78c1a99a8540967545c3bdb4c56ea51dc538b666d11"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/ime_mirror.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SR-2",
+            "SR-9"
+          ],
+          "sha256": "d6ae8b29a62397590d62e57c7d06f7790e4643fc4374b938bfa46e5eaded671e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/browser/specs/screen-reader.spec.ts",
+          "kind": "runtime",
+          "criterionIds": [
+            "SR-1",
+            "SR-2",
+            "SR-3",
+            "SR-9"
+          ],
+          "sha256": "e2655ce7d95747299015a150e228a75dc5ceac445b08fc3210b031401dc4c246"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/a11y_editable_text_host.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SR-2"
+          ],
+          "sha256": "1c42438c77339a9824353cf8c87c5dd95b72af43d267c7ef0521de1db93f7bbd"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/ios/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SR-4"
+          ],
+          "sha256": "effab689e65629009dc3efcaf38fd4cd9180514f0b0802b2bc7a694805841c10"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/examples/ios_host/screen_reader.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "SR-4"
+          ],
+          "sha256": "d8e9ceaaa7fd0aa3b66749882c69297458833623c3f1fe41abdf6307e6332f9e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/accessibility.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SR-5"
+          ],
+          "sha256": "cbc96a50e4205171379a40f6d4ad2746efb87cc2e013953d7a28e529feba41b5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/accessibility_registry.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SR-5"
+          ],
+          "sha256": "d09e51f4246c999828fa6d4561046a9de1522b6ff047088c8e0fbeb124236fd5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/examples/android_host/screen_reader.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "SR-5"
+          ],
+          "sha256": "e06a3ab6a794a252f1f0e81ba6049fa05d3c14e3e695d3b284c28c66ad8a65cc"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/accessibility.md",
+          "kind": "source",
+          "criterionIds": [
+            "SR-6"
+          ],
+          "sha256": "a663456407c268cdee371046463158cc95fffc285d617ed4725bc6d4b17775e7"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "vendor/accesskit_macos/src/node.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SR-8"
+          ],
+          "sha256": "b48a477d50ebb411a9b200291d59b991d5bac56f1a4fc3f640341c3f3402c537"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/examples/desktop_host/screen_reader.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "SR-8"
+          ],
+          "sha256": "00d4789e4e581abfc085ee8780ab3742f97054b62e2bd48168154dd20246c68f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/a11y_aria_defaults.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SR-8"
+          ],
+          "sha256": "b30bdc30de270eda07689581c1e4933e7c7174ca717dd1fdec1db8a817a1e188"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/src/gpux_devtools.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DEV-1",
+            "DEV-2",
+            "DEV-5"
+          ],
+          "sha256": "5607a4a42f389287297c84e3816b6e42b135385595bb92ce6b60a847dce1c343"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/src/protocol.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DEV-2"
+          ],
+          "sha256": "fcf83f17d24a2dc94df94ed5270ba28c2bb71572b7ee1dca0e1718745e8ac70f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/src/snapshot.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DEV-3"
+          ],
+          "sha256": "3c2e3bce086b31ac93027674ab06bc1742231fe95982e4abf192433b9458bb6f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/src/requests.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DEV-4",
+            "DEV-5"
+          ],
+          "sha256": "620377c50e9d922a9c4d5c998ac411dc1ba70d962acdf244bc18bb130624c1bd"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/tests/connection.rs",
+          "kind": "test",
+          "criterionIds": [
+            "DEV-1",
+            "DEV-2"
+          ],
+          "sha256": "c1e4fe2b964b750c4ce8d4d3213135904c453fd3f715861393d9769736c83848"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/tests/snapshot.rs",
+          "kind": "test",
+          "criterionIds": [
+            "DEV-3"
+          ],
+          "sha256": "96adbb59fa2d70e363a7a437d7e8cb5c7cd78ac279c4348a16f7b4b71f63a1f4"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/tests/actions.rs",
+          "kind": "test",
+          "criterionIds": [
+            "DEV-4"
+          ],
+          "sha256": "0315975bec046c9edceecf891dcbca9b5e0f74ac7fffc2999669c217354bc317"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools/tests/observe.rs",
+          "kind": "test",
+          "criterionIds": [
+            "DEV-5"
+          ],
+          "sha256": "66b2ed01978ed1019dc57489e754554104cfc523bd942cbce8fa3a91c332d75e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/devtools.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DEV-6",
+            "DEV-7"
+          ],
+          "sha256": "f0121ca125722542601146dea21c202e037c3600506c3e4a54bc6de18695df67"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/examples/desktop_host/checks.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "DEV-6"
+          ],
+          "sha256": "b69ef27aeb40e87583c3bfd9bcdc9acac8262139952905fd2f59cdf33a2e549e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/browser/specs/devtools.spec.ts",
+          "kind": "runtime",
+          "criterionIds": [
+            "DEV-6"
+          ],
+          "sha256": "37bc7e86fb9afa06be018c48e97b5345ed18ccbbd276b5b8f86fdb0f0595b2a3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/examples/ios_host/devtools.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "DEV-7"
+          ],
+          "sha256": "950edd7bbf36d23ceb07a5c07756c20bef1267266825c9d66057b4d9315dcab5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/examples/android_host/devtools.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "DEV-7"
+          ],
+          "sha256": "3515a34866732cc5bf50a5d7fbde91830d9fb4f2f17e4f49461497f5a09d7318"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/src/android.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DEV-7"
+          ],
+          "sha256": "5cfd57560fe1ab70a1f6f5d8bfd5c02d6f9845ee093336102689777486670a9f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools_mcp/src/mcp.rs",
+          "kind": "source",
+          "criterionIds": [
+            "MCP-1",
+            "MCP-2"
+          ],
+          "sha256": "3af5aeee53f683ccbffcfc0ca4570c1c79af8464e2ef5146ba585ac3a5321af7"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools_mcp/src/tools.rs",
+          "kind": "source",
+          "criterionIds": [
+            "MCP-1",
+            "MCP-2"
+          ],
+          "sha256": "bd9803cd6b8b005a3dc4fdb8f83e0f2e159cc6d123facd039cab4d918bddfbb0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools_mcp/src/apps.rs",
+          "kind": "source",
+          "criterionIds": [
+            "MCP-1",
+            "MCP-2"
+          ],
+          "sha256": "a097c330e97ba7dc95762da8faa1e40546dc56cbfcf3436f022941ace7875320"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools_mcp/tests/stdio_protocol.rs",
+          "kind": "test",
+          "criterionIds": [
+            "MCP-1"
+          ],
+          "sha256": "3327420fc94d5bc73b71fb0d928e270c3bfbbeafb0c8161cd1438e76fd31b9c8"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools_mcp/tests/extensions.rs",
+          "kind": "test",
+          "criterionIds": [
+            "MCP-2"
+          ],
+          "sha256": "e0ea5da2d50689173339bad919ce2a4449c6246fc1863d0057740771ee4da26d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/devtools.md",
+          "kind": "source",
+          "criterionIds": [
+            "MCP-3"
+          ],
+          "sha256": "a371296d254f8005d27036afac39ed7e8c20bfc7290b454564625bc9ae83d469"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "README.md",
+          "kind": "source",
+          "criterionIds": [
+            "MCP-3",
+            "REM-3"
+          ],
+          "sha256": "a8814ec7fb586af4a666001ae3f600a7dda2176155e4e55e63483ff3278e6be0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/testing.md",
+          "kind": "source",
+          "criterionIds": [
+            "MCP-3"
+          ],
+          "sha256": "e739eeb8eed359f7d9f67e1d7ec986e2240e026403727af5e27231c4825843df"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/devtools_removed_guard.rs",
+          "kind": "test",
+          "criterionIds": [
+            "REM-1"
+          ],
+          "sha256": "f070853ef223de278ae3ff57e9a37f3456af7f827e7208199c5dbbeccb7aab47"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "REM-1",
+            "REM-3"
+          ],
+          "sha256": "ce946f6ef1028da639b28478212169e6338b3b3f3e3982b964dc72289f3cb56b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/effect_diagnostics.rs",
+          "kind": "test",
+          "criterionIds": [
+            "REM-2"
+          ],
+          "sha256": "a9587f8687467f3db86e38f185a59e1fb79647f8c5f5887982829c75fe3772a0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md",
+          "kind": "source",
+          "criterionIds": [
+            "REM-3"
+          ],
+          "sha256": "b841758e295550375cc278f221c09a200205c3f4f91f7f37ebcf20c7918cff19"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "LINUX-WSL.md",
+          "kind": "source",
+          "criterionIds": [
+            "REM-3"
+          ],
+          "sha256": "e0d461a9fb773c1d5339b1d2c063a40d76099227ad56bcfd1dedb67cf3a817bf"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/examples/web_host/web_scenes.rs",
+          "kind": "source",
+          "criterionIds": [
+            "REM-4"
+          ],
+          "sha256": "e101d84ca7135bd79e2068ccbc146dec76bbc251902acca5bf9cb1016b3f29a7"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/browser/specs/composition.spec.ts",
+          "kind": "runtime",
+          "criterionIds": [
+            "REM-4"
+          ],
+          "sha256": "753bcf2b31b287dc121484f6017ff2c079dfa0414919ecb0cec19adf4fca1447"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/ci.yml",
+          "kind": "source",
+          "criterionIds": [
+            "REM-5"
+          ],
+          "sha256": "05284611e53e4160e9c442dc534c514e7e4901ed9015ab24ca16cb1e7f2cfeae"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/repository_layout.rs",
+          "kind": "test",
+          "criterionIds": [
+            "REM-5"
+          ],
+          "sha256": "1c0fc4fc3ddc8164fd83abc6e71fcc3cf8f531cf06ca42938dd7a8f95b501b38"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_devkit/tests/retired_devtools_api.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-1"
+          ],
+          "sha256": "2008bdb8b9a01c56f05d046e33cd6c0914164c4e845c18f0c6e0a6b1e63ad851"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_devkit/src/lib.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-1",
+            "RX-4"
+          ],
+          "sha256": "a345a6907f9d15017064e94fbdfa23eec5639ac2dffb61002a1ae6ab800e8e60"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/accesskit_from_devtools.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-2"
+          ],
+          "sha256": "74082b7b908a9bbbe70b39dab02258f32ca8d7456354a7265629f5ef5d729dfe"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/tests/accesskit_from_devtools.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-2"
+          ],
+          "sha256": "89ec2bd8c6180fa714dc261f04d7e3415c6d9ffc34d0ebc3961fbf04e2d913d8"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_blocks/tests/accesskit_from_devtools.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-2"
+          ],
+          "sha256": "adb9d3f29c3e972f73be320e8c36d8ec8a149a4ffcb6abf0d87f7f506dd88469"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_propertygrid/src/grid/element.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-2",
+            "RX-3",
+            "RX-8"
+          ],
+          "sha256": "d398920351fbb98ecc6a0635140289fe279a1e4e17fc079730fba01aa8732ffb"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_canvas_infinite/src/canvas/element.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-3",
+            "RX-8"
+          ],
+          "sha256": "26b867c4a6d19031ac1f710bdb0fc4c89146814273b3205f96a7a5e0d929968d"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_node_editor/src/editor/element.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-3",
+            "RX-8"
+          ],
+          "sha256": "fa2ffa3d646174426a7557f31b0cdcfb64f2ff84216ed549825112d8c6a3c551"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_propertygrid/tests/accesskit_actions.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-3"
+          ],
+          "sha256": "40a7a02ff8764223d6ee0e2005cf38e6468d1e0b34e96e97e8fbbf03810ff4db"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_node_editor/tests/accesskit_actions.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-3"
+          ],
+          "sha256": "0f7eae824f5d5630dd4c8a15cf18d0e4b5c3ba68eee1df1025723b2e6cc01fb1"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_canvas_infinite/tests/accesskit_actions.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-3"
+          ],
+          "sha256": "a288cae5929c67646318ae2d555e3801a5a90fd5ed490980de1311c29b7c3dfe"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/interactive_viewer_accesskit_actions.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-3"
+          ],
+          "sha256": "c928de69b37f8c122c15abb40e045810f157126ceecfb9d3ea699ff07e316328"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_devkit/src/app_ext.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-4"
+          ],
+          "sha256": "2c0248892d393fa0a5c8fb92c987450500a514f036b58ab65918277452209f2a"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_devkit/src/extensions.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-4",
+            "RX-8"
+          ],
+          "sha256": "4c887fed2444b62a90513904e9a65dcc2e211577ea573aa2651f68d9fbda7d09"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_runtime/src/services/application_configuration/service.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-4"
+          ],
+          "sha256": "0c3217178760faef44438bd68b82b92bf1714ba08bd099511739a06a9150b927"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "RX-4"
+          ],
+          "sha256": "1069e73aa6cb90daf7a5052a7894718e8d972740604df2e6fa6e19131a2c384e"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_devkit/tests/gpux_devtools_extension.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-4",
+            "RX-8"
+          ],
+          "sha256": "2c447fd63fee28916ff5be3d76e1c1772b290d08274a2a10e9c0896ae1975b18"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "tools-node/test_suite/rayx-data-table-selection.spec.ts",
+          "kind": "runtime",
+          "criterionIds": [
+            "RX-5",
+            "RX-7"
+          ],
+          "sha256": "a24a834ef33656f36a94dbd4de7de3afae0f192851ca2bc0c6a1b31900b6718a"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "tools-node/test_suite/devtools-desktop-smoke.mjs",
+          "kind": "runtime",
+          "criterionIds": [
+            "RX-5"
+          ],
+          "sha256": "2b5b9a31675067923ab602a9ed71f47dbcf13877bbe81b902039a3bf481ffdcd"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "tools-node/test_suite/rayx-screen-reader.spec.ts",
+          "kind": "runtime",
+          "criterionIds": [
+            "RX-5",
+            "RX-7"
+          ],
+          "sha256": "1a636f6f51fb54bf049a80db956fd183df48d7b08e7f1291f114aeb8354958f5"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "apps/test_suite/README.md",
+          "kind": "source",
+          "criterionIds": [
+            "RX-5",
+            "RX-6"
+          ],
+          "sha256": "576e21ea252841c12476aeedc962c115756f26d34ef24a27accd3212c2f27715"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": ".claude/skills/rayx/references/devkit.md",
+          "kind": "source",
+          "criterionIds": [
+            "RX-6"
+          ],
+          "sha256": "4dd428b62f53fb2bdd2e12b350ed9c81018e658f7518222cffaa346c724531dd"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "docs/src/rayx/android.md",
+          "kind": "source",
+          "criterionIds": [
+            "RX-6"
+          ],
+          "sha256": "0961bf8fb573c7615df5d5e5442d3ac20e3dfe653000a5536f4d07b38131f6c4"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/knowledge/ui/accessibility/rules.md",
+          "kind": "source",
+          "criterionIds": [
+            "RX-6"
+          ],
+          "sha256": "749d5c442c17aa2fea0a463cfdc78ef2b90ba5fafadad9c1bdf75cee2d99e32a"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/default_input_map.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-7"
+          ],
+          "sha256": "1d26c6094f713935449b080c3457c61f39440b4c26a893b3392ca60bcec63147"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/select_all_shortcut.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-7"
+          ],
+          "sha256": "a233f7e26aeb2d557246de26c9f63635fd8e4797dfb18ed87cddda357c578b3d"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_runtime/src/component_state.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-8"
+          ],
+          "sha256": "1de186ab9c0a660148c0e44d60509b4fc30af3dba65f1d1cb578e06a9e962750"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_runtime/tests/component_state.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-8"
+          ],
+          "sha256": "0f3b1489f1c3d8e7100867da8872a246de0dce32c694b5abfa651f095933b755"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_canvas_infinite/tests/announced_values.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-8"
+          ],
+          "sha256": "e65ac24c15c9c96124a6514027f0f73e0cbc7846815703c8f103679968117b45"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_node_editor/tests/announced_values.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-8"
+          ],
+          "sha256": "14ed2c3a46b60f5a27a6b8d28a52ced397dd5de091e49629baabbbdabf871275"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_propertygrid/tests/announced_values.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-8"
+          ],
+          "sha256": "2250599cd26d4a1be5224a4493437fd35a7ec78898e282f708116e625fe94e6a"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_code/src/editor_actions.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-9"
+          ],
+          "sha256": "8ffb3fc39e2e63b29153ef256cd83e906819dee4ecee2e8e1fc1398bebee3967"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_rich_text_editor/src/actions.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RX-9"
+          ],
+          "sha256": "ff31c2ff26d1a29868d80b289813708a8f5a57061cc559ab910ce4fcf804aa7b"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "apps/test_suite/application-input-map.json",
+          "kind": "source",
+          "criterionIds": [
+            "RX-9"
+          ],
+          "sha256": "07f87637e737396858f0652c3c88f1c7237aee46672a6217b9a30487fae1387e"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "apps/test_suite/src/lib.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RX-9"
+          ],
+          "sha256": "b98b46cc0396c53c0a52111881f8da68d8f6ea967ee9286ad9bee936d9b15d84"
+        }
+      ],
+      "summaryMarkdown": "**Passed, closing as done-with-deferrals.** Every one of the 54 active criteria is met by the current source, and all 82 checks pass against snapshot bdba2317. The deferred SR-7 and the withdrawn t30 match the owner's quoted decision of 2026-10-17. SR-7's follow-up is concrete: the Chrome, iOS-device and TalkBack rows of `docs/measurements/screen-reader-walkthrough.md`, which the document marks not run.\n\n**The origin/main merge (b29f5a9).** I compared the merge with `git show --remerge-diff`. Every conflict (Cargo.toml, README.md, docs/testing.md, tools/testkit/Cargo.toml, gpui `rules.md`, validation `state.md`, Cargo.lock) keeps main's new layout plus the epic's additions:\n- the devtools crates and `vendor/accesskit_macos` are still workspace members, with their workspace dependency keys and README rows;\n- the testkit still depends on `gpux_devtools_mcp`;\n- the epic's AccessKit memory rule and its accessibility-tree wording in `state.md` survived;\n- `gpux-tests-conformance` in the lock file kept the epic's dependencies (devtools, both `jni` versions).\n\nEvery file that had no conflict but named the old crate or old paths was renamed correctly (the hosts, the conformance tests, testkit `android.rs`, `docs/accessibility.md`, the benchmark tools). The benchmark kept its hidden-window exit and retry and its `--accessibility` option, and its own lock file pins AccessKit 0.25 and the fork. Main's side of the merge changed nothing in a11y code. `cargo test -p gpux-testkit --test repository_layout` passes (11 tests; log in `review/`). In live files, the old names left are runtime protocol strings main kept on purpose (`gpux-conformance:` result lines, the APK name, the Simulator name). The rest are historical records that keep the paths they were run with: the benchmark commands in `a11y-devtools.md` and the recorded macOS run in `screen-reader-walkthrough.md:48`. The RayX branch names no old gpux path.\n\n**The closing amendments.** Revision 186 only moves paths, from `crates/gpux_conformance` to `crates/gpux_tests_conformance`, `tools-node`/`tooling` to `tools/browser`/`tools`, and `benchmark/` to `crates/gpux_tests_benchmark`. The commands, groups, grep selectors and expected counts stay the same; the lane B inputs widen to `tools/**`. Revision 188 fixes `check-a11y-feature-tree`: since the macOS adapter fork, `cargo tree` prints `gpux-accesskit-macos`, so the old grep for `accesskit_macos` could no longer find the adapter. The check still proves both halves of ACT-5 for the macOS adapter. RayX d243945a now checks the IME textarea's value after typing. That is not weaker than before: `ime_mirror::sync` writes the textarea only from the GPUI input handler's text, so a lost keystroke or a failed select-all would still fail the spec.\n\n**Evidence.** The final batch's lane logs are real runs, not cached results: lane B 11/10/4/5 specs, lane D VoiceOver with 59 elements, lane F 2 checks, lane E devtools and screen-reader checks. `final-lane-a`, `final-fast-oracle` and `final-windows-ci` (the Windows half of AK-1) are left to the pull request's CI, as designed.\n\n**Not blocking.** Lane D's `screen-reader-macos-voiceover` (SR-8) is not in the Testing list of `docs/accessibility.md`, which lists lanes A, B, C, E and F. After closure, promotion must still supersede RayX's decision `2026-08-08-ui-accessibility-component-accesskit-contract.md` (\"WASM accessibility unsupported\"), as `promotion.pendingSupersession` lists.\n\n**CI repair (revision 192, gpux 5060bd5).** I inspected gpux 5060bd5. Besides AgentX metadata it changes only `.github/workflows/ci.yml`. I also inspected 071fa2c, which is memory promotion and state only, with no product source. In `ci.yml`:\n- the check job runs `cargo check --workspace --all-targets --exclude gpux-accesskit-macos`; on macOS the fork is still built through `gpux-macos`;\n- clippy and test already left the fork out through `FORK_EXCLUDES`;\n- the package job moved to `macos-15` and dropped its Linux apt step. On macOS `cargo package --workspace` verifies every crate (target-gated platform dependencies), as `final-package` shows locally.\n\nNo other workflow runs `--workspace`. The amended `check-fork-ci-excludes` (revision 191) is the old assertion plus two more: every `cargo check|test|clippy --workspace` line leaves the fork out, and the package job runs on macOS. I ran its script on both versions of `ci.yml`. It passes on the current one and fails on `5060bd5^` with both problems named (the unexcluded `cargo check` line, and the package job on Linux). So it guards REM-5's regression and can fail.\n\nNo criterion, product source or other check definition changed. `check --epic` passed at snapshot df7820ec (82 checks). `agentx_repair.py close-gate` returns `mayClose: true` with no open repair entries. The Linux and Windows check and package results themselves await the pull request's next CI run.",
+      "acknowledgedDispositions": [
+        "criterion:SR-7",
+        "task:t30-owner-walkthrough"
+      ],
+      "findingIds": [],
+      "recordedAt": "2026-10-17T09:02:14Z",
+      "recordHashes": {
+        "gpux:docs/measurements/a11y-devtools.md": "3c722bbcd7d94e62e83645ce2ce2bac7188da786fd8ad868cd72c4e0ab78bae7",
         "gpux:docs/measurements/screen-reader-walkthrough.md": "152a5d2a5d854f8f546ac3681f5472e4b8f7cd267ce40e55fb6f1ba1b1ab779c"
       }
     }
