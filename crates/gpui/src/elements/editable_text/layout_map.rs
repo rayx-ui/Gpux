@@ -1,15 +1,16 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    Font, FontId, Pixels, Point, RunMetrics, SharedString, Size, TextAlign, TextRun,
-    WindowTextSystem, WrappedLineLayout, point, px, size,
+    Font, FontId, LineLayout, Pixels, Point, RunMetrics, ShapedRun, SharedString, Size, TextAlign,
+    TextRun, WindowTextSystem, WrappedLineLayout, point, px, size,
 };
 
 use super::{
     AttributeSpan, EditableTextProjection, EditableTextStyleRun, EditableTextStyleRuns, Formatting,
-    LayoutStyleKey, ParagraphAlignment, ParagraphFormat, RowLayoutKey, ShapeRunKey,
-    TextBufferError, TextBufferSnapshot, TextEdit, TextLayoutCache, TextLayoutCacheStats,
-    TextLayoutUpdate, TextListKind, editable_text_alignment_offset,
+    InlineObject, LayoutStyleKey, OBJECT_REPLACEMENT_CHARACTER, ParagraphAlignment,
+    ParagraphFormat, RowLayoutKey, ShapeRunKey, TextBufferError, TextBufferSnapshot, TextEdit,
+    TextLayoutCache, TextLayoutCacheStats, TextLayoutUpdate, TextListKind,
+    editable_text_alignment_offset,
 };
 
 /// A byte-based point in the visual rows produced by soft wrapping.
@@ -177,6 +178,8 @@ struct LayoutRow {
     shapes: Arc<[RowShape]>,
     /// The paragraph's format, when it is not the default.
     paragraph: Option<Arc<ParagraphFormat>>,
+    /// The row's inline objects, with each one's offset in the row.
+    objects: Arc<[(usize, InlineObject)]>,
 }
 
 /// A visual row's own height and baseline, and where its glyphs start and end in the logical
@@ -489,6 +492,58 @@ impl TextLayoutMap {
         self.list_indent_step = step;
     }
 
+    /// Every inline object with its buffer offset and the box it reserves, from the top of the
+    /// text: its width, standing `baseline_offset` below its row's baseline.
+    pub fn inline_object_bounds(&self) -> Vec<(usize, InlineObject, crate::Bounds<Pixels>)> {
+        let mut boxes = Vec::new();
+        for row in &self.rows {
+            for (index, object) in row.objects.iter() {
+                let offset = self.display_offset_to_buffer(row.display_start + index);
+                let (Some(position), Some(display)) = (
+                    self.position_for_index(offset),
+                    self.buffer_to_display(offset),
+                ) else {
+                    continue;
+                };
+                // An object starting a wrapped row reports the end of the row before it.
+                let display = if display.column == 0 || offset == row.buffer_start {
+                    display
+                } else {
+                    let row_range = self.visual_row_range(display.row);
+                    match row_range {
+                        Some(range) if range.end == offset => {
+                            TextDisplayPoint::new(display.row + 1, 0)
+                        }
+                        _ => display,
+                    }
+                };
+                let Some(visual) = self.visual_rows.get(display.row) else {
+                    continue;
+                };
+                let x = if display.column == 0 {
+                    self.position_for_display(display)
+                        .map_or(position.x, |p| p.x)
+                } else {
+                    position.x
+                };
+                let top = visual.top + visual.baseline + object.baseline_offset - object.height;
+                boxes.push((
+                    offset,
+                    object.clone(),
+                    crate::Bounds::new(point(x, top), size(object.width, object.height)),
+                ));
+            }
+        }
+        boxes
+    }
+
+    /// The offsets, within logical row `row`, of its inline objects' characters.
+    pub(crate) fn logical_row_object_offsets(&self, row: usize) -> Vec<usize> {
+        self.rows.get(row).map_or_else(Vec::new, |row| {
+            row.objects.iter().map(|(index, _)| *index).collect()
+        })
+    }
+
     /// The markers of list items, in order.
     pub fn list_markers(&self) -> &[TextListMarker] {
         &self.list_markers
@@ -694,11 +749,31 @@ impl TextLayoutMap {
                 style.font.clone(),
             );
             let line_text: Arc<str> = Arc::from(line);
+            let objects: Arc<[(usize, InlineObject)]> = projected_attributes
+                [attribute_start..attribute_end]
+                .iter()
+                .filter_map(|span| Some((span, span.attributes.object.as_ref()?)))
+                .flat_map(|(span, object)| {
+                    let start = span.range.start.max(display_start);
+                    let end = span.range.end.min(display_end);
+                    line.get(start - display_start..end - display_start)
+                        .unwrap_or_default()
+                        .match_indices(OBJECT_REPLACEMENT_CHARACTER)
+                        .map(move |(index, _)| (start - display_start + index, object.clone()))
+                        .collect::<Vec<_>>()
+                })
+                .collect();
             let wrap_widths = paragraph
                 .as_deref()
                 .and_then(|format| paragraph_wrap_widths(format, style.wrap_width, list_step));
-            let row_key =
-                RowLayoutKey::new(line_text.clone(), run_keys).with_wrap_widths(wrap_widths);
+            let row_key = RowLayoutKey::new(line_text.clone(), run_keys)
+                .with_wrap_widths(wrap_widths)
+                .with_objects(
+                    objects
+                        .iter()
+                        .map(|(index, object)| (*index, object.width))
+                        .collect(),
+                );
             let layout = if let Some(layout) = reusable.and_then(|rows| rows.get(&row_key)) {
                 update.reused_rows += 1;
                 layout.clone()
@@ -711,28 +786,45 @@ impl TextLayoutMap {
                         runs: &shape_runs,
                         font_size: style.font_size,
                         letter_spacing: style.letter_spacing,
-                        wrap_width: if wrap_widths.is_some() {
+                        wrap_width: if wrap_widths.is_some() || !objects.is_empty() {
                             None
                         } else {
                             style.wrap_width
                         },
                     })
                     .map_err(TextLayoutError::Shaping)?;
-                // A paragraph with indents wraps its first row and the others at their own
-                // widths, from one shaping.
-                match wrap_widths {
-                    Some((first, other)) => Arc::new(WrappedLineLayout {
-                        wrap_boundaries: layout
-                            .unwrapped_layout
-                            .wrap_boundaries_for_widths(&line_text, first, other),
-                        wrap_width: Some(other),
-                        unwrapped_layout: layout.unwrapped_layout.clone(),
-                    }),
-                    None => layout,
+                // Inline objects reserve exactly their widths; a paragraph with indents wraps
+                // its first row and the others at their own widths, from one shaping.
+                let unwrapped = if objects.is_empty() {
+                    layout.unwrapped_layout.clone()
+                } else {
+                    Arc::new(with_object_widths(&layout.unwrapped_layout, &objects))
+                };
+                match (wrap_widths, objects.is_empty()) {
+                    (None, true) => layout,
+                    (widths, _) => {
+                        let widths = widths.or(style.wrap_width.map(|width| (width, width)));
+                        Arc::new(WrappedLineLayout {
+                            wrap_boundaries: widths
+                                .map(|(first, other)| {
+                                    unwrapped.wrap_boundaries_for_widths(&line_text, first, other)
+                                })
+                                .unwrap_or_default(),
+                            wrap_width: widths.map(|(_, other)| other),
+                            unwrapped_layout: unwrapped,
+                        })
+                    }
                 }
             };
             let visual_len = layout.wrap_boundaries().len() + 1;
-            let shapes = row_shapes(&layout, &line_text, style, paragraph.as_deref(), shaper);
+            let shapes = row_shapes(
+                &layout,
+                &line_text,
+                style,
+                paragraph.as_deref(),
+                &objects,
+                shaper,
+            );
             // Content reaches past each row's own indent and its trailing indent.
             max_width = max_width.max(match paragraph.as_deref() {
                 Some(format) => {
@@ -767,6 +859,7 @@ impl TextLayoutMap {
                 layout: layout.clone(),
                 shapes,
                 paragraph,
+                objects,
             });
             next_cache.insert(row_key, layout);
             visual_start += visual_len;
@@ -901,8 +994,9 @@ impl TextLayoutMap {
                 .collect::<Vec<_>>()
                 .into(),
             layout: layout.clone(),
-            shapes: row_shapes(&layout, &text, style, None, shaper),
+            shapes: row_shapes(&layout, &text, style, None, &[], shaper),
             paragraph: None,
+            objects: Arc::from([]),
         };
         self.rows[row_index] = replacement;
         if visual_delta != 0 {
@@ -1373,6 +1467,7 @@ fn row_shapes(
     text: &str,
     style: &TextLayoutStyle,
     paragraph: Option<&ParagraphFormat>,
+    objects: &[(usize, InlineObject)],
     shaper: &impl TextLayoutShaper,
 ) -> Arc<[RowShape]> {
     let line = &layout.unwrapped_layout;
@@ -1420,7 +1515,7 @@ fn row_shapes(
         .runs
         .iter()
         .all(|run| run.font_size == style.font_size && run.baseline_shift == Pixels::ZERO);
-    if uniform || style.font_size <= px(0.) {
+    if (uniform && objects.is_empty()) || style.font_size <= px(0.) {
         return extents
             .into_iter()
             .map(|(start_x, width, range)| {
@@ -1460,8 +1555,14 @@ fn row_shapes(
         .into_iter()
         .zip(row_runs)
         .map(|((start_x, width, range), runs)| {
+            // Objects count by their own height and baseline offset.
+            let row_objects = objects
+                .iter()
+                .filter(|(index, _)| range.contains(index))
+                .map(|(_, object)| object)
+                .collect::<Vec<_>>();
             let (trimmed_width, spaces) = justification(start_x, width, range);
-            if runs.is_empty() {
+            if runs.is_empty() && row_objects.is_empty() {
                 return RowShape {
                     height: line_height,
                     baseline: uniform_baseline,
@@ -1479,6 +1580,11 @@ fn row_shapes(
                 let (run_ascent, run_descent) = shaper.font_ascent_descent(font_id, size);
                 ascent = ascent.max(run_ascent + shift);
                 descent = descent.max(run_descent - shift);
+            }
+            for object in row_objects {
+                ascent = ascent.max(object.height - object.baseline_offset);
+                descent = descent.max(object.baseline_offset);
+                height = height.max(ascent + descent);
             }
             RowShape {
                 height,
@@ -1583,4 +1689,59 @@ fn number_marker(level: usize, number: u32) -> SharedString {
         }
     };
     format!("{label}.").into()
+}
+
+/// The layout with each inline object's character advancing exactly the object's width.
+fn with_object_widths(line: &LineLayout, objects: &[(usize, InlineObject)]) -> LineLayout {
+    let positions = line
+        .runs
+        .iter()
+        .flat_map(|run| {
+            run.glyphs
+                .iter()
+                .map(|glyph| (glyph.index, glyph.position.x))
+        })
+        .collect::<Vec<_>>();
+    // The shift each glyph moves by: the sum of the object widths before it less the advances
+    // their characters were shaped with.
+    let mut shifts = vec![px(0.); positions.len() + 1];
+    for (glyph_ix, (index, x)) in positions.iter().enumerate() {
+        let Some((_, object)) = objects.iter().find(|(offset, _)| offset == index) else {
+            continue;
+        };
+        let next_x = positions
+            .get(glyph_ix + 1)
+            .map_or(line.width, |(_, next)| *next);
+        let delta = object.width - (next_x - *x);
+        for shift in &mut shifts[glyph_ix + 1..] {
+            *shift += delta;
+        }
+    }
+    let mut glyph_ix = 0;
+    let runs = line
+        .runs
+        .iter()
+        .map(|run| ShapedRun {
+            glyphs: run
+                .glyphs
+                .iter()
+                .map(|glyph| {
+                    let mut glyph = glyph.clone();
+                    glyph.position.x += shifts[glyph_ix];
+                    glyph_ix += 1;
+                    glyph
+                })
+                .collect(),
+            ..run.clone()
+        })
+        .collect();
+    LineLayout {
+        font_size: line.font_size,
+        letter_spacing: line.letter_spacing,
+        width: line.width + shifts[positions.len()],
+        ascent: line.ascent,
+        descent: line.descent,
+        runs,
+        len: line.len,
+    }
 }

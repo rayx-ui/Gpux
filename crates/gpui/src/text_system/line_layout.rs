@@ -308,7 +308,11 @@ impl LineLayout {
             // Here is very similar to `LineWrapper::wrap_line` to determine text wrapping,
             // but there are some differences, so we have to duplicate the code here.
             if LineWrapper::is_word_char(ch) {
-                if prev_ch == ' ' && ch != ' ' && first_non_whitespace_ix.is_some() {
+                // gpux: a row may also break after an inline object's character.
+                if (prev_ch == ' ' || prev_ch == '\u{FFFC}')
+                    && ch != ' '
+                    && first_non_whitespace_ix.is_some()
+                {
                     last_candidate_ix = Some(boundary);
                     last_candidate_x = x;
                 }

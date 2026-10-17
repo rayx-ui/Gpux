@@ -32,6 +32,30 @@ pub struct TextAttributes {
     pub link: Option<SharedString>,
     /// An opaque owner tag. Typing at a tag's end does not extend it.
     pub tag: Option<SharedString>,
+    /// Makes the character (an [`OBJECT_REPLACEMENT_CHARACTER`]) an inline object. Typing
+    /// never takes it.
+    pub object: Option<InlineObject>,
+}
+
+/// The character an inline object occupies in the text.
+pub const OBJECT_REPLACEMENT_CHARACTER: char = '\u{FFFC}';
+
+/// An owner-rendered element embedded in text as one [`OBJECT_REPLACEMENT_CHARACTER`]: it
+/// reserves its box in the row, and the owner's renderer paints the element for its key there.
+#[derive(Clone, Debug, PartialEq)]
+pub struct InlineObject {
+    /// The owner's key for the element.
+    pub key: SharedString,
+    /// The width the object reserves.
+    pub width: Pixels,
+    /// The object's height.
+    pub height: Pixels,
+    /// How far the object reaches below the baseline.
+    pub baseline_offset: Pixels,
+    /// What plain-text export writes for the object.
+    pub text_fallback: SharedString,
+    /// Trusted HTML that HTML export writes for the object; else its escaped text fallback.
+    pub html_fallback: Option<SharedString>,
 }
 
 impl TextAttributes {
@@ -51,11 +75,12 @@ impl TextAttributes {
             || self.baseline_shift.is_some()
     }
 
-    /// These attributes without their link and tag, which typing never extends.
+    /// These attributes without their link, tag and object, which typing never extends.
     pub(crate) fn without_exclusive(&self) -> Self {
         Self {
             link: None,
             tag: None,
+            object: None,
             ..self.clone()
         }
     }
@@ -103,6 +128,7 @@ pub struct TextAttributesPatch {
     pub strikethrough: AttributeChange<StrikethroughStyle>,
     pub link: AttributeChange<SharedString>,
     pub tag: AttributeChange<SharedString>,
+    pub object: AttributeChange<InlineObject>,
 }
 
 impl TextAttributesPatch {
@@ -126,6 +152,7 @@ impl TextAttributesPatch {
             strikethrough: set(&attributes.strikethrough),
             link: set(&attributes.link),
             tag: set(&attributes.tag),
+            object: set(&attributes.object),
         }
     }
 
@@ -143,6 +170,7 @@ impl TextAttributesPatch {
             && self.strikethrough.is_keep()
             && self.link.is_keep()
             && self.tag.is_keep()
+            && self.object.is_keep()
     }
 
     /// Applies the patch to `attributes`.
@@ -160,6 +188,7 @@ impl TextAttributesPatch {
         self.strikethrough.apply(&mut attributes.strikethrough);
         self.link.apply(&mut attributes.link);
         self.tag.apply(&mut attributes.tag);
+        self.object.apply(&mut attributes.object);
     }
 }
 
@@ -500,6 +529,31 @@ impl AttributedText {
             text: text.into(),
             ..Default::default()
         }
+    }
+
+    /// The inline objects, with the byte offset of each one's character.
+    pub fn objects(&self) -> impl Iterator<Item = (usize, &InlineObject)> + '_ {
+        self.spans.iter().flat_map(move |span| {
+            let object = span.attributes.object.as_ref();
+            self.text
+                .get(span.range.clone())
+                .unwrap_or_default()
+                .match_indices(OBJECT_REPLACEMENT_CHARACTER)
+                .filter_map(move |(index, _)| Some((span.range.start + index, object?)))
+        })
+    }
+
+    /// The text with each inline object replaced by its text fallback.
+    pub fn plain_text(&self) -> String {
+        let mut text = String::with_capacity(self.text.len());
+        let mut last = 0;
+        for (offset, object) in self.objects() {
+            text.push_str(&self.text[last..offset]);
+            text.push_str(&object.text_fallback);
+            last = offset + OBJECT_REPLACEMENT_CHARACTER.len_utf8();
+        }
+        text.push_str(&self.text[last..]);
+        text
     }
 }
 

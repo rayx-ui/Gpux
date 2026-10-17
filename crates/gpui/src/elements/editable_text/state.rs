@@ -1287,11 +1287,79 @@ impl EditableTextState {
         {
             return false;
         }
-        let Ok(text) = self.snapshot().slice(self.selection.range()) else {
-            return false;
-        };
+        // Inline objects copy as their text fallbacks.
+        let text = self.attributed_text_in(self.selection.range()).plain_text();
         cx.write_to_clipboard(ClipboardItem::new_string(text));
         true
+    }
+
+    /// Inserts an inline object over `range` as one [`super::OBJECT_REPLACEMENT_CHARACTER`],
+    /// which keeps the other attributes of the text it replaces, as one undo step.
+    pub fn insert_inline_object(
+        &mut self,
+        range: Range<usize>,
+        object: super::InlineObject,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        let mut attributes = self
+            .insertion_attributes(range.clone())
+            .map(|attributes| (*attributes).clone())
+            .unwrap_or_default();
+        attributes.object = Some(object);
+        let typing = self.typing_attributes.replace(Arc::new(attributes));
+        let replacement = super::OBJECT_REPLACEMENT_CHARACTER.to_string();
+        let inserted = self.replace_byte_range(range, &replacement, EditKind::Other, cx);
+        if !inserted {
+            self.typing_attributes = typing;
+        }
+        inserted
+    }
+
+    /// The inline objects, with the byte offset of each one's character.
+    pub fn inline_objects(&self) -> Vec<(usize, super::InlineObject)> {
+        self.attributed_text()
+            .objects()
+            .map(|(offset, object)| (offset, object.clone()))
+            .collect()
+    }
+
+    /// The text of `range` and everything stored with it, with offsets relative to its start
+    /// and the formats of the paragraphs it touches.
+    pub fn attributed_text_in(&self, range: Range<usize>) -> AttributedText {
+        let snapshot = self.snapshot();
+        let range = range.start.min(snapshot.len())..range.end.min(snapshot.len());
+        let text = snapshot.slice(range.clone()).unwrap_or_default();
+        let Some(formatting) = &self.formatting else {
+            return AttributedText::plain(text);
+        };
+        let spans = formatting
+            .spans
+            .clipped(range.clone())
+            .map(|span| AttributeSpan {
+                range: span.range.start - range.start..span.range.end - range.start,
+                attributes: span.attributes,
+            })
+            .collect();
+        let paragraphs = if formatting.paragraphs.is_empty() {
+            Vec::new()
+        } else {
+            let first = snapshot
+                .byte_to_point(range.start)
+                .map_or(0, |point| point.y);
+            let count = text.matches('\n').count() + 1;
+            formatting
+                .paragraphs
+                .iter()
+                .skip(first)
+                .take(count)
+                .map(|format| (**format).clone())
+                .collect()
+        };
+        AttributedText {
+            text,
+            spans,
+            paragraphs,
+        }
     }
 
     pub fn cut(&mut self, cx: &mut Context<Self>) -> bool {
@@ -1741,9 +1809,17 @@ impl EditableTextState {
         if kind == EditKind::Composition && !composing {
             self.composition_attributes = inserted.clone();
         }
+        // What typing into a paragraph this deletion empties takes; never an inline object.
         let deleted = (replacement.is_empty() && !range.is_empty())
             .then(|| self.stored_attributes(range.start))
-            .flatten();
+            .flatten()
+            .map(|attributes| {
+                if attributes.object.is_some() {
+                    Arc::new(attributes.without_exclusive())
+                } else {
+                    attributes
+                }
+            });
         let edit = TextEdit::new(self.revision(), range, replacement);
         if !self.apply_buffer_edit(edit, inserted) {
             return false;
@@ -1882,11 +1958,22 @@ impl EditableTextState {
         }
         let formatting = self.formatting.as_ref()?;
         let spans = &formatting.spans;
+        // Text never takes an inline object's attribute.
+        let without_object = |attributes: &Arc<TextAttributes>| {
+            if attributes.object.is_none() {
+                return attributes.clone();
+            }
+            Arc::new(TextAttributes {
+                object: None,
+                ..(**attributes).clone()
+            })
+        };
         if !range.is_empty() {
-            return spans.at(range.start).cloned();
+            return spans.at(range.start).map(without_object);
         }
         let offset = range.start;
         let exclusive = |attributes: &Arc<TextAttributes>, next: Option<&Arc<TextAttributes>>| {
+            let attributes = &without_object(attributes);
             if attributes.link.is_none() && attributes.tag.is_none() {
                 return attributes.clone();
             }

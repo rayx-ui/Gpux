@@ -48,6 +48,8 @@ pub(super) struct RowLayoutKey {
     runs: Arc<[ShapeRunKey]>,
     /// The first-row and other-row wrap widths of a paragraph with indents.
     wrap_widths: Option<(Pixels, Pixels)>,
+    /// Each inline object's character offset and reserved width.
+    objects: Arc<[(usize, Pixels)]>,
 }
 
 impl RowLayoutKey {
@@ -56,7 +58,13 @@ impl RowLayoutKey {
             text,
             runs: runs.into(),
             wrap_widths: None,
+            objects: Arc::from([]),
         }
+    }
+
+    pub(super) fn with_objects(mut self, objects: Vec<(usize, Pixels)>) -> Self {
+        self.objects = objects.into();
+        self
     }
 
     pub(super) fn with_wrap_widths(mut self, wrap_widths: Option<(Pixels, Pixels)>) -> Self {

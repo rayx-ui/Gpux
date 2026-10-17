@@ -165,6 +165,7 @@ impl ShapedLine {
             &[],
             None,
             "",
+            &[],
             window,
             cx,
             &mut paint_underline,
@@ -425,6 +426,7 @@ impl LineLayout {
             &[],
             None,
             "",
+            &[],
             window,
             cx,
             &mut |_, origin, width, style, window| window.paint_underline(origin, width, style),
@@ -505,6 +507,7 @@ impl WrappedLine {
             &self.wrap_boundaries,
             None,
             "",
+            &[],
             window,
             cx,
             &mut |_, origin, width, style, window| window.paint_underline(origin, width, style),
@@ -551,6 +554,7 @@ impl WrappedLine {
         &self,
         origin: Point<Pixels>,
         rows: &[LineRowGeometry],
+        hidden_glyphs: &[usize],
         window: &mut Window,
         cx: &mut App,
     ) -> Result<()> {
@@ -565,6 +569,7 @@ impl WrappedLine {
             &self.wrap_boundaries,
             Some(rows),
             &self.text,
+            hidden_glyphs,
             window,
             cx,
             &mut |_, origin, width, style, window| window.paint_underline(origin, width, style),
@@ -606,6 +611,7 @@ fn paint_line(
     wrap_boundaries: &[WrapBoundary],
     rows: Option<&[LineRowGeometry]>,
     text: &str,
+    hidden_glyphs: &[usize],
     window: &mut Window,
     cx: &mut App,
     paint_underline: &mut dyn FnMut(
@@ -899,13 +905,17 @@ fn paint_line(
                     size: max_glyph_size,
                 };
 
+                // An inline object's character paints nothing; its owner paints the object.
+                let hidden = !hidden_glyphs.is_empty() && hidden_glyphs.contains(&glyph.index);
                 let content_mask = window.content_mask();
-                if crate::fast::glyphs::LineGlyphPainter::may_reach(
-                    &mut glyph_painter,
-                    max_glyph_bounds,
-                    baseline_offset.y + glyph.position.y,
-                    &content_mask.bounds,
-                ) {
+                if !hidden
+                    && crate::fast::glyphs::LineGlyphPainter::may_reach(
+                        &mut glyph_painter,
+                        max_glyph_bounds,
+                        baseline_offset.y + glyph.position.y,
+                        &content_mask.bounds,
+                    )
+                {
                     let vertical_offset = point(px(0.0), glyph.position.y);
                     if glyph.is_emoji {
                         window.paint_emoji(
@@ -1665,6 +1675,7 @@ mod tests {
                     &wrapped.wrap_boundaries,
                     None,
                     "",
+                    &[],
                     window,
                     cx,
                     &mut |range, origin, width, style, window| {

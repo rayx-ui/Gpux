@@ -1,3 +1,4 @@
+use crate::AnyElement;
 use crate::{
     App, Bounds, Color, ContentMask, CursorStyle, DecorationRun, DispatchPhase, Element, ElementId,
     ElementInputHandler, Entity, GlobalElementId, IntoElement, KeyDownEvent, LayoutId,
@@ -6,11 +7,14 @@ use crate::{
     UnderlineStyle, WeakEntity, Window, WrappedLine, div, fill, point, prelude::*, px, relative,
     size,
 };
-use std::ops::Range;
+use std::{ops::Range, rc::Rc};
+
+/// Renders the element of an inline object; see [`EditableText::inline_object_renderer`].
+type InlineObjectRenderer = Rc<dyn Fn(&InlineObject, &mut Window, &mut App) -> AnyElement>;
 
 use super::{
     AttributeSpan, EditableTextDisplayTransform, EditableTextLineMode, EditableTextMode,
-    EditableTextState, EditableTextStyleRun, TextDisplayPoint, TextLayoutStyle,
+    EditableTextState, EditableTextStyleRun, InlineObject, TextDisplayPoint, TextLayoutStyle,
 };
 
 /// A reusable editable-text element backed by [`EditableTextState`].
@@ -21,6 +25,7 @@ pub struct EditableText {
     selection_color: Option<Color>,
     caret_color: Option<Color>,
     display_transform: EditableTextDisplayTransform,
+    inline_object_renderer: Option<InlineObjectRenderer>,
 }
 
 #[allow(missing_docs)]
@@ -32,7 +37,20 @@ impl EditableText {
             selection_color: None,
             caret_color: None,
             display_transform: EditableTextDisplayTransform::Identity,
+            inline_object_renderer: None,
         }
+    }
+
+    /// Renders each visible inline object's element, laid out at the object's box inside the
+    /// field. Its pointer listeners see events over the object before the text does; events
+    /// it does not handle select text. Without a renderer objects keep their space and paint
+    /// nothing.
+    pub fn inline_object_renderer(
+        mut self,
+        renderer: impl Fn(&InlineObject, &mut Window, &mut App) -> AnyElement + 'static,
+    ) -> Self {
+        self.inline_object_renderer = Some(Rc::new(renderer));
+        self
     }
 
     pub fn placeholder_color(mut self, color: Color) -> Self {
@@ -120,6 +138,7 @@ impl RenderOnce for EditableText {
                 selection_color: self.selection_color,
                 caret_color: self.caret_color,
                 display_transform: self.display_transform,
+                inline_object_renderer: self.inline_object_renderer,
             })
     }
 }
@@ -245,6 +264,7 @@ struct EditableTextPaintElement {
     selection_color: Option<Color>,
     caret_color: Option<Color>,
     display_transform: EditableTextDisplayTransform,
+    inline_object_renderer: Option<InlineObjectRenderer>,
 }
 
 struct EditableTextPrepaintState {
@@ -258,12 +278,16 @@ struct EditableTextPrepaintState {
     /// List markers: shaped marker text at its origin, or checkbox quads.
     list_marker_lines: Vec<(ShapedLine, crate::Point<Pixels>)>,
     list_marker_quads: Vec<PaintQuad>,
+    /// The owner's elements of the visible inline objects, prepainted at their boxes.
+    inline_objects: Vec<crate::AnyElement>,
 }
 
 struct EditableTextPaintLine {
     line: WrappedLine,
     /// Each visual row's geometry, from the top of the text.
     rows: Vec<LineRowGeometry>,
+    /// The inline objects' characters, which paint nothing.
+    object_offsets: Vec<usize>,
 }
 
 impl IntoElement for EditableTextPaintElement {
@@ -438,6 +462,7 @@ impl Element for EditableTextPaintElement {
                     decoration_runs: decorations,
                 },
                 rows,
+                object_offsets: state.layout_map().logical_row_object_offsets(row_index),
             });
         }
 
@@ -524,6 +549,34 @@ impl Element for EditableTextPaintElement {
             }
         }
 
+        // The owner's element of each visible inline object, laid out at the object's box
+        // and clipped by the field.
+        let mut inline_objects = Vec::new();
+        if layout_ready && let Some(renderer) = self.inline_object_renderer.clone() {
+            let boxes = state.layout_map().inline_object_bounds();
+            window.with_content_mask(Some(ContentMask::rectangular(bounds)), |window| {
+                for (_, object, object_bounds) in boxes {
+                    let origin = content_origin + object_bounds.origin;
+                    let visible = Bounds::new(origin, object_bounds.size).intersects(&bounds);
+                    if !visible {
+                        continue;
+                    }
+                    let mut element = renderer(&object, window, cx);
+                    element.layout_as_root(
+                        size(
+                            crate::AvailableSpace::Definite(object_bounds.size.width),
+                            crate::AvailableSpace::Definite(object_bounds.size.height),
+                        ),
+                        window,
+                        cx,
+                    );
+                    element.prepaint_at(origin, window, cx);
+                    inline_objects.push(element);
+                }
+            });
+        }
+        let state = self.state.read(cx);
+
         let selection_quads = layout_ready
             .then(|| {
                 editable_text_selection_quads(
@@ -563,6 +616,7 @@ impl Element for EditableTextPaintElement {
             selection: selection_quads,
             list_marker_lines,
             list_marker_quads,
+            inline_objects,
         }
     }
 
@@ -601,7 +655,13 @@ impl Element for EditableTextPaintElement {
             for paint_line in &prepaint.lines {
                 paint_line
                     .line
-                    .paint_rows(prepaint.content_origin, &paint_line.rows, window, cx)
+                    .paint_rows(
+                        prepaint.content_origin,
+                        &paint_line.rows,
+                        &paint_line.object_offsets,
+                        window,
+                        cx,
+                    )
                     .expect("editable text line should paint");
             }
             if let Some(placeholder) = &prepaint.placeholder {
@@ -629,6 +689,9 @@ impl Element for EditableTextPaintElement {
             }
             for quad in prepaint.list_marker_quads.drain(..) {
                 window.paint_quad(quad);
+            }
+            for element in &mut prepaint.inline_objects {
+                element.paint(window, cx);
             }
             if let Some(cursor) = prepaint.cursor.take() {
                 window.paint_quad(cursor);
