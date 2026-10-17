@@ -68,6 +68,17 @@ Run with `cargo run -p gpux-conformance --no-default-features --features app-hos
 | Adjust Volume | VO-Up/Down do not adjust a slider on macOS; interacting (VO-Shift-Down) and VO-Right: "clicks 1 subscribed true volume 10" | Issue: one increment moved the volume from 5 to 10 (its maximum; the step is 1) |
 | Type into Title (VO-Space, then typing "Hi") | the field showed "Hi"; no echo was captured | OK (typing reached the field) |
 
+After the fixes (the `gpux-accesskit-macos` fork and ARIA's default slider orientation, gpux
+`acd2eee` and `5fbb6a2`), the same walk announced:
+
+| Step | Announced | OK / issue |
+|---|---|---|
+| Volume | "5, Volume, slider"; one increment while interacting: "volume 6", the next "volume 7" | OK |
+| Details | "Details, collapsed, button"; after VO-Space and moving back: "Details, expanded, button" | OK |
+| Copies | "1, Copies, stepper" | OK |
+| Delete | "Delete, dimmed, button" | OK |
+| Scores | "Scores, table, No selection."; inside: "column 1 of 2 Ada", "column 2 of 2 3", then the second row | OK |
+
 ### VoiceOver, Safari (web host)
 
 `gpux-testkit web build`, `gpux-testkit web serve`, `http://localhost:8000/?scene=accessibility&inspect=0` in Safari, VoiceOver on, VO-Home inside the web area then VO-Right.
@@ -83,6 +94,19 @@ Run with `cargo run -p gpux-conformance --no-default-features --features app-hos
 | Title | "Title Untitled, text entry area", then the same on every further VO-Right (20 presses) | Issue: VoiceOver cannot move past the first text field; the rest of the scene is unreachable with VO-Right |
 | Tab | from Title, Tab leaves for Safari's toolbar | Safari's default Tab skips the scene's other controls |
 | Actions | not reached past Title | — |
+
+After the fixes (gpux `e521be1`: the IME textarea in the mirror right after its field, unchanged
+attributes left alone, a spin button's value text), the same walk announced, in order:
+"Enable accessibility, button"; after VO-Space the status line, "Activate, button",
+"Subscribe, unchecked, checkbox", "5, Volume, slider", "Title Untitled, text entry area",
+"Email", "ada@example.com, Email We never share it, required, edit text", "list Fruits 3
+items", "Apple, 1 of 3", "Pear, 2 of 3", "Plum", "Details, collapsed, button",
+"Copies, stepper" (its value text is now "1"), "pad", "Delete, dimmed, button",
+"12, Code, invalid data, text", "Six digits", "Scores, table, 2 columns, 2 rows",
+"Ada, column 1 of 2", "3, column 2 of 2", "row 2 of 2 Max, column 1 of 2", "5, column 2 of 2",
+"end of table", "Pin, button", "link, Alpha", "link, Beta", "list Shelf 5 items",
+"Item 1, group, (1 of 5)". VoiceOver still announces the focused, hidden IME textarea once when
+it starts on the page before activation ("text entry area, blank, has keyboard focus").
 
 ### VoiceOver, Chrome (web host)
 
@@ -110,6 +134,11 @@ person at the emulator or a device. The emulator's settings were restored afterw
 Not available on this machine.
 
 ## Findings
+
+Findings 1–7 were fixed in the epic at the owner's request (2026-10-17); the tables above
+record the walk again after each fix. A further problem the fixed walk found, VoiceOver in
+Safari jumping from Details back to the window's start (the mirror rewrote unchanged role and
+tabindex attributes on every focus change), was fixed with them.
 
 VoiceOver, macOS desktop (the `accesskit_macos` 0.27 adapter):
 
