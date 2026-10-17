@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-rich-editable-text",
-  "revision": 60,
+  "revision": 72,
   "planRevision": 9,
   "specHashes": {
     "requirements": "dd2fb980909e8180a8291227ea08cef4d241a5684340cdb66f70c1b4ca539061",
@@ -88,10 +88,16 @@
       ]
     },
     "t14-list-markers": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "3b3dd124"
+      ]
     },
     "t15-list-editing": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "3b3dd124"
+      ]
     },
     "t16-inline-model": {
       "status": "pending"
@@ -155,6 +161,16 @@
         }
       },
       "recordedAt": "2026-10-17T01:25:10Z"
+    },
+    "48a16daeb1d0810c44dfa1d347181663ef4116461b1df338dc96f38e1420bd20": {
+      "snapshot": {
+        "specHash": "8ec331511b6abfa7b5f2fbb62d9fd9aa987abf3a7addba1d4ad7468ce04683cc",
+        "repositories": {
+          "gpux": "6483ab703af635de64535026da5b93bd7a21b42fbb9c69c2fd74e2d9f6a6984c",
+          "rayx": "84d2cf241369243da3a9acff3794e5f471dea1a58363826115976742f944428b"
+        }
+      },
+      "recordedAt": "2026-10-17T01:52:21Z"
     }
   },
   "checkResults": {
@@ -650,6 +666,91 @@
       "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s04-paragraphs-final-8de4d8140073.log",
       "logSha256": "ae0e43b7f32c04b5ef896f6414b94470dd5ace0583798f14f8628475a6ec37bc",
       "inputsHash": "bc27566f0394917a57b988ccaf64bfe1ac599b80ac57d2705d77b58b823fc4ed"
+    },
+    "s05-lists/check-a-lists/final": {
+      "checkId": "check-a-lists",
+      "boundaryId": "s05-lists",
+      "phase": "final",
+      "batchId": "48a16daeb1d0810c44dfa1d347181663ef4116461b1df338dc96f38e1420bd20",
+      "definitionHash": "44d6ccf07985feca3b8cbc7f7f3e48f275a8e148ddc0c5d094666fbfe1bdbb66",
+      "basisHash": "a2e10c59313638cf9873313cb0fc2f30c64f8456952e9725d70b1846912537a5",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 9,
+      "durationSeconds": 1.7845,
+      "recordedAt": "2026-10-17T01:48:57Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s05-lists-final-22c1a23fe86a.log",
+      "logSha256": "69f6412274d3d5c162a53a32308f0088bd94cadd6bdd5f130f97e7580acfec6b",
+      "inputsHash": "9dcfdeb5d724530308684c098e25dc0574ba8089e6c9093c86d8ea9cda761fe3"
+    },
+    "s05-lists/check-a-list-editing/final": {
+      "checkId": "check-a-list-editing",
+      "boundaryId": "s05-lists",
+      "phase": "final",
+      "batchId": "48a16daeb1d0810c44dfa1d347181663ef4116461b1df338dc96f38e1420bd20",
+      "definitionHash": "ce0ab41aa550cb38d93178641b66fba7f8c32112d355bf383911186238067489",
+      "basisHash": "530aaf41f2b2cc1ed7cabf893f66da55b67c85a29904e3eab0a655ead1b289d6",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 8,
+      "durationSeconds": 0.4713,
+      "recordedAt": "2026-10-17T01:48:58Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s05-lists-final-2199ccbeb7e9.log",
+      "logSha256": "c1c3804f26c7c1dea3b513873369d81beb5d49181bc6b1a6ed311db233432852",
+      "inputsHash": "9dcfdeb5d724530308684c098e25dc0574ba8089e6c9093c86d8ea9cda761fe3"
+    },
+    "s05-lists/check-a-lists-lane-a/final": {
+      "checkId": "check-a-lists-lane-a",
+      "boundaryId": "s05-lists",
+      "phase": "final",
+      "batchId": "48a16daeb1d0810c44dfa1d347181663ef4116461b1df338dc96f38e1420bd20",
+      "definitionHash": "e62af88a1a7e2ed2e130a071dc1959d545352627193e98d53e5198f1b5a1fbb7",
+      "basisHash": "c2cf5a1cbb6c26a51e21a1118cb41c4bc23ebce81565ffd750550dc49726dbda",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 54.2438,
+      "recordedAt": "2026-10-17T01:49:52Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s05-lists-final-2d681ccf61b1.log",
+      "logSha256": "12fe5b9ad6ca955365b4bae48901316c68fd268f10b78a3fee5a02a01b4b652b",
+      "inputsHash": "9acf97afbf143fbc65184190f43317ad5181fe1c12611aff286513238c2ef960"
+    },
+    "s05-lists/check-a-lists-lane-c/final": {
+      "checkId": "check-a-lists-lane-c",
+      "boundaryId": "s05-lists",
+      "phase": "final",
+      "batchId": "48a16daeb1d0810c44dfa1d347181663ef4116461b1df338dc96f38e1420bd20",
+      "definitionHash": "432b782dd7c4cc2a80a0260d76248b071f854d501ad96cedbbfecb4f76473711",
+      "basisHash": "a492f3a2d4e234694864ba1242b308de3e70d0a49aaece37b0fac11e5a27a2bf",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 2.9193,
+      "recordedAt": "2026-10-17T01:49:55Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s05-lists-final-d922fff93104.log",
+      "logSha256": "10aae3b220bd735a192f068ae439c78264c846d557db3e3d3baede151312a81c",
+      "inputsHash": "9acf97afbf143fbc65184190f43317ad5181fe1c12611aff286513238c2ef960"
+    },
+    "s05-lists/check-a-lists-lane-b/final": {
+      "checkId": "check-a-lists-lane-b",
+      "boundaryId": "s05-lists",
+      "phase": "final",
+      "batchId": "48a16daeb1d0810c44dfa1d347181663ef4116461b1df338dc96f38e1420bd20",
+      "definitionHash": "e8b32c70c827fef4cf298f9d8c01bd1566e23e7cc9b25fa42a56917696dfea86",
+      "basisHash": "cd09af44e2642a472be11e60a820748044cb44c7f928728d0a044c22c5b4e27f",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 144.3445,
+      "recordedAt": "2026-10-17T01:52:20Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s05-lists-final-2650fb2e938c.log",
+      "logSha256": "ee2b6153d50be4147da5af14d96e613178057ac6a89405405474cbf3a7b9e05d",
+      "inputsHash": "9acf97afbf143fbc65184190f43317ad5181fe1c12611aff286513238c2ef960"
     }
   },
   "reviews": {
@@ -1182,6 +1283,106 @@
         "s04-range-end-at-paragraph-start-formats-next"
       ],
       "recordedAt": "2026-10-17T01:25:39Z"
+    },
+    "s05-lists": {
+      "reviewerId": "reviewer-s05-p3x8v1",
+      "snapshotId": "48a16daeb1d0810c44dfa1d347181663ef4116461b1df338dc96f38e1420bd20",
+      "criterionIds": [
+        "LIST-1",
+        "LIST-2"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/attributes.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LIST-1"
+          ],
+          "sha256": "cdada95fb2403f64164d7a76dadfa774e8eeb43b788328ce78d06cd34278e3a9"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/layout_map.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LIST-1"
+          ],
+          "sha256": "e91b65ddd125ca46732c5dda2bcfc034052ec9da17fd3f1adf837ae43c8060fb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/element.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LIST-1",
+            "LIST-2"
+          ],
+          "sha256": "0d0cbe5e93be8d34a41b024439df65c84dae4f922a95be742da1ed9796596123"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/state.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LIST-1",
+            "LIST-2"
+          ],
+          "sha256": "75df2e260a8b661b75fb402fb4a4e92d6ceeca4f9deb4058b18c048a79f1e082"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/scenes/editing.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LIST-1"
+          ],
+          "sha256": "156cee4495024f8ab870afd9f88307cfaaac2d092433d3e986253aa30a024a99"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_lists.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LIST-1"
+          ],
+          "sha256": "8afca57dd6e79ca6a71414bea50b06069dd267e9755c1245051e5e9c3871ac22"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_list_editing.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LIST-2"
+          ],
+          "sha256": "2eb4d9a4cf5f2cc8812e31b7f5b2b6cf67217af3a5a72996f75a111d4d3022af"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/catalog/lane_a_scenes.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "LIST-1"
+          ],
+          "sha256": "628b724a2f9d69e1b1949818612a3149767c40015291720d824bd9f8ade8312a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/catalog/lane_c_scenes.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "LIST-1"
+          ],
+          "sha256": "4327f898678a90536926f4bec29fe876244cb96541a6f9c55f5fb31fa703c711"
+        }
+      ],
+      "summaryMarkdown": "LIST-1 and LIST-2 hold at this snapshot, and the two s05 findings are resolved.\n\n- **Enter at the start of a checked item:** the empty first half becomes the new unchecked item, and the original text stays checked, in one undo step.\n- **Wide markers:** they clamp at the field's leading edge through one shared `list_marker_x`, used by marker paint, checkbox bounds and hit testing.\n\nAll five focused checks passed: lists 9, list editing 8, and lanes A, B and C.",
+      "findingIds": [
+        "s05-enter-at-start-of-checked-item-unchecks-it",
+        "s05-number-markers-overflow-default-step"
+      ],
+      "recordedAt": "2026-10-17T01:52:54Z"
     }
   },
   "checkpoints": {
@@ -1403,6 +1604,38 @@
           "path": "crates/gpui/tests/editable_text_paragraphs.rs"
         }
       ]
+    },
+    {
+      "id": "s05-enter-at-start-of-checked-item-unchecks-it",
+      "criterionIds": [
+        "LIST-2"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Expected:** Enter in a non-empty checkbox item splits it into two items; the *new* item starts unchecked and the item's existing text keeps its checked state.\n\n**Observed:** `EditableTextState::list_insert_newline` (state.rs) always unchecks the paragraph at `caret = range.start + 1`, i.e. the second half. `Formatting::remap_paragraphs` copies the item's format to both halves. With the caret at the *start* of a non-empty checked item (e.g. `done` checked, caret at 0, Enter), the empty first half keeps `checked: true` and the original text `done` becomes `checked: false`: inserting an item above a done task un-ticks the task and leaves a ticked empty box. `a_new_checkbox_item_starts_unchecked` only covers Enter at the item's end.\n\n**Repair:** when the split leaves the first half empty (caret at the paragraph start and the selection does not reach into the previous paragraph), uncheck the first paragraph (`range.start`) instead of the second, so the original text keeps its state. In general, the new item is the half that does not hold the original text start. Add a case to `editable_text_list_editing.rs`: checked `done`, caret at 0, Enter, then expect `[Checkbox{checked:false}, Checkbox{checked:true}]`, text `\\ndone`, and one undo step back.\n\n**Resolved:** the fix is in `list_insert_newline`. When the character before the split is none or a break, it unchecks the empty first half (`range.start`); otherwise it unchecks the second half. Either way the change is made inside the same undo step. The regression test is `enter_at_the_start_of_a_checked_item_keeps_its_state`.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_list_editing.rs"
+        }
+      ],
+      "boundaryId": "s05-lists"
+    },
+    {
+      "id": "s05-number-markers-overflow-default-step",
+      "criterionIds": [
+        "LIST-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Expected:** the marker paints right-aligned *in the space before* the item's first row.\n\n**Observed:** the marker origin is `start.x - 0.4*font_size - line.width` (element.rs prepaint) with no lower bound. With the default 24 px step at level 0, the space is 24 px. At 16 px, the gap alone takes 6.4 px. So `10.` (about 20 to 29 px depending on the font) and even `1.` in a monospace font like Lilex (19.2 px) end up at a negative x, left of the field's content edge, where they are clipped or overlap whatever is beside the field. Larger first-character sizes make this worse. The `editable-lists` scene uses a 40 px step, and no unit test checks the marker's left edge for numbers, so nothing exercises this.\n\n**Repair:** keep the marker inside the item's leading space. For example, clamp its left edge to the paragraph's content start (`max(0, …)` in content coordinates) and let it reduce the gap. Or record in the design that wide markers may extend past the indent. Then add a test in `editable_text_lists.rs` with a level-0 item numbered 10+ at the default step that asserts where the marker's left edge sits.\n\n**Resolved:** the new `TextLayoutMap::list_marker_x` clamps the marker's x at the field's leading edge (`-alignment_offset`, using the same inputs as the geometry's offset). Both `list_checkbox_bounds` (and so hit testing) and element marker painting use it. The regression test is `wide_markers_stay_inside_the_field`.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_lists.rs"
+        }
+      ],
+      "boundaryId": "s05-lists"
     }
   ],
   "handoffMarkdown": "",
