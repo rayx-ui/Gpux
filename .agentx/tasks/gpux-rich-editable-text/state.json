@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-rich-editable-text",
-  "revision": 47,
+  "revision": 59,
   "planRevision": 9,
   "specHashes": {
     "requirements": "dd2fb980909e8180a8291227ea08cef4d241a5684340cdb66f70c1b4ca539061",
@@ -70,13 +70,22 @@
       ]
     },
     "t11-paragraph-store": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "3b3dd124"
+      ]
     },
     "t12-paragraph-alignment": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "3b3dd124"
+      ]
     },
     "t13-paragraph-spacing": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "3b3dd124"
+      ]
     },
     "t14-list-markers": {
       "status": "pending"
@@ -136,6 +145,16 @@
         }
       },
       "recordedAt": "2026-10-17T01:02:11Z"
+    },
+    "451e4dd200514f88511d872015189449a8631fcc16e987086e4b3cf26b3ca917": {
+      "snapshot": {
+        "specHash": "8ec331511b6abfa7b5f2fbb62d9fd9aa987abf3a7addba1d4ad7468ce04683cc",
+        "repositories": {
+          "gpux": "8a791ac39cbcaf4a628d76090e8c70cd47071262a741e5c2e9ccaf2e03544f36",
+          "rayx": "84d2cf241369243da3a9acff3794e5f471dea1a58363826115976742f944428b"
+        }
+      },
+      "recordedAt": "2026-10-17T01:25:10Z"
     }
   },
   "checkResults": {
@@ -529,6 +548,108 @@
       "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s03-variable-rows-final-cf8de49b7c11.log",
       "logSha256": "277cd78655ff611fc7865423cf802a061c6702bacb2280d8d931f6bf0d39b2ad",
       "inputsHash": "27ee75f7298cbcc0a35bea68b602170802ae3e1486d8f9c8079d368172055643"
+    },
+    "s04-paragraphs/check-a-paragraphs/final": {
+      "checkId": "check-a-paragraphs",
+      "boundaryId": "s04-paragraphs",
+      "phase": "final",
+      "batchId": "451e4dd200514f88511d872015189449a8631fcc16e987086e4b3cf26b3ca917",
+      "definitionHash": "53258b7747cc26450158c661b72998495f2110b01c3e6c686c0766e42e229231",
+      "basisHash": "07d866a7b86fa1e00d88360f4e1aff1b5cdae4bb7ecac71c7d25d7c9d559623c",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 9,
+      "durationSeconds": 18.6275,
+      "recordedAt": "2026-10-17T01:22:19Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s04-paragraphs-final-91532cad79e0.log",
+      "logSha256": "a0d14fac9c06be4023240423894da24f90845bb3b3e48a7ef3019fcd869db907",
+      "inputsHash": "4069b72040db604a307df4abbec7de90e4b2d0e8a6ed5ad8309a61c1e04772bb"
+    },
+    "s04-paragraphs/check-a-paragraph-alignment/final": {
+      "checkId": "check-a-paragraph-alignment",
+      "boundaryId": "s04-paragraphs",
+      "phase": "final",
+      "batchId": "451e4dd200514f88511d872015189449a8631fcc16e987086e4b3cf26b3ca917",
+      "definitionHash": "39b24c8d281a4fdce0d3e37ee8863e70bb81fe0f24cfa72d26bf5f3a753b7abb",
+      "basisHash": "de44b50c2c714ccd095b9f2cc15eb6d8720ff8eb5fad3eb02ac941455b2f5f2b",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 1.219,
+      "recordedAt": "2026-10-17T01:22:20Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s04-paragraphs-final-f268894b791b.log",
+      "logSha256": "2c37053a60b22f2733118584ece4356612a7e97c979519676e107acf04222363",
+      "inputsHash": "4069b72040db604a307df4abbec7de90e4b2d0e8a6ed5ad8309a61c1e04772bb"
+    },
+    "s04-paragraphs/check-a-paragraph-spacing/final": {
+      "checkId": "check-a-paragraph-spacing",
+      "boundaryId": "s04-paragraphs",
+      "phase": "final",
+      "batchId": "451e4dd200514f88511d872015189449a8631fcc16e987086e4b3cf26b3ca917",
+      "definitionHash": "0e858e45a3c6e46af79cb24c84606cdbc06c7015de26478b26c86d1d59411596",
+      "basisHash": "b6bc58de45ee73fafec1877db493b96c41153f52783f3430534e35ad16229abf",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 7,
+      "durationSeconds": 1.2887,
+      "recordedAt": "2026-10-17T01:22:21Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s04-paragraphs-final-df3879463b6c.log",
+      "logSha256": "3c0bddffe9edef5deb9241492e7c178186e52b9d7d992ced72ecd2ff35526149",
+      "inputsHash": "4069b72040db604a307df4abbec7de90e4b2d0e8a6ed5ad8309a61c1e04772bb"
+    },
+    "s04-paragraphs/check-a-paragraphs-lane-a/final": {
+      "checkId": "check-a-paragraphs-lane-a",
+      "boundaryId": "s04-paragraphs",
+      "phase": "final",
+      "batchId": "451e4dd200514f88511d872015189449a8631fcc16e987086e4b3cf26b3ca917",
+      "definitionHash": "8273d626e4f41aabf2d75a34d399eba751142bce838a2c769d334a1c7b142c2a",
+      "basisHash": "3590200f212d6ccafb05da2746a4b6629e5a2c485119ba09ed2f9bb0d877f6b4",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 44.9967,
+      "recordedAt": "2026-10-17T01:23:06Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s04-paragraphs-final-6be64239d81f.log",
+      "logSha256": "94d7518019f2a1a0510160e23b901c1df525f0bd49b641a816750146facc07a9",
+      "inputsHash": "bc27566f0394917a57b988ccaf64bfe1ac599b80ac57d2705d77b58b823fc4ed"
+    },
+    "s04-paragraphs/check-a-paragraphs-lane-c/final": {
+      "checkId": "check-a-paragraphs-lane-c",
+      "boundaryId": "s04-paragraphs",
+      "phase": "final",
+      "batchId": "451e4dd200514f88511d872015189449a8631fcc16e987086e4b3cf26b3ca917",
+      "definitionHash": "65226981fbbade5021af8b8bb756e358b1eae4c7b9f4066ce424bea6a7557c65",
+      "basisHash": "c0977a35922dbc2d77ba5dcd0f74abab02596698aed2054edb589808eec56427",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 2.583,
+      "recordedAt": "2026-10-17T01:23:09Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s04-paragraphs-final-cd3e44fa57c3.log",
+      "logSha256": "79515a98395ad55299f5e35a1a840ed88edd12c39a6df704620fe5d9374b7646",
+      "inputsHash": "bc27566f0394917a57b988ccaf64bfe1ac599b80ac57d2705d77b58b823fc4ed"
+    },
+    "s04-paragraphs/check-a-paragraphs-lane-b/final": {
+      "checkId": "check-a-paragraphs-lane-b",
+      "boundaryId": "s04-paragraphs",
+      "phase": "final",
+      "batchId": "451e4dd200514f88511d872015189449a8631fcc16e987086e4b3cf26b3ca917",
+      "definitionHash": "8bb8260d02e90be42a97af31d63cea3fc3f070e06b3960d4eed61b6588ab9644",
+      "basisHash": "eec98544a85c124a898f7229d4bf3cad9e4c104bda1f01a5131ce9027354b530",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 120.0991,
+      "recordedAt": "2026-10-17T01:25:09Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-rich-editable-text/s04-paragraphs-final-8de4d8140073.log",
+      "logSha256": "ae0e43b7f32c04b5ef896f6414b94470dd5ace0583798f14f8628475a6ec37bc",
+      "inputsHash": "bc27566f0394917a57b988ccaf64bfe1ac599b80ac57d2705d77b58b823fc4ed"
     }
   },
   "reviews": {
@@ -942,6 +1063,125 @@
         "s03-single-line-redraw-loop"
       ],
       "recordedAt": "2026-10-17T01:02:42Z"
+    },
+    "s04-paragraphs": {
+      "reviewerId": "reviewer-s04-k7q2m9",
+      "snapshotId": "451e4dd200514f88511d872015189449a8631fcc16e987086e4b3cf26b3ca917",
+      "criterionIds": [
+        "PARA-1",
+        "PARA-2",
+        "PARA-3"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/attributes.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PARA-1",
+            "PARA-2"
+          ],
+          "sha256": "b25242d7bdccfc242a70f0828432777ce8caa19a12af0d3175a60a6ee47c8f96"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/state.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PARA-1"
+          ],
+          "sha256": "6669777b659cc28868bbb249131430e3043c986f49184cbf8508eb7fad9cb809"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/layout_map.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PARA-2",
+            "PARA-3"
+          ],
+          "sha256": "72693c72ca52fb690b13970a99b4ae3bae471aa3847f85fa0fae716b4465dc8a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/text_system/line.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PARA-2"
+          ],
+          "sha256": "76aa46a35d894714f8bacf7a215fb182d1564689c41d30744ce0ad6438f8f331"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/text_system/line_layout.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PARA-3"
+          ],
+          "sha256": "ca14910ddd6158830447c7cd77bbf26ccc226ea3ea8bb99a421a407d11f978c3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/scenes/editing.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PARA-3"
+          ],
+          "sha256": "b226decb274a12d4dae874b80de34312d5754146dd9222c1d51fde7d2c539b14"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_paragraphs.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PARA-1"
+          ],
+          "sha256": "b8366030e501556db87a2e6a605e04c70e213af6c157d358b19bfd3d1ba4e0f0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_paragraph_alignment.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PARA-2"
+          ],
+          "sha256": "13b4acd491a2ab0726df01c6db4dc76518fdb119ad8b9c39c09208d7a63df068"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_paragraph_spacing.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PARA-3"
+          ],
+          "sha256": "96d89d17500f061edc80cd86a9975fe8424eda61a5304413cff0827d03e6afde"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/catalog/lane_a_scenes.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "PARA-3"
+          ],
+          "sha256": "4aafa045f39e58ecb365810f2c208582062f6053e903cd7b8f1de76d0018d161"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/catalog/lane_c_scenes.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "PARA-3"
+          ],
+          "sha256": "8c8ddd5b9a924f467ea047fd2337102fd74173dd523f000fe85ffb9934dc4896"
+        }
+      ],
+      "summaryMarkdown": "Repairs verified. Content width of a formatted paragraph is now the max over its rows of that row's indent (first-line indent on row 0) + width + trailing indent, and paragraph_row_x clamps an overflowing row's alignment offset at 0 so it starts at its indent; proved by `content_width_includes_each_rows_indent` (single-line field, +40 content width, row at 40, end caret revealed). update_paragraph_format steps the last paragraph back when a non-empty range ends at column 0 of a later paragraph; proved by `a_range_ending_at_a_paragraph_start_leaves_that_paragraph`. All six focused checks pass at this snapshot (paragraphs 9, alignment 5, spacing 7, lanes A/B/C). PARA-1..3 are met; the list-item field of PARA-1 is planned in s05 (t14-list-markers).",
+      "findingIds": [
+        "s04-content-width-ignores-paragraph-row-x",
+        "s04-range-end-at-paragraph-start-formats-next"
+      ],
+      "recordedAt": "2026-10-17T01:25:39Z"
     }
   },
   "checkpoints": {
@@ -1119,6 +1359,39 @@
         {
           "repositoryId": "gpux",
           "path": "crates/gpui/src/elements/editable_text/element.rs"
+        }
+      ]
+    },
+    {
+      "id": "s04-content-width-ignores-paragraph-row-x",
+      "boundaryId": "s04-paragraphs",
+      "criterionIds": [
+        "PARA-2",
+        "PARA-3"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Expected:** in a non-wrapping field (the default single-line field, which PARA-1 says has one paragraph), every glyph of a paragraph row stays reachable: content width covers each row's indent plus width plus trailing indent, and the caret at the end of the text can be revealed by horizontal scrolling.\n\n**Observed:** `TextLayoutMap::update` (layout_map.rs, `let indents = paragraph...`) sets `max_width = layout.width() + leading.max(0) + trailing.max(0)`, ignoring a positive `first_line_indent`, while `paragraph_row_x` places the first row at `leading + first_line_indent`. `max_scroll_offset`/reveal (state.rs ~200 and ~1472) clamp to `bounds.width - size.width`, so the last `first_line_indent` pixels of an overflowing single-line field cannot be scrolled into view. Likewise a `Center`/`Right` paragraph row wider than `available` gets `indent + editable_text_alignment_offset(..)` < indent (negative x for overflow) with no compensating `global` offset (that offset is computed from `size.width`, not from paragraph rows), so the row's start sits left of the field edge where scroll offsets (which are only <= 0) can never reach it. The non-paragraph path does not have this problem because its per-row offset and `global` cancel for the widest row.\n\n**Repair:** compute the content width from the laid-out rows (max over visual rows of the row's indent-relative start + width + trailing indent, i.e. first row uses `paragraph_indents().0`), and clamp a paragraph row's alignment offset at its indent when the row overflows its available width (as left alignment does), or include it in the global offset. Add tests to `editable_text_paragraph_spacing.rs` / `editable_text_paragraph_alignment.rs`: a single-line field with `first_line_indent` and overflowing text whose end offset reveals fully (`max_scroll_offset` / caret visible), and a right-aligned overflowing paragraph row whose first glyph x >= its leading indent.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_paragraph_spacing.rs"
+        }
+      ]
+    },
+    {
+      "id": "s04-range-end-at-paragraph-start-formats-next",
+      "boundaryId": "s04-paragraphs",
+      "criterionIds": [
+        "PARA-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Expected:** `set_paragraph_format` / `clear_paragraph_format` / `update_paragraph_format` change \"the paragraphs a range touches\". A non-empty range that ends exactly at the start of a paragraph (e.g. `0..4` over `\"one\\ntwo\"`, produced by Shift+Down from a paragraph start or by selecting a paragraph with its line break) touches no character of the next paragraph, so only `one` should change (AppKit's `paragraphRangeForRange` behaves this way).\n\n**Observed:** `update_paragraph_format` (state.rs) uses `byte_to_point(range.end).y` as the last paragraph, so `0..4` also formats `two`. The test `formats_are_set_read_and_cleared_per_paragraph` only covers ranges that end inside a paragraph or are empty.\n\n**Repair:** for `range.end > range.start` take the last paragraph from `range.end - 1` (the paragraph of the last character in the range); keep empty ranges on the caret's paragraph. Add a case to `editable_text_paragraphs.rs` asserting that `set_paragraph_format(0..4, ..)` on `\"one\\ntwo\"` leaves the second paragraph default.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text_paragraphs.rs"
         }
       ]
     }
