@@ -357,6 +357,20 @@ fn touch(
     );
 }
 
+/// `clipboard-ios`: the system clipboard round-trips plain text with HTML beside it, the text exactly
+/// (no terminator or coercion), the HTML unchanged.
+async fn clipboard(cx: &mut AsyncApp) -> ResultLine {
+    use gpux_tests_conformance::platform_checks::clipboard_html;
+    const ID: &str = "clipboard-ios";
+    let item = clipboard_html::item(std::process::id());
+    cx.update(|cx| cx.write_to_clipboard(item.clone()));
+    let read = cx.update(|cx| cx.read_from_clipboard());
+    match clipboard_html::verify(&item, read.as_ref()) {
+        Ok(summary) => pass(ID, summary),
+        Err(error) => fail(ID, error),
+    }
+}
+
 /// A touch injected into the window taps the element under it.
 async fn touch_tap(cx: &mut AsyncApp) -> ResultLine {
     const ID: &str = "ios-touch-tap";
@@ -526,6 +540,9 @@ pub async fn platform_checks(cx: &mut AsyncApp) -> Vec<ResultLine> {
     }
     if selected("platform-view-ios") {
         lines.push(crate::platform_views::platform_view(cx).await);
+    }
+    if selected("clipboard-ios") {
+        lines.push(clipboard(cx).await);
     }
     lines
 }

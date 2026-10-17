@@ -139,6 +139,8 @@ impl RichAttributes {
     fn new(cx: &mut Context<Self>) -> Self {
         let state = cx.new(|cx| {
             let mut state = EditableTextState::with_text("HHHHHHHHHHHH", cx);
+            // Lane B's `clipboard: html` specs paste formatted text into it.
+            state.set_rich_paste(true);
             let mut set = |range: std::ops::Range<usize>, attributes: TextAttributes| {
                 state.set_attributes(range, &TextAttributesPatch::setting(&attributes), cx);
             };

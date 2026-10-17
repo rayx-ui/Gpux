@@ -33,6 +33,10 @@ pub const PLATFORM_CHECKS: &[PlatformCheck] = &[
         description: "text written to the platform clipboard reads back unchanged",
     },
     PlatformCheck {
+        id: "platform-clipboard-html",
+        description: "text written to the platform clipboard with HTML beside it reads back as the same text with that HTML",
+    },
+    PlatformCheck {
         id: "platform-os-input",
         description: "OS-level synthetic mouse and keyboard input reaches GPUI as the expected events",
     },
@@ -105,4 +109,43 @@ pub const PLATFORM_CHECKS: &[PlatformCheck] = &[
 /// The platform check with this id.
 pub fn platform_check(id: &str) -> Option<&'static PlatformCheck> {
     PLATFORM_CHECKS.iter().find(|check| check.id == id)
+}
+
+/// The clipboard-with-HTML check every lane's host runs (`platform-clipboard-html` on the
+/// desktop, `clipboard-android` and `clipboard-ios` on mobile): plain text with HTML beside it.
+pub mod clipboard_html {
+    use gpux::ClipboardItem;
+
+    /// The item to write: `nonce` makes it distinguishable from an earlier run's.
+    pub fn item(nonce: u32) -> ClipboardItem {
+        ClipboardItem::new_string_with_html(
+            format!("gpux ✓ html {nonce}"),
+            format!("<b>gpux ✓ html</b> {nonce}"),
+        )
+    }
+
+    /// Whether `read` carries `written`'s text exactly and its HTML, which a platform may wrap
+    /// (Windows' `HTML Format` header, a pasteboard's document wrapper) but never change: `Ok`
+    /// with a summary, or `Err` with what differs.
+    pub fn verify(written: &ClipboardItem, read: Option<&ClipboardItem>) -> Result<String, String> {
+        let Some(read) = read else {
+            return Err("the clipboard read back nothing".into());
+        };
+        let text = read.text();
+        if text != written.text() {
+            return Err(format!(
+                "wrote text {:?} and read back {text:?}",
+                written.text()
+            ));
+        }
+        let expected = written.html().unwrap_or_default();
+        match read.html() {
+            Some(html) if html.contains(expected) => Ok(format!(
+                "{} text characters, {} HTML bytes",
+                text.unwrap_or_default().chars().count(),
+                html.len()
+            )),
+            html => Err(format!("wrote HTML {expected:?} and read back {html:?}")),
+        }
+    }
 }
