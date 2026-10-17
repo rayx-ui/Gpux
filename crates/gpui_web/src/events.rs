@@ -1138,6 +1138,18 @@ impl WebWindowInner {
                 .get_data("text/plain")
                 .ok()
                 .filter(|text| !text.is_empty());
+            // HTML the source offered beside the text travels with it.
+            let html = clipboard_data
+                .get_data("text/html")
+                .ok()
+                .filter(|html| !html.is_empty());
+            let text_item = |text: String| {
+                let mut item = ClipboardItem::new_string(text);
+                if let Some(html) = html.clone() {
+                    item.entries.push(ClipboardEntry::Html(html));
+                }
+                item
+            };
 
             // File handles must be collected synchronously: the browser
             // clears `clipboardData`'s item list once this handler returns,
@@ -1166,13 +1178,13 @@ impl WebWindowInner {
             // Platform clipboard reads serve the trusted paste payload; an async
             // browser clipboard read is not required for ordinary paste.
             if let Some(text) = text.as_ref() {
-                *this.clipboard.borrow_mut() = Some(ClipboardItem::new_string(text.clone()));
+                *this.clipboard.borrow_mut() = Some(text_item(text.clone()));
             }
 
             if image_files.is_empty() {
                 if let Some(text) = text {
                     this.with_input_handler(|handler| {
-                        handler.paste(ClipboardItem::new_string(text));
+                        handler.paste(text_item(text));
                     });
                 }
                 return;
@@ -1183,6 +1195,9 @@ impl WebWindowInner {
                 let mut entries = Vec::new();
                 if let Some(text) = text {
                     entries.push(ClipboardEntry::String(ClipboardString::new(text)));
+                    if let Some(html) = html {
+                        entries.push(ClipboardEntry::Html(html));
+                    }
                 }
                 for (format, file) in image_files {
                     match crate::platform::read_blob_bytes(&file).await {

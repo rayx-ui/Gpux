@@ -17,6 +17,8 @@ use gpux::{ClipboardEntry, ClipboardItem, Image, ImageFormat, hash};
 pub(crate) const TEXT_MIME_TYPES: [&str; 3] =
     ["text/plain;charset=utf-8", "UTF8_STRING", "text/plain"];
 pub(crate) const FILE_LIST_MIME_TYPE: &str = "text/uri-list";
+/// The mime type HTML is offered and accepted as, beside the text.
+pub(crate) const HTML_MIME_TYPE: &str = "text/html";
 
 /// Text mime types that we'll accept from other programs.
 pub(crate) const ALLOWED_TEXT_MIME_TYPES: [&str; 2] = ["text/plain;charset=utf-8", "UTF8_STRING"];
@@ -114,7 +116,16 @@ impl<T: ReceiveData> DataOffer<T> {
         // copying from eg: firefox inserts a lot of blank
         // lines, and that is super annoying.
         let result = text_content.replace("\r\n", "\n");
-        Some(ClipboardItem::new_string(result))
+        let mut item = ClipboardItem::new_string(result);
+        // HTML offered beside the text travels with it.
+        if self.has_mime_type(HTML_MIME_TYPE)
+            && let Some(html) = self
+                .read_bytes(connection, HTML_MIME_TYPE)
+                .map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
+        {
+            item.entries.push(ClipboardEntry::Html(html));
+        }
+        Some(item)
     }
 
     fn read_image(&self, connection: &Connection) -> Option<ClipboardItem> {
@@ -174,20 +185,32 @@ impl Clipboard {
         self.self_mime.clone()
     }
 
-    pub fn send(&self, _mime_type: String, fd: OwnedFd) {
-        if let Some(text) = self.contents.as_ref().and_then(|contents| contents.text()) {
-            self.send_bytes(fd, text.as_bytes().to_owned());
+    /// Writes the contents in the requested mime type: HTML for `text/html`, else the text.
+    pub fn send(&self, mime_type: String, fd: OwnedFd) {
+        if let Some(bytes) = Self::bytes_for(self.contents.as_ref(), &mime_type) {
+            self.send_bytes(fd, bytes);
         }
     }
 
-    pub fn send_primary(&self, _mime_type: String, fd: OwnedFd) {
-        if let Some(text) = self
-            .primary_contents
-            .as_ref()
-            .and_then(|contents| contents.text())
-        {
-            self.send_bytes(fd, text.as_bytes().to_owned());
+    pub fn send_primary(&self, mime_type: String, fd: OwnedFd) {
+        if let Some(bytes) = Self::bytes_for(self.primary_contents.as_ref(), &mime_type) {
+            self.send_bytes(fd, bytes);
         }
+    }
+
+    fn bytes_for(contents: Option<&ClipboardItem>, mime_type: &str) -> Option<Vec<u8>> {
+        let contents = contents?;
+        if mime_type == HTML_MIME_TYPE {
+            return contents.html().map(|html| html.as_bytes().to_owned());
+        }
+        contents.text().map(|text| text.into_bytes())
+    }
+
+    /// Whether the clipboard contents carry HTML, which is then offered too.
+    pub fn has_html(&self) -> bool {
+        self.contents
+            .as_ref()
+            .is_some_and(|contents| contents.html().is_some())
     }
 
     pub fn read(&mut self) -> Option<ClipboardItem> {

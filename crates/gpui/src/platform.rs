@@ -3098,6 +3098,8 @@ pub enum ClipboardEntry {
     Image(Image),
     /// A file entry
     ExternalPaths(crate::ExternalPaths),
+    /// HTML carried beside an item's plain-text entry, the same content as markup.
+    Html(String),
 }
 
 impl ClipboardItem {
@@ -3125,6 +3127,25 @@ impl ClipboardItem {
                 ClipboardString::new(text).with_json_metadata(metadata),
             )],
         }
+    }
+
+    /// Creates an item holding plain text and the same content as HTML, written to the
+    /// platform clipboard together.
+    pub fn new_string_with_html(text: String, html: String) -> Self {
+        Self {
+            entries: vec![
+                ClipboardEntry::String(ClipboardString::new(text)),
+                ClipboardEntry::Html(html),
+            ],
+        }
+    }
+
+    /// The item's HTML entry, if it has one. [`Self::text`] never returns HTML.
+    pub fn html(&self) -> Option<&str> {
+        self.entries.iter().find_map(|entry| match entry {
+            ClipboardEntry::Html(html) => Some(html.as_str()),
+            _ => None,
+        })
     }
 
     /// Create a new ClipboardItem::Image with the given image with no associated metadata
@@ -3163,11 +3184,16 @@ impl ClipboardItem {
         }
     }
 
-    /// If this item is one ClipboardEntry::String, returns its metadata.
+    /// If this item is one ClipboardEntry::String (with or without HTML beside it), returns
+    /// its metadata.
     #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
     pub fn metadata(&self) -> Option<&String> {
-        match self.entries().first() {
-            Some(ClipboardEntry::String(clipboard_string)) if self.entries.len() == 1 => {
+        let mut entries = self
+            .entries()
+            .iter()
+            .filter(|entry| !matches!(entry, ClipboardEntry::Html(_)));
+        match (entries.next(), entries.next()) {
+            (Some(ClipboardEntry::String(clipboard_string)), None) => {
                 clipboard_string.metadata.as_ref()
             }
             _ => None,
