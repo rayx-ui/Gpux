@@ -35,6 +35,7 @@ macro_rules! lane_a_scenes {
             media_svg => "media-svg",
             paint_canvas_path => "paint-canvas-path",
             paint_borders => "paint-borders",
+            paint_border_strips => "paint-border-strips",
             paint_shadows_gradients => "paint-shadows-gradients",
             paint_opacity_clipping => "paint-opacity-clipping",
             color_srgb_compositing => "color-srgb-compositing",

@@ -186,6 +186,64 @@ pub const BORDERS: SceneSpec = SceneSpec {
     },
 };
 
+/// Borders over a black backdrop, which shows what a border leaves uncovered: a 1 px pill at odd
+/// device-pixel edges (its top and bottom border strips meet in the middle of a 2×2 pixel block
+/// at scale 1) and a 4 px dashed box whose gaps must show the backdrop, not the border color.
+fn border_strips() -> AnyElement {
+    root()
+        .bg(rgb(BLACK_HEX))
+        .child(
+            div()
+                .id("pill")
+                .absolute()
+                .left(px(41.))
+                .top(px(41.))
+                .w(px(55.))
+                .h(px(32.))
+                .rounded_full()
+                .border_1()
+                .border_color(rgb(BLUE_HEX)),
+        )
+        .child(
+            div()
+                .id("dashed")
+                .absolute()
+                .left(px(120.))
+                .top(px(10.))
+                .w(px(60.))
+                .h(px(60.))
+                .border(px(4.))
+                .border_dashed()
+                .border_color(rgb(WHITE_HEX)),
+        )
+        .into_any_element()
+}
+
+pub const BORDER_STRIPS: SceneSpec = SceneSpec {
+    id: "paint-border-strips",
+    areas: &[Area::Borders, Area::DashedBorders, Area::BorderRadii],
+    size: (200., 90.),
+    scales: &[1., 2.],
+    lanes: PIXEL_LANES,
+    golden: false,
+    build: |_, cx| static_view(cx, border_strips),
+    script: || {
+        vec![
+            Step::Expect(Expect::Bounds(id("pill"), (41., 41., 55., 32.), 0.01)),
+            // The pill's inside, along the middle where its top and bottom strips meet and down
+            // a column near its left end, shows the backdrop.
+            Step::ProbeUniform((46., 55., 44., 4.), BLACK, 3),
+            Step::ProbeUniform((45., 50., 2., 14.), BLACK, 3),
+            // Outside the rounded corner, on the strips' top row and left column, is backdrop.
+            Step::probe(44., 42., BLACK),
+            Step::probe(42., 45., BLACK),
+            // The dashed box's top edge: a dash, and a gap that shows the backdrop.
+            Step::probe(124., 12., WHITE),
+            Step::probe(130., 12., BLACK),
+        ]
+    },
+};
+
 fn shadows_gradients() -> AnyElement {
     root()
         .flex()

@@ -47,6 +47,7 @@ pub static CATALOG: &[SceneSpec] = &[
     paint::SVG,
     paint::CANVAS,
     paint::BORDERS,
+    paint::BORDER_STRIPS,
     paint::SHADOWS_GRADIENTS,
     paint::OPACITY_CLIPPING,
     paint::SRGB,
