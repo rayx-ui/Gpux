@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-a11y-devtools",
-  "revision": 24,
+  "revision": 25,
   "title": "gpux accessibility-first: AccessKit as the one semantic tree for screen readers on every platform, gpux-devtools and its MCP, RayX on both",
   "validationMode": "sprint",
   "repositories": [
@@ -1796,7 +1796,7 @@
       "argv": [
         "bash",
         "-c",
-        "set -e; cargo tree -p gpux-platform -e normal --prefix none | grep -q '^accesskit_macos '; if cargo tree -p gpux-platform --no-default-features --features font-kit -e normal --prefix none | grep -q '^accesskit_macos '; then echo 'accesskit_macos linked without the accessibility feature'; exit 1; fi; echo 'feature-tree: ok'"
+        "set -e; cargo tree -p gpux-platform -e normal --prefix none | grep -q '^gpux-accesskit-macos '; if cargo tree -p gpux-platform --no-default-features --features font-kit -e normal --prefix none | grep -q '^gpux-accesskit-macos '; then echo 'gpux-accesskit-macos linked without the accessibility feature'; exit 1; fi; echo 'feature-tree: ok'"
       ],
       "expected": {
         "exitCode": 0,
