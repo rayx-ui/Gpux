@@ -19,9 +19,8 @@
 //! - The rows the layer holds that the list does not show give the frame
 //!   their pixels and nothing it answers by: no mouse listener
 //!   ([`listen_while_shown`]), tab stop or debug bounds ([`hide_records`]),
-//!   no focus ([`hide_focus`]), no DevKit element ([`NodeRow`]); the rows
-//!   shown keep their order in the tab order ([`order_tab_stops`]) and
-//!   among the DevKit elements ([`shown_nodes`]). A row drawing outside its
+//!   no focus ([`hide_focus`]); the rows shown keep their order in the tab
+//!   order ([`order_tab_stops`]). A row drawing outside its
 //!   own room is held only while shown ([`RowSort::spilling`]), and rows
 //!   that can be hit outside theirs keep the list on today's path
 //!   ([`rows_overflow`]).
@@ -228,7 +227,6 @@ impl LayerRows {
         &mut self,
         frame: u64,
         next: &mut crate::window::WindowFrame,
-        hidden_hitboxes: &mut Option<Range<usize>>,
         copied: &dyn Fn(&Range<PrepaintStateIndex>) -> bool,
         shift: &dyn Fn(&Range<PrepaintStateIndex>) -> Range<PrepaintStateIndex>,
     ) {
@@ -244,7 +242,6 @@ impl LayerRows {
             // The copy put the focus back where a row off screen held it.
             if !row.shown {
                 hide_focus(next, &row.prepaint);
-                note_hidden_hitboxes(hidden_hitboxes, &row.prepaint);
             }
         }
         self.told_frame = Some(frame);
@@ -1648,11 +1645,17 @@ fn carry_prepaint_rows(window: &mut Window, id: &GlobalElementId) {
     // hides tooltips (spec §7, rule 5).
     let tooltips = layer.rows.last_translation == Some(translation);
     let step = layer.rows.step(translation, scale_factor);
+    let list_key = layer.key.0;
+    let loose_rows = frame.loose.clone();
     let mut rows = mem::take(&mut layer.rows.rows);
     for ix in &carried {
         let Some(row) = rows.get_mut(ix) else {
             continue;
         };
+        // A row the list does not show adds nothing to the accessibility tree; the others
+        // are told row after row.
+        window.a11y.nodes.row = Some((list_key, *ix, loose_rows.contains(ix)));
+        window.a11y.nodes.hidden = !visible.contains(ix);
         let delta = row.delta(translation, scale_factor);
         let element_states = !row.dropped && !leaving.contains(ix);
         if visible.contains(ix) {
@@ -1668,13 +1671,10 @@ fn carry_prepaint_rows(window: &mut Window, id: &GlobalElementId) {
             tooltips,
             element_states,
         );
-        let nodes = row.prepaint.start.devtools_nodes_index..row.prepaint.end.devtools_nodes_index;
-        for node in &mut window.next_frame.devtools_nodes[nodes] {
-            node.fast_row.hidden = !visible.contains(ix);
-        }
+        window.a11y.nodes.row = None;
+        window.a11y.nodes.hidden = false;
         if !visible.contains(ix) {
             hide_focus(&mut window.next_frame, &row.prepaint);
-            note_hidden_hitboxes(&mut window.fast_layers.hidden_hitboxes, &row.prepaint);
         }
     }
     // Keeping the rows' layout nodes logged their keys: they are not the
@@ -1839,6 +1839,12 @@ fn prepainting_frame(window: &mut Window, list: Option<usize>) -> Option<&mut Ro
 /// is not.
 fn begin_row(window: &mut Window, cx: &App, list: Option<usize>, ix: usize, placed: bool) -> bool {
     let start = window.prepaint_index();
+    let list_key = window
+        .fast_layers
+        .painting
+        .as_ref()
+        .and_then(|painting| window.fast_layers.layers.get(&painting.id))
+        .map(|layer| layer.key.0);
     let masks = window
         .fast_layers
         .painting
@@ -1854,6 +1860,7 @@ fn begin_row(window: &mut Window, cx: &App, list: Option<usize>, ix: usize, plac
     // A `list` shows the rows it places itself; the others, and a uniform
     // list's, show where they lie across the viewport.
     frame.open_row_hidden = !placed && !frame.visible.contains(&ix);
+    let (hidden, loose) = (frame.open_row_hidden, frame.loose.contains(&ix));
     // A row is prepainted in the rows' own space, as it is painted (see
     // `rows_region`): what it clips itself to moves with it, and the
     // list's own clip, which does not, is the viewport its hitboxes are
@@ -1866,6 +1873,10 @@ fn begin_row(window: &mut Window, cx: &App, list: Option<usize>, ix: usize, plac
             .content_mask_stack
             .push(ContentMask::rectangular(region));
     }
+    // A row the list does not show adds nothing to the accessibility tree; the others are
+    // told row after row (see `A11yNodeBuilder::row`).
+    window.a11y.nodes.row = list_key.map(|key| (key, ix, loose));
+    window.a11y.nodes.hidden = hidden;
     true
 }
 
@@ -1914,12 +1925,10 @@ fn end_row(window: &mut Window, cx: &App, list: Option<usize>) {
     if mem::take(&mut frame.open_row_masked) {
         window.content_mask_stack.pop();
     }
+    window.a11y.nodes.row = None;
+    window.a11y.nodes.hidden = false;
     if hidden {
         hide_focus(&mut window.next_frame, &(start.clone()..end.clone()));
-        note_hidden_hitboxes(
-            &mut window.fast_layers.hidden_hitboxes,
-            &(start.clone()..end.clone()),
-        );
     }
     let masks = all_masks
         .get(masks_start..)
@@ -3369,137 +3378,12 @@ fn order_tab_stops(
     }
 }
 
-/// The row of a list's layer an element was drawn in, if it was drawn in one,
-/// and whether its list shows the row. What a frame tells of its elements
-/// ([`shown_nodes`]) leaves out those of the rows a list does not show, as
-/// a list without a layer does not draw them, and tells of the others row
-/// by row, as such a list draws them.
-#[derive(Clone, Copy, Default, PartialEq, Eq, Debug)]
-pub(crate) struct NodeRow {
-    /// The layer's key and the row.
-    row: Option<(u32, usize)>,
-    hidden: bool,
-    /// The row a `list` draws off screen, after the rows it shows.
-    loose: bool,
-}
-
-/// The row of a list's layer the element being prepainted lies in.
-pub(crate) fn node_row(window: &Window) -> NodeRow {
-    if !LIST_LAYERS {
-        return NodeRow::default();
-    }
-    window
-        .fast_layers
-        .painting
-        .as_ref()
-        .and_then(|painting| window.fast_layers.layers.get(&painting.id))
-        .and_then(|layer| {
-            let frame = layer.rows.frame.as_ref()?;
-            let (row, ..) = frame.open_row.as_ref()?;
-            let row = *row;
-            Some(NodeRow {
-                row: Some((layer.key.0, row)),
-                hidden: frame.open_row_hidden,
-                loose: frame.loose.contains(&row),
-            })
-        })
-        .unwrap_or_default()
-}
-
-/// How many of the hitboxes the frame being drawn holds over `hitboxes` are
-/// those of rows a list's layer holds and its list does not show: an element
-/// around a list tells how many hitboxes lie inside it, and a list without a
-/// layer has none for the rows off screen.
-pub(crate) fn hidden_hitboxes(window: &Window, hitboxes: &Range<usize>) -> usize {
-    // Only the elements around a list hold hitboxes of its rows.
-    let Some(hidden) = window.fast_layers.hidden_hitboxes.as_ref() else {
-        return 0;
-    };
-    if hitboxes.start >= hidden.end || hitboxes.end <= hidden.start {
-        return 0;
-    }
-    let inside = |prepaint: &Range<PrepaintStateIndex>| {
-        let start = prepaint.start.hitboxes_index.max(hitboxes.start);
-        let end = prepaint.end.hitboxes_index.min(hitboxes.end);
-        end.saturating_sub(start)
-    };
-    let number = window.fast_layers.frame;
-    window
-        .fast_layers
-        .layers
-        .values()
-        .map(|layer| {
-            let Some(frame) = layer.rows.frame.as_ref() else {
-                // Drawn from the last frame, with the view holding the list.
-                if layer.rows.told_frame != Some(number) {
-                    return 0;
-                }
-                return layer
-                    .rows
-                    .told
-                    .iter()
-                    .filter(|row| !row.shown)
-                    .map(|row| inside(&row.prepaint))
-                    .sum();
-            };
-            let carried: usize = frame
-                .carried
-                .iter()
-                .filter(|row| !frame.visible.contains(row))
-                .filter_map(|row| layer.rows.rows.get(row))
-                .map(|row| inside(&row.prepaint))
-                .sum();
-            let prepainted: usize = frame
-                .row_prepaints
-                .iter()
-                .filter(|prepainted| !shows_row(frame, prepainted.row))
-                .map(|prepainted| inside(&prepainted.range))
-                .sum();
-            carried + prepainted
-        })
-        .sum()
-}
-
-/// The elements of `nodes` a frame tells of, in order: all but those drawn
-/// in rows a list's layer holds and the list does not show, and those of a
-/// list's rows by row, in whatever order the frame carried and drew them,
-/// the row it draws off screen last.
-pub(crate) fn shown_nodes(
-    nodes: &[crate::window::DevtoolsFrameNode],
-) -> impl Iterator<Item = &crate::window::DevtoolsFrameNode> {
-    let mut shown = Vec::with_capacity(nodes.len());
-    let mut rest = nodes;
-    while let Some(first) = rest.first() {
-        let Some((list, _)) = first.fast_row.row else {
-            shown.push(first);
-            rest = &rest[1..];
-            continue;
-        };
-        // The rows of one list lie one after another.
-        let run = rest
-            .iter()
-            .take_while(|node| node.fast_row.row.is_some_and(|(of, _)| of == list))
-            .count();
-        let mut rows: Vec<_> = rest[..run]
-            .iter()
-            .filter(|node| !node.fast_row.hidden)
-            .collect();
-        rows.sort_by_key(|node| {
-            let row = node.fast_row.row.map(|(_, row)| row);
-            (node.fast_row.loose, row)
-        });
-        shown.extend(rows);
-        rest = &rest[run..];
-    }
-    shown.into_iter()
-}
-
 /// A row of a list's layer with records in a frame: where they lie in it,
 /// and whether the list shows the row.
 ///
 /// A frame shown from a list's layer holds the records of rows its list
 /// does not show (kept for the scrolls to come, and made to answer nothing:
-/// see [`hide_records`], [`listen_while_shown`], [`NodeRow`]), and holds
+/// see [`hide_records`], [`listen_while_shown`]), and holds
 /// those of the rows it does show in the order it carried and drew them. A
 /// frame drawn without the layer holds the records of the rows shown, row
 /// after row. What a frame is described by (`fast::verify::describe_frame`) tells
@@ -3638,19 +3522,6 @@ fn listen_while_shown(
             }));
         }
     }
-}
-
-/// Notes that the frame being drawn holds, over `prepaint`, the hitboxes of
-/// a row its list does not show (see [`hidden_hitboxes`]).
-fn note_hidden_hitboxes(hidden: &mut Option<Range<usize>>, prepaint: &Range<PrepaintStateIndex>) {
-    let hitboxes = prepaint.start.hitboxes_index..prepaint.end.hitboxes_index;
-    if hitboxes.is_empty() {
-        return;
-    }
-    *hidden = Some(match hidden.take() {
-        Some(hidden) => hidden.start.min(hitboxes.start)..hidden.end.max(hitboxes.end),
-        None => hitboxes,
-    });
 }
 
 /// Takes the focus out of what prepainting a row the list does not show

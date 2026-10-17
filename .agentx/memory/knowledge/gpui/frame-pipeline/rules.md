@@ -12,7 +12,7 @@ agentx:
     - deferred
     - content-mask
     - thermal-state
-    - devtools
+    - accessibility
   supersedes: []
   superseded_by: []
 ---

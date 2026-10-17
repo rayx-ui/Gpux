@@ -363,6 +363,9 @@ impl Render for Panel {
         let marked = self.ix == 1 && cx.has_global::<Marker>();
         div()
             .id(("panel", self.ix))
+            // A labelled group, so the accessibility oracle compares nodes from every panel.
+            .role(crate::Role::Group)
+            .aria_label(SharedString::from(format!("panel {}", self.ix)))
             .flex()
             .flex_col()
             .p_1()
@@ -900,6 +903,8 @@ impl Render for OracleView {
             .child(
                 OracleView::absolute(at::PRESS)
                     .id("press")
+                    .role(crate::Role::Button)
+                    .on_a11y_action(accesskit::Action::Increment, |_, _, _| {})
                     .bg(PALETTE[self.presses % PALETTE.len()])
                     .active(|style| style.bg(PALETTE[3]))
                     .cursor_pointer()
@@ -912,6 +917,7 @@ impl Render for OracleView {
             .child(
                 OracleView::absolute(at::KEYS)
                     .id("keys")
+                    .role(crate::Role::TextInput)
                     .track_focus(&self.keys_focus)
                     .focus(|style| style.border_2().border_color(PALETTE[3]))
                     .bg(PALETTE[0])
@@ -1130,12 +1136,20 @@ pub(crate) struct OracleWindow {
     pub(crate) cx: TestAppContext,
     pub(crate) window: WindowHandle<OracleView>,
     drag: DragState,
+    /// Keeps the window building its accessibility tree, for the oracle to compare.
+    _inspection: Option<crate::A11yInspection>,
 }
 
 impl OracleWindow {
     /// Opens an [`OracleView`] in an application built from `seed`, in
     /// `mode`, and draws its first frame.
     pub(crate) fn open(seed: u64, mode: FastMode) -> Self {
+        Self::open_with(seed, mode, false)
+    }
+
+    /// [`Self::open`], with the window's accessibility tree built for inspection on every
+    /// frame when `accessibility` (generic containers and the id map included).
+    pub(crate) fn open_with(seed: u64, mode: FastMode, accessibility: bool) -> Self {
         let mut cx = oracle_app(seed);
         let window = cx.add_window(|_, cx| OracleView::new(cx));
         cx.simulate_window_resize(window.into(), size(px(WINDOW_SIZE.0), px(WINDOW_SIZE.1)));
@@ -1144,10 +1158,15 @@ impl OracleWindow {
         // Every frame is drawn by `draw`, so the frame compared is the first
         // one after a step's changes, as an application's next frame is.
         cx.set_draw_on_flush(false);
+        let inspection = accessibility.then(|| {
+            cx.update_window(window.into(), |_, window, _| window.begin_a11y_inspection())
+                .unwrap()
+        });
         Self {
             cx,
             window,
             drag: DragState::Idle,
+            _inspection: inspection,
         }
     }
 
@@ -1368,8 +1387,19 @@ pub(crate) struct OracleRun {
 /// their frames after every step, and panics with the seed, the step, the
 /// first difference and the history so far on any difference.
 pub(crate) fn run_lockstep(seed: u64, steps: usize, mode: FastMode) -> OracleRun {
-    let mut incremental = OracleWindow::open(seed, mode);
-    let mut reference = OracleWindow::open(seed, FastMode::OFF);
+    run_lockstep_with(seed, steps, mode, false)
+}
+
+/// [`run_lockstep`], with both windows building their accessibility trees when
+/// `accessibility`: the trees are part of the frames compared.
+pub(crate) fn run_lockstep_with(
+    seed: u64,
+    steps: usize,
+    mode: FastMode,
+    accessibility: bool,
+) -> OracleRun {
+    let mut incremental = OracleWindow::open_with(seed, mode, accessibility);
+    let mut reference = OracleWindow::open_with(seed, FastMode::OFF, accessibility);
     let mut rng = StdRng::seed_from_u64(seed);
     let mut history: Vec<Vec<Change>> = Vec::new();
     let mut run = OracleRun::default();

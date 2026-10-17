@@ -1,0 +1,507 @@
+{
+  "schemaVersion": 7,
+  "epicId": "gpux-tools-layout",
+  "decisions": [
+    {
+      "id": "d-layout",
+      "requirementIds": [
+        "CONF",
+        "TOOLS",
+        "WEB",
+        "BENCH",
+        "DOCS"
+      ],
+      "descriptionMarkdown": "Two homes, split by language and by whether a thing is a crate. `crates/` holds every Rust crate: the libraries consumers depend on, plus the never-shipped verification crates named `gpux_tests_*` so they sort together (`gpux_tests_benchmark`, `gpux_tests_conformance`). `tools/` holds what drives or hosts the tests: `testkit` (runner), `perf` (Zed's `#[perf]` timer), `browser` (Playwright), `android` and `ios` (app shells). Pass/fail UI tests and numbers-only benchmarks stay distinct by crate: `gpux_tests_conformance` is run by `gpux-testkit lane ...` in CI, `gpux_tests_benchmark` by `run.py` locally for the improvement loops.",
+      "invariantsMarkdown": "- Lanes, scenes, specs and benchmark scenarios keep their content; only locations and names change.\n- Unit tests and `#[gpux::bench]` suites stay beside the crates they exercise.\n- No Zed crate folder under `crates/` is renamed or moved.",
+      "rationaleMarkdown": "The owner rejected tests in three places plus two tool roots (`tooling/`, `tools-node/`) and asked for one predictable place per kind, with UI tests and improvement-loop benchmarks distinguishable. Keeping the Rust crates in `crates/` (owner's choice over `tools/tests/`) keeps one rule for where a crate lives; the `gpux_tests_` prefix gives the grouping and the suffix the distinction.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-test-lanes.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-gpux-testkit.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-gpux-owns-runtime-proof.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-13-repository-validation-fast-mode-proof-and-timing.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/testing.md"
+        }
+      ]
+    },
+    {
+      "id": "d-conformance-rename",
+      "requirementIds": [
+        "CONF"
+      ],
+      "descriptionMarkdown": "Rename the conformance crate in folder, package and library together: `crates/gpux_tests_conformance`, package `gpux-tests-conformance`, `[lib] name = \"gpux_tests_conformance\"`, workspace key `gpux_tests_conformance`. Every folder in `crates/` matches its library's Rust name, and this crate is gpux's own (no Zed provenance), so the rename follows the convention instead of creating its only exception. Consumers change their `use gpux_conformance::...` to `gpux_tests_conformance::...` (about 80 references in about 50 files: the crate's own tests and examples, the testkit's sources and tests). The testkit's cargo selectors (`-p gpux-conformance`) and its workspace-root probe (`crates/gpux_conformance/Cargo.toml`) change with it; the probe keeps requiring the root `Cargo.toml` too.",
+      "invariantsMarkdown": "- The crate keeps its features (`test-host`, `app-host`, `diagnostics`), examples, `exclude = [\"tests/goldens/**\"]`, description and keywords.\n- The goldens' location relative to the crate is unchanged, so lane C finds them through `CARGO_MANIFEST_DIR` as before.",
+      "rationaleMarkdown": "Not published yet (crates.io has no `gpux-conformance`, 2026-10-16), so the package rename is free now and would orphan a crate after the first release. Keeping the old library name under a new folder would break the folder-equals-library-name convention that every other crate follows.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-crates-io-packaging.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/Cargo.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/gpux_testkit.rs",
+          "symbol": "find_workspace_root"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/lanes.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/execute.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/lane_coverage.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-protocol-ids",
+      "requirementIds": [
+        "CONF"
+      ],
+      "descriptionMarkdown": "Identifiers that travel at runtime between the hosts, the testkit, Playwright and the devices are a protocol, not a package name, and stay unchanged: `report::MARKER` (`gpux-conformance:`), the hosts' `gpux-conformance-host:` marker, `globalThis.__gpuxConformance`, `dev.gpux.conformance` (Android package, iOS bundle id), `ios::SIMULATOR_NAME`, the APK file name and `GpuxConformance` (XcodeGen project name).",
+      "invariantsMarkdown": "- Recorded fixtures (`tests/fixtures/android_logcat.txt`, `desktop_host_stdout.txt`, Playwright listings) are not edited by this epic.",
+      "rationaleMarkdown": "Renaming them would touch the Playwright fixtures, the Java helpers' expectations, installed Simulator devices and CI caches for no layout benefit, and would make the guard's package-name scan ambiguous.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/web/2026-10-07-platform-web-browser-lane-b.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/mobile/2026-10-07-platform-mobile-android-lane-e.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/mobile/2026-10-07-platform-mobile-ios-lane-f.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/report.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/android.rs",
+          "symbol": "HOST_MARKER"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/ios.rs",
+          "symbol": "SIMULATOR_NAME"
+        }
+      ]
+    },
+    {
+      "id": "d-tools-move",
+      "requirementIds": [
+        "TOOLS"
+      ],
+      "descriptionMarkdown": "Move `tooling/{testkit,perf,android,ios}` to `tools/{testkit,perf,android,ios}` with `git mv`; update the root workspace `members` and the `perf` workspace dependency path; keep both package names. The testkit's inline path joins become small named functions beside the existing `ios::project` so the new group can assert them: `android::manifest(root)` (`tools/android/AndroidManifest.xml`), `ios::spec(root)` and `ios::project(root)` (`tools/ios/...`). `lane_coverage.rs`'s relative path to the conformance tests becomes `../../crates/gpux_tests_conformance/tests` (the depth from `tools/testkit` is the same as from `tooling/testkit`).",
+      "invariantsMarkdown": "- `.cargo/config.toml`'s `perf-test`/`perf-compare` aliases select `-p gpux-perf` and need no change.\n- The generated `GpuxConformance.xcodeproj` stays git-ignored by the existing `*.xcodeproj` rule.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-gpux-testkit.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/mobile/2026-10-07-platform-mobile-android-lane-e.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/mobile/2026-10-07-platform-mobile-ios-lane-f.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/android.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/ios.rs",
+          "symbol": "project"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/ios/project.yml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/android/AndroidManifest.xml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/perf/src/main.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-browser-move",
+      "requirementIds": [
+        "WEB"
+      ],
+      "descriptionMarkdown": "Move the tracked files of `tools-node/` to `tools/browser/` with `git mv` (git-ignored `node_modules/` and reports stay behind and are reinstalled with `pnpm install` there). `WebPaths::tools_node` becomes `WebPaths::browser` (`root/tools/browser`), and the testkit's Playwright messages and its local-GPU prerequisite text name `tools/browser`. Inside the project the two relative paths gain one level: `playwright.config.ts` writes to `../../artifacts-temp/testkit/b`, and `fixtures/catalog.ts`'s default dist is `fixtures/../../../target/gpux-web/dist`. `GPUX_DIST`, which the testkit passes, keeps precedence.",
+      "invariantsMarkdown": "- Spec files, tags, profiles and the committed `pnpm-lock.yaml` are unchanged.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/web/2026-10-07-platform-web-browser-lane-b.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/web.rs",
+          "symbol": "WebPaths"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/local_gpu.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/playwright.config.ts"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/fixtures/catalog.ts"
+        }
+      ]
+    },
+    {
+      "id": "d-benchmark",
+      "requirementIds": [
+        "BENCH"
+      ],
+      "descriptionMarkdown": "Move `benchmark/` to `crates/gpux_tests_benchmark/` with `git mv` and rename package and library to `gpux-tests-benchmark` / `gpux_tests_benchmark` (binary `gpux-bench` unchanged). It stays a standalone workspace: its own `[workspace]` table, its own git-ignored `Cargo.lock` and `target*` folders, version `0.0.0`, never a root workspace member. Path dependencies become `../<crate>`. `run.py`: `ROOT = BENCH.parent.parent`; `Tree.dirty()` adds the pathspec `:(exclude)crates/gpux_tests_benchmark` so scenario edits and results never count as a dirty gpux tree; artifact names follow the library (`libgpux_tests_benchmark.a`, `gpux_tests_benchmark.wasm`, `./gpux_tests_benchmark.js` in `web/index.html`); `web/run.mjs` resolves Playwright through `../../../tools/browser/package.json`. The internal shape (shared `src/scenarios/`, one entry point per target, `ios/`, `web/`, `results/`) is unchanged.",
+      "invariantsMarkdown": "- Root `cargo` commands, CI and `cargo package --workspace` never build it.\n- `results/`, `RESULTS.md` and `LOOP-*.md` move with it unchanged (historical records).\n- No native/wasm folder split: the scenarios have no target-specific variants.",
+      "rationaleMarkdown": "The packaging rule \"keep every crate publishable\" was written for workspace crates; the benchmark was deliberately kept out of the workspace so its WASM and iOS dependencies never enter the root lock file or CI. Living under `crates/` beside the conformance crate is the owner's choice; the rule text gains the explicit exemption (DOCS-4) rather than the benchmark becoming a publishable member.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-crates-io-packaging.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-13-repository-validation-fast-mode-proof-and-timing.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "benchmark/Cargo.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "benchmark/run.py",
+          "symbol": "Tree"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "benchmark/web/run.mjs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "benchmark/web/index.html"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "benchmark/ios/project.yml"
+        }
+      ]
+    },
+    {
+      "id": "d-references",
+      "requirementIds": [
+        "DOCS"
+      ],
+      "descriptionMarkdown": "Update every live reference in one pass after the moves: CI workflows, `README.md`, `docs/` except the historical folders, `LINUX-WSL.md`, `CLAUDE.md` and `AGENTS.md` (both carry the Crate Layout section), the gpux skill (`.claude/skills/gpux/**`, including the preserve list in `update-from-zed-gpui-closure.md`), the benchmark README, and source comments. Add `tools/README.md` as the map (folder, what it is, the command that runs it). Sync memory narrowly: the three affected `rules.md` files, the `state.md` backlinks that point at moved paths, and the path mentions inside the current decisions on gpux-testkit, the test lanes and lanes B, E and F (path facts only; the decisions themselves stand). After the epic, promote one new decision record, `repository/validation/<date>-repository-validation-test-tooling-layout.md`, that builds on those decisions.",
+      "invariantsMarkdown": "- Historical records keep their paths: `.agentx/tasks/**`, `.agentx/experiments/**`, `docs/changelog/**`, `docs/history/**`, `docs/measurements/**`, `ToFix/**`, the benchmark's `RESULTS.md`, `LOOP-*.md`, `results/**`.\n- `.agentx/memory/decisions/INDEX.md` gains the promoted record only at promotion.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/upstream-sync/2026-08-07-repository-upstream-sync-self-contained-upstream-provenance.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/agentx-memory/2026-10-05-repository-agentx-memory-taxonomy-transplant.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/ci.yml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/lane-b.yml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/lane-e.yml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/lane-f.yml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "README.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/testing.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "CLAUDE.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "AGENTS.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/references/update-from-zed-gpui-closure.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/repository/validation/rules.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/repository/validation/state.md"
+        }
+      ]
+    },
+    {
+      "id": "d-guard",
+      "requirementIds": [
+        "GUARD",
+        "DOCS"
+      ],
+      "descriptionMarkdown": "The old folders are checked through `git ls-files` (no tracked file under them), not by folder absence: `git mv` leaves git-ignored build output (`node_modules`, a generated Xcode project, benchmark `target*` folders) in existing checkouts. A testkit integration test group, `tools/testkit/tests/repository_layout.rs`, reads the checkout from `CARGO_MANIFEST_DIR/../..` and the tracked file list from `git ls-files` (no new dependency: plain string matching, as the other testkit tests do). Scanned files: tracked text files except the historical records of d-references, `tools/testkit/tests/fixtures/**`, `vendor/**`, `Cargo.lock` and the guard file itself. Patterns: `tooling/` and root-level `benchmark/` match only when not preceded by an ASCII letter, digit, `_` or `/`, or when preceded by a relative link's `../` (so RayX's memory domain `knowledge/tooling/` and `crates/gpux_tests_benchmark/` never match, while a stale `../../tooling/testkit` link does); `tools-node` matches anywhere except after `RayX/` (RayX's own Playwright folder, which LINUX-WSL.md's consumer setup names); `crates/gpux_conformance` and the identifier `gpux_conformance` match anywhere; `gpux-conformance` matches only after `-p `, `--exclude `, `package = \"` or `name = \"` (the runtime markers of d-protocol-ids stay legal). Failures list `file:line: pattern`. Each scan has a seeded-failure test on a temporary file so it can fail.",
+      "invariantsMarkdown": "- The guard needs a git checkout; outside one it fails with a message saying so, never passes vacuously.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-test-lanes.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/lane_coverage.rs"
+        }
+      ]
+    }
+  ],
+  "memoryDecisionsConsidered": [
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-effects/2026-07-06-gpui-frame-effects-frame-effects-elements.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-effects/2026-07-07-gpui-frame-effects-frame-family-naming.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-06-29-gpui-frame-pipeline-unclipped-deferred-overlays.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-07-24-gpui-frame-pipeline-cached-thermal-frame-throttling.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-05-gpui-frame-pipeline-frame-demand-follow-up.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-oracle.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-switches.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-scroll-layers.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-window-composition.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/input/2026-10-05-gpui-input-upstream-input-model.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-30-gpui-layout-style-registry-taffy-0-14.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-conditional-prepaint-style-recompute.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-disable-taffy-content-size.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-frame-bounded-prepaint-style-handoff.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-measured-layout-invalidation.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-request-style-handoff.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-text-measurement-scope.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-fixed-sticky-positioned-scene-order.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-fixed-sticky-positioning.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-nested-scroll-wheel-propagation.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-06-gpui-positioning-scroll-fixed-containing-block.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-opaque-scroll-capture-owner.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-sticky-hierarchy-traversal-order.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-universal-sticky-push-out.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-08-21-gpui-positioning-scroll-immediate-scrollbar-publication.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/desktop/2026-07-08-platform-desktop-windows-wgpu-dx12-policy.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/desktop/2026-07-08-platform-desktop-windows-wgpu-dxgi-scaling.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-06-24-platform-web-multithreaded-wasm.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-06-29-platform-web-wasm-svg-asset-loading.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-07-01-platform-web-html-island-url-opt-in.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-07-02-platform-web-html-island-canonical-roots.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-07-03-platform-web-html-element-dom-overlay.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-07-03-platform-web-html-element-fit-styles-wheel.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-08-31-platform-web-explicit-wasm-constructors.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/renderer/wgpu/2026-07-04-renderer-wgpu-shader-effects-backend-capabilities.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/renderer/wgpu/2026-08-07-renderer-wgpu-browser-backend-fallback.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/renderer/wgpu/2026-09-30-renderer-wgpu-srgb-compositing.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/renderer/wgpu/2026-10-13-renderer-wgpu-transformed-sprites-filtered-by-hand.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/renderer/wgpu/2026-10-14-renderer-wgpu-noncompliant-adapter-variable.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-drop-z-crates.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-gpux-wgpu-fork.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-local-gpu-lane-g.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-14-repository-validation-wgpu-desktop-perf-4.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-14-repository-validation-wsl-gpu-lanes-c-d.md"
+    }
+  ]
+}

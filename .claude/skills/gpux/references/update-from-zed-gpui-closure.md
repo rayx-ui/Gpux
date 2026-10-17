@@ -10,7 +10,7 @@ Run from the Gpux repository root. Upstream paths are from `zed-industries/zed`;
 - Use `https://github.com/zed-industries/zed` as the source of truth for upstream GPUI closure imports.
 - Fetch or shallow-clone upstream Zed into a temporary/cache location. A local checkout such as `../.forks/zed` is optional cache only, not a required source.
 - Do not import the full Zed application tree.
-- Preserve gpux-local files (`crates/gpux_color`, `crates/gpux_fonts`, `crates/gpui_mobile`, `tooling/perf`, `vendor/wgpu`, `docs/`, `.claude/`, and root metadata) and the test lanes (`crates/gpux_conformance`, `tooling/testkit`, `tooling/android`, `tools-node`) unless the update explicitly requires changing them.
+- Preserve gpux-local files (`crates/gpux_color`, `crates/gpux_fonts`, `crates/gpui_mobile`, `tools/perf`, `vendor/wgpu`, `docs/`, `.claude/`, and root metadata) and the test tooling (`crates/gpux_tests_conformance`, `crates/gpux_tests_benchmark`, and all of `tools/`: `testkit`, `perf`, `browser`, `android`, `ios`) unless the update explicitly requires changing them.
 - Preserve the local main package/import crate name `gpux` (even though the upstream source path remains `crates/gpui`) and the `gpux-*` package names of the other crates.
 - Preserve or replay RayX/gpux patches from gpux's own history after importing upstream Zed closure state.
 - Reconcile with a semantic three-way merge from the last represented Zed commit. Audit both the upstream delta and the local delta from that base; never treat either current tree as a safe wholesale winner.
@@ -48,7 +48,7 @@ The one path that moves is `assets/fonts` -> `crates/gpux_fonts/assets/fonts`; s
 
 Do not import `zlog`, `ztracing` or `ztracing_macro`. gpux removed them because RayX never builds with `--cfg ztracing`, where they only expand to no-ops. Strip `#[ztracing::instrument(...)]`/`#[instrument(...)]` attributes, `use ztracing::...` imports and `zlog::init_test()` test loggers from imported closure sources; use the `profiling` crate when instrumentation is needed.
 
-Preserve `tooling/perf` as gpux-local tooling unless the user deliberately asks to refresh it from another source.
+Preserve `tools/perf` as gpux-local tooling unless the user deliberately asks to refresh it from another source.
 
 ## Manifest And Packaging Shape
 
@@ -131,7 +131,7 @@ Original subject: <original local subject>
    - Run the `gpux-testkit` lanes that exercise the changed behavior ([docs/testing.md](../../../../docs/testing.md)): `cargo run -p gpux-testkit -- lane a` for behaviour (layout, input, focus, text, scrolling, semantics), narrowed with `--scene <id>` or `--grep <pattern>` while iterating.
    - When browser or shared renderer behavior changes, run the lane B specs that exercise it: `cargo run -p gpux-testkit -- lane b --grep <pattern>`, plus `lane c` for offscreen pixels (`GPUX_UPDATE_SNAPSHOTS=1` only for an intended rendering change, after reviewing the diff images).
    - When Windows platform, WGPU surface, resize, text, or shader-effect capability behavior changes, run lane D on the Windows host (`cargo run -p gpux-testkit -- lane d`): real windows presenting through DX12, resizing, OS input, clipboard, and scale changes.
-   - When shader/frame/screen-effect behavior changes, add or reuse a conformance scene in `crates/gpux_conformance/src/scenes/` that exercises `effect_frame()`, `animated_frame(id)`, `transition_frame(id)`, and active screen effects in every lane that can show them, and run those lanes on every affected target that can run locally.
+   - When shader/frame/screen-effect behavior changes, add or reuse a conformance scene in `crates/gpux_tests_conformance/src/scenes/` that exercises `effect_frame()`, `animated_frame(id)`, `transition_frame(id)`, and active screen effects in every lane that can show them, and run those lanes on every affected target that can run locally.
    - Before a release, or for renderer, platform, or performance changes, run lane G on a machine with a GPU (`cargo run -p gpux-testkit -- lane g`) and compare `artifacts-temp/testkit/g/timing.md` with a run of the base commit.
 
 ## RayX Patch Surface To Preserve
@@ -142,6 +142,7 @@ The RayX memories identify these gpux-owned patches as especially easy to miss d
 
 - Preserve the reduced GPUI-closure workspace shape, the public package/import crate name `gpux`, and the `gpux-*` package names, even though upstream Zed paths still use `crates/gpui`.
 - Preserve gpux-local metadata, local tooling, package docs, and upstream provenance markers; do not pull in unrelated Zed app crates or make the root workspace look like full Zed.
+- Keep gpux's AccessKit pins (the 0.25 family, ahead of Zed's 0.24; [docs/upstream/accesskit-0.25.md](../../../../docs/upstream/accesskit-0.25.md)) unless Zed's are newer. All adapters move together, `Cargo.lock` holds one `accesskit` version, and imported `accesskit::Tree::new(...)` becomes `window::a11y::tree_info()`.
 - Keep the workspace `wgpu` dependency on the `gpux-wgpu` fork (`wgpu = { package = "gpux-wgpu", path = "vendor/wgpu/wgpu", version = "=<fork version>" }`); never bring back Zed's wgpu git dependency or add a `[patch]` section.
 - Preserve public examples and docs on `gpux::{...}` while keeping source provenance tied to the upstream Zed commit and local replay commits.
 - Keep the 30 s pid-file deadline in `crates/util/src/process.rs`'s Windows `spawn_process_tree` test helper; upstream's 5 s times out on loaded CI runners while PowerShell starts.
@@ -168,14 +169,14 @@ The RayX memories identify these gpux-owned patches as especially easy to miss d
 
 - Preserve multithreaded `gpui_web` as the default browser path (RayX's included), including the `gpui_platform::application()` mapping, shared-memory build flags, COOP/COEP/CORP serving assumptions, and the lane B WebGPU validation route (`gpux-testkit web build --verify`, `lane b`).
 - Preserve automatic browser backend selection: WebGPU is attempted first and WebGL2 is the fallback. The WebGL transport must cover RayX's complete renderer ABI—including effects, HTML islands, paths, sprites, and every auxiliary instance family—through exact word-addressable `Rgba32Uint` textures; never import a narrower upstream transport that silently drops local scene fields.
-- Keep the focused backend proof in lane B's `tools-node/specs/backend.spec.ts` (`cargo run -p gpux-testkit -- lane b --grep backend`). It must force `?backend=webgl`, assert a visible nonzero canvas without page errors, and separately prove that automatic selection still prefers Browser WebGPU on a capable browser.
+- Keep the focused backend proof in lane B's `tools/browser/specs/backend.spec.ts` (`cargo run -p gpux-testkit -- lane b --grep backend`). It must force `?backend=webgl`, assert a visible nonzero canvas without page errors, and separately prove that automatic selection still prefers Browser WebGPU on a capable browser.
 - Construct `FetchHttpClient` from the owning `WebPlatform` dispatcher and attach it while building the web `Application`; it is not a standalone `Default` client.
 - Preserve `gpui_web` ownership of visible viewport bounds, `devicePixelRatio`-backed canvas/backing-store sizing, `ResizeObserver` resize coalescing, and pending physical-size redraw/present behavior.
 - Preserve browser asset behavior: WASM `Asset::load` futures are local, `App::fetch_asset` foreground-spawns browser asset futures, and `Svg::external_path(...)` fetches browser-served SVG bytes.
 - Preserve browser WebGPU renderer reentrancy and WGPU shader parity.
 - Preserve the gpux paste-shortcut exemption in `gpui_web` `register_key_down` (`is_paste_shortcut`): Ctrl+V, or Cmd+V on macOS, returns before GPUI dispatch so the browser fires the trusted `paste` event that `register_paste` delivers to the input handler. Zed's handler prevents the default of every handled keystroke, which would suppress that event.
 - Preserve the gpux cap in `gpui_web` `register_input` (`crates/gpui_web/src/events.rs`): the IME edit import keeps its prefix/suffix diff out of the stored element selection, because it always replaces the whole app selection. Upstream lacks it, so text inserted over a selection it shares a prefix with replaced the selection with only the differing tail. Drop the cap once upstream fixes the import.
-- Preserve additional top-level web windows (`PreparedWebWindow::additional` in `crates/gpui_web/src/platform.rs`): the first window takes the canvas the graphics context was created against, and each later window gets its own canvas and a surface from the shared WebGPU instance. WebGL contexts are bound to their canvas, so WebGL stays single-window. Lane B has no two-window spec yet (RayX's consumer tests drive two windows); add one to `tools-node/specs/window.spec.ts` when this path changes.
+- Preserve additional top-level web windows (`PreparedWebWindow::additional` in `crates/gpui_web/src/platform.rs`): the first window takes the canvas the graphics context was created against, and each later window gets its own canvas and a surface from the shared WebGPU instance. WebGL contexts are bound to their canvas, so WebGL stays single-window. Lane B has no two-window spec yet (RayX's consumer tests drive two windows); add one to `tools/browser/specs/window.spec.ts` when this path changes.
 - Preserve `pointer-events: none` on the IME mirror `<textarea>` (`crates/gpui_web/src/ime_mirror.rs`): it sits above the canvas at the window's top-left corner, and hit-testable it takes the pointer there, so the canvas sees a `pointerleave` (GPUI's `MouseExited`) and presses in the corner never reach GPUI. Headless Chromium on Linux starts with the pointer at (0, 0), so every window began with a spurious exit. `pointer.spec.ts` proves it.
 - Preserve `event_instant` in `gpui_web` `events.rs`: touch pointer events carry `TouchEvent::timestamp` converted from `Event.timeStamp`.
 - Candidate, not confirmed current gpux behavior: browser WebGPU adapter retry with softer power-preference hints from RayX memory.
@@ -204,10 +205,29 @@ The RayX memories identify these gpux-owned patches as especially easy to miss d
 - Preserve fixed/sticky as first-class `Position` variants, generated `.fixed()`/`.sticky()` APIs, Taffy mapping, scroll-container context, content-mask containing blocks, positioned scene layers, positioned hitboxes, top-layer scrollbars, and sticky state callbacks/refinements. A fixed or sticky subtree paints in the positioned layer, so `Window::with_positioned_hitboxes` gives every hitbox inserted while it prepaints a positioned id (test group `positioned_hitboxes`); otherwise later normal content sorts above the stuck subtree's controls and takes their clicks.
 - Preserve nested scroll wheel routing that stops propagation only when the current scrollport's clamped offset changes.
 
-### DevKit And Text Inspection
+### Accessibility And Text Inspection
 
-- Preserve `Window::devtools_frame_snapshot()` and the rendered occurrence id model separate from dispatch-node ids.
-- Preserve paint-time DevKit semantics/property callback attachment on rendered occurrences, while retaining dispatch-node storage for property mutation callbacks.
+gpux's one semantic tree is AccessKit's, built far beyond Zed's adapter-only tree
+([docs/accessibility.md](../../../../docs/accessibility.md)). An upstream import must keep each piece:
+
+- Activation sources: the platform source, inspection (`Window::begin_a11y_inspection` guards),
+  `AccessibilityMode` (`Application::with_accessibility_mode`, `App::set_accessibility_mode`,
+  `GPUX_ACCESSIBILITY`), `Application::new_inaccessible`, and the `accessibility` features of
+  `gpux-platform` and each platform crate; tree updates reach an adapter only for frames the
+  platform source covered.
+- Text leaves: text without an element id becomes a `Label` leaf under the nearest node, with
+  stable ids from its owner and position (`Text::new_inaccessible` opts out).
+- Inspection containers and the id map: while inspecting, an element with an id and no role is a
+  generic container screen readers do not see, and every node maps to its global element id
+  (`semantic_query`, `gpux-devtools`).
+- Relations by `accessibility_id` (labelled by, described by, controls, error message, active
+  descendant, owns), actions (`on_a11y_action`, custom actions, the Click fallback, ScrollIntoView,
+  SetValue), focus (a shared focus handle's innermost node holds it) and visual bounds.
+- The fast-mode carry: reused, spliced and retained frames carry the tree's records, scroll and
+  list layers carry the nodes of what they draw from tiles, and the frame verifier compares trees
+  ([docs/fast-mode.md](../../../../docs/fast-mode.md#accessibility)).
+- The adapters gpux adds: the web DOM mirror (`gpui_web`), `accesskit_ios` and `accesskit_android`
+  (`gpui_mobile`, the shared adapter registry).
 - Preserve `Window::dispatch_text_input(...)` and `Window::text_input_value(...)` for literal text entry and textbox value diagnostics; named key presses still use key down/up dispatch.
 
 ### Shader, Screen, And Frame Effects

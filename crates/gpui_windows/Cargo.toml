@@ -17,8 +17,11 @@ path = "src/gpui_windows.rs"
 doctest = false
 
 [features]
-default = ["gpux/default"]
-test-support = ["gpux/test-support"]
+default = ["gpux/default", "accessibility"]
+# Links the UI Automation adapter (`accesskit_windows`). Without it the window never turns the
+# platform accessibility source on; inspection and `AccessibilityMode::Always` still build the tree.
+accessibility = ["dep:accesskit_windows"]
+test-support = ["gpux/test-support", "accessibility"]
 screen-capture = ["gpux/screen-capture", "scap"]
 
 [dependencies]
@@ -26,7 +29,7 @@ gpux.workspace = true
 
 [target.'cfg(target_os = "windows")'.dependencies]
 accesskit.workspace = true
-accesskit_windows.workspace = true
+accesskit_windows = { workspace = true, optional = true }
 anyhow.workspace = true
 collections.workspace = true
 dunce.workspace = true

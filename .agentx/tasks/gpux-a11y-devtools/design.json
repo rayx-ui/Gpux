@@ -1,0 +1,1307 @@
+{
+  "schemaVersion": 7,
+  "epicId": "gpux-a11y-devtools",
+  "decisions": [
+    {
+      "id": "d-accesskit-025",
+      "requirementIds": [
+        "AK"
+      ],
+      "descriptionMarkdown": "One change moves the workspace's AccessKit pins to the 0.25 family (`accesskit` 0.25.1, `accesskit_consumer` 0.39.1, `accesskit_macos` 0.27.1, `accesskit_windows` 0.35.1, `accesskit_unix` 0.24.0; the mobile adapters later join at `accesskit_ios` 0.2.1 and `accesskit_android` 0.9.0) and renames gpux's two `accesskit::Tree` uses (`crates/gpui/src/window.rs`, `crates/gpui/src/window/a11y.rs`) to `TreeInfo`, filling its toolkit name and version. The upstream-import checklist and provenance record the pins as a gpux-local delta that an import keeps unless Zed's are newer.",
+      "invariantsMarkdown": "- One `accesskit` version in the graph; every adapter on the same family.",
+      "rationaleMarkdown": "The owner chose to move ahead of Zed rather than wait (2026-10-16): 0.25 brings Android slider adjustment, live regions and an any-thread injecting adapter, iOS live updates for non-label nodes, and node clones that reuse property buffers, which the fast-mode carry clones every frame. The API change for gpux is one deprecated rename.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/upstream-sync/2026-08-07-repository-upstream-sync-self-contained-upstream-provenance.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-crates-io-packaging.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.lock"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window/a11y.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/history/upstream-provenance.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/references/update-from-zed-gpui-closure.md"
+        }
+      ]
+    },
+    {
+      "id": "d-accessibility-feature",
+      "requirementIds": [
+        "ACT"
+      ],
+      "descriptionMarkdown": "Each platform crate makes its screen-reader adapter an optional dependency behind an `accessibility` feature (`gpux-macos`: `accesskit_macos`; `gpux-windows`: `accesskit_windows`; `gpux-linux`: `accesskit_unix`, which `wayland` and `x11` no longer pull in by themselves; `gpux-web`: the DOM mirror module; `gpux-mobile`: `accesskit_ios`, `accesskit_android`), and its `a11y_init` and `a11y_tree_update` compile to the trait's no-ops without it. `gpux-platform` has `accessibility` in its defaults and forwards it to the platform crates; `test-support` turns it on. `gpux` itself keeps `accesskit` (the data types its `Element` API uses) and the tree builder, whose cost is runtime-gated by the activation inputs.",
+      "invariantsMarkdown": "- Without the feature no adapter crate is linked and the platform source never turns on; inspection and `Always` still work.\n- The `Element` trait is the same with and without the feature.",
+      "rationaleMarkdown": "A build-time switch for what has a real build-time cost (the adapter crates, the web mirror, their platform bindings) follows the pattern the macOS loop used for the DevKit nodes; making `accesskit` itself optional would change the `Element` trait Zed defines and every consumer that implements it, for data types that cost nothing when no tree is built.",
+      "memoryDecisionRefs": [],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/Cargo.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_macos/Cargo.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_windows/Cargo.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_linux/Cargo.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/Cargo.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/Cargo.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_macos/src/window.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-activation-sources",
+      "requirementIds": [
+        "ACT"
+      ],
+      "descriptionMarkdown": "`A11y` (`crates/gpui/src/window/a11y.rs`) keeps three inputs: the platform flag (the existing `Arc<AtomicBool>` the adapter's activation and deactivation callbacks flip), an inspection count shared with its guards (`Rc<Cell<usize>>`), and the application's `AccessibilityMode` (`Auto`, `Always` or `Off`; set by `Application::with_accessibility_mode`, changed by `App::set_accessibility_mode`, or read once from `GPUX_ACCESSIBILITY` when the `App` is created; explicit calls win). `Off` masks the platform input only: when it takes effect while the platform source is on, the window sends the adapter one tree holding only its root, and leaving `Off` requests a full tree for the adapter on the next frame; inspection keeps working under `Off`. `sync_active_flag` makes the frame active when accessibility is enabled and any input asks for it; `should_send_a11y_update` stays the platform flag at the start and the end of the frame, so inspection or `Always` never reach the adapter. `Window::begin_a11y_inspection` returns an `A11yInspection` guard: going from no guard to one requests a full redraw (so the next tree is complete even where fast mode would reuse content) and dropping the last guard requests a frame so the tree stops. `Window::a11y_tree` returns the `TreeUpdate` that `A11yDebug::capture` already retains each active frame, so reading the tree costs no second copy.",
+      "invariantsMarkdown": "- No tree work and no text copies while no input asks for the tree.\n- The adapter receives an update only for frames the platform flag covered from start to end.\n- `Application::new_inaccessible` beats every input; `begin_a11y_inspection` then returns a guard that reports accessibility disabled.\n- One mode per application, changeable at runtime; inspection is per window.\n- `Off` hides the app from screen readers without blinding tests and agents; `new_inaccessible` is the only hard off.",
+      "rationaleMarkdown": "A Cargo feature that forces the tree on would make every frame of a dev build pay for it whether or not an agent is attached; an application-wide switch alone cannot follow agents attaching to one window. Counting guards mirrors how a screen reader activates and deactivates, and keeps the per-frame decision in one place. The variable follows fast mode's `GPUX_*` switches, read once like them.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-switches.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-05-gpui-frame-pipeline-frame-demand-follow-up.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window/a11y.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/app.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform/test/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/app/test_context.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-inspection-everywhere",
+      "requirementIds": [
+        "ACT"
+      ],
+      "descriptionMarkdown": "The `cfg(not(target_family = \"wasm\"))` gate around the adapter setup in `Window::new` goes: `a11y_init` runs on every target (a platform without an adapter keeps the trait's no-op and never turns the platform source on), and the `A11y` state, the inspection count and the mode exist everywhere, so the browser, iOS and Android build the tree whenever inspection or `Always` asks, before and independently of their screen-reader adapters (d-web-adapter, d-mobile-adapters). The web conformance host's bridge (`crates/gpux_conformance/examples/web_host/bridge.rs`) gains an export that starts inspection and returns the tree as JSON for lane B.",
+      "invariantsMarkdown": "- Inspection on the web builds no DOM; only the screen-reader adapter's own platform source does.",
+      "rationaleMarkdown": "The tree builder never depended on the platform; only the activation source did. Reading the tree through the existing bridge keeps lane B's driver unchanged.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/web/2026-10-07-platform-web-browser-lane-b.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/web_host/bridge.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/scenes.spec.ts"
+        }
+      ]
+    },
+    {
+      "id": "d-text-leaves",
+      "requirementIds": [
+        "TREE"
+      ],
+      "descriptionMarkdown": "Text elements (`crates/gpui/src/elements/text.rs`: `&'static str`, `SharedString`, `StyledText`, `InteractiveText`) without an id push a `Role::Label` leaf with their text as value and their bounds when the tree is built (`A11yNodeBuilder::push_text_leaf`). The builder keeps, beside its id stack, a count of text leaves per open node; a leaf's id is the hash of its parent's node id and that ordinal. Names of buttons, links, check boxes, menu items and radio buttons then come from AccessKit's own name-from-descendants rule (`accesskit_consumer::Node::labelled_by`), so gpux computes no names itself. The paint-time `set_devtools_semantics` calls in `text.rs` are removed in d-remove-devtools.",
+      "invariantsMarkdown": "- Leaves are built and text is copied only while the tree is built.\n- A leaf id changes only when the order of the text leaves under its parent changes.\n- Leaves are never focusable and carry no actions.",
+      "rationaleMarkdown": "A content hash would give a new id to every edited text, which a screen reader announces as a removed and an added node; an ordinal keeps the node while its text changes and only costs a change when text is reordered. This diverges from Zed's tree (text without an id is no node upstream) and is recorded on the upstream-import checklist as a candidate to offer upstream.",
+      "memoryDecisionRefs": [],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/text.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window/a11y.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/element.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-inspection-tree",
+      "requirementIds": [
+        "TREE"
+      ],
+      "descriptionMarkdown": "In `Drawable::prepaint` (`crates/gpui/src/element.rs`), when the inspection input is on and an element has a global id but no role, the element pushes a `Role::GenericContainer` node with its (visual) bounds, so descendants nest under it. While inspection is on `A11y` also keeps a map from node id to `GlobalElementId` (an `Arc` clone per pushed node; text leaves and synthetic children map to their owner) and clears it each frame. The screen-reader view is AccessKit's `common_filter`, which excludes generic containers and promotes their children.",
+      "invariantsMarkdown": "- Containers and the id map exist only while inspection is on, never for the platform input alone.\n- The filtered tree of a frame with containers equals the filtered tree without them.",
+      "rationaleMarkdown": "gpux tests address 197 elements by id, most of them divs without a role; giving every div a role would misinform screen readers, while generic containers are dropped by every AccessKit adapter's filter. The id map is needed because AccessKit node ids are hashes of the path.",
+      "memoryDecisionRefs": [],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/element.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window/a11y.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-relations",
+      "requirementIds": [
+        "TREE"
+      ],
+      "descriptionMarkdown": "`AriaProperties` (behind `Interactivity::aria`'s `LazyAria`, `crates/gpui/src/elements/div.rs`) gains `required`, `read_only` and the relations `labelled_by`, `described_by`, `controls` and `error_message`, each naming `accessibility_id` values (the existing `author_id`), so an element without aria properties still allocates nothing. `write_a11y_info` writes the two flags; relations are queued in `A11yNodeBuilder` with their node id. `finalize` maps every node's author id to its node id, resolves the queue (keeping the given order), drops unknown ids and logs each unknown id once per window in debug builds.",
+      "invariantsMarkdown": "- A relation never names a node that is not in the frame's tree.",
+      "rationaleMarkdown": "AccessKit relations take node ids, which callers cannot compute; `accessibility_id` is already the stable, process-visible id (UIA `AutomationId`, `AXIdentifier`), the way ARIA relations use DOM ids.",
+      "memoryDecisionRefs": [],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window/a11y.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-actions",
+      "requirementIds": [
+        "TREE"
+      ],
+      "descriptionMarkdown": "`write_a11y_info` already advertises every action registered through `on_a11y_action`; the epic adds `on_a11y_custom_action(id, description, handler)`, kept in a `LazyVec` like the other listener lists, which lists the custom action on the node and dispatches `Action::CustomAction` requests whose data carries that id. While the tree is built each node records its scrolling ancestors (their scroll handles or element ids); `ScrollIntoView` without a handler of its own scrolls them, innermost first, through the ordinary programmatic scroll path (`ScrollBehavior::Instant`) until the node's bounds are visible. `Window::perform_a11y_action` runs the same function the adapter's action receiver runs and returns whether a handler ran.",
+      "invariantsMarkdown": "- One dispatch path for platform and in-process requests.\n- Scrolling for `ScrollIntoView` publishes offsets only where scroll owners publish them today, so scroll layers see an ordinary scroll.",
+      "rationaleMarkdown": "Agents and assistive technology then drive components through the state paths components already own, which RayX's accessibility rules require.",
+      "memoryDecisionRefs": [],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window/a11y.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-fast-carry",
+      "requirementIds": [
+        "FAST"
+      ],
+      "descriptionMarkdown": "The tree's per-frame records join every reuse path that carries DevKit nodes today, beside them until d-remove-devtools deletes the DevKit side: `PrepaintStateIndex` and the paint index gain the lengths of the node list, the pending relations, the focusable entries, the id map log, the text-ordinal state and the action listeners; `reuse_prepaint`/`reuse_paint`, retained shifted indices (`fast/retained.rs`), splice stretches (`fast/splice.rs`), list-layer rows (`fast/layers/lists.rs`, hidden rows contributing nothing) and composited scroll layers (`fast/layers/reuse.rs`, bounds stepped by the scroll since the copied frame) copy them, and `transact` truncates them. Kept content layout (`layers::reuse::reuse_kept_content`, `policy::expects_composite`) needs no tree of its own: a container that composites shows the layer's carried nodes, and one that falls back in `Div::prepaint` requests its children's layout and prepaints them, building their nodes. Unlike the DevKit nodes, which the `devtools` feature compiles out (`DEVTOOLS`), the tree's records are gated at runtime by whether the tree is built. Copied nodes keep their ids (hashes of global element ids), so nothing is remapped; the top-level nodes of a copied range are appended to the current parent's children; focus and active-descendant claims are re-evaluated against the window's focus when replayed. `describe_rendered_frame` (`fast/verify.rs`) lists the tree, and the bypasses in `view.rs`, `fast/retained.rs`, `fast/layers/mod.rs` and `fast/verify.rs` go away once their mechanism carries the tree.",
+      "invariantsMarkdown": "- With accessibility on, every fast frame's tree equals the tree of a window drawn from scratch (the oracle).\n- A mechanism stops bypassing only in the same change that makes it carry the tree.\n- With accessibility off nothing new is recorded or copied.",
+      "rationaleMarkdown": "Fast mode already proved how to carry per-element records through these paths (the DevKit nodes); following the same hooks keeps the proof structure. Stable ids make the AccessKit carry simpler than the DevKit one, which remaps occurrence ids.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-oracle.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-scroll-layers.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/view.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/retained.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/splice.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/verify.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/mod.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/reuse.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/policy.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-queries",
+      "requirementIds": [
+        "QRY"
+      ],
+      "descriptionMarkdown": "`semantic_query` builds an `accesskit_consumer::Tree` from `Window::a11y_tree()` (cached by frame) plus the id map and matches over it; one table maps AccessKit roles to the query vocabulary; the text form keeps its grammar, drops `type=` with an explicit error and adds the state terms and `view=screen-reader`. `accesskit_consumer` becomes an optional gpui dependency behind a `semantic-query` feature that `test-support`, `gpux-conformance` (in place of the `devtools` feature it asks for since `ce9cc62`) and `gpux-devtools` enable. `Locator` keeps an inspection guard per window for the test's life. The conformance hosts read the tree through the same module, and catalog scenes annotate with AccessKit.",
+      "invariantsMarkdown": "- One query vocabulary for tests, conformance hosts and the devtools.\n- Plain gpui builds carry no query engine.",
+      "rationaleMarkdown": "Tests and agents then observe exactly what assistive technology is told, so proof of a query is proof of the accessibility tree.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-gpux-owns-runtime-proof.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-test-lanes.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-gpux-testkit.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/semantic_query.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/semantic_query/locator.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/app/test_context.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scene.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scenes/common.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/evaluate.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/app_host.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/test_host.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-web-adapter",
+      "requirementIds": [
+        "SR"
+      ],
+      "descriptionMarkdown": "`crates/gpui_web` gets an accessibility module that is the web platform's AccessKit adapter. `WebWindow::a11y_init` keeps the callbacks and adds one visually hidden, focusable \"Enable accessibility\" button first in the window's container; activating it, or the application's `WebScreenReader::Always` option, calls the activation callback (the platform source) and the next frame's full tree builds the mirror. The mirror is a container beside the canvas, sized to it, holding one element per non-generic node; `a11y_tree_update` feeds an `accesskit_consumer::Tree` whose change handler creates, updates and removes exactly the elements whose nodes changed. A node's element carries the ARIA role mapped from its AccessKit role (one table), its name, description, value and range, its states and its relations (over DOM ids derived from node ids), and an absolutely positioned box at its bounds in CSS pixels; elements are transparent and `pointer-events: none`. DOM `click`, `focus` and the ARIA keyboard interactions of the mirror's widgets become `ActionRequest`s through the action callback; gpux's focus moves DOM focus to the focused node's element through a guard that keeps the resulting `focus` event from being sent back; a focused editable text node is represented by the IME mirror textarea (`ime_mirror.rs`) carrying its role, name and value, so text input keeps one path. An `html_element` overlay's DOM is placed in reading order with `aria-owns` from its node's element; live regions become `aria-live`.",
+      "invariantsMarkdown": "- No mirror element exists and no tree is built for the mirror until the window's platform source is on.\n- Mirror elements never take pointer input and never steal GPUI's keyboard input: key events from a focused mirror element reach GPUI's keyboard handling.\n- An update touches only the DOM of the nodes it changed.",
+      "rationaleMarkdown": "AccessKit has no released web adapter, and a browser's screen reader can only read the DOM: Flutter's web semantics tree and Figma's canvas accessibility both keep a positioned DOM tree behind the canvas. RayX rejected such a mirror when each application would have had to maintain it; gpux owns it once, built from the AccessKit tree every other platform already reads, so components keep one annotation surface. The activation button follows Flutter: browsers do not tell a page that a screen reader is running, and an always-on mirror would make every page pay for it. Using the IME textarea for the focused field avoids a second editable DOM element competing for text input, which the web rules forbid (focus events re-entering GPUI).",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/web/2026-07-03-platform-web-html-element-dom-overlay.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/web/2026-10-07-platform-web-browser-lane-b.md"
+        }
+      ],
+      "supersedesMemoryDecisions": [
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/ui/accessibility/2026-08-08-ui-accessibility-component-accesskit-contract.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/ime_mirror.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/html_element.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/events.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-mobile-adapters",
+      "requirementIds": [
+        "SR"
+      ],
+      "descriptionMarkdown": "`gpui_mobile` implements `a11y_init` and `a11y_tree_update` with AccessKit's 0.25 adapters, behind its `accessibility` feature. iOS (`crates/gpui_mobile/src/ios/window.rs`): an `accesskit_ios` 0.2 `SubclassingAdapter` on the window's `GPUIMetalView`, created from the view's raw pointer (the adapter is on `objc2` 0.5, gpux on 0.6), updated on the main thread, with activation and action handlers that call `A11yCallbacks`; `view_did_appear` events are raised when the window appears. Android (`crates/gpui_mobile/src/android/`): an `accesskit_android` 0.9 `InjectingAdapter` with `embedded-dex` on the view showing the GPUI surface (the view an embedding host declared with `Composition.setHostView`, else the first `SurfaceView` under the content view, else a NativeActivity's decor view, whose window surface GPUI draws), built from the raw `JNIEnv` and view handles (the adapter is on `jni` 0.21, gpux on 0.22); the adapter is usable from any thread and posts its Java work to the UI thread itself. All of an app's GPUI windows share the Activity's one surface and a view takes one delegate, so they share one adapter (`crates/gpui_mobile/src/accessibility_registry.rs`): it describes the front (last opened) window, belongs to its Activity (rebuilt when a window opens under another), and stays on its view (also while no window is open, since a removal is queued on the UI thread) until the Activity changes or an embedded host clears its context; a view with a delegate of its own keeps it. The lane hosts read the result the way assistive technology does: iOS in process through `accessibilityElements`, Android from outside through `uiautomator dump`.",
+      "invariantsMarkdown": "- iOS: one adapter per window, dropped before the view it is attached to (the mobile rules' teardown order). Android: one adapter per Activity's surface view, serving the front window, dropped with a cleared embedded context or a new Activity, kept while its Activity stays.\n- No adapter work while the screen reader has not activated it.",
+      "rationaleMarkdown": "On 0.25 (d-accesskit-025) the five adapters share one `accesskit` and `accesskit_consumer` version, and Android gets slider adjustment and live regions. Raw-pointer bridging is how gpux already meets `accesskit_macos`'s older `objc2`.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/mobile/2026-10-07-platform-mobile-android-lane-e.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/mobile/2026-10-07-platform-mobile-ios-lane-f.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/ios/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/jni.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/embedded.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/Cargo.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_macos/src/window.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-devtools-client",
+      "requirementIds": [
+        "DEV"
+      ],
+      "descriptionMarkdown": "`crates/gpux_devtools` holds the in-app side. `install(cx, Options)` sets a global and starts a transport: on native targets a background thread runs a `tungstenite` client (connect, retry with bounded backoff, read and write frames) and exchanges messages with a foreground task over channels; on wasm32 a `web_sys::WebSocket` delivers them on the main thread. Requests are handled on the foreground executor against `Window`: `snapshot` and `query` read the tree through `semantic_query`; `act` calls `perform_a11y_action`; `input` uses the dispatch helpers ported from `rayx_devkit`'s live command path (`dispatch_event`, `dispatch_keystroke`, `dispatch_text_input`, with the draw flushes RayX found text input needs); `screenshot` encodes `render_to_image` as PNG; `wait` re-checks a query after each frame until it matches or times out; `stats` reads frame and fast-mode counters. Every window opened while connected holds an inspection guard. The build-time switch is the dependency itself (`gpux` and `gpux-platform` never depend on the crate; apps make it optional behind a feature of their own); the runtime switch is `Options::enabled`, `GPUX_DEVTOOLS` and `set_enabled(cx, bool)`, which closes or resumes the connection and drops or takes the guards.",
+      "invariantsMarkdown": "- gpui state is touched only on the foreground thread.\n- While disconnected the crate costs a retry timer and nothing per frame.\n- Synthesized input takes the paths platform input takes.",
+      "rationaleMarkdown": "A separate crate keeps the transport and its dependencies out of every app that does not ask for them, which is the build-time switch the owner asked for; the runtime switch is the connection. Porting RayX's dispatch helpers keeps their fixes (focus flushes before typing).",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/input/2026-10-05-gpui-input-upstream-input-model.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-crates-io-packaging.md"
+        }
+      ],
+      "supersedesMemoryDecisions": [
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/tooling/devkit-diagnostics/2026-06-25-tooling-devkit-diagnostics-rendered-frame-inspection.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "README.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_devkit/src/app_ext.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_devkit/src/runtime.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-protocol",
+      "requirementIds": [
+        "DEV"
+      ],
+      "descriptionMarkdown": "The sidecar is the WebSocket server and the app its client; JSON-RPC 2.0 requests flow both ways on the one connection. The app opens with `hello` (protocol version, app id and name, platform, windows, extension tool descriptors) and notifies `windowOpened`/`windowClosed`; the sidecar sends `snapshot`, `query`, `act`, `input`, `screenshot`, `wait`, `stats` and `extension.call`. A version mismatch or a wrong token closes the connection with a stated error; errors keep request ids and nothing is retried after a lost response. Every platform reaches the sidecar on loopback: desktop and the iOS Simulator directly, the browser from the page, Android through `adb reverse tcp:<port> tcp:<port>`.",
+      "invariantsMarkdown": "- The sidecar binds loopback only.\n- The app never listens on a port.",
+      "rationaleMarkdown": "A browser page cannot listen, and an app listening inside a device or emulator needs a forwarded port and a registration file on the host (RayX's Android bridge); connecting out works the same everywhere and lets an agent attach to an app that is already running, because the app keeps retrying.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/web/2026-06-24-platform-web-multithreaded-wasm.md"
+        }
+      ],
+      "supersedesMemoryDecisions": [
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/tooling/devkit-diagnostics/2026-07-01-tooling-devkit-diagnostics-android-adb-bridge.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_devkit/src/protocol.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_devkit/src/connector.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/lanes.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-mcp-sidecar",
+      "requirementIds": [
+        "MCP"
+      ],
+      "descriptionMarkdown": "`crates/gpux_devtools_mcp` is the `gpux-devtools-mcp` binary: a WebSocket server on a loopback port (a thread per connection) holding the registry of connected apps, and a stdio MCP loop ported from `rayx_devkit_mcp` (`crates/rayx_devkit_mcp/src/native.rs`) with its tool schemas and Playwright-compatible response sections, now answered by the apps over d-protocol. Extension tools from `hello` join the tool list; a call names the app when two apps advertise the same tool. `--print-manifest` prints the tools and options; `docs/devtools.md` documents setup per platform and an MCP harness entry.",
+      "invariantsMarkdown": "- One sidecar for every gpux app; no harness-specific logic in apps.",
+      "rationaleMarkdown": "Porting the RayX sidecar keeps the tool surface agents already use while moving it to the library every app shares.",
+      "memoryDecisionRefs": [],
+      "supersedesMemoryDecisions": [
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/tooling/devkit-diagnostics/2026-06-27-tooling-devkit-diagnostics-devkit-mcp-sidecar.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_devkit_mcp/src/native.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/testing.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "README.md"
+        }
+      ]
+    },
+    {
+      "id": "d-rayx-migration",
+      "requirementIds": [
+        "RX"
+      ],
+      "descriptionMarkdown": "RayX components carry AccessKit annotations only. Each `devtools_semantics(...)` call is removed; where it was the only semantics, its role becomes `.role(...)`, its name `.aria_label(...)` or the text leaves, its value `.aria_value(...)` and its states the matching `aria_*`, at the component that owns the behaviour. The property grid's writable properties become `SetValue` or custom-action handlers on the editors that own the values; pointer actions become AccessKit actions where the component has the operation (custom actions for long press, drag and scale) and are otherwise left to synthesized input. RayX's tests that read devtools snapshots read the AccessKit tree through gpux's test adapter and queries, and a guard test keeps the retired API out.",
+      "invariantsMarkdown": "- One annotation surface; no wrapper element for semantics.\n- Assistive-technology actions mutate state through the same paths as pointer and keyboard input.",
+      "rationaleMarkdown": "RayX's accessibility rules already put truthful semantics at the owning component; removing the parallel devtools layer leaves that as the only source agents and screen readers read.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/runtime/gpux-foundation/2026-06-24-runtime-gpux-foundation-gpux-base.md"
+        }
+      ],
+      "supersedesMemoryDecisions": [
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/tooling/devkit-diagnostics/2026-06-26-tooling-devkit-diagnostics-occurrence-semantics.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/collapsible_base.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_propertygrid/src/integration/devkit.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_propertygrid/src/grid/element.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_canvas_infinite/src/canvas/element.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_node_editor/src/editor/element.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/_interactive/interactive_viewer.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/accessibility.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": ".claude/skills/rayx/references/devkit.md"
+        }
+      ]
+    },
+    {
+      "id": "d-rayx-devkit-extension",
+      "requirementIds": [
+        "RX"
+      ],
+      "descriptionMarkdown": "`rayx_devkit` keeps `with_devkit(|options| ...)` as RayX's entry point and installs gpux-devtools from it, mapping its options (app id, URL, token, enabled); the apps' `devkit` Cargo feature stays the build-time switch; `ApplicationConfiguration` (`RayX:Application`) gains the accessibility mode and applies it with `App::set_accessibility_mode`; RayX enables gpux's `accessibility` feature on `gpui_mobile`, which it takes with `default-features = false`; RayX's own tools (`rayx_metadata`, `rayx_diagnostics`, operation diagnostics) are a `gpux_devtools` extension. The connector, registry, protocol, node mapping and live command path are deleted, and so is `rayx_devkit_mcp`. Test Suite probes and the data-table selection spec use gpux-devtools; a desktop smoke script drives Test Suite through `gpux-devtools-mcp`.",
+      "invariantsMarkdown": "- The umbrella `rayx` crate gains no devkit feature or dependency.\n- Runtime proof runs in `apps/test_suite` through the `rayx` CLI.",
+      "rationaleMarkdown": "DevKit stays a service-owned extension as RayX decided; only its generic half moves to gpux.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/runtime/services/2026-06-27-runtime-services-devkit-owned-extension.md"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/runtime/services/2026-08-07-runtime-services-application-configuration.md"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/examples/test-suite/2026-07-24-examples-test-suite-exclusive-runtime-validation.md"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/tooling/validation/2026-10-08-tooling-validation-app-pipeline-is-the-rayx-cli.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_devkit/src/lib.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_devkit/src/app_ext.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_devkit/src/nodes.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "apps/test_suite/README.md"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "tools-node/test_suite/rayx-data-table-selection.spec.ts"
+        }
+      ]
+    },
+    {
+      "id": "d-remove-devtools",
+      "requirementIds": [
+        "REM"
+      ],
+      "descriptionMarkdown": "Once RayX no longer uses them, gpux deletes `InspectableElement` and the `Devtools*` types and methods, the `devtools` Cargo feature with its `DEVTOOLS` const and `set_devtools_semantics_with` (and `gpux-conformance`'s request for it), the devtools node stack and records in `element.rs` and `window.rs`, the paint-time text semantics, and the DevKit-node handling in `fast/` (splice id stretches, retained remapping, list `NodeRow`s, layer bounds stepping, verify listing), leaving the accessibility records d-fast-carry added. The shader-effect counts move to `Window::effect_diagnostics()`. The upstream-import checklist, `docs/fast-mode.md`, `README.md` and `LINUX-WSL.md` describe the accessibility surface; the gpui `rayx_diagnostics` alias goes; a guard test keeps the retired symbols out.",
+      "invariantsMarkdown": "- Removed in the gpux change paired with RayX's migration, never before it.",
+      "rationaleMarkdown": "The inspection layer existed for DevKit; with DevKit on the AccessKit tree, keeping it would mean two trees to carry through every fast-mode path.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/upstream-sync/2026-08-07-repository-upstream-sync-self-contained-upstream-provenance.md"
+        }
+      ],
+      "supersedesMemoryDecisions": [
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/tooling/devkit-diagnostics/2026-06-26-tooling-devkit-diagnostics-inspection-metadata.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/element.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/text.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/Cargo.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/references/update-from-zed-gpui-closure.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "LINUX-WSL.md"
+        }
+      ]
+    },
+    {
+      "id": "d-measurements",
+      "requirementIds": [
+        "PERF"
+      ],
+      "descriptionMarkdown": "`benchmark/run.py --hold-clocks 3` measures every variant on this Mac (`--target macos`, `--target web-webgpu`; the `retention`, `text` and `scroll` groups; fast mode on), reading `main_cpu_ms`, `gpu_ms`, frame times and allocations. PERF-1's variant (a) adds `devtools` to the benchmark's gpux features, (b) is the benchmark as it is, (c) forces the accessibility flag; the throwaway changes are patches kept under `artifacts-temp/agentx/gpux-a11y-devtools/` and applied in a scratch worktree, never committed. After the epic, `GPUX_ACCESSIBILITY` switches one binary between (a') and (c'), alternated as the repository rules ask for small effects. `docs/measurements/a11y-devtools.md` holds the tables, machine, commits and commands.",
+      "invariantsMarkdown": "- Timing comes from these local runs only; CI asserts counters, never time.\n- Two builds are compared with the clocks held; small effects by alternating one binary, or by allocations.",
+      "rationaleMarkdown": "The benchmark already compares fast mode off and on per target and builds without `devtools` since the loop; adding variants keeps one method for every number, and the loop showed idle clocks invert small differences.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-13-repository-validation-fast-mode-proof-and-timing.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-local-gpu-lane-g.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "benchmark/run.py"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "benchmark/README.md"
+        }
+      ]
+    },
+    {
+      "id": "d-macos-adapter-fork",
+      "requirementIds": [
+        "SR"
+      ],
+      "descriptionMarkdown": "gpux vendors `accesskit_macos` 0.27.1 as `gpux-accesskit-macos` 0.27.1-gpux.1 in `vendor/accesskit_macos` (the published crate, renamed, library only), carrying only the VoiceOver changes marked `gpux fork:` and listed in `docs/upstream/accesskit-macos-tables-expanded.md`: table rows and cell positions, `isAccessibilityExpanded` with `AXExpandedChanged`, `accessibilityValueDescription` for range widgets, increment instead of `setAccessibilityValue:` for a range widget that supports it, and a press action on disabled controls. The workspace dependency keeps the Rust name `accesskit_macos`.",
+      "invariantsMarkdown": "- The fork changes nothing beyond the listed VoiceOver behaviour.\n- When an AccessKit release ships the changes, the fork is deleted and gpux returns to crates.io `accesskit_macos`.",
+      "rationaleMarkdown": "The owner chose a vendored fork (2026-10-17) over an upstream-only fix or a workaround in gpux: `accesskit_macos` 0.27.1 is the latest release and implements none of these, and VoiceOver users meet them on every RayX app. It follows the wgpu fork's pattern.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-crates-io-packaging.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "vendor/accesskit_macos/src/node.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/upstream/accesskit-macos-tables-expanded.md"
+        }
+      ]
+    },
+    {
+      "id": "d-duplicate-element-nodes",
+      "requirementIds": [
+        "TREE"
+      ],
+      "descriptionMarkdown": "An element whose path another element in the frame already took gets the first node id hashed from the path's id and a count that no node holds (`A11yNodeBuilder::element_node_id`); the element's draw phase keeps the id it got, prepaint and paint push it on `A11y::element_nodes`, and `Window::a11y_node_id` reads it there for the element being drawn. Replay reuses the recorded id. Debug builds log each duplicate path once instead of asserting.",
+      "invariantsMarkdown": "- An element without a duplicate keeps `GlobalElementId::accesskit_node_id`.\n- Every node id an element registers (focus, active descendant, actions, synthetic children, relations, bounds) is the one its node holds.",
+      "rationaleMarkdown": "The owner required the fix in this epic. Element state keeps tolerating duplicates as upstream GPUI does, so the tree cannot reject them; numbering in draw order keeps ids stable as long as the duplicates do not reorder, which distinct ids would fix for an app that reorders.",
+      "memoryDecisionRefs": [],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window/a11y.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/element.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-hidden-benchmark-window",
+      "requirementIds": [
+        "PERF"
+      ],
+      "descriptionMarkdown": "`gpui_macos` keeps stopping a window's display link while AppKit reports it occluded. The benchmark driver observes `Window::observe_window_visibility` and ends a run whose window is hidden after its first frame, or presents no frame within `OPEN_TIMEOUT` (10 s), with a report holding only `error`; `gpux-bench` and the iOS entry exit with status 2, the web entry publishes the error, and `run.py` retries a desktop run that exited with status 2 once.",
+      "invariantsMarkdown": "- A hidden window is never measured: frames after a hidden interval would include it.\n- A benchmark run never waits for frames without bound.",
+      "rationaleMarkdown": "The probes showed the platform behaving as designed (no frames for a window AppKit does not present), so drawing hidden windows would cost power in every app to fix a harness; failing loudly and retrying keeps the measurements honest.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-05-gpui-frame-pipeline-frame-demand-follow-up.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "benchmark/src/driver.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "benchmark/tools/hidden-window.sh"
+        }
+      ]
+    }
+  ],
+  "memoryDecisionsConsidered": [
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-effects/2026-07-06-gpui-frame-effects-frame-effects-elements.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-effects/2026-07-07-gpui-frame-effects-frame-family-naming.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-06-29-gpui-frame-pipeline-unclipped-deferred-overlays.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-07-24-gpui-frame-pipeline-cached-thermal-frame-throttling.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-window-composition.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-30-gpui-layout-style-registry-taffy-0-14.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-conditional-prepaint-style-recompute.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-disable-taffy-content-size.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-frame-bounded-prepaint-style-handoff.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-measured-layout-invalidation.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-request-style-handoff.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-text-measurement-scope.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-fixed-sticky-positioned-scene-order.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-fixed-sticky-positioning.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-nested-scroll-wheel-propagation.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-06-gpui-positioning-scroll-fixed-containing-block.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-opaque-scroll-capture-owner.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-sticky-hierarchy-traversal-order.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-universal-sticky-push-out.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-08-21-gpui-positioning-scroll-immediate-scrollbar-publication.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/desktop/2026-07-08-platform-desktop-windows-wgpu-dx12-policy.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/desktop/2026-07-08-platform-desktop-windows-wgpu-dxgi-scaling.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-06-29-platform-web-wasm-svg-asset-loading.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-07-01-platform-web-html-island-url-opt-in.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-07-02-platform-web-html-island-canonical-roots.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-07-03-platform-web-html-element-fit-styles-wheel.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-08-31-platform-web-explicit-wasm-constructors.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/agentx-memory/2026-10-05-repository-agentx-memory-taxonomy-transplant.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-drop-z-crates.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-gpux-wgpu-fork.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-14-repository-validation-wgpu-desktop-perf-4.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-14-repository-validation-wsl-gpu-lanes-c-d.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/renderer/wgpu/2026-07-04-renderer-wgpu-shader-effects-backend-capabilities.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/renderer/wgpu/2026-08-07-renderer-wgpu-browser-backend-fallback.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/renderer/wgpu/2026-09-30-renderer-wgpu-srgb-compositing.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/renderer/wgpu/2026-10-13-renderer-wgpu-transformed-sprites-filtered-by-hand.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/renderer/wgpu/2026-10-14-renderer-wgpu-noncompliant-adapter-variable.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/examples/lab/2026-07-06-examples-lab-sidebar-taxonomy.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/examples/lab/2026-07-31-examples-lab-general-positioning-tutorials.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-06-24-runtime-services-despatma-di.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-06-24-runtime-services-rust-services.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-06-25-runtime-services-optional-trait-storage.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-06-25-runtime-services-runtime-owned-service-surface.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-06-25-runtime-services-startup-initialization.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-06-26-runtime-services-navigation-router-view.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-06-26-runtime-services-service-owned-app-extensions.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-06-26-runtime-services-standard-options-i18n.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-06-28-runtime-services-asset-service-i18n-layers.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-06-30-runtime-services-advanced-asset-service-catalog.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-06-30-runtime-services-platform-owned-writable-storage-roots.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-06-30-runtime-services-surrealdb-supported-engines.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-07-01-runtime-services-asset-catalog-cache.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-07-01-runtime-services-asset-render-source-resolution.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-07-01-runtime-services-compact-split-asset-manifest.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-07-01-runtime-services-rayx-assets-toml-authoring.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-07-02-runtime-services-di-ready-explicit-startup.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-07-02-runtime-services-unified-surrealdb-storage-builder.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-07-04-runtime-services-two-phase-startup-font-service.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-07-06-runtime-services-asset-render-source-fast-path.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-07-06-runtime-services-navigation-default-transitions.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-07-08-runtime-services-async-gpui-theme-asset-startup.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-07-11-runtime-services-package-asset-bundles.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-07-14-runtime-services-asset-backed-locale-discovery.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-07-15-runtime-services-layered-options-lazy-defaults.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-07-18-runtime-services-direct-i18n-translation-api.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-07-18-runtime-services-real-surrealdb-indexeddb.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-07-19-runtime-services-typed-operation-service.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-07-24-runtime-services-navigation-lifecycle-callbacks.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-07-25-runtime-services-gpui-actions-automatic-editing-services.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-07-26-runtime-services-i18n-gpui-helper-vocabulary.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-07-26-runtime-services-ordered-busy-navigation-retry.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-07-31-runtime-services-text-selectable-boundary.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/2026-10-05-runtime-services-component-local-pointer-bindings.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/collaboration/2026-07-25-runtime-services-structured-private-collaboration.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/runtime/services/collaboration/2026-10-05-runtime-services-collaboration-engine-runtime-split.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/tooling/validation/2026-07-19-tooling-validation-shared-playwright-worktree-bootstrap.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/theming-components/2026-06-24-ui-theming-components-rayx-source.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/theming-components/2026-06-26-ui-theming-components-datatable-crate.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/theming-components/2026-06-29-ui-theming-components-overlay-anchor-semantics.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/theming-components/2026-07-01-ui-theming-components-advanced-colorpicker-crate.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/theming-components/2026-07-03-ui-theming-components-rayx-direction-system.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/theming-components/2026-07-05-ui-theming-components-compiled-arborium-code-highlighting.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/theming-components/2026-07-05-ui-theming-components-core-module-facade.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/theming-components/2026-07-06-ui-theming-components-sidebar-controlled-open.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/theming-components/2026-07-14-ui-theming-components-final-text-system.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/theming-components/2026-07-16-ui-theming-components-generated-lumis-code-themes.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/theming-components/2026-07-18-ui-theming-components-html-elements-external-crates.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/theming-components/2026-07-18-ui-theming-components-media-query-core-ownership.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/theming-components/2026-07-19-ui-theming-components-selectable-code-surfaces.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/theming-components/2026-07-20-ui-theming-components-rich-text-operation-history.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/theming-components/2026-07-24-ui-theming-components-canonical-root-layer-stack.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/theming-components/2026-07-24-ui-theming-components-demand-driven-structured-selection.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/theming-components/2026-07-31-ui-theming-components-text-selectable-selection-area.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/theming-components/2026-08-01-ui-theming-components-selection-area-gap-routing.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/theming-components/2026-08-22-ui-theming-components-structural-base-boundary.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/theming-components/2026-09-23-ui-theming-components-ds12-theme-crate.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/theming-components/2026-09-26-ui-theming-components-retire-token-map.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/theming-components/2026-10-04-ui-theming-components-figma-section-modules.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/theming-components/2026-10-04-ui-theming-components-rayx-components-skill.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/theming-components/2026-10-05-ui-theming-components-flat-component-sources.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/theming-components/2026-10-05-ui-theming-components-interactive-primitives-upstream-input.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/theming-components/2026-10-05-ui-theming-components-rayx-blocks-crate.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/virtualization/2026-06-24-ui-virtualization-native-rust.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/virtualization/2026-06-26-ui-virtualization-external-scroll-handles.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/virtualization/2026-06-26-ui-virtualization-listview-treeview-naming.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/virtualization/2026-07-03-ui-virtualization-parent-viewport-mutation-scroll-preservation.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/virtualization/2026-07-03-ui-virtualization-reactive-view-bindings.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/virtualization/2026-07-03-ui-virtualization-single-external-scroll-api.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/virtualization/2026-07-03-ui-virtualization-unified-list-tree-state-api.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/virtualization/2026-07-05-ui-virtualization-callback-only-item-sizing.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/virtualization/2026-07-05-ui-virtualization-virtualized-sticky-policy.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/virtualization/2026-07-24-ui-virtualization-external-scroll-dependent-invalidation.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/virtualization/2026-07-24-ui-virtualization-laid-out-sticky-cross-axis.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/virtualization/2026-07-24-ui-virtualization-overscanned-mounted-range-publication.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/virtualization/2026-07-31-ui-virtualization-structured-sticky-candidates.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/virtualization/2026-08-03-ui-virtualization-idempotent-external-scroll-attachment.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/virtualization/2026-08-11-ui-virtualization-wheel-input-invalidation.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/virtualization/2026-08-21-ui-virtualization-datatable-thumb-rate.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-16-repository-validation-test-tooling-layout.md"
+    }
+  ]
+}

@@ -96,7 +96,7 @@ Persist that line in the user's shell profile when they want a permanent setup. 
 wasm-bindgen --version
 ```
 
-For multithreaded gpux/RayX browser apps, also read `multithreaded-wasm-apps.md`. They require nightly Rust, `rust-src`, atomics/shared-memory linker flags, `wasm-bindgen`, and cross-origin isolation headers. Lane B also needs Node.js 22 or later with `pnpm`, and in `tools-node`: `pnpm install` and `pnpm exec playwright install chromium`.
+For multithreaded gpux/RayX browser apps, also read `multithreaded-wasm-apps.md`. They require nightly Rust, `rust-src`, atomics/shared-memory linker flags, `wasm-bindgen`, and cross-origin isolation headers. Lane B also needs Node.js 22 or later with `pnpm`, and in `tools/browser`: `pnpm install` and `pnpm exec playwright install chromium`.
 
 ## Android Tooling
 

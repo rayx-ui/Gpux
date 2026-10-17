@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 7,
+  "epicId": "gpux-tools-layout",
+  "scopeMarkdown": "Give gpux's test and benchmark tooling one predictable layout (owner, 2026-10-16). Today it is spread over six places: `crates/gpux_conformance` (the scene catalog, lane targets, goldens and app hosts), `tools-node/` (lane B's Playwright project), `tooling/testkit`, `tooling/perf`, `tooling/android`, `tooling/ios`, and the root `benchmark/` workspace that the AgentX improvement loops drive.\n\nTarget layout agreed with the owner:\n\n```\ncrates/\n  gpux_tests_benchmark/    <- benchmark/                improvement-loop benchmarks (standalone workspace)\n  gpux_tests_conformance/  <- crates/gpux_conformance   UI tests: scenes, lane targets, goldens, hosts\ntools/\n  testkit/                 <- tooling/testkit           the gpux-testkit runner\n  perf/                    <- tooling/perf              Zed's #[perf] test timer\n  browser/                 <- tools-node                Playwright project (lane B)\n  android/                 <- tooling/android           lane E APK shell\n  ios/                     <- tooling/ios               lane F Xcode shell\n```\n\nThe rule the layout encodes: Rust crates live in `crates/`, and the `gpux_tests_*` prefix marks the crates that are never shipped to consumers (pass/fail UI tests in `gpux_tests_conformance`, numbers-only improvement-loop benchmarks in `gpux_tests_benchmark`); `tools/` holds the runner, the timer, the non-Rust drivers and the mobile app shells.\n\n## Assumptions recorded at planning\n\n- **Full rename (planning assumption).** The owner asked for \"all of this\" without answering the folder-only vs full-rename question; the plan follows the recommended full rename: folder, package and library (`gpux-tests-conformance` / `gpux_tests_conformance`, `gpux-tests-benchmark` / `gpux_tests_benchmark`). Nothing is on crates.io yet (`gpux-conformance` does not exist there, checked 2026-10-16), so the rename orphans no published crate. If the owner wants folders only, amend CONF-1 and BENCH-1 before sprint 1 starts.\n- Runtime protocol identifiers that merely contain the word *conformance* are not package names and stay unchanged (CONF-3).\n- The benchmark keeps its internal shape: one shared set of scenarios (`src/scenarios/`) with one entry point per target. It is **not** split into `native/` and `wasm/` folders: the scenario code has no target-specific variants, so such a split would duplicate it (agreed in the planning conversation).\n- Work happens in the worktree `~/.worktrees/Gpux-tools/Gpux` on branch `refactor/gpux-tools`.\n\n## Excluded\n\n- Test content, lane definitions, CI lane semantics and cadences: only paths and names change.\n- Unit tests inside each crate and `crates/gpui_platform/benches` (two of its three suites are upstream Zed code; all three are lane G release timing, not loop benchmarks) stay where they are.\n- `crates/bench_metrics` (imported from Zed, an optional dependency of gpux itself) stays.\n- Follow-ups, not part of this epic: the benchmark's iOS shell duplicates lane F's (`macos_gl_stubs.c` is identical), and fast mode is benchmarked twice (Criterion `fast_mode` with `gpux-testkit perf fast-mode`, and `benchmark/run.py`'s on/off runs).\n- RayX: it depends on gpux crates by path but on none of the moved ones; its `tools-node` references are to its own folder. No RayX change.\n- Historical records keep the paths they were written with: `.agentx/tasks/**`, `.agentx/experiments/**`, `docs/changelog/**`, `docs/history/**`, `docs/measurements/**`, `ToFix/**`, and the benchmark's `RESULTS.md`, `LOOP-*.md` and `results/**`.",
+  "constraintsMarkdown": "- Moves use `git mv` so history follows the files; each sprint lands as conventional commits (no co-author lines).\n- No upstream Zed crate under `crates/` changes, and `vendor/wgpu` does not change.\n- `gpux-testkit` keeps its publishing shape: nothing included from outside its directory, no RayX paths.\n- Every workspace crate stays publishable (packaging rules); the standalone benchmark stays outside the workspace, so CI, root `cargo` commands and `cargo package --workspace` never build it.\n- Test only what changed (CLAUDE.md, validation rules): the new test groups, the touched packages' own tests, and the narrowest lane commands that exercise a moved path. No whole-workspace suites; CI's own pull-request run is the complete run.",
+  "requirements": [
+    {
+      "id": "CONF",
+      "title": "The conformance crate becomes gpux_tests_conformance",
+      "descriptionMarkdown": "The UI-test crate is renamed in folder, package and library, and every consumer follows, while the wire protocol between hosts, testkit and Playwright stays byte-identical.",
+      "criteria": [
+        {
+          "id": "CONF-1",
+          "verification": "automated",
+          "descriptionMarkdown": "The crate lives in `crates/gpux_tests_conformance` with package `gpux-tests-conformance`, `[lib] name = \"gpux_tests_conformance\"`, and workspace dependency key `gpux_tests_conformance = { package = \"gpux-tests-conformance\", path = \"crates/gpux_tests_conformance\", ... }`; `crates/gpux_conformance` no longer exists. Every Rust use (`gpux_conformance::` in `tools/testkit` sources and tests, the crate's own tests and examples) uses the new library name. `cargo check -p gpux-tests-conformance --all-targets` and `cargo check -p gpux-tests-conformance --target wasm32-unknown-unknown --no-default-features` pass, and `cargo test -p gpux-tests-conformance --test lane_a` passes with at least one test."
+        },
+        {
+          "id": "CONF-2",
+          "verification": "automated",
+          "descriptionMarkdown": "`gpux-testkit` selects the renamed package everywhere it invokes cargo (`-p gpux-tests-conformance` in lane A, C and D plans, listings, web, Android and iOS builds) and finds a gpux checkout by `crates/gpux_tests_conformance/Cargo.toml`; its outside-checkout error names that folder. A tree that has only the old `crates/gpux_conformance` is not recognized. Verified by the new group `tools/testkit/tests/conformance_package.rs`."
+        },
+        {
+          "id": "CONF-3",
+          "verification": "automated",
+          "descriptionMarkdown": "Runtime protocol identifiers are unchanged: the `gpux-conformance:` result-line marker, the `gpux-conformance-host:` host marker, the browser global `__gpuxConformance`, the Android package and iOS bundle id `dev.gpux.conformance`, the Simulator name and the APK file name. The new group asserts these constants, and the recorded fixtures in `tools/testkit/tests/fixtures/` still parse in the testkit's existing tests."
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/Cargo.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/gpux_testkit.rs",
+          "symbol": "find_workspace_root"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/lanes.rs"
+        }
+      ]
+    },
+    {
+      "id": "TOOLS",
+      "title": "Runner, timer and mobile shells move under tools/",
+      "descriptionMarkdown": "`tooling/` disappears; its four members move to `tools/` with their package names unchanged.",
+      "criteria": [
+        {
+          "id": "TOOLS-1",
+          "verification": "automated",
+          "descriptionMarkdown": "`tooling/testkit`, `tooling/perf`, `tooling/android` and `tooling/ios` are at `tools/testkit`, `tools/perf`, `tools/android` and `tools/ios`; `tooling/` no longer exists. The root workspace members and the `perf` workspace dependency path point at `tools/`; packages keep the names `gpux-testkit` and `gpux-perf`, so `cargo run -p gpux-testkit -- ...` and the `cargo perf-test` alias keep working unchanged. The testkit's whole package test suite (`cargo test -p gpux-testkit`, the touched package) passes."
+        },
+        {
+          "id": "TOOLS-2",
+          "verification": "automated",
+          "descriptionMarkdown": "The testkit resolves lane E's manifest at `tools/android/AndroidManifest.xml` and lane F's XcodeGen spec and generated project at `tools/ios/project.yml` and `tools/ios/GpuxConformance.xcodeproj` (new group `tools/testkit/tests/tools_paths.rs`), and `cargo run -p gpux-testkit -- ios build --simulator` builds the unsigned Simulator app from the moved shell on a Mac."
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/android.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/ios.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.toml"
+        }
+      ]
+    },
+    {
+      "id": "WEB",
+      "title": "The Playwright project moves to tools/browser",
+      "descriptionMarkdown": "Lane B's Node project leaves the repository root and sits beside the other tools.",
+      "criteria": [
+        {
+          "id": "WEB-1",
+          "verification": "automated",
+          "descriptionMarkdown": "`tools-node/` is at `tools/browser/` (`package.json`, `pnpm-lock.yaml`, `playwright.config.ts`, `specs/`, `fixtures/`); `tools-node/` no longer exists. The testkit's web paths and its Playwright prerequisite messages use `tools/browser`; `playwright.config.ts` still writes to the repository's `artifacts-temp/testkit/b`, and `fixtures/catalog.ts`'s default dist still resolves to `<repo>/target/gpux-web/dist`. New group `tools/testkit/tests/browser_paths.rs` proves the paths, and `cargo run -p gpux-testkit -- web e2e --grep @canary` passes on the local-gpu profile after `pnpm install` in `tools/browser`."
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/web.rs",
+          "symbol": "WebPaths"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/playwright.config.ts"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/fixtures/catalog.ts"
+        }
+      ]
+    },
+    {
+      "id": "BENCH",
+      "title": "The improvement-loop benchmark becomes crates/gpux_tests_benchmark",
+      "descriptionMarkdown": "The benchmark workspace moves into `crates/` beside the conformance crate, stays standalone, and its driver scripts keep working from the new depth.",
+      "criteria": [
+        {
+          "id": "BENCH-1",
+          "verification": "automated",
+          "descriptionMarkdown": "`benchmark/` is at `crates/gpux_tests_benchmark/` with package `gpux-tests-benchmark` and library `gpux_tests_benchmark` (the binary stays `gpux-bench`); `benchmark/` no longer exists. It keeps its own `[workspace]` table, is not a member of the root workspace (root `cargo metadata --no-deps` does not list it), and its path dependencies point at its sibling crates (`../gpui`, `../gpui_platform`, ...). `cargo check --lib --bin gpux-bench` in its folder passes."
+        },
+        {
+          "id": "BENCH-2",
+          "verification": "automated",
+          "descriptionMarkdown": "`run.py` finds the repository root two levels up, writes results to `crates/gpux_tests_benchmark/results/`, and its dirty-tree check ignores the benchmark's own folder (so editing a scenario or writing results does not mark the gpux tree dirty). The build artifacts it reads (`libgpux_tests_benchmark.a`, `gpux_tests_benchmark.wasm`), `web/index.html`'s module import and `web/run.mjs`'s Playwright location (`tools/browser`) match the new names. Verified by the new Python group `crates/gpux_tests_benchmark/tests/test_run_paths.py`."
+        },
+        {
+          "id": "BENCH-3",
+          "verification": "manual",
+          "descriptionMarkdown": "A one-repeat macOS run from the new location (`python3 crates/gpux_tests_benchmark/run.py --target macos --scenarios <one scenario> --reps 1 --name tools-layout-smoke`) builds, opens the window, and writes a report under `crates/gpux_tests_benchmark/results/tools-layout-smoke/`. The implementer runs it on the Mac with the display awake, records the command and outcome in the sprint review, and deletes the smoke results directory before committing."
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "benchmark/Cargo.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "benchmark/run.py"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "benchmark/web/run.mjs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "benchmark/web/index.html"
+        }
+      ]
+    },
+    {
+      "id": "DOCS",
+      "title": "CI, docs, guidance and memory follow the layout",
+      "descriptionMarkdown": "Everything that names a moved path or package is updated, and the layout rule is written down where contributors and agents read it.",
+      "criteria": [
+        {
+          "id": "DOCS-1",
+          "verification": "automated",
+          "descriptionMarkdown": "CI follows the layout: `ci.yml` checks and excludes `gpux-tests-conformance` and uploads goldens from `crates/gpux_tests_conformance/tests/goldens/`; `lane-b.yml` uses `tools/browser` for `package_json_file`, `cache-dependency-path`, working directories and the report artifact; the `lane-e.yml` and `lane-f.yml` path filters list `crates/gpux_tests_conformance/**`, `tools/android/**` or `tools/ios/**`, and `tools/testkit/**`, and their comments name the new paths."
+        },
+        {
+          "id": "DOCS-2",
+          "verification": "automated",
+          "descriptionMarkdown": "Live documentation and guidance name only the new paths and packages: `README.md` (crate table rows for `crates/gpux_tests_conformance`, `tools/perf`, `tools/testkit`), `docs/testing.md`, `docs/installation-and-usage.md`, `docs/upstream/gpui-fast.md`, `LINUX-WSL.md`, `CLAUDE.md`, `AGENTS.md`, `.claude/skills/gpux/**` (including the preserve list of the Zed-import reference), source comments, and the benchmark's `README.md`. Historical records listed as excluded in the scope keep their paths."
+        },
+        {
+          "id": "DOCS-3",
+          "verification": "manual",
+          "descriptionMarkdown": "The layout rule is written down: `CLAUDE.md` and `AGENTS.md` (Crate Layout) say that `crates/` holds the libraries plus the never-shipped `gpux_tests_*` crates (conformance UI tests; improvement-loop benchmarks), that `crates/gpux_tests_benchmark` is the one standalone, unpublished crate exempt from the shared version and publishing rules, and that `tools/` holds the runner, the `#[perf]` timer, the Playwright project and the mobile shells; a new `tools/README.md` maps each folder to the command that runs it (and points to the two `gpux_tests_*` crates). Reviewed for accuracy against the tree."
+        },
+        {
+          "id": "DOCS-4",
+          "verification": "automated",
+          "descriptionMarkdown": "Repository memory follows the layout: the domains' `rules.md` (repository: the `run.py --hold-clocks` path; validation: `tools/browser/specs`; packaging: the publishing rule applies to workspace crates, with the standalone benchmark exempt), the `state.md` backlinks, and the path mentions in the current decisions on gpux-testkit, the test lanes and lanes B, E and F name the new paths, so memory links resolve and `state.md` backlinks still derive the touched domains."
+        }
+      ]
+    },
+    {
+      "id": "GUARD",
+      "title": "A layout guard keeps the old paths from coming back",
+      "descriptionMarkdown": "A focused test proves the layout and catches stale references in live files.",
+      "criteria": [
+        {
+          "id": "GUARD-1",
+          "verification": "automated",
+          "descriptionMarkdown": "New group `tools/testkit/tests/repository_layout.rs` asserts that the seven target folders exist (with tracked files) and that git tracks no file under `tooling/`, `tools-node/`, `benchmark/` or `crates/gpux_conformance/` (older checkouts may keep git-ignored build output there, so folder absence is not required); that the root workspace lists `crates/gpux_tests_conformance`, `tools/testkit` and `tools/perf` and not the benchmark; and that no tracked live text file (from `git ls-files`, minus the historical records of the scope and the testkit's recorded fixtures) contains `tooling/`, `tools-node` (except RayX's own folder, `RayX/tools-node`), `crates/gpux_conformance`, the identifier `gpux_conformance`, the package selector `gpux-conformance` in a cargo position (`-p gpux-conformance`, `package = \"gpux-conformance\"`, `--exclude gpux-conformance`), or a root-level `benchmark/` path (an occurrence of `tooling/` or `benchmark/` not preceded by a letter, digit, `_` or `/`, or preceded by a relative link's `../`). A seeded string in a temporary file proves each scan can fail."
+        }
+      ]
+    }
+  ]
+}

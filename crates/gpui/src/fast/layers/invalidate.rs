@@ -271,6 +271,19 @@ pub(crate) fn note_scrolled(window: &mut Window, container: &ScrollContainer) {
     }
 }
 
+/// Notes that something other than its wheel listener (an accessibility `ScrollIntoView`) moved
+/// the offset of the scroll container `id`, painted lately, as the listener would note it.
+pub(crate) fn note_scrolled_by_id(window: &mut Window, id: &GlobalElementId) {
+    let scrolls = &mut window.fast_layers.scrolls;
+    let Some(container) = scrolls.containers.get(id) else {
+        return;
+    };
+    let (view, source) = (container.view, container.source.clone());
+    *scrolls.scroll_notifies.entry(view).or_default() += 1;
+    scrolls.scrolled.insert(id.clone());
+    scrolls.scrolled_sources.insert(source);
+}
+
 /// Notes that a wheel moved the list whose state `version` counts changes
 /// of, as its scroll listener does before it notifies `view`, the view that
 /// painted it. A list has no id; its offset is known by its state, and the

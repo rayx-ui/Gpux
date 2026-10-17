@@ -141,7 +141,7 @@ cargo install wasm-bindgen-cli --version 0.2.129 --locked
 [Environment]::SetEnvironmentVariable("PATH", "$HOME\.cargo\bin;" + [Environment]::GetEnvironmentVariable("PATH", "User"), "User")
 ```
 
-For multithreaded gpux/RayX browser apps, also read `multithreaded-wasm-apps.md`. They require nightly Rust, `rust-src`, atomics/shared-memory linker flags, `wasm-bindgen`, and cross-origin isolation headers. Lane B also needs Node.js 22 or later with `pnpm`, and in `tools-node`: `pnpm install` and `pnpm exec playwright install chromium`. On a Windows machine without a usable GPU, run lane B in the `windows-software` profile (`$env:GPUX_WEB_PROFILE = "windows-software"`), which renders WebGPU on WARP.
+For multithreaded gpux/RayX browser apps, also read `multithreaded-wasm-apps.md`. They require nightly Rust, `rust-src`, atomics/shared-memory linker flags, `wasm-bindgen`, and cross-origin isolation headers. Lane B also needs Node.js 22 or later with `pnpm`, and in `tools/browser`: `pnpm install` and `pnpm exec playwright install chromium`. On a Windows machine without a usable GPU, run lane B in the `windows-software` profile (`$env:GPUX_WEB_PROFILE = "windows-software"`), which renders WebGPU on WARP.
 
 On current Windows ARM64 Qualcomm/Adreno devices, Chromium browsers can report WebGPU as hardware accelerated but return no adapters unless Unsafe WebGPU is enabled:
 

@@ -92,7 +92,7 @@ cargo run -p gpux-testkit -- lane b --scene layout-fixed-sticky
 cargo run -p gpux-testkit -- lane c --scene layout-fixed-sticky
 ```
 
-Extend that scene, or add one in `crates/gpux_conformance/src/scenes/` that names its lanes, for
+Extend that scene, or add one in `crates/gpux_tests_conformance/src/scenes/` that names its lanes, for
 new sticky behaviour. At scales 1 and 2 it must exercise numeric bounds, contiguous membership,
 replacement, A-B-A behavior, clipping, callbacks, clicks, and duplicate-row absence. Lane B runs
 it in WASM/WebGPU with trusted input (`--scene` runs the DPR 1 spec;

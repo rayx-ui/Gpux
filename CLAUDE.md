@@ -11,8 +11,19 @@ wgpu), installation, platform prerequisites, and validation routing.
 - Packages publish under `gpux-*` names and keep their GPUI Rust names through `[lib] name`.
   Workspace dependency keys use the Rust name with `package = "gpux-..."`, so source code never
   changes when a package is renamed. The README crate table is the authoritative name mapping.
-- All crates share the workspace version and `Apache-2.0` license; `gpux_fonts` carries the
-  bundled fonts under `OFL-1.1`.
+- `crates/` holds the library crates consumers depend on, plus the verification crates named
+  `gpux_tests_*` (so they sort together), which no consumer depends on: `gpux_tests_conformance`
+  (UI tests: the scene catalog, lane targets, goldens and app hosts that `gpux-testkit` runs; a
+  publishable workspace crate like the libraries) and `gpux_tests_benchmark` (the
+  improvement-loop benchmarks that its `run.py` drives). `crates/gpux_tests_benchmark` is the
+  one standalone, unpublished workspace: it is not a member of the root workspace and is exempt
+  from the version, license-field and publishing rules below.
+- `tools/` holds what drives or hosts the tests: the Rust workspace crates `testkit` (the
+  `gpux-testkit` runner) and `perf` (Zed's `#[perf]` timer), `browser` (lane B's Playwright
+  project) and the `android` and `ios` app shells. [tools/README.md](tools/README.md) maps each
+  folder to the command that runs it. `vendor/wgpu` holds the wgpu fork (below).
+- All workspace crates share the workspace version and `Apache-2.0` license; `gpux_fonts`
+  carries the bundled fonts under `OFL-1.1`.
 - Every packaged file lives inside its crate directory: no `include_bytes!`/`include_str!` that
   leaves the crate. Shared binary assets belong to `crates/gpux_fonts`.
 - Dependencies come from crates.io. Git dependencies and `[patch]` entries cannot reach
@@ -27,6 +38,14 @@ wgpu), installation, platform prerequisites, and validation routing.
 renamed and only library targets kept; change nothing else there. The upstream replacement is
 tracked in [docs/upstream/wgpu-dx12-swapchain-scaling.md](docs/upstream/wgpu-dx12-swapchain-scaling.md);
 when a wgpu release ships it, delete the fork and return to crates.io `wgpu`.
+
+## The accesskit_macos Fork
+
+`vendor/accesskit_macos` holds `gpux-accesskit-macos`: upstream `accesskit_macos` 0.27.1 renamed
+with version suffix `-gpux.N`, carrying only the VoiceOver changes listed (and marked `gpux
+fork:`) in [docs/upstream/accesskit-macos-tables-expanded.md](docs/upstream/accesskit-macos-tables-expanded.md);
+its manifest is the published one with the package renamed and only the library kept. When an
+AccessKit release ships those changes, delete the fork and return to crates.io `accesskit_macos`.
 
 ## Validation
 

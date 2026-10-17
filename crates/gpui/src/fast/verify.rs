@@ -6,8 +6,8 @@
 //! describes far more of the frame than gpui-fast does: every scene family
 //! (its own included), the screen-effect requests, hitboxes in hit-test
 //! order, cursors, tooltips, tab stops, mouse listeners, input handlers, the
-//! dispatch tree and focus path, the element states the frame accessed and
-//! the DevKit node tree. It compares draw orders by rank rather than by
+//! dispatch tree and focus path, the element states the frame accessed, the
+//! effect diagnostics and the accessibility tree. It compares draw orders by rank rather than by
 //! gpui-fast's overlap depth, because gpux replays cached views by inserting
 //! their primitives again and both windows number draw orders alike.
 
@@ -546,36 +546,10 @@ pub(crate) fn describe_frame_hit_at(window: &Window, points: &[Point<Pixels>]) -
     element_states.sort();
     element_states.dedup();
     lines.extend(element_states);
-    // The DevKit nodes, which the snapshot leaves the rows off screen out
-    // of and tells row after row, numbered as they are told.
-    let devtools = window.devtools_frame_snapshot();
-    lines.push(format!(
-        "devtools viewport {:?} effects {:?}",
-        devtools.viewport, devtools.effects
-    ));
-    let ids = told_order(
-        frame.next_devtools_node_id,
-        &lists,
-        prepaint(|index| index.devtools_node_id),
-        // The snapshot leaves them out (see `lists::shown_nodes`).
-        |_, _| false,
-    );
-    let mut told_id: FxHashMap<usize, usize> = FxHashMap::default();
-    for (told, id) in ids.iter().enumerate() {
-        told_id.insert(*id, told);
-    }
-    let told =
-        |ids: &FxHashMap<usize, usize>, id: usize| ids.get(&id).copied().unwrap_or(usize::MAX);
-    for mut element in devtools.elements {
-        element.devtools_node_id = told(&told_id, element.devtools_node_id);
-        element.parent_devtools_node_id =
-            element.parent_devtools_node_id.map(|id| told(&told_id, id));
-        element.dispatch_node_id = told(&told_node, element.dispatch_node_id);
-        element.parent_dispatch_node_id = element
-            .parent_dispatch_node_id
-            .map(|id| told(&told_node, id));
-        lines.push(format!("devtools {element:?}"));
-    }
+    // The shader-effect counts.
+    lines.push(format!("effects {:?}", window.effect_diagnostics()));
+    // The accessibility tree, as a frame drawn from scratch builds it.
+    window.a11y.describe(&mut lines);
     lines
 }
 
@@ -585,8 +559,8 @@ impl Window {
     /// windows drawing the same frame share: scene primitives by draw order
     /// with their atlas placement neutralized, then hitboxes in hit-test
     /// order, cursors, tooltips, tab stops, listeners, the dispatch tree and
-    /// focus path, the element states the frame accessed, and the DevKit
-    /// node tree. Fast-mode tests compare a window drawing incrementally with
+    /// focus path, the element states the frame accessed, the effect
+    /// diagnostics and the accessibility tree. Fast-mode tests compare a window drawing incrementally with
     /// one drawing from scratch by it.
     pub fn describe_rendered_frame(&self) -> Vec<String> {
         describe_frame(self)
@@ -633,8 +607,9 @@ pub fn first_frame_difference(actual: &[String], expected: &[String]) -> Option<
 /// every view and reusing none; what it leaves (element states taken, a
 /// fresh layout) is put back before the retained frame draws. A view is
 /// rendered twice a frame while verifying, so a render with side effects
-/// has them twice. Verifying stops while AccessKit is active, which a frame
-/// reports to, and on frames nothing is drawn from last frame in.
+/// has them twice. While accessibility is active the shadow frame builds its
+/// own tree, which is compared with the retained frame's and never sent to
+/// the platform. Verifying stops on frames nothing is drawn from last frame in.
 #[cfg(feature = "diagnostics")]
 pub(crate) mod retention {
     use std::{mem, rc::Rc};
@@ -697,7 +672,6 @@ pub(crate) mod retention {
         if !window.fast_verify.enabled
             || !window.fast_mode.view_retention()
             || window.refreshing
-            || window.a11y.is_active()
             || cx.has_active_drag()
             || cx.mode.skip_drawing()
         {
@@ -709,11 +683,15 @@ pub(crate) mod retention {
         let refreshing = mem::replace(&mut window.refreshing, true);
         crate::fast::layout::begin_frame(window);
         crate::fast::retained::begin_frame(window, cx);
+        // The shadow builds its own accessibility tree, beside the real frame's.
+        let shadow_a11y = window.a11y.shadow();
+        let a11y = mem::replace(&mut window.a11y, shadow_a11y);
         // Rendering a view leases it; inside a recording that is not an
         // update the retained frame would see.
         let recording = cx.begin_recording_dependencies();
         window.draw_roots(cx);
         cx.finish_recording_dependencies(recording);
+        window.a11y.end_shadow();
         cx.entities.clear_accessed();
         // As a frame drawn is before it is presented.
         window.next_frame.scene.finish();
@@ -730,6 +708,7 @@ pub(crate) mod retention {
                 .collect(),
         };
         mem::swap(&mut window.rendered_frame, &mut window.next_frame);
+        window.a11y = a11y;
 
         // The element states the shadow took go back where the retained
         // frame finds them.
@@ -748,9 +727,9 @@ pub(crate) mod retention {
             return;
         };
         let frame = super::describe_frame(window);
-        let Some(difference) = super::first_frame_difference(&frame, &shadow.frame) else {
-            return;
-        };
+        // The frame-wide description leaves sprites' atlas tiles out, so a view showing stale
+        // text may differ only by its own description, which keeps them.
+        let frame_difference = super::first_frame_difference(&frame, &shadow.frame);
         let records = &window.rendered_frame.fast_retained.records;
         let differs = |index: usize| {
             let record = &records[index];
@@ -771,6 +750,10 @@ pub(crate) mod retention {
                 None => break,
             }
         }
+        if found.is_none() && frame_difference.is_none() {
+            return;
+        }
+        let difference = frame_difference.unwrap_or_default();
         let mismatch = match found {
             Some(index) => {
                 let record = &records[index];
@@ -811,6 +794,27 @@ pub(crate) mod retention {
         }
     }
 
+    /// A primitive of a view as text, with its sprite's atlas tile. The verifier compares two
+    /// frames of one window, which share its atlas, so a tile names the glyph or image drawn:
+    /// a view that shows stale text differs by it (the frame-wide description leaves tiles out,
+    /// for windows whose atlases differ).
+    fn describe_view_primitive(primitive: &crate::scene::Primitive) -> String {
+        let tile = match primitive {
+            crate::scene::Primitive::MonochromeSprite(sprite) => Some(sprite.tile),
+            crate::scene::Primitive::SubpixelSprite(sprite) => Some(sprite.tile),
+            crate::scene::Primitive::PolychromeSprite(sprite) => Some(sprite.tile),
+            _ => None,
+        };
+        let description = super::describe_primitive(primitive);
+        match tile {
+            Some(tile) => format!(
+                "{description} tile {:?} {}",
+                tile.texture_id, tile.tile_id.0
+            ),
+            None => description,
+        }
+    }
+
     /// The part of the rendered frame `record` stands for: what it painted
     /// and the hitboxes it inserted.
     fn describe_view(window: &Window, record: &RetainedSubtree) -> Vec<String> {
@@ -825,7 +829,7 @@ pub(crate) mod retention {
             {
                 lines.push(match operation {
                     crate::scene::PaintOperation::Primitive(primitive) => {
-                        super::describe_primitive(primitive)
+                        describe_view_primitive(primitive)
                     }
                     crate::scene::PaintOperation::FastDropped(dropped) => {
                         format!("dropped {dropped:?}")
@@ -849,21 +853,14 @@ pub(crate) mod retention {
                 hitbox.bounds, hitbox.content_mask, hitbox.behavior
             ));
         }
-        // What the DevKit shows of it, its text among it, without the ids a
-        // frame numbers its nodes by.
-        for node in &frame.devtools_nodes
-            [prepaint.start.devtools_nodes_index..prepaint.end.devtools_nodes_index]
-        {
-            lines.push(format!(
-                "devtools {:?}",
-                crate::DevtoolsElementSnapshot {
-                    devtools_node_id: 0,
-                    parent_devtools_node_id: None,
-                    dispatch_node_id: 0,
-                    parent_dispatch_node_id: None,
-                    ..node.snapshot()
-                }
-            ));
+        // What it told the accessibility tree, its text among it, while the tree is built: the
+        // view's text where the scene does not tell glyphs apart (the test platform).
+        let events = &window.a11y.rendered_events;
+        let a11y = prepaint.start.a11y_events_index..prepaint.end.a11y_events_index;
+        for event in events.get(a11y).into_iter().flatten() {
+            if let Some(line) = event.describe() {
+                lines.push(line);
+            }
         }
         lines
     }

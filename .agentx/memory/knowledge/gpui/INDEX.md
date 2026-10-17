@@ -21,7 +21,7 @@ The `gpux` package in `crates/gpui` (Rust name `gpux`): elements, window frame l
 ## Subdomains
 
 - [layout-style](layout-style/INDEX.md): Taffy integration, `Style` conversion, and request/prepaint/paint style handoff.
-- [frame-pipeline](frame-pipeline/INDEX.md): `Window` draw lifecycle, scene, bounds tree, arena, element ids/state, deferred draws, content masks, DevKit inspection, frame diagnostics.
+- [frame-pipeline](frame-pipeline/INDEX.md): `Window` draw lifecycle, scene, bounds tree, arena, element ids/state, deferred draws, content masks, accessibility records, frame diagnostics.
 - [positioning-scroll](positioning-scroll/INDEX.md): fixed/sticky positioning, sticky stacking, top layer, scroll handles, `ScrollActivity`, wheel routing.
 - [input](input/INDEX.md): action dispatch, pointer ownership/capture, drag, cursor order, text-input dispatch, input-map snapshots.
 - [text](text/INDEX.md): `TextSystem`, line layout/wrap caches, `TextLayout`, and the neutral `editable_text` engine.

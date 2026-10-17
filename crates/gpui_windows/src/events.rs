@@ -323,8 +323,11 @@ impl WindowsWindowInner {
         // Invalidate retained AccessKit providers before the HWND becomes
         // invalid. Dropping the adapter and notifying UIA may re-enter this
         // window procedure, so neither operation may hold the adapter borrow.
-        let a11y = self.state.a11y.borrow_mut().take();
-        drop(a11y);
+        #[cfg(feature = "accessibility")]
+        {
+            let a11y = self.state.a11y.borrow_mut().take();
+            drop(a11y);
+        }
         // SAFETY: WM_DESTROY runs on the owning thread while its HWND is still
         // valid. A null provider removes UIA's event registration for this HWND.
         unsafe {
@@ -854,6 +857,12 @@ impl WindowsWindowInner {
         None
     }
 
+    #[cfg(not(feature = "accessibility"))]
+    fn handle_wm_getobject(&self, _wparam: WPARAM, _lparam: LPARAM) -> Option<isize> {
+        None
+    }
+
+    #[cfg(feature = "accessibility")]
     fn handle_wm_getobject(&self, wparam: WPARAM, lparam: LPARAM) -> Option<isize> {
         let result = {
             let mut a11y = self.state.a11y.borrow_mut();

@@ -23,7 +23,7 @@ Treat this mapping as the whole upstream `gpui_mobile` import surface:
 
 - `<gpui-mobile repository root>` -> `crates/gpui_mobile/`
 
-Re-check `crates/gpui_mobile/Cargo.toml`, the root `Cargo.toml`, and `crates/gpui_platform/Cargo.toml` before each update because dependency wiring or feature gates can change. Also inspect gpux's lane E host (`crates/gpux_conformance/examples/android_host` and `tooling/android/AndroidManifest.xml`) and, on the consumer side, RayX app platform mirrors such as `../RayX/apps/lab/platform/android`, `../RayX/apps/examples_mobile/platform/android`, and iOS project files when an upstream import changes Java/JNI class names, package-helper names, native activity wiring, bundle metadata, or generated headers; a change RayX's mirrors depend on ships with the matching RayX change.
+Re-check `crates/gpui_mobile/Cargo.toml`, the root `Cargo.toml`, and `crates/gpui_platform/Cargo.toml` before each update because dependency wiring or feature gates can change. Also inspect gpux's lane E host (`crates/gpux_tests_conformance/examples/android_host` and `tools/android/AndroidManifest.xml`) and, on the consumer side, RayX app platform mirrors such as `../RayX/apps/lab/platform/android`, `../RayX/apps/examples_mobile/platform/android`, and iOS project files when an upstream import changes Java/JNI class names, package-helper names, native activity wiring, bundle metadata, or generated headers; a change RayX's mirrors depend on ships with the matching RayX change.
 
 ## Workflow
 

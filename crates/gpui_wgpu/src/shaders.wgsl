@@ -624,10 +624,19 @@ fn fs_quad(input: QuadVarying) -> @location(0) vec4<f32> {
     let quad = load_quad(input.quad_id);
     let local_position = local_fragment_position(input.local_position, input.position, quad.transformation);
 
-    // Derivatives must be computed in uniform control flow on WebGPU.
-    let antialias_threshold = 0.5 * max(
+    // Derivatives must be computed in uniform control flow on WebGPU. Browser shader compilers
+    // can still evaluate them where they are used, after the mask returns below, which leaves
+    // them undefined in a 2x2 block that a mask edge splits: a border painted in strips (as
+    // `Style::paint` paints every border) then drew straight lines along the strips at odd
+    // device-pixel edges. An untransformed quad's local position is the fragment position,
+    // whose derivative is exactly one pixel, so its threshold is the constant half pixel.
+    let derived_threshold = 0.5 * max(
         length(vec2<f32>(dpdx(local_position.x), dpdy(local_position.x))),
         length(vec2<f32>(dpdx(local_position.y), dpdy(local_position.y))));
+    let antialias_threshold = select(
+        derived_threshold,
+        0.5,
+        transformation_is_unit(quad.transformation));
 
     // Alpha clip first, since we don't have `clip_distance`.
     if (any(input.clip_distances < vec4<f32>(0.0))) {
@@ -923,7 +932,9 @@ fn fs_quad(input: QuadVarying) -> @location(0) vec4<f32> {
                 // Adjust dash gap to evenly divide max_t.
                 let dash_count = floor(max_t);
                 let dash_period = max_t / dash_count;
-                border_color.a *= dash_alpha(
+                // The border color is premultiplied: a gap scales all of it, as the Metal shader
+                // does, or its color would be added over what lies beneath.
+                border_color *= dash_alpha(
                     t,
                     dash_period,
                     dash_length,
@@ -936,7 +947,7 @@ fn fs_quad(input: QuadVarying) -> @location(0) vec4<f32> {
                 let dash_gap = max_t - dash_length;
                 if (dash_gap > 0.0) {
                     let dash_period = dash_length + dash_gap;
-                    border_color.a *= dash_alpha(
+                    border_color *= dash_alpha(
                         t,
                         dash_period,
                         dash_length,

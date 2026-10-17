@@ -618,6 +618,10 @@ pub(crate) struct IosWindow {
     /// `request_frame` callback) can acquire a mutable reference without
     /// conflicting with the outer `&self` borrow.
     pub(crate) renderer: Mutex<Option<WgpuRenderer>>,
+    /// VoiceOver's adapter on the Metal view, from `a11y_init`. It subclasses the view, so it
+    /// goes before the view does.
+    #[cfg(feature = "accessibility")]
+    accesskit_adapter: RefCell<Option<accesskit_ios::SubclassingAdapter>>,
     pub(crate) fast_composition: RefCell<crate::ios::fast::composition::Composition>,
 }
 
@@ -727,6 +731,8 @@ impl IosWindow {
                 multi_touch_state: Cell::new(MultiTouchState::Idle),
                 force_next_frame_render: AtomicBool::new(true),
                 renderer: Mutex::new(None),
+                #[cfg(feature = "accessibility")]
+                accesskit_adapter: RefCell::new(None),
                 fast_composition: RefCell::default(),
             };
 
@@ -1406,6 +1412,9 @@ impl Drop for IosWindow {
         // UIKit callbacks and the FFI lifecycle calls reach this window through raw pointers;
         // none of them may reach it once it is freed.
         super::ffi::unregister_window(self as *const Self);
+        // The adapter put its class on the view; it restores the view's own before the view goes.
+        #[cfg(feature = "accessibility")]
+        drop(self.accesskit_adapter.borrow_mut().take());
         unsafe {
             let display_link = self.display_link.get();
             if !display_link.is_null() {
@@ -1474,6 +1483,37 @@ impl HasDisplayHandle for IosWindow {
 }
 
 impl PlatformWindow for IosWindow {
+    #[cfg(feature = "accessibility")]
+    fn a11y_init(&self, callbacks: gpui::A11yCallbacks) {
+        if self.view.is_null() {
+            return;
+        }
+        // SAFETY: the view is this window's live Metal view; the adapter retains it and is
+        // dropped before the window releases it.
+        let adapter = unsafe {
+            accesskit_ios::SubclassingAdapter::new(
+                self.view as *mut c_void,
+                crate::accessibility::ActivationHandler(callbacks.activation),
+                crate::accessibility::ActionHandler(callbacks.action),
+                crate::accessibility::DeactivationHandler(callbacks.deactivation),
+            )
+        };
+        *self.accesskit_adapter.borrow_mut() = Some(adapter);
+    }
+
+    #[cfg(feature = "accessibility")]
+    fn a11y_tree_update(&self, tree_update: accesskit::TreeUpdate) {
+        // GPUI draws on the main thread, where the adapter's UIKit work belongs.
+        let events = self
+            .accesskit_adapter
+            .borrow()
+            .as_ref()
+            .and_then(|adapter| adapter.update_if_active(|| tree_update));
+        if let Some(events) = events {
+            events.raise();
+        }
+    }
+
     fn bounds(&self) -> Bounds<Pixels> {
         self.bounds.get()
     }

@@ -1,7 +1,7 @@
 name: Gpux lane B
 
 # Lane B: the threaded WASM build in headless Chromium on SwiftShader WebGPU, driven by the
-# Playwright specs in tools-node. Pull requests run the @canary and @pr specs at
+# Playwright specs in tools/browser. Pull requests run the @canary and @pr specs at
 # DPR 1; the nightly schedule (or a dispatch with all-specs) runs every spec except lane G's
 # @timing ones, DPR 2 included.
 
@@ -100,14 +100,14 @@ jobs:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
         with:
-          package_json_file: tools-node/package.json
+          package_json_file: tools/browser/package.json
       - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
-          cache-dependency-path: tools-node/pnpm-lock.yaml
+          cache-dependency-path: tools/browser/pnpm-lock.yaml
       - name: Install Playwright
-        working-directory: tools-node
+        working-directory: tools/browser
         run: |
           pnpm install --frozen-lockfile
           pnpm exec playwright install --with-deps chromium
@@ -126,7 +126,7 @@ jobs:
           cat serve.log
           exit 1
       - name: Run the specs
-        working-directory: tools-node
+        working-directory: tools/browser
         env:
           GPUX_BASE_URL: http://127.0.0.1:8000/
           GPUX_DIST: ${{ github.workspace }}/target/gpux-web/dist
@@ -166,13 +166,13 @@ jobs:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
         with:
-          package_json_file: tools-node/package.json
+          package_json_file: tools/browser/package.json
       - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
-          cache-dependency-path: tools-node/pnpm-lock.yaml
-      - working-directory: tools-node
+          cache-dependency-path: tools/browser/pnpm-lock.yaml
+      - working-directory: tools/browser
         run: pnpm install --frozen-lockfile
       - uses: actions/download-artifact@v8
         with:
@@ -180,10 +180,10 @@ jobs:
           merge-multiple: true
           path: blob-reports
       - name: Merge the shard reports
-        working-directory: tools-node
-        run: pnpm exec playwright merge-reports --reporter html,list ../blob-reports
+        working-directory: tools/browser
+        run: pnpm exec playwright merge-reports --reporter html,list ../../blob-reports
       - uses: actions/upload-artifact@v7
         with:
           name: lane-b-report
-          path: tools-node/playwright-report
+          path: tools/browser/playwright-report
           retention-days: 14

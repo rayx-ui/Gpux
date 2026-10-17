@@ -1515,6 +1515,63 @@ pub trait StatefulInteractiveElement: InteractiveElement {
         self
     }
 
+    /// Set whether a value is required for this form control.
+    fn aria_required(mut self, required: bool) -> Self {
+        self.interactivity().aria.required = Some(required);
+        self
+    }
+
+    /// Set whether this control's value can be read but not changed.
+    fn aria_read_only(mut self, read_only: bool) -> Self {
+        self.interactivity().aria.read_only = Some(read_only);
+        self
+    }
+
+    /// Make this element a live region: screen readers announce changes to its content
+    /// politely (when they are idle) or assertively (at once).
+    fn aria_live(mut self, live: accesskit::Live) -> Self {
+        self.interactivity().aria.live = Some(live);
+        self
+    }
+
+    /// Name an element that labels this one, by its [`accessibility_id`](Self::accessibility_id).
+    /// Call it again to add more labels, in order. A name no element in the frame carries is
+    /// dropped (and logged once in debug builds).
+    fn aria_labelled_by(mut self, accessibility_id: impl Into<SharedString>) -> Self {
+        self.interactivity()
+            .aria
+            .labelled_by
+            .push(accessibility_id.into());
+        self
+    }
+
+    /// Name an element that describes this one, by its
+    /// [`accessibility_id`](Self::accessibility_id). Call it again to add more, in order.
+    fn aria_described_by(mut self, accessibility_id: impl Into<SharedString>) -> Self {
+        self.interactivity()
+            .aria
+            .described_by
+            .push(accessibility_id.into());
+        self
+    }
+
+    /// Name an element whose content or presence this one controls, by its
+    /// [`accessibility_id`](Self::accessibility_id). Call it again to add more, in order.
+    fn aria_controls(mut self, accessibility_id: impl Into<SharedString>) -> Self {
+        self.interactivity()
+            .aria
+            .controls
+            .push(accessibility_id.into());
+        self
+    }
+
+    /// Name the element that holds this control's error message, by its
+    /// [`accessibility_id`](Self::accessibility_id).
+    fn aria_error_message(mut self, accessibility_id: impl Into<SharedString>) -> Self {
+        self.interactivity().aria.error_message = Some(accessibility_id.into());
+        self
+    }
+
     /// Set the expanded state for this element.
     fn aria_expanded(mut self, expanded: bool) -> Self {
         self.interactivity().aria.expanded = Some(expanded);
@@ -1628,6 +1685,24 @@ pub trait StatefulInteractiveElement: InteractiveElement {
         self.interactivity()
             .a11y_action_listeners
             .push((action, Box::new(listener)));
+        self
+    }
+
+    /// Register a custom accessibility action on this element: screen readers list it by
+    /// `description` (VoiceOver's actions rotor, for example) and agents perform it by `id`.
+    /// The handler runs when an `Action::CustomAction` request names `id`.
+    fn on_a11y_custom_action(
+        mut self,
+        id: i32,
+        description: impl Into<SharedString>,
+        listener: impl FnMut(&mut crate::Window, &mut crate::App) + 'static,
+    ) -> Self {
+        let mut listener = listener;
+        self.interactivity().a11y_custom_actions.push((
+            id,
+            description.into(),
+            Box::new(move |_, window, cx| listener(window, cx)),
+        ));
         self
     }
 
@@ -2072,6 +2147,10 @@ impl Element for Div {
         self.interactivity.write_a11y_info(node);
     }
 
+    fn queue_a11y_relations(&self, queue: &mut crate::A11yRelationQueue) {
+        self.interactivity.queue_a11y_relations(queue);
+    }
+
     fn a11y_synthetic_children(
         &mut self,
         _prepaint: &mut Self::PrepaintState,
@@ -2250,6 +2329,26 @@ impl Element for Div {
             let _ = scroll_handle.try_request_active_item();
         }
 
+        // The scroll owner `ScrollIntoView` moves while the accessibility tree is built.
+        let a11y_scroll = if window.a11y.is_active() {
+            match (
+                self.interactivity.tracked_scroll_handle.as_ref(),
+                self.interactivity.scroll_offset.as_ref(),
+            ) {
+                (Some(handle), _) => Some(crate::window::a11y::A11yScroll::Handle {
+                    handle: handle.clone(),
+                    view: window.current_view(),
+                }),
+                (None, Some(offset)) => Some(crate::window::a11y::A11yScroll::Offset {
+                    offset: offset.clone(),
+                    id: global_id.cloned(),
+                    view: window.current_view(),
+                }),
+                (None, None) => None,
+            }
+        } else {
+            None
+        };
         self.interactivity.prepaint(
             global_id,
             inspector_id,
@@ -2353,6 +2452,8 @@ impl Element for Div {
                     // Children whose scroll layer is composited are not prepainted.
                     if !fast_layer.prepainted() {
                     } else if let Some(scroll_context) = scroll_context {
+                        let a11y_parent = a11y_scroll
+                            .map(|scroll| window.a11y.enter_scroll_target(scroll, scroll_context));
                         window.with_scroll_container_context(scroll_context, |window| {
                             window.with_element_offset(
                                 positioned_bounds.delta + scroll_offset,
@@ -2366,6 +2467,9 @@ impl Element for Div {
                                 },
                             );
                         });
+                        if let Some(parent) = a11y_parent {
+                            window.a11y.exit_scroll_target(parent);
+                        }
                     } else {
                         window.with_element_offset(
                             positioned_bounds.delta + scroll_offset,
@@ -2487,6 +2591,13 @@ pub(crate) struct AriaProperties {
     pub(crate) selected: Option<bool>,
     pub(crate) invalid: Option<bool>,
     pub(crate) disabled: Option<bool>,
+    pub(crate) required: Option<bool>,
+    pub(crate) read_only: Option<bool>,
+    pub(crate) live: Option<accesskit::Live>,
+    pub(crate) labelled_by: SmallVec<[SharedString; 1]>,
+    pub(crate) described_by: SmallVec<[SharedString; 1]>,
+    pub(crate) controls: SmallVec<[SharedString; 1]>,
+    pub(crate) error_message: Option<SharedString>,
     pub(crate) expanded: Option<bool>,
     pub(crate) toggled: Option<accesskit::Toggled>,
     pub(crate) numeric_value: Option<f64>,
@@ -2661,6 +2772,9 @@ pub struct Interactivity {
 
     pub(crate) a11y_action_listeners:
         LazyVec<(accesskit::Action, crate::window::a11y::A11yActionListener)>,
+    /// Custom accessibility actions: their AccessKit id, description and handler.
+    pub(crate) a11y_custom_actions:
+        LazyVec<(i32, SharedString, crate::window::a11y::A11yActionListener)>,
     pub(crate) a11y_synthetic_children: Option<Box<dyn FnOnce(&mut crate::A11ySubtreeBuilder)>>,
     pub(crate) report_active_descendant_focus: bool,
     pub(crate) override_role: Option<accesskit::Role>,
@@ -2895,11 +3009,11 @@ impl Interactivity {
 
             if window.a11y.is_active() {
                 if let Some(global_id) = global_id {
-                    let node_id = global_id.accesskit_node_id();
-                    window.a11y.set_focusable(node_id, focus_handle.id);
-                    if focus_handle.is_focused(window) {
-                        window.a11y.set_focus(node_id);
-                    }
+                    let node_id = window.a11y_node_id(global_id);
+                    let focused = focus_handle.is_focused(window);
+                    window
+                        .a11y
+                        .set_focusable_node(node_id, focus_handle.id, focused);
                 } else if focus_handle.is_focused(window) {
                     window
                         .a11y
@@ -2909,9 +3023,8 @@ impl Interactivity {
         }
         if self.report_active_descendant_focus && window.a11y.is_active() {
             if let Some(global_id) = global_id {
-                window
-                    .a11y
-                    .set_active_descendant(global_id.accesskit_node_id());
+                let node_id = window.a11y_node_id(global_id);
+                window.a11y.set_active_descendant(node_id);
             }
         }
         window.with_optional_element_state::<InteractiveElementState, _>(
@@ -3343,12 +3456,19 @@ impl Interactivity {
                                             if window.a11y.is_active()
                                                 && let Some(global_id) = global_id
                                             {
-                                                let node_id = global_id.accesskit_node_id();
+                                                let node_id = window.a11y_node_id(global_id);
                                                 for (action, listener) in
                                                     self.a11y_action_listeners.drain(..)
                                                 {
                                                     window
                                                         .on_a11y_action(node_id, action, listener);
+                                                }
+                                                for (id, _, listener) in
+                                                    self.a11y_custom_actions.drain(..)
+                                                {
+                                                    window.on_a11y_custom_action(
+                                                        node_id, id, listener,
+                                                    );
                                                 }
                                             }
                                             f(&style, window, cx);
@@ -4394,6 +4514,17 @@ impl Interactivity {
         }
     }
 
+    pub(crate) fn queue_a11y_relations(&self, queue: &mut crate::A11yRelationQueue) {
+        use crate::window::a11y::RelationKind;
+        let aria = &*self.aria;
+        queue.push(RelationKind::LabelledBy, &aria.labelled_by);
+        queue.push(RelationKind::DescribedBy, &aria.described_by);
+        queue.push(RelationKind::Controls, &aria.controls);
+        if let Some(target) = &aria.error_message {
+            queue.push(RelationKind::ErrorMessage, std::slice::from_ref(target));
+        }
+    }
+
     pub(crate) fn write_a11y_info(&self, node: &mut accesskit::Node) {
         if let Some(id) = &self.aria.author_id {
             node.set_author_id(id.to_string());
@@ -4424,6 +4555,23 @@ impl Interactivity {
                 node.clear_disabled();
             }
         }
+        if let Some(live) = self.aria.live {
+            node.set_live(live);
+        }
+        if let Some(required) = self.aria.required {
+            if required {
+                node.set_required();
+            } else {
+                node.clear_required();
+            }
+        }
+        if let Some(read_only) = self.aria.read_only {
+            if read_only {
+                node.set_read_only();
+            } else {
+                node.clear_read_only();
+            }
+        }
         if let Some(expanded) = self.aria.expanded {
             node.set_expanded(expanded);
         }
@@ -4450,6 +4598,9 @@ impl Interactivity {
         }
         if let Some(orientation) = self.aria.orientation {
             node.set_orientation(orientation);
+        } else if node.role() == accesskit::Role::Slider {
+            // ARIA's default for a slider; without one VoiceOver calls it a circular slider.
+            node.set_orientation(accesskit::Orientation::Horizontal);
         }
         if let Some(level) = self.aria.level {
             node.set_level(level);
@@ -4480,6 +4631,15 @@ impl Interactivity {
         }
         for (action, _) in &self.a11y_action_listeners {
             node.add_action(*action);
+        }
+        if !self.a11y_custom_actions.is_empty() {
+            node.add_action(accesskit::Action::CustomAction);
+            for (id, description, _) in &self.a11y_custom_actions {
+                node.push_custom_action(accesskit::CustomAction {
+                    id: *id,
+                    description: description.to_string(),
+                });
+            }
         }
     }
 }
@@ -5005,6 +5165,14 @@ where
         builder: &mut crate::A11ySubtreeBuilder,
     ) {
         self.element.a11y_synthetic_children(prepaint, builder);
+    }
+
+    fn a11y_text_leaf(&self) -> Option<&str> {
+        self.element.a11y_text_leaf()
+    }
+
+    fn queue_a11y_relations(&self, queue: &mut crate::A11yRelationQueue) {
+        self.element.queue_a11y_relations(queue);
     }
 
     fn request_layout(

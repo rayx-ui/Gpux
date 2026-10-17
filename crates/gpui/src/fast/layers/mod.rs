@@ -116,10 +116,6 @@ pub(crate) struct WindowLayers {
     pub(crate) before_input: bool,
     /// Counts the frames drawn, for layers to tell how long ago something was.
     pub(crate) frame: u64,
-    /// Where the hitboxes of the rows lists' layers hold off screen lie in
-    /// the frame being drawn, from the first to the last, if it holds any.
-    /// See [`lists::hidden_hitboxes`].
-    pub(crate) hidden_hitboxes: Option<std::ops::Range<usize>>,
     /// The window's size and scale factor the layers were painted at.
     pub(crate) window_size: Option<(crate::Size<crate::Pixels>, f32)>,
 }
@@ -160,7 +156,6 @@ pub(crate) fn active(window: &Window, cx: &App) -> bool {
     window.fast_mode.scroll_layers()
         && !window.refreshing
         && !cx.has_active_drag()
-        && !window.a11y.is_active()
         && !window.is_inspector_picking(cx)
 }
 
@@ -193,7 +188,6 @@ pub(crate) fn finish_frame(window: &mut Window) {
     layers
         .scrolls
         .finish_frame(frame, |id| live.contains_key(id));
-    layers.hidden_hitboxes = None;
     layers.frame += 1;
     finish_measured_items(window);
 }

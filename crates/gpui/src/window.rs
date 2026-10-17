@@ -75,10 +75,10 @@ pub(crate) mod a11y;
 mod action_target;
 mod prompts;
 
-pub use a11y::A11ySubtreeBuilder;
+pub use a11y::roles::{aria_role, query_role_name};
+pub use a11y::{A11yInspection, A11yRelationQueue, A11ySubtreeBuilder, AccessibilityMode};
 
 use self::a11y::A11y;
-#[cfg(not(target_family = "wasm"))]
 use self::a11y::ROOT_NODE_ID;
 use crate::util::{
     atomic_incr_if_not_zero, ceil_to_device_pixel, floor_to_device_pixel,
@@ -1140,14 +1140,9 @@ pub(crate) struct WindowFrame {
     pub(crate) debug_bounds: FxHashMap<String, Bounds<Pixels>>,
     #[cfg(any(test, feature = "test-support"))]
     pub(crate) debug_bounds_records: Vec<(String, Bounds<Pixels>)>,
-    pub(crate) devtools_nodes: Vec<DevtoolsFrameNode>,
-    pub(crate) devtools_node_indices: Vec<usize>,
-    pub(crate) devtools_property_setters: FxHashMap<usize, Vec<DevtoolsPropertySetter>>,
-    pub(crate) devtools_node_stack: Vec<usize>,
-    pub(crate) next_devtools_node_id: usize,
-    /// Visual bounds that elements reported for their own devtools node while prepainting,
+    /// Visual bounds that elements reported for their own dispatch node while prepainting,
     /// when they paint somewhere other than their layout bounds (fixed and sticky divs).
-    visual_bounds: Vec<(usize, Bounds<Pixels>)>,
+    visual_bounds: Vec<(DispatchNodeId, Bounds<Pixels>)>,
     #[cfg(any(feature = "inspector", debug_assertions))]
     pub(crate) next_inspector_instance_ids: FxHashMap<Rc<crate::InspectorElementPath>, usize>,
     #[cfg(any(feature = "inspector", debug_assertions))]
@@ -1167,8 +1162,8 @@ pub(crate) struct PrepaintStateIndex {
     pub(crate) tooltips_index: usize,
     pub(crate) deferred_draws_index: usize,
     pub(crate) dispatch_tree_index: usize,
-    pub(crate) devtools_nodes_index: usize,
-    pub(crate) devtools_node_id: usize,
+    /// Where the frame's accessibility events stand (see `window::a11y::A11yEvent`).
+    pub(crate) a11y_events_index: usize,
     pub(crate) accessed_element_states_index: usize,
     pub(crate) pending_element_state_transfers_index: usize,
     pub(crate) line_layout_index: LineLayoutIndex,
@@ -1186,6 +1181,8 @@ pub(crate) struct PaintIndex {
     pub(crate) accessed_element_states_index: usize,
     pub(crate) tab_handle_index: usize,
     pub(crate) line_layout_index: LineLayoutIndex,
+    /// Where the accessibility action handlers painted from here start.
+    pub(crate) a11y_listeners_index: usize,
     /// Where the window-control hitboxes painted from here start: a view
     /// drawn from last frame paints them again with the rest.
     pub(crate) fast_window_control_hitboxes_index: usize,
@@ -1223,11 +1220,6 @@ impl WindowFrame {
             #[cfg(any(test, feature = "test-support"))]
             debug_bounds_records: Vec::new(),
 
-            devtools_nodes: Vec::new(),
-            devtools_node_indices: Vec::new(),
-            devtools_property_setters: FxHashMap::default(),
-            devtools_node_stack: Vec::new(),
-            next_devtools_node_id: 0,
             visual_bounds: Vec::new(),
 
             #[cfg(any(feature = "inspector", debug_assertions))]
@@ -1267,11 +1259,6 @@ impl WindowFrame {
             self.debug_bounds_records.clear();
         }
 
-        self.devtools_nodes.clear();
-        self.devtools_node_indices.clear();
-        self.devtools_property_setters.clear();
-        self.devtools_node_stack.clear();
-        self.next_devtools_node_id = 0;
         self.visual_bounds.clear();
 
         #[cfg(any(feature = "inspector", debug_assertions))]
@@ -1348,416 +1335,10 @@ impl WindowFrame {
     }
 }
 
-/// Read-only geometry of an element rendered in a GPUI frame.
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub struct DevtoolsBounds {
-    /// The left edge in window-local pixels.
-    pub x: f32,
-    /// The top edge in window-local pixels.
-    pub y: f32,
-    /// The width in pixels.
-    pub width: f32,
-    /// The height in pixels.
-    pub height: f32,
-}
-
-impl From<Bounds<Pixels>> for DevtoolsBounds {
-    fn from(bounds: Bounds<Pixels>) -> Self {
-        Self {
-            x: bounds.origin.x.as_f32(),
-            y: bounds.origin.y.as_f32(),
-            width: bounds.size.width.as_f32(),
-            height: bounds.size.height.as_f32(),
-        }
-    }
-}
-
-/// Source location for a rendered element, when debug metadata is available.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct DevtoolsElementSource {
-    /// The source file that constructed the element.
-    pub file: String,
-    /// The one-based source line that constructed the element.
-    pub line: u32,
-    /// The one-based source column that constructed the element.
-    pub column: u32,
-}
-
-impl DevtoolsElementSource {
-    fn from_location(location: &'static core::panic::Location<'static>) -> Self {
-        Self {
-            file: location.file().to_string(),
-            line: location.line(),
-            column: location.column(),
-        }
-    }
-}
-
-/// Read-only inspection data for one rendered GPUI element.
+/// Shader-effect diagnostics for the last rendered frame of a window, from
+/// [`Window::effect_diagnostics`].
 #[derive(Clone, Debug, PartialEq)]
-pub struct DevtoolsElementSnapshot {
-    /// Per-frame rendered element occurrence id.
-    pub devtools_node_id: usize,
-    /// The parent rendered element occurrence id for this frame, if any.
-    pub parent_devtools_node_id: Option<usize>,
-    /// The GPUI dispatch-tree node id for this rendered frame.
-    pub dispatch_node_id: usize,
-    /// The parent GPUI dispatch-tree node id for this rendered frame.
-    pub parent_dispatch_node_id: Option<usize>,
-    /// The Rust type name of the rendered element.
-    pub type_name: String,
-    /// The stable element id path, when the element supplied one.
-    pub global_id: Option<String>,
-    /// Debug source information, when available.
-    pub source: Option<DevtoolsElementSource>,
-    /// The element bounds in window-local pixels.
-    pub bounds: DevtoolsBounds,
-    /// Component-authored accessibility and DevKit semantics for this element.
-    pub semantics: DevtoolsSemantics,
-    /// The number of hitboxes registered while prepainting this element subtree.
-    pub hitbox_count: usize,
-    /// The number of keyboard listeners registered on this element.
-    pub key_listener_count: usize,
-    /// The number of action listeners registered on this element.
-    pub action_listener_count: usize,
-    /// Whether this element owns the currently focused dispatch node.
-    pub focused: bool,
-}
-
-/// Whether frames record the DevKit node of every element, with the semantics and writable
-/// properties authored on it. Off without the `devtools` feature: nothing is recorded, copied or
-/// dropped per element, and `devtools_frame_snapshot` lists no element.
-pub(crate) const DEVTOOLS: bool = cfg!(feature = "devtools");
-
-pub(crate) struct DevtoolsFrameNode {
-    pub(crate) devtools_node_id: usize,
-    pub(crate) parent_devtools_node_id: Option<usize>,
-    pub(crate) dispatch_node_id: usize,
-    pub(crate) parent_dispatch_node_id: Option<usize>,
-    pub(crate) type_name: &'static str,
-    pub(crate) global_id: Option<GlobalElementId>,
-    pub(crate) source: Option<&'static core::panic::Location<'static>>,
-    pub(crate) bounds: DevtoolsBounds,
-    pub(crate) semantics: Option<DevtoolsSemantics>,
-    pub(crate) hitbox_count: usize,
-    pub(crate) key_listener_count: usize,
-    pub(crate) action_listener_count: usize,
-    pub(crate) focused: bool,
-    pub(crate) fast_row: crate::fast::layers::lists::NodeRow,
-}
-
-impl DevtoolsFrameNode {
-    pub(crate) fn snapshot(&self) -> DevtoolsElementSnapshot {
-        DevtoolsElementSnapshot {
-            devtools_node_id: self.devtools_node_id,
-            parent_devtools_node_id: self.parent_devtools_node_id,
-            dispatch_node_id: self.dispatch_node_id,
-            parent_dispatch_node_id: self.parent_dispatch_node_id,
-            type_name: self.type_name.to_string(),
-            global_id: self.global_id.as_ref().map(ToString::to_string),
-            source: self.source.map(DevtoolsElementSource::from_location),
-            bounds: self.bounds,
-            semantics: self.semantics.clone().unwrap_or_default(),
-            hitbox_count: self.hitbox_count,
-            key_listener_count: self.key_listener_count,
-            action_listener_count: self.action_listener_count,
-            focused: self.focused,
-        }
-    }
-}
-
-/// Component-authored accessibility and DevKit semantics for a rendered element.
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct DevtoolsSemantics {
-    /// Accessibility role such as `button`, `textbox`, `checkbox`, or `text`.
-    pub role: Option<String>,
-    /// Accessible name exposed to automation agents.
-    pub name: Option<String>,
-    /// Text content rendered by this element.
-    pub text: Option<String>,
-    /// Editable value exposed by this element.
-    pub value: Option<String>,
-    /// Placeholder text for editable controls.
-    pub placeholder: Option<String>,
-    /// Whether the element is enabled.
-    pub enabled: Option<bool>,
-    /// Whether the element is selected.
-    pub selected: Option<bool>,
-    /// Whether the element is checked.
-    pub checked: Option<bool>,
-    /// Whether the element is expanded.
-    pub expanded: Option<bool>,
-    /// Whether the element is required by its owning form.
-    pub required: Option<bool>,
-    /// Whether the element currently has an invalid value.
-    pub invalid: Option<bool>,
-    /// Whether the element is read-only.
-    pub read_only: Option<bool>,
-    /// Semantic orientation such as `horizontal` or `vertical`.
-    pub orientation: Option<String>,
-    /// Stable authored ids of elements that label this element.
-    pub labelled_by: Vec<String>,
-    /// Stable authored ids of elements that describe this element.
-    pub described_by: Vec<String>,
-    /// Stable authored id of the element that contains the validation error.
-    pub error_message: Option<String>,
-    /// Stable authored ids of controls owned by this element.
-    pub controls: Vec<String>,
-    /// Pointer operations exposed by this element without changing its label or value semantics.
-    pub pointer_actions: Vec<DevtoolsPointerAction>,
-    /// Component-authored writable properties for live DevKit mutation.
-    pub writable_properties: Vec<DevtoolsWritableProperty>,
-}
-
-/// A pointer operation exposed to accessibility and DevKit clients.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum DevtoolsPointerAction {
-    /// Activates the element with a primary tap or click.
-    Activate,
-    /// Invokes the element's long-press affordance.
-    LongPress,
-    /// Starts a drag interaction.
-    Drag,
-    /// Changes an element's scale.
-    Scale,
-}
-
-impl DevtoolsSemantics {
-    /// Create empty semantics to populate with builder methods.
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Set the accessibility role.
-    pub fn role(mut self, role: impl Into<String>) -> Self {
-        self.role = Some(role.into());
-        self
-    }
-
-    /// Set the accessible name.
-    pub fn name(mut self, name: impl Into<String>) -> Self {
-        self.name = Some(name.into());
-        self
-    }
-
-    /// Set text content.
-    pub fn text(mut self, text: impl Into<String>) -> Self {
-        self.text = Some(text.into());
-        self
-    }
-
-    /// Set the editable value.
-    pub fn value(mut self, value: impl Into<String>) -> Self {
-        self.value = Some(value.into());
-        self
-    }
-
-    /// Set placeholder text.
-    pub fn placeholder(mut self, placeholder: impl Into<String>) -> Self {
-        self.placeholder = Some(placeholder.into());
-        self
-    }
-
-    /// Set whether the element is enabled.
-    pub fn enabled(mut self, enabled: bool) -> Self {
-        self.enabled = Some(enabled);
-        self
-    }
-
-    /// Set whether the element is selected.
-    pub fn selected(mut self, selected: bool) -> Self {
-        self.selected = Some(selected);
-        self
-    }
-
-    /// Set whether the element is checked.
-    pub fn checked(mut self, checked: bool) -> Self {
-        self.checked = Some(checked);
-        self
-    }
-
-    /// Set whether the element is expanded.
-    pub fn expanded(mut self, expanded: bool) -> Self {
-        self.expanded = Some(expanded);
-        self
-    }
-
-    /// Set whether this element is required by its owning form.
-    pub fn required(mut self, required: bool) -> Self {
-        self.required = Some(required);
-        self
-    }
-
-    /// Set whether this element currently has an invalid value.
-    pub fn invalid(mut self, invalid: bool) -> Self {
-        self.invalid = Some(invalid);
-        self
-    }
-
-    /// Set whether this element is read-only.
-    pub fn read_only(mut self, read_only: bool) -> Self {
-        self.read_only = Some(read_only);
-        self
-    }
-
-    /// Set the semantic orientation.
-    pub fn orientation(mut self, orientation: impl Into<String>) -> Self {
-        self.orientation = Some(orientation.into());
-        self
-    }
-
-    /// Add the stable authored id of an element that labels this element.
-    pub fn labelled_by(mut self, id: impl Into<String>) -> Self {
-        push_unique_string(&mut self.labelled_by, id.into());
-        self
-    }
-
-    /// Add the stable authored id of an element that describes this element.
-    pub fn described_by(mut self, id: impl Into<String>) -> Self {
-        push_unique_string(&mut self.described_by, id.into());
-        self
-    }
-
-    /// Set the stable authored id of the validation error element.
-    pub fn error_message(mut self, id: impl Into<String>) -> Self {
-        self.error_message = Some(id.into());
-        self
-    }
-
-    /// Add the stable authored id of a control owned by this element.
-    pub fn controls(mut self, id: impl Into<String>) -> Self {
-        push_unique_string(&mut self.controls, id.into());
-        self
-    }
-
-    /// Adds a pointer operation without changing the rest of this element's semantics.
-    pub fn pointer_action(mut self, action: DevtoolsPointerAction) -> Self {
-        if !self.pointer_actions.contains(&action) {
-            self.pointer_actions.push(action);
-        }
-        self
-    }
-
-    /// Add a writable property exposed by the component.
-    pub fn writable_property(
-        mut self,
-        name: impl Into<String>,
-        value_type: impl Into<String>,
-    ) -> Self {
-        self.writable_properties.push(DevtoolsWritableProperty {
-            name: name.into(),
-            value_type: value_type.into(),
-        });
-        self
-    }
-
-    fn merge(&mut self, other: Self) {
-        if other.role.is_some() {
-            self.role = other.role;
-        }
-        if other.name.is_some() {
-            self.name = other.name;
-        }
-        if other.text.is_some() {
-            self.text = other.text;
-        }
-        if other.value.is_some() {
-            self.value = other.value;
-        }
-        if other.placeholder.is_some() {
-            self.placeholder = other.placeholder;
-        }
-        if other.enabled.is_some() {
-            self.enabled = other.enabled;
-        }
-        if other.selected.is_some() {
-            self.selected = other.selected;
-        }
-        if other.checked.is_some() {
-            self.checked = other.checked;
-        }
-        if other.expanded.is_some() {
-            self.expanded = other.expanded;
-        }
-        if other.required.is_some() {
-            self.required = other.required;
-        }
-        if other.invalid.is_some() {
-            self.invalid = other.invalid;
-        }
-        if other.read_only.is_some() {
-            self.read_only = other.read_only;
-        }
-        if other.orientation.is_some() {
-            self.orientation = other.orientation;
-        }
-        for id in other.labelled_by {
-            push_unique_string(&mut self.labelled_by, id);
-        }
-        for id in other.described_by {
-            push_unique_string(&mut self.described_by, id);
-        }
-        if other.error_message.is_some() {
-            self.error_message = other.error_message;
-        }
-        for id in other.controls {
-            push_unique_string(&mut self.controls, id);
-        }
-        for action in other.pointer_actions {
-            if !self.pointer_actions.contains(&action) {
-                self.pointer_actions.push(action);
-            }
-        }
-        for property in other.writable_properties {
-            if !self
-                .writable_properties
-                .iter()
-                .any(|existing| existing.name == property.name)
-            {
-                self.writable_properties.push(property);
-            }
-        }
-    }
-}
-
-fn push_unique_string(values: &mut Vec<String>, value: String) {
-    if !values.contains(&value) {
-        values.push(value);
-    }
-}
-
-/// A component-authored writable property exposed to DevKit agents.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct DevtoolsWritableProperty {
-    /// Property name accepted by the component setter.
-    pub name: String,
-    /// Human-readable JSON value type, such as `string`, `bool`, or `number`.
-    pub value_type: String,
-}
-
-type DevtoolsPropertyCallback =
-    Rc<dyn Fn(serde_json::Value, &mut Window, &mut App) -> std::result::Result<(), String>>;
-
-#[derive(Clone)]
-pub(crate) struct DevtoolsPropertySetter {
-    pub(crate) property: DevtoolsWritableProperty,
-    pub(crate) callback: DevtoolsPropertyCallback,
-}
-
-/// Read-only inspection data for the last rendered GPUI frame.
-#[derive(Clone, Debug, PartialEq)]
-pub struct DevtoolsFrameSnapshot {
-    /// The window-local viewport covered by this frame.
-    pub viewport: DevtoolsBounds,
-    /// Shader-effect diagnostics for this frame.
-    pub effects: DevtoolsEffectSnapshot,
-    /// The rendered element tree flattened in prepaint order.
-    pub elements: Vec<DevtoolsElementSnapshot>,
-}
-
-/// Read-only shader-effect diagnostics for the last rendered GPUI frame.
-#[derive(Clone, Debug, PartialEq)]
-pub struct DevtoolsEffectSnapshot {
+pub struct EffectDiagnostics {
     /// Number of active screen effects in the rendered scene.
     pub active_screen_effect_count: usize,
     /// Number of retained screen-effect snapshots in the rendered scene.
@@ -2463,7 +2044,6 @@ pub struct Window {
     pub(crate) next_sticky_layout_context_id: StickyLayoutContextId,
     pub(crate) paint_content_mask_stack: Vec<ContentMask<ScaledPixels>>,
     pub(crate) hitbox_behavior_overrides: Vec<HitboxBehavior>,
-    pub(crate) pointer_semantics_suppressed: usize,
     pub(crate) requested_autoscroll: Option<Bounds<Pixels>>,
     /// The [`TextInputConfiguration`] most recently forwarded to the platform
     /// window, so that only actual changes are forwarded (reconfiguring a live
@@ -2521,6 +2101,8 @@ pub struct Window {
     long_press_timer: Option<Task<()>>,
     long_press_capture: Option<EntityId>,
     pub(crate) refreshing: bool,
+    /// How many frames the window drew; see [`Window::frames_drawn`].
+    frames_drawn: u64,
     pub(crate) activation_observers: SubscriberSet<(), AnyObserver>,
     pub(crate) minimized_observers: SubscriberSet<(), AnyObserver>,
     pub(crate) focus: Option<FocusId>,
@@ -2541,6 +2123,10 @@ pub struct Window {
     #[cfg(feature = "profiler")]
     debug_frame_overlay: crate::debug_overlay::DebugFrameOverlay,
     pub(crate) a11y: A11y,
+    /// The inspection test queries hold for the window's life
+    /// (`VisualTestContext::settled_semantic_snapshot`).
+    #[cfg(any(test, feature = "test-support"))]
+    pub(crate) test_inspection: Option<A11yInspection>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -2911,7 +2497,9 @@ impl Window {
         let accessibility_force_disabled = cx.accessibility_force_disabled;
         let a11y_active_flag = Arc::new(AtomicBool::new(false));
 
-        #[cfg(not(target_family = "wasm"))]
+        // Every target sets up the adapter callbacks: a platform without a screen-reader adapter
+        // keeps `a11y_init`'s no-op and never turns the platform source on, while inspection and
+        // `AccessibilityMode::Always` build the tree on every target.
         if !accessibility_force_disabled {
             let mut initial_root_node = accesskit::Node::new(accesskit::Role::Window);
             if let Some(title) = &initial_window_title {
@@ -2919,7 +2507,7 @@ impl Window {
             }
             let initial_tree = accesskit::TreeUpdate {
                 nodes: vec![(ROOT_NODE_ID, initial_root_node)],
-                tree: Some(accesskit::Tree::new(ROOT_NODE_ID)),
+                tree: Some(a11y::tree_info()),
                 tree_id: accesskit::TreeId::ROOT,
                 focus: ROOT_NODE_ID,
             };
@@ -2934,19 +2522,19 @@ impl Window {
                     Box::new(move || {
                         log::info!("Accessibility activated");
                         active_flag.store(true, SeqCst);
-                        activation_sender.send_blocking(()).log_err();
+                        activation_sender.try_send(()).log_err();
                         Some(initial_tree.clone())
                     })
                 },
                 action: Box::new(move |request| {
-                    action_sender.send_blocking(request).log_err();
+                    action_sender.try_send(request).log_err();
                 }),
                 deactivation: {
                     let active_flag = a11y_active_flag.clone();
                     Box::new(move || {
                         log::info!("Accessibility deactivated");
                         active_flag.store(false, SeqCst);
-                        deactivation_sender.send_blocking(()).log_err();
+                        deactivation_sender.try_send(()).log_err();
                     })
                 },
             });
@@ -3448,7 +3036,6 @@ impl Window {
             element_transform_stack: Vec::new(),
             paint_content_mask_stack: Vec::new(),
             hitbox_behavior_overrides: Vec::new(),
-            pointer_semantics_suppressed: 0,
             requested_autoscroll: None,
             last_text_input_configuration: None,
             focused_text_input_active: false,
@@ -3504,6 +3091,7 @@ impl Window {
             long_press_timer: None,
             long_press_capture: None,
             refreshing: false,
+            frames_drawn: 0,
             activation_observers: SubscriberSet::new(),
             minimized_observers: SubscriberSet::new(),
             focus: None,
@@ -3520,8 +3108,11 @@ impl Window {
             inspector: None,
             #[cfg(feature = "profiler")]
             debug_frame_overlay: crate::debug_overlay::DebugFrameOverlay::new(),
+            #[cfg(any(test, feature = "test-support"))]
+            test_inspection: None,
             a11y: A11y::new(
                 a11y_active_flag,
+                cx.accessibility_mode.clone(),
                 accessibility_force_disabled,
                 initial_window_title,
             ),
@@ -4367,6 +3958,11 @@ impl Window {
         self.platform_window.bounds()
     }
 
+    /// How many frames the window has drawn since it opened.
+    pub fn frames_drawn(&self) -> u64 {
+        self.frames_drawn
+    }
+
     /// Renders the current frame's scene to a texture and returns the pixel data as an RGBA image.
     /// This does not present the frame to screen - useful for visual testing where we want
     /// to capture what would be rendered without displaying it or requiring the window to be visible.
@@ -4904,22 +4500,11 @@ impl Window {
         self.pressed_mouse_button
     }
 
-    /// Returns read-only inspection data for the last rendered frame.
-    pub fn devtools_frame_snapshot(&self) -> DevtoolsFrameSnapshot {
-        DevtoolsFrameSnapshot {
-            viewport: Bounds {
-                origin: point(px(0.0), px(0.0)),
-                size: self.viewport_size,
-            }
-            .into(),
-            effects: self.devtools_effect_snapshot(),
-            elements: crate::fast::layers::lists::shown_nodes(&self.rendered_frame.devtools_nodes)
-                .map(DevtoolsFrameNode::snapshot)
-                .collect(),
-        }
-    }
-
-    fn devtools_effect_snapshot(&self) -> DevtoolsEffectSnapshot {
+    /// The shader-effect counts of the last rendered frame: the active screen effects, their
+    /// snapshots and regions, the element visual effects, the region-targeted effects whose
+    /// region is absent and the snapshot transitions whose snapshot is absent, with the
+    /// renderer's effect capabilities.
+    pub fn effect_diagnostics(&self) -> EffectDiagnostics {
         let scene = &self.rendered_frame.scene;
         let missing_screen_effect_region_count = scene
             .active_screen_effects
@@ -4944,7 +4529,7 @@ impl Window {
             })
             .count();
 
-        DevtoolsEffectSnapshot {
+        EffectDiagnostics {
             active_screen_effect_count: scene.active_screen_effects.len(),
             screen_effect_snapshot_count: scene.active_screen_effect_snapshots.len(),
             visual_effect_count: scene.visual_effects.len(),
@@ -4955,222 +4540,24 @@ impl Window {
         }
     }
 
-    pub(crate) fn record_devtools_element(
-        &mut self,
-        devtools_node_id: usize,
-        parent_devtools_node_id: Option<usize>,
-        node_id: DispatchNodeId,
-        type_name: &'static str,
-        global_id: Option<&GlobalElementId>,
-        source: Option<&'static core::panic::Location<'static>>,
-        bounds: Bounds<Pixels>,
-        hitbox_range: Range<usize>,
-    ) {
-        if !DEVTOOLS {
-            return;
-        }
-        let parent_dispatch_node_id = self
-            .next_frame
-            .dispatch_tree
-            .parent_node_id(node_id)
-            .map(DispatchNodeId::as_usize);
-        let dispatch_node = self.next_frame.dispatch_tree.node(node_id);
-        self.next_frame.devtools_node_indices[devtools_node_id] =
-            self.next_frame.devtools_nodes.len();
-        self.next_frame.devtools_nodes.push(DevtoolsFrameNode {
-            devtools_node_id,
-            parent_devtools_node_id,
-            dispatch_node_id: node_id.as_usize(),
-            parent_dispatch_node_id,
-            type_name,
-            global_id: global_id.cloned(),
-            source,
-            bounds: bounds.into(),
-            semantics: None,
-            hitbox_count: hitbox_range.len()
-                - crate::fast::layers::lists::hidden_hitboxes(self, &hitbox_range),
-            key_listener_count: dispatch_node.key_listeners.len(),
-            action_listener_count: dispatch_node.action_listeners.len(),
-            focused: dispatch_node.focus_id.is_some()
-                && dispatch_node.focus_id == self.next_frame.focus,
-            fast_row: crate::fast::layers::lists::node_row(self),
-        });
-    }
-
     /// Reports where the element being prepainted paints and hit-tests when that differs from
-    /// its layout bounds (fixed and sticky divs). Its devtools snapshot node (read by the
-    /// semantic locators) and its accessibility node then use the visual bounds.
+    /// its layout bounds (fixed and sticky divs). Its accessibility node then uses the visual
+    /// bounds.
     pub(crate) fn report_visual_bounds(&mut self, bounds: Bounds<Pixels>) {
-        if let Some(devtools_node_id) = self.active_devtools_node_id() {
-            self.next_frame
-                .visual_bounds
-                .push((devtools_node_id, bounds));
+        if let Some(node_id) = self.next_frame.dispatch_tree.active_node_id() {
+            self.next_frame.visual_bounds.push((node_id, bounds));
         }
     }
 
-    /// Takes the visual bounds the element of `devtools_node_id` reported while prepainting.
-    pub(crate) fn take_visual_bounds(&mut self, devtools_node_id: usize) -> Option<Bounds<Pixels>> {
+    /// Takes the visual bounds the element of dispatch node `node_id` reported while
+    /// prepainting.
+    pub(crate) fn take_visual_bounds(&mut self, node_id: DispatchNodeId) -> Option<Bounds<Pixels>> {
         let index = self
             .next_frame
             .visual_bounds
             .iter()
-            .position(|(id, _)| *id == devtools_node_id)?;
+            .position(|(id, _)| *id == node_id)?;
         Some(self.next_frame.visual_bounds.swap_remove(index).1)
-    }
-
-    pub(crate) fn push_devtools_node(&mut self) -> (usize, Option<usize>) {
-        let devtools_node_id = self.next_frame.next_devtools_node_id;
-        self.next_frame.next_devtools_node_id += 1;
-        debug_assert_eq!(
-            self.next_frame.devtools_node_indices.len(),
-            devtools_node_id
-        );
-        self.next_frame.devtools_node_indices.push(usize::MAX);
-        let parent_devtools_node_id = self.next_frame.devtools_node_stack.last().copied();
-        self.next_frame.devtools_node_stack.push(devtools_node_id);
-        (devtools_node_id, parent_devtools_node_id)
-    }
-
-    pub(crate) fn push_existing_devtools_node(&mut self, devtools_node_id: usize) {
-        self.next_frame.devtools_node_stack.push(devtools_node_id);
-    }
-
-    pub(crate) fn pop_devtools_node(&mut self, devtools_node_id: usize) {
-        // Pop outside the assertion: release builds do not evaluate `debug_assert` arguments.
-        let popped = self.next_frame.devtools_node_stack.pop();
-        debug_assert_eq!(popped, Some(devtools_node_id));
-    }
-
-    fn active_devtools_node_id(&self) -> Option<usize> {
-        self.next_frame.devtools_node_stack.last().copied()
-    }
-
-    fn devtools_element_mut(&mut self, devtools_node_id: usize) -> Option<&mut DevtoolsFrameNode> {
-        let node_index = *self
-            .next_frame
-            .devtools_node_indices
-            .get(devtools_node_id)?;
-        self.next_frame.devtools_nodes.get_mut(node_index)
-    }
-
-    /// Attach component-authored DevKit semantics to the element currently being painted.
-    pub fn set_devtools_semantics(&mut self, semantics: DevtoolsSemantics) {
-        if !DEVTOOLS {
-            return;
-        }
-        let Some(devtools_node_id) = self.active_devtools_node_id() else {
-            return;
-        };
-        let pointer_semantics_suppressed = self.pointer_semantics_suppressed != 0;
-        let Some(element) = self.devtools_element_mut(devtools_node_id) else {
-            return;
-        };
-        let mut semantics = semantics;
-        if pointer_semantics_suppressed {
-            semantics.pointer_actions.clear();
-        }
-        if let Some(existing) = &mut element.semantics {
-            existing.merge(semantics);
-        } else {
-            element.semantics = Some(semantics);
-        }
-    }
-
-    /// Attaches the semantics `semantics` builds, which are not built without the `devtools`
-    /// feature.
-    pub(crate) fn set_devtools_semantics_with(
-        &mut self,
-        semantics: impl FnOnce() -> DevtoolsSemantics,
-    ) {
-        if DEVTOOLS {
-            self.set_devtools_semantics(semantics());
-        }
-    }
-
-    /// Register a live writable DevKit property on the element currently being painted.
-    pub fn on_devtools_property(
-        &mut self,
-        name: impl Into<String>,
-        value_type: impl Into<String>,
-        setter: impl Fn(serde_json::Value, &mut Window, &mut App) -> std::result::Result<(), String>
-        + 'static,
-    ) {
-        self.register_devtools_property_setter(DevtoolsPropertySetter {
-            property: DevtoolsWritableProperty {
-                name: name.into(),
-                value_type: value_type.into(),
-            },
-            callback: Rc::new(setter),
-        });
-    }
-
-    pub(crate) fn register_devtools_property_setter(&mut self, setter: DevtoolsPropertySetter) {
-        if !DEVTOOLS {
-            return;
-        }
-        let Some(devtools_node_id) = self.active_devtools_node_id() else {
-            return;
-        };
-        let Some(element) = self.devtools_element_mut(devtools_node_id) else {
-            return;
-        };
-        let dispatch_node_id = element.dispatch_node_id;
-        let semantics = element.semantics.get_or_insert_default();
-        if !semantics
-            .writable_properties
-            .iter()
-            .any(|property| property.name == setter.property.name)
-        {
-            semantics.writable_properties.push(setter.property.clone());
-        }
-        self.next_frame
-            .devtools_property_setters
-            .entry(dispatch_node_id)
-            .or_default()
-            .push(setter);
-    }
-
-    /// Mutate a component-authored DevKit property on a rendered dispatch node.
-    pub fn set_devtools_property(
-        &mut self,
-        dispatch_node_id: usize,
-        property: &str,
-        value: serde_json::Value,
-        cx: &mut App,
-    ) -> std::result::Result<bool, String> {
-        let setter = self
-            .rendered_frame
-            .devtools_property_setters
-            .get(&dispatch_node_id)
-            .and_then(|setters| {
-                setters
-                    .iter()
-                    .find(|setter| setter.property.name == property)
-                    .cloned()
-            });
-        let Some(setter) = setter else {
-            return Ok(false);
-        };
-        (setter.callback)(value, self, cx)?;
-        Ok(true)
-    }
-
-    pub(crate) fn update_devtools_element_after_paint(
-        &mut self,
-        devtools_node_id: usize,
-        node_id: DispatchNodeId,
-    ) {
-        let dispatch_node = self.next_frame.dispatch_tree.node(node_id);
-        let key_listener_count = dispatch_node.key_listeners.len();
-        let action_listener_count = dispatch_node.action_listeners.len();
-        let focused =
-            dispatch_node.focus_id.is_some() && dispatch_node.focus_id == self.next_frame.focus;
-        let Some(element) = self.devtools_element_mut(devtools_node_id) else {
-            return;
-        };
-        element.key_listener_count = key_listener_count;
-        element.action_listener_count = action_listener_count;
-        element.focused = focused;
     }
 
     /// Captures the pointer for the given hitbox. While captured, all mouse move and mouse up
@@ -5254,6 +4641,7 @@ impl Window {
     /// the contents of the new [`Scene`], use [`Self::present`].
     #[profiling::function]
     pub fn draw(&mut self, cx: &mut App) -> ArenaClearNeeded {
+        self.frames_drawn += 1;
         #[cfg(feature = "diagnostics")]
         self.fast_frame_work.begin_draw();
         // Drain every draw in profiler builds so a previous frame's
@@ -5456,6 +4844,7 @@ impl Window {
         let previous_window_active = self.rendered_frame.window_active;
         mem::swap(&mut self.rendered_frame, &mut self.next_frame);
         self.next_frame.clear();
+        self.a11y.swap_frames();
         #[cfg(feature = "diagnostics")]
         crate::fast::verify::retention::check(self, fast_shadow);
         if has_active_screen_effects {
@@ -5508,6 +4897,10 @@ impl Window {
         // schedule another frame here to render the new focus state and dispatch the
         // resulting focus events.
         if self.focus != focus_before_listeners {
+            self.refresh();
+        }
+        // An inspection guard started or dropped during the draw asked for a full frame.
+        if self.a11y.take_refresh_after_frame() {
             self.refresh();
         }
         self.needs_present.set(true);
@@ -5648,9 +5041,15 @@ impl Window {
         self.next_sticky_layout_context_id = 0;
         self.tooltip_bounds.take();
 
-        self.a11y.sync_active_flag();
+        if self.a11y.sync_active_flag() {
+            // Whole-window: the accessibility tree starts this frame, and content drawn from
+            // last frame recorded none to carry.
+            self.refreshing = true;
+        }
         if self.a11y.is_active() {
             self.a11y.begin_frame();
+        } else {
+            self.a11y.clear_frame();
         }
 
         let _inspector_width: Pixels = rems(30.0).to_pixels(self.rem_size());
@@ -5737,12 +5136,11 @@ impl Window {
         #[cfg(any(feature = "inspector", debug_assertions))]
         self.paint_inspector_hitbox(cx);
 
-        // a11y may have been activated/deactivated halfway through the frame
+        // A source may have been switched halfway through the frame: the tree was
+        // built for the sources sampled at its start, and it reaches the platform
+        // adapter only when the platform source covered the frame's start and end.
         let a11y_active_start_of_frame = self.a11y.is_active();
-        self.a11y.sync_active_flag();
-        let a11y_active_end_of_frame = self.a11y.is_active();
-
-        let should_send_a11y_update = a11y_active_start_of_frame && a11y_active_end_of_frame;
+        let should_send_a11y_update = self.a11y.platform_covers_frame_end();
 
         if a11y_active_start_of_frame {
             // Harvest frame metadata for the debug dump while the live window
@@ -5762,6 +5160,16 @@ impl Window {
                 );
                 self.platform_window.a11y_tree_update(tree_update);
             }
+        } else {
+            // No source asked for this frame's tree; a later read must not see an old one.
+            self.a11y.forget_last_tree();
+        }
+        if let Some(root_only) = self
+            .a11y
+            .end_platform_frame(a11y_active_start_of_frame && should_send_a11y_update)
+        {
+            log::debug!("Accessibility is off: sending the adapter only the window's root");
+            self.platform_window.a11y_tree_update(root_only);
         }
         self.debug_assert_scroll_container_context_stack_empty();
     }
@@ -5971,8 +5379,7 @@ impl Window {
             tooltips_index: self.next_frame.tooltip_requests.len(),
             deferred_draws_index: self.next_frame.deferred_draws.len(),
             dispatch_tree_index: self.next_frame.dispatch_tree.len(),
-            devtools_nodes_index: self.next_frame.devtools_nodes.len(),
-            devtools_node_id: self.next_frame.next_devtools_node_id,
+            a11y_events_index: self.a11y.nodes.events.len(),
             accessed_element_states_index: self.next_frame.accessed_element_states.len(),
             pending_element_state_transfers_index: self
                 .next_frame
@@ -6033,64 +5440,14 @@ impl Window {
             self.next_frame.focus = self.focus;
         }
 
-        // Cached views skip the element lifecycle that normally records these
-        // occurrences. Their allocation order is preorder, while completed
-        // records are postorder, so retain both ranges and remap independently.
-        let old_ids = range.start.devtools_node_id..range.end.devtools_node_id;
-        let new_id_start = self.next_frame.next_devtools_node_id;
-        let parent_devtools_node_id = self.next_frame.devtools_node_stack.last().copied();
-        self.next_frame.next_devtools_node_id += old_ids.len();
-        self.next_frame
-            .devtools_node_indices
-            .resize(self.next_frame.next_devtools_node_id, usize::MAX);
-        let reused_nodes: &[DevtoolsFrameNode] = if DEVTOOLS {
-            &self.rendered_frame.devtools_nodes
-                [range.start.devtools_nodes_index..range.end.devtools_nodes_index]
-        } else {
-            &[]
-        };
-        for source in reused_nodes {
-            debug_assert!(old_ids.contains(&source.devtools_node_id));
-            let devtools_node_id = new_id_start + source.devtools_node_id - old_ids.start;
-            let dispatch_node_id =
-                reused_subtree.refresh_node_id(DispatchNodeId::from_usize(source.dispatch_node_id));
-            let dispatch_node = self.next_frame.dispatch_tree.node(dispatch_node_id);
-            self.next_frame.devtools_node_indices[devtools_node_id] =
-                self.next_frame.devtools_nodes.len();
-            self.next_frame.devtools_nodes.push(DevtoolsFrameNode {
-                devtools_node_id,
-                parent_devtools_node_id: source
-                    .parent_devtools_node_id
-                    .filter(|parent| old_ids.contains(parent))
-                    .map(|parent| new_id_start + parent - old_ids.start)
-                    .or(parent_devtools_node_id),
-                dispatch_node_id: dispatch_node_id.as_usize(),
-                parent_dispatch_node_id: self
-                    .next_frame
-                    .dispatch_tree
-                    .parent_node_id(dispatch_node_id)
-                    .map(DispatchNodeId::as_usize),
-                type_name: source.type_name,
-                global_id: source.global_id.clone(),
-                source: source.source,
-                bounds: source.bounds,
-                semantics: source.semantics.clone(),
-                hitbox_count: source.hitbox_count,
-                key_listener_count: dispatch_node.key_listeners.len(),
-                action_listener_count: dispatch_node.action_listeners.len(),
-                focused: dispatch_node.focus_id.is_some() && dispatch_node.focus_id == self.focus,
-                fast_row: source.fast_row,
-            });
-            if let Some(setters) = self
-                .rendered_frame
-                .devtools_property_setters
-                .get(&source.dispatch_node_id)
-            {
-                self.next_frame
-                    .devtools_property_setters
-                    .insert(dispatch_node_id.as_usize(), setters.clone());
-            }
-        }
+        // The accessibility tree of the reused content, built again from what building it
+        // recorded, under the node it sits in now.
+        let scale_factor = self.scale_factor();
+        self.a11y.replay(
+            range.start.a11y_events_index..range.end.a11y_events_index,
+            self.focus,
+            scale_factor,
+        );
 
         let fast_enclosing = crate::fast::retained::enclosing_retained(self);
         self.next_frame.deferred_draws.extend(
@@ -6127,12 +5484,15 @@ impl Window {
             accessed_element_states_index: self.next_frame.accessed_element_states.len(),
             tab_handle_index: self.next_frame.tab_stops.paint_index(),
             line_layout_index: self.text_system.layout_index(),
+            a11y_listeners_index: self.a11y.listeners.len(),
             fast_window_control_hitboxes_index: self.next_frame.window_control_hitboxes.len(),
         }
     }
 
     pub(crate) fn reuse_paint(&mut self, range: Range<PaintIndex>) {
         crate::fast::composition::reuse_starts(self, &range);
+        self.a11y
+            .reuse_listeners(range.start.a11y_listeners_index..range.end.a11y_listeners_index);
         self.next_frame.window_control_hitboxes.extend(
             self.rendered_frame.window_control_hitboxes[range
                 .start
@@ -6851,8 +6211,10 @@ impl Window {
         self.invalidator.debug_assert_prepaint();
         let index = self.prepaint_index();
         let fast_records = self.next_frame.fast_retained.len();
+        let a11y = self.a11y.checkpoint();
         let result = f(self);
         if result.is_err() {
+            self.a11y.rollback(a11y);
             self.next_frame.fast_retained.truncate(fast_records);
             self.next_frame
                 .fast_native_surfaces
@@ -6867,16 +6229,6 @@ impl Window {
             self.next_frame
                 .dispatch_tree
                 .truncate(index.dispatch_tree_index);
-            self.next_frame
-                .devtools_nodes
-                .truncate(index.devtools_nodes_index);
-            self.next_frame
-                .devtools_node_indices
-                .truncate(index.devtools_node_id);
-            self.next_frame.next_devtools_node_id = index.devtools_node_id;
-            self.next_frame
-                .devtools_property_setters
-                .retain(|node_id, _| *node_id < index.dispatch_tree_index);
             self.next_frame
                 .accessed_element_states
                 .truncate(index.accessed_element_states_index);
@@ -7609,6 +6961,11 @@ impl Window {
     /// The HTML payload is trusted application markup and is not sanitized here.
     /// Native renderers ignore this metadata; `gpui_web` consumes it to sync a
     /// real DOM overlay above the canvas.
+    ///
+    /// In the web screen-reader mirror, the element whose
+    /// [`accessibility_id`](crate::StatefulInteractiveElement::accessibility_id) equals `id`'s
+    /// text owns the overlay (`aria-owns`), so screen readers read the overlay's DOM where that
+    /// element is in the tree; give the element painting the overlay that id.
     pub fn paint_html_element(
         &mut self,
         id: ElementId,
@@ -8402,14 +7759,6 @@ impl Window {
         self.hitbox_behavior_overrides.push(behavior);
         let result = f(self);
         self.hitbox_behavior_overrides.pop();
-        result
-    }
-
-    /// Removes only pointer operations from semantics authored while `f` paints.
-    pub fn with_pointer_semantics_suppressed<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> T {
-        self.pointer_semantics_suppressed += 1;
-        let result = f(self);
-        self.pointer_semantics_suppressed -= 1;
         result
     }
 
@@ -10404,9 +9753,74 @@ impl Window {
         self.a11y.is_active()
     }
 
+    /// Starts the inspection source for this window: while at least one returned guard lives,
+    /// the window builds its accessibility tree on every frame, whether or not assistive
+    /// technology is connected and whatever the [`AccessibilityMode`]. Tests and the devtools
+    /// read it through [`Self::a11y_tree`]. Inspection never reaches the platform's adapter.
+    ///
+    /// The first guard forces a full redraw, so the next frame carries a complete tree;
+    /// dropping the last guard requests a frame so the tree stops. In an application created
+    /// with [`crate::Application::new_inaccessible`] the guard turns nothing on and reports
+    /// [`A11yInspection::accessibility_disabled`].
+    pub fn begin_a11y_inspection(&mut self) -> A11yInspection {
+        let was_active = self.a11y.any_source_on();
+        let (guard, first) = self.a11y.begin_inspection(&self.invalidator);
+        if first {
+            if !was_active {
+                self.a11y.forget_last_tree();
+            }
+            // A full redraw, so content fast mode would reuse is built into the tree too.
+            if self.invalidator.not_drawing() {
+                self.refresh();
+            }
+        }
+        guard
+    }
+
+    /// The last frame's complete accessibility tree while an activation source (the platform's
+    /// assistive technology, inspection or [`AccessibilityMode::Always`]) is on, `None`
+    /// otherwise. Start inspection with [`Self::begin_a11y_inspection`] and draw a frame to
+    /// read a tree without assistive technology.
+    pub fn a11y_tree(&self) -> Option<&accesskit::TreeUpdate> {
+        self.a11y.last_tree()
+    }
+
+    /// While inspecting, the generic container (an element with an id and no role) that holds the
+    /// window's focus, when the focused element is one: containers never take the tree's focus,
+    /// which screen readers see.
+    pub fn a11y_inspection_focus(&self) -> Option<accesskit::NodeId> {
+        self.a11y.container_focus()
+    }
+
+    /// While inspecting, the global element id the node `node` of [`Self::a11y_tree`] belongs to:
+    /// its element's, or for a text leaf or synthetic child its owner's. `None` for the root,
+    /// for nodes of frames built without inspection, and while no source is on.
+    pub fn a11y_element_id(&self, node: accesskit::NodeId) -> Option<&GlobalElementId> {
+        self.a11y.element_id(node)
+    }
+
+    /// While inspecting, every node of [`Self::a11y_tree`] with the global element id it belongs
+    /// to (see [`Self::a11y_element_id`]).
+    pub fn a11y_element_ids(
+        &self,
+    ) -> impl Iterator<Item = (accesskit::NodeId, &GlobalElementId)> + '_ {
+        self.a11y.element_ids()
+    }
+
     /// Debug representation of the last frame's accessibility information.
     pub fn debug_a11y_tree_json(&self) -> Option<String> {
         self.a11y.debug_tree_json()
+    }
+
+    /// The id of the accessibility node of the element at `path` being drawn: the one the
+    /// path derives ([`GlobalElementId::accesskit_node_id`]), or, for an element that shares
+    /// its path with one drawn before it in the frame, the node id the tree gave it instead.
+    pub fn a11y_node_id(&self, path: &GlobalElementId) -> accesskit::NodeId {
+        let derived = path.accesskit_node_id();
+        match self.a11y.element_nodes.last() {
+            Some(&(top, id)) if top == derived => id,
+            _ => derived,
+        }
     }
 
     /// Register a listener for an accessibility action on a specific node.
@@ -10420,65 +9834,148 @@ impl Window {
         action: accesskit::Action,
         listener: impl FnMut(Option<&accesskit::ActionData>, &mut Window, &mut App) + 'static,
     ) {
-        self.a11y
-            .action_listeners
-            .entry(node_id)
-            .or_default()
-            .push((action, Box::new(listener)));
+        self.a11y.add_listener(
+            node_id,
+            crate::window::a11y::A11yListenerAction::Action(action),
+            Box::new(listener),
+        );
     }
 
-    #[cfg(not(target_family = "wasm"))]
-    pub(crate) fn handle_a11y_action(&mut self, request: accesskit::ActionRequest, cx: &mut App) {
-        // Take listeners out temporarily so the closures can borrow Window
-        // mutably, then restore them afterward.
-        if let Some(mut listeners) = self.a11y.action_listeners.remove(&request.target_node) {
-            let extra_data = request.data.as_ref();
-            let mut matched = false;
-            for (action, listener) in &mut listeners {
-                if *action == request.action {
-                    listener(extra_data, self, cx);
-                    matched = true;
-                }
+    /// Registers the handler of the custom accessibility action `id` on a node; see
+    /// [`crate::StatefulInteractiveElement::on_a11y_custom_action`].
+    pub(crate) fn on_a11y_custom_action(
+        &mut self,
+        node_id: accesskit::NodeId,
+        id: i32,
+        listener: crate::window::a11y::A11yActionListener,
+    ) {
+        self.a11y.add_listener(
+            node_id,
+            crate::window::a11y::A11yListenerAction::Custom(id),
+            listener,
+        );
+    }
+
+    /// Performs an AccessKit action request in process, through the same path a platform
+    /// adapter's requests take, and returns whether a handler ran. Tests and the devtools act
+    /// on nodes of [`Self::a11y_tree`] with it; a request for a node or action nothing handles
+    /// does nothing and returns `false`.
+    pub fn perform_a11y_action(&mut self, request: accesskit::ActionRequest, cx: &mut App) -> bool {
+        self.handle_a11y_action(request, cx)
+    }
+
+    pub(crate) fn handle_a11y_action(
+        &mut self,
+        request: accesskit::ActionRequest,
+        cx: &mut App,
+    ) -> bool {
+        use crate::window::a11y::A11yListenerAction;
+        let wanted = if request.action == accesskit::Action::CustomAction {
+            let Some(accesskit::ActionData::CustomAction(id)) = request.data else {
+                return false;
+            };
+            A11yListenerAction::Custom(id)
+        } else {
+            A11yListenerAction::Action(request.action)
+        };
+        // Take each listener out while it runs so it can borrow the window mutably, then
+        // put it back where it was.
+        let matching: Vec<usize> = self
+            .a11y
+            .rendered_listeners
+            .iter()
+            .enumerate()
+            .filter(|(_, entry)| {
+                // A handler of a node the tree does not hold (a list row held off screen)
+                // answers nothing.
+                entry.shown
+                    && entry.node == request.target_node
+                    && entry.action == wanted
+                    && self.a11y.nodes.has_node(entry.node)
+            })
+            .map(|(index, _)| index)
+            .collect();
+        let mut matched = false;
+        for index in matching {
+            let Some(mut listener) = self
+                .a11y
+                .rendered_listeners
+                .get_mut(index)
+                .and_then(|entry| entry.listener.take())
+            else {
+                continue;
+            };
+            listener(request.data.as_ref(), self, cx);
+            matched = true;
+            if let Some(entry) = self.a11y.rendered_listeners.get_mut(index)
+                && entry.listener.is_none()
+            {
+                entry.listener = Some(listener);
             }
-            self.a11y
-                .action_listeners
-                .insert(request.target_node, listeners);
-            if matched {
-                return;
-            }
+        }
+        if matched {
+            return true;
+        }
+        if request.action == accesskit::Action::CustomAction {
+            return false;
         }
 
         // Fall back to built-in action handling.
         match request.action {
             accesskit::Action::Click => {
-                if let Some(bounds) = self.a11y.node_bounds.get(&request.target_node).copied() {
-                    let center = bounds.center();
-                    let mouse_down = PlatformInput::MouseDown(crate::MouseDownEvent {
-                        button: MouseButton::Left,
-                        position: center,
-                        modifiers: Modifiers::default(),
-                        click_count: 1,
-                        first_mouse: false,
-                    });
-                    let mouse_up = PlatformInput::MouseUp(MouseUpEvent {
-                        button: MouseButton::Left,
-                        position: center,
-                        modifiers: Modifiers::default(),
-                        click_count: 1,
-                    });
-                    self.dispatch_event(mouse_down, cx);
-                    self.dispatch_event(mouse_up, cx);
-                }
+                // Only a node that advertises Click (its element has a click listener) is
+                // clicked, at its center, as a pointer would.
+                let clickable = self.a11y.last_tree().is_some_and(|tree| {
+                    tree.nodes.iter().any(|(id, node)| {
+                        *id == request.target_node && node.supports_action(accesskit::Action::Click)
+                    })
+                });
+                let Some(bounds) = self
+                    .a11y
+                    .node_bounds
+                    .get(&request.target_node)
+                    .copied()
+                    .filter(|_| clickable)
+                else {
+                    return false;
+                };
+                let center = bounds.center();
+                let mouse_down = PlatformInput::MouseDown(crate::MouseDownEvent {
+                    button: MouseButton::Left,
+                    position: center,
+                    modifiers: Modifiers::default(),
+                    click_count: 1,
+                    first_mouse: false,
+                });
+                let mouse_up = PlatformInput::MouseUp(MouseUpEvent {
+                    button: MouseButton::Left,
+                    position: center,
+                    modifiers: Modifiers::default(),
+                    click_count: 1,
+                });
+                self.dispatch_event(mouse_down, cx);
+                self.dispatch_event(mouse_up, cx);
+                true
             }
             accesskit::Action::Focus => {
                 if let Some(focus_id) = self.a11y.focus_ids.get(&request.target_node).copied()
                     && let Some(handle) = FocusHandle::for_id(focus_id, &cx.focus_handles)
                 {
                     self.focus(&handle, cx);
+                    true
+                } else {
+                    false
                 }
             }
             accesskit::Action::Blur => {
+                if self.focus.is_none() {
+                    return false;
+                }
                 self.blur(cx);
+                true
+            }
+            accesskit::Action::ScrollIntoView => {
+                self.scroll_a11y_node_into_view(request.target_node, cx)
             }
             _ => {
                 log::debug!(
@@ -10486,8 +9983,78 @@ impl Window {
                     request.action,
                     request.target_node
                 );
+                false
             }
         }
+    }
+
+    /// Moves the scroll containers around a node of the last frame, innermost first, until
+    /// the node's bounds are visible in each, through each container's ordinary programmatic
+    /// scroll path. Returns whether the node sits in a scroll container.
+    fn scroll_a11y_node_into_view(&mut self, node: accesskit::NodeId, cx: &mut App) -> bool {
+        use crate::window::a11y::A11yScroll;
+        let (Some(mut bounds), Some(&innermost)) = (
+            self.a11y.node_bounds.get(&node).copied(),
+            self.a11y.node_scroll_targets.get(&node),
+        ) else {
+            return false;
+        };
+        let mut next = Some(innermost);
+        let mut moved_views = SmallVec::<[EntityId; 2]>::new();
+        while let Some(index) = next {
+            let Some(target) = self.a11y.scroll_targets.get(index as usize).cloned() else {
+                break;
+            };
+            let port = target.scrollport;
+            // How far the content must move so the node's bounds fall inside the scrollport,
+            // preferring its leading edge when it is larger than the port.
+            let delta = |start: Pixels, end: Pixels, port_start: Pixels, port_end: Pixels| {
+                if end - start > port_end - port_start || start < port_start {
+                    port_start - start
+                } else if end > port_end {
+                    port_end - end
+                } else {
+                    px(0.)
+                }
+            };
+            let wanted = target.offset
+                + point(
+                    delta(bounds.left(), bounds.right(), port.left(), port.right()),
+                    delta(bounds.top(), bounds.bottom(), port.top(), port.bottom()),
+                );
+            // Clamped as a wheel's scroll is, and only on the axes the container scrolls.
+            let offset = point(
+                wanted.x.clamp(-target.max.x, px(0.)),
+                wanted.y.clamp(-target.max.y, px(0.)),
+            );
+            if offset != target.offset {
+                match &target.scroll {
+                    A11yScroll::Handle { handle, view } => {
+                        handle.scroll_to(offset, crate::ScrollBehavior::Instant);
+                        moved_views.push(*view);
+                    }
+                    A11yScroll::Offset {
+                        offset: cell,
+                        id,
+                        view,
+                    } => {
+                        // As the container's wheel listener moves it: fast mode tells the
+                        // scroll apart, and the view that painted it draws it again.
+                        *cell.borrow_mut() = offset;
+                        if let Some(id) = id {
+                            crate::fast::layers::invalidate::note_scrolled_by_id(self, id);
+                        }
+                        moved_views.push(*view);
+                    }
+                }
+                bounds.origin += offset - target.offset;
+            }
+            next = target.parent;
+        }
+        for view in moved_views {
+            cx.notify(view);
+        }
+        true
     }
 
     /// Toggles the inspector mode on this window.
@@ -11844,35 +11411,20 @@ mod gpux_tests {
 
     impl Render for CachedInspectionPanel {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-            use crate::InspectableElementExt as _;
             self.renders.set(self.renders.get() + 1);
-            let written = self.written.clone();
             let clicked = self.written.clone();
-            crate::div()
-                .id(self.name)
-                .size_full()
-                .child(
-                    crate::div()
-                        .id("control")
-                        .role(accesskit::Role::Button)
-                        .aria_label(self.name)
-                        .track_focus(&self.focus)
-                        .size_full()
-                        .on_key_down(|_, _, _| {})
-                        .on_a11y_action(accesskit::Action::Click, move |_, _, _| {
-                            clicked.set(clicked.get() + 1);
-                        })
-                        .devtools_semantics(DevtoolsSemantics::new().role("button").name(self.name))
-                        .on_devtools_property("value", "number", move |value, _, _| {
-                            written.set(value.as_u64().ok_or("expected integer")?);
-                            Ok(())
-                        }),
-                )
-                .devtools_semantics(
-                    DevtoolsSemantics::new()
-                        .role("group")
-                        .name(format!("{} group", self.name)),
-                )
+            crate::div().id(self.name).size_full().child(
+                crate::div()
+                    .id("control")
+                    .role(accesskit::Role::Button)
+                    .aria_label(self.name)
+                    .track_focus(&self.focus)
+                    .size_full()
+                    .on_key_down(|_, _, _| {})
+                    .on_a11y_action(accesskit::Action::Click, move |_, _, _| {
+                        clicked.set(clicked.get() + 1);
+                    }),
+            )
         }
     }
 
@@ -11895,116 +11447,6 @@ mod gpux_tests {
                         .clone()
                         .cached(crate::StyleRefinement::default().absolute().size_full())
                 }))
-        }
-    }
-
-    #[gpux::test]
-    fn sprint_8_task_1_cached_inspection_replays_hierarchy_focus_and_properties(
-        cx: &mut TestAppContext,
-    ) {
-        let window = cx.open_window(size(px(100.), px(100.)), |_, cx| {
-            let panels = ["first", "second"].map(|name| {
-                cx.new(|cx| CachedInspectionPanel {
-                    name,
-                    focus: cx.focus_handle().tab_stop(true),
-                    renders: Rc::new(Cell::new(0)),
-                    written: Rc::new(Cell::new(0)),
-                })
-            });
-            CachedInspectionRoot {
-                panels,
-                reverse: false,
-                prefix: 0,
-            }
-        });
-        cx.run_until_parked();
-
-        // Reorder cached sibling occurrences without moving their bounds. Only
-        // the root is dirty; render counters prove the children really replay.
-        for iteration in 0..5 {
-            window
-                .update(cx, |root, window, cx| {
-                    root.reverse = iteration % 2 == 0;
-                    root.prefix = iteration + 1;
-                    // Exercise replay's focus update independently of focus()'s
-                    // full-window refresh, which would rebuild these cached views.
-                    window.focus = Some(root.panels[iteration % 2].read(cx).focus.id);
-                    cx.notify();
-                })
-                .unwrap();
-            cx.run_until_parked();
-            window
-                .update(cx, |root, window, cx| {
-                    let snapshot = window.devtools_frame_snapshot();
-                    let ids = snapshot
-                        .elements
-                        .iter()
-                        .map(|node| node.devtools_node_id)
-                        .collect::<FxHashSet<_>>();
-                    assert_eq!(
-                        ids.len(),
-                        snapshot.elements.len(),
-                        "duplicate occurrence ids"
-                    );
-                    for node in &snapshot.elements {
-                        assert!(
-                            node.parent_devtools_node_id
-                                .is_none_or(|parent| ids.contains(&parent))
-                        );
-                        assert_eq!(
-                            node.parent_dispatch_node_id,
-                            window
-                                .rendered_frame
-                                .dispatch_tree
-                                .parent_node_id(DispatchNodeId::from_usize(node.dispatch_node_id))
-                                .map(DispatchNodeId::as_usize),
-                        );
-                    }
-                    for (index, name) in ["first", "second"].into_iter().enumerate() {
-                        assert_eq!(
-                            root.panels[index].read(cx).renders.get(),
-                            1,
-                            "panel was not cached"
-                        );
-                        let matching = snapshot
-                            .elements
-                            .iter()
-                            .filter(|node| node.semantics.name.as_deref() == Some(name))
-                            .collect::<Vec<_>>();
-                        assert_eq!(matching.len(), 1, "missing or duplicate cached semantics");
-                        let node = matching[0];
-                        assert_eq!(node.focused, index == iteration % 2);
-                        assert_eq!(node.key_listener_count, 1);
-                        assert_eq!(node.semantics.writable_properties.len(), 1);
-                        let mut parent = node.parent_devtools_node_id;
-                        let group_name = format!("{name} group");
-                        loop {
-                            let ancestor = snapshot
-                                .elements
-                                .iter()
-                                .find(|node| Some(node.devtools_node_id) == parent)
-                                .expect("cached control stays under its own group");
-                            if ancestor.semantics.name.as_deref() == Some(group_name.as_str()) {
-                                break;
-                            }
-                            parent = ancestor.parent_devtools_node_id;
-                        }
-                        let value = (iteration * 10 + index + 1) as u64;
-                        assert!(
-                            window
-                                .set_devtools_property(
-                                    node.dispatch_node_id,
-                                    "value",
-                                    value.into(),
-                                    cx
-                                )
-                                .unwrap()
-                        );
-                        assert_eq!(root.panels[index].read(cx).written.get(), value);
-                    }
-                    assert_eq!(window.rendered_frame.devtools_property_setters.len(), 2);
-                })
-                .unwrap();
         }
     }
 
@@ -12049,7 +11491,7 @@ mod gpux_tests {
             cx.run_until_parked();
             let target_node = window
                 .update(cx, |root, window, cx| {
-                    assert!(root.panels[0].read(cx).renders.get() > previous_renders);
+                    assert_eq!(root.panels[0].read(cx).renders.get(), previous_renders);
                     let tree: serde_json::Value =
                         serde_json::from_str(&window.debug_a11y_tree_json().unwrap()).unwrap();
                     let node = tree["nodes"]
@@ -12083,44 +11525,6 @@ mod gpux_tests {
                 .unwrap();
         }
         cx.deactivate_accessibility(window.into());
-    }
-
-    #[gpux::test]
-    fn sprint_8_task_1_prepaint_retry_discards_inspection_occurrences(cx: &mut TestAppContext) {
-        let window = cx.open_window(size(px(100.), px(100.)), |_, _| Empty);
-        cx.run_until_parked();
-        window
-            .update(cx, |_, window, _| {
-                window.next_frame.clear();
-                window.invalidator.set_phase(DrawPhase::Prepaint);
-                let result: Result<(), ()> = window.transact(|window| {
-                    let (id, parent) = window.push_devtools_node();
-                    let dispatch = window.next_frame.dispatch_tree.push_node();
-                    window.record_devtools_element(
-                        id,
-                        parent,
-                        dispatch,
-                        "retry",
-                        None,
-                        None,
-                        Bounds::default(),
-                        0..0,
-                    );
-                    window.set_devtools_semantics(DevtoolsSemantics::new().name("discarded"));
-                    window.on_devtools_property("value", "number", |_, _, _| Ok(()));
-                    window.next_frame.dispatch_tree.pop_node();
-                    window.pop_devtools_node(id);
-                    Err(())
-                });
-                assert!(result.is_err());
-                assert!(window.next_frame.devtools_nodes.is_empty());
-                assert!(window.next_frame.devtools_node_indices.is_empty());
-                assert!(window.next_frame.devtools_property_setters.is_empty());
-                assert_eq!(window.next_frame.next_devtools_node_id, 0);
-                assert_eq!(window.next_frame.dispatch_tree.len(), 0);
-                window.invalidator.set_phase(DrawPhase::None);
-            })
-            .unwrap();
     }
 
     #[gpux::test]
@@ -12328,7 +11732,7 @@ mod gpux_tests {
         cx.run_until_parked();
 
         let effects = window
-            .update(cx, |_, window, _| window.devtools_frame_snapshot().effects)
+            .update(cx, |_, window, _| window.effect_diagnostics())
             .unwrap();
         assert_eq!(effects.screen_effect_snapshot_count, 1);
 
@@ -12342,13 +11746,13 @@ mod gpux_tests {
         cx.run_until_parked();
 
         let effects = window
-            .update(cx, |_, window, _| window.devtools_frame_snapshot().effects)
+            .update(cx, |_, window, _| window.effect_diagnostics())
             .unwrap();
         assert_eq!(effects.screen_effect_snapshot_count, 0);
     }
 
     #[gpux::test]
-    fn devtools_effect_snapshot_reports_missing_snapshot_transition(cx: &mut TestAppContext) {
+    fn effect_diagnostics_report_missing_snapshot_transition(cx: &mut TestAppContext) {
         let window = cx.open_window(size(px(100.), px(100.)), |_, _| Empty);
         cx.run_until_parked();
 
@@ -12365,7 +11769,7 @@ mod gpux_tests {
         cx.run_until_parked();
 
         let effects = window
-            .update(cx, |_, window, _| window.devtools_frame_snapshot().effects)
+            .update(cx, |_, window, _| window.effect_diagnostics())
             .unwrap();
 
         assert_eq!(effects.active_screen_effect_count, 1);
@@ -12467,7 +11871,7 @@ mod gpux_tests {
     }
 
     #[gpux::test]
-    fn devtools_effect_snapshot_reports_active_missing_region_and_backend_support(
+    fn effect_diagnostics_report_active_missing_region_and_backend_support(
         cx: &mut TestAppContext,
     ) {
         let window = cx.open_window(size(px(100.), px(100.)), |_, _| Empty);
@@ -12488,7 +11892,7 @@ mod gpux_tests {
         cx.run_until_parked();
 
         let effects = window
-            .update(cx, |_, window, _| window.devtools_frame_snapshot().effects)
+            .update(cx, |_, window, _| window.effect_diagnostics())
             .unwrap();
 
         assert_eq!(effects.active_screen_effect_count, 1);

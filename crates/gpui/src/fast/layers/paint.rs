@@ -1401,7 +1401,7 @@ pub(crate) const OVERSCAN_VIEWPORTS: f32 = 2.;
 /// leaves its overscan, a list's layer is extended by the rows a scroll
 /// brings into it, as many a frame whatever it holds: what it holds beyond
 /// costs memory (each row its scene, records and reads) and pays only when
-/// the scroll turns back. Measured with gpux's benchmark (`benchmark/`) on
+/// the scroll turns back. Measured with gpux's benchmark (`crates/gpux_tests_benchmark/`) on
 /// macOS: 2 held 37 MB more heap than 0.5 in `scroll-data-table` (50 MB at
 /// its peak) for no less CPU per frame, and 0.15 held 6 MB (13%) less than
 /// 0.5 there, with 3-5% less CPU and 10-17% less at the 95th percentile.

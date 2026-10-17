@@ -39,11 +39,13 @@ env:
   # Full debug info makes the workspace's test and example binaries outgrow the Linux runner's
   # disk; line tables keep backtraces readable.
   CARGO_PROFILE_DEV_DEBUG: line-tables-only
-  # The gpux-wgpu fork crates are upstream wgpu sources; gpux does not lint or test them.
+  # The vendored fork crates (gpux-wgpu, gpux-accesskit-macos) are upstream sources; gpux does
+  # not lint or test them. gpux-accesskit-macos builds only on Apple platforms.
   FORK_EXCLUDES: >-
     --exclude gpux-wgpu --exclude gpux-wgpu-core --exclude gpux-wgpu-hal
     --exclude gpux-wgpu-core-deps-apple --exclude gpux-wgpu-core-deps-emscripten
     --exclude gpux-wgpu-core-deps-wasm --exclude gpux-wgpu-core-deps-windows-linux-android
+    --exclude gpux-accesskit-macos
   LINUX_PACKAGES: >-
     pkg-config libfreetype6-dev libfontconfig1-dev libxkbcommon-dev libxkbcommon-x11-dev
     libvulkan1 mesa-vulkan-drivers
@@ -103,7 +105,8 @@ jobs:
         if: runner.os == 'Linux'
         run: cargo fmt --check
       - name: Check every target
-        run: cargo check --workspace --all-targets
+        # gpux-accesskit-macos builds only on Apple platforms; gpux-macos still checks it there.
+        run: cargo check --workspace --all-targets --exclude gpux-accesskit-macos
       - name: Clippy
         if: runner.os == 'Windows'
         run: cargo clippy --workspace --all-targets --no-deps ${{ env.FORK_EXCLUDES }} -- -D warnings
@@ -112,7 +115,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           cargo check -p gpux-web --target wasm32-unknown-unknown --no-default-features
-          cargo check -p gpux-conformance --target wasm32-unknown-unknown --no-default-features
+          cargo check -p gpux-tests-conformance --target wasm32-unknown-unknown --no-default-features
 
   test:
     name: test (${{ matrix.os }})
@@ -140,7 +143,7 @@ jobs:
         run: echo "VK_DRIVER_FILES=$(ls /usr/share/vulkan/icd.d/lvp_icd*.json | head -n 1)" >> "$GITHUB_ENV"
       # GPU-backed tests create devices; running them concurrently hangs on DX12. The
       # conformance lanes run in their own jobs.
-      - run: cargo test --workspace --no-fail-fast ${{ env.FORK_EXCLUDES }} --exclude gpux-conformance -- --test-threads=1
+      - run: cargo test --workspace --no-fail-fast ${{ env.FORK_EXCLUDES }} --exclude gpux-tests-conformance -- --test-threads=1
         shell: bash
 
   lane-a:
@@ -218,7 +221,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: lane-c-${{ matrix.backend }}-goldens
-          path: crates/gpux_conformance/tests/goldens/${{ matrix.backend }}/
+          path: crates/gpux_tests_conformance/tests/goldens/${{ matrix.backend }}/
 
   lane-d:
     name: lane D (${{ matrix.os }})
@@ -267,12 +270,10 @@ jobs:
     name: package
     needs: plan
     if: contains(fromJSON(needs.plan.outputs.jobs), 'package')
-    runs-on: ubuntu-24.04
+    # Packaging verifies every crate by building it, and gpux-accesskit-macos builds only on
+    # Apple platforms; the other platforms' crates build on macOS as their target-gated selves.
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@1.95.0
-      - name: Install Linux dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y $LINUX_PACKAGES
       - run: cargo package --workspace

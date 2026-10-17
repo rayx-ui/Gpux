@@ -243,6 +243,12 @@ impl WebHtmlElementRegistry {
         }
     }
 
+    /// The registry keys of the overlays shown.
+    #[cfg(feature = "accessibility")]
+    pub(crate) fn keys(&self) -> impl Iterator<Item = &String> {
+        self.roots.keys()
+    }
+
     pub(crate) fn sync_roots(
         &mut self,
         elements: &[HtmlElementPrimitive],
@@ -434,6 +440,16 @@ fn install_stylesheet(
 
 fn registry_key(id: &ElementId) -> String {
     id.to_string()
+}
+
+/// The DOM id of the overlay root an `html_element` with this registry key paints into: what
+/// the screen-reader mirror's `aria-owns` names for a node whose `accessibility_id` is the key.
+pub(crate) fn overlay_dom_id(key: &str) -> String {
+    let key: String = key
+        .chars()
+        .map(|c| if c.is_whitespace() { '-' } else { c })
+        .collect();
+    format!("gpux-html-element-{key}")
 }
 
 fn css_px(value: Pixels) -> String {
@@ -926,6 +942,7 @@ fn create_root(
     clip_element
         .set_attribute("data-rayx-html-element-id", id)
         .ok();
+    clip_element.set_id(&overlay_dom_id(id));
     clip_element.set_attribute("aria-hidden", "true").ok();
     clip_element
         .set_attribute("class", "rayx-html-element-root")

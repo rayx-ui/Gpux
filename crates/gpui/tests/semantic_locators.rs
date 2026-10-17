@@ -1,10 +1,9 @@
-//! Semantic locators: queries over the devtools frame snapshot by role, name, text, value, id,
-//! type and enclosing element, actions at the located element, and errors that list candidates.
+//! Semantic locators: queries over the window's AccessKit tree by role, name, text, value, id
+//! and enclosing node, actions at the located node, and errors that list candidates.
 
 use gpux::{
-    AppContext as _, Context, DevtoolsSemantics, EditableText, EditableTextState, Empty, Entity,
-    InspectableElementExt as _, IntoElement, Render, ScrollHandle, TestAppContext,
-    VisualTestContext, Window, div, point,
+    AppContext as _, Context, EditableText, EditableTextState, Empty, Entity, IntoElement, Render,
+    Role, ScrollHandle, TestAppContext, VisualTestContext, Window, div, point,
     prelude::*,
     px,
     semantic_query::{Query, QueryErrorKind, TextMatch},
@@ -44,12 +43,12 @@ fn button(id: &'static str, label: &'static str, log: &Rc<RefCell<Log>>) -> impl
         .h(px(24.))
         .on_click(move |_, _, _| clicks.borrow_mut().clicks.push(id.to_string()))
         .on_hover(move |hovered, _, _| hovers.borrow_mut().hovered.push((id.to_string(), *hovered)))
-        .devtools_semantics(DevtoolsSemantics::new().role("button").name(label))
+        .role(Role::Button)
+        .aria_label(label)
 }
 
 impl Render for Form {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let value = self.name.read(cx).text();
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
         let dropped = self.log.clone();
         div()
             .size_full()
@@ -70,14 +69,9 @@ impl Render for Form {
             )
             .child(div().id("label").child("Hello locators"))
             .child(
-                div().w(px(300.)).child(
-                    EditableText::new(&self.name).devtools_semantics(
-                        DevtoolsSemantics::new()
-                            .role("textbox")
-                            .name("Name")
-                            .value(value),
-                    ),
-                ),
+                div()
+                    .w(px(300.))
+                    .child(EditableText::new(&self.name).aria_label("Name")),
             )
             .child(
                 div()
@@ -97,9 +91,8 @@ impl Render for Form {
                             .w(px(40.))
                             .h(px(40.))
                             .on_drag(Card("ace".into()), |_, _, _, cx| cx.new(|_| CardPreview))
-                            .devtools_semantics(
-                                DevtoolsSemantics::new().role("listitem").name("Ace"),
-                            ),
+                            .role(Role::ListItem)
+                            .aria_label("Ace"),
                     )
                     .child(
                         div()
@@ -110,7 +103,8 @@ impl Render for Form {
                             .on_drop(move |card: &Card, _, _| {
                                 dropped.borrow_mut().dropped.push(card.0.clone())
                             })
-                            .devtools_semantics(DevtoolsSemantics::new().role("list").name("Pile")),
+                            .role(Role::List)
+                            .aria_label("Pile"),
                     ),
             )
     }
@@ -135,7 +129,7 @@ fn role_and_exact_name(cx: &mut TestAppContext) {
     let save_as = cx
         .locate(Query::role("button").with_name("Save as"))
         .unwrap();
-    assert!(save_as.global_id.unwrap().ends_with(".toolbar.save-as"));
+    assert!(save_as.element_id.unwrap().ends_with(".toolbar.save-as"));
     assert_eq!(cx.locator(Query::role("button")).count(), 3);
 }
 
@@ -148,11 +142,11 @@ fn name_contains_text_and_text_contains(cx: &mut TestAppContext) {
         3
     );
     let label = cx.locate(Query::text("Hello locators")).unwrap();
-    assert_eq!(label.semantics.role.as_deref(), Some("text"));
+    assert_eq!(label.role, "text");
     let by_substring = cx
         .locate(Query::default().with_text_containing("locators"))
         .unwrap();
-    assert_eq!(by_substring.devtools_node_id, label.devtools_node_id);
+    assert_eq!(by_substring.node_id, label.node_id);
 }
 
 #[gpux::test]
@@ -161,7 +155,7 @@ fn value_queries(cx: &mut TestAppContext) {
     let textbox = cx
         .locate(Query::role("textbox").with_value("Grace"))
         .unwrap();
-    assert_eq!(textbox.semantics.name.as_deref(), Some("Name"));
+    assert_eq!(textbox.name.as_deref(), Some("Name"));
     assert!(
         cx.locate(Query::default().with_value_containing("rac"))
             .is_ok()
@@ -169,27 +163,15 @@ fn value_queries(cx: &mut TestAppContext) {
 }
 
 #[gpux::test]
-fn id_suffixes_and_element_types(cx: &mut TestAppContext) {
+fn id_suffixes(cx: &mut TestAppContext) {
     let (_, _, cx) = open_form(cx);
     let save_as = cx.locate(Query::id("save-as")).unwrap();
-    assert_eq!(save_as.semantics.name.as_deref(), Some("Save as"));
+    assert_eq!(save_as.name.as_deref(), Some("Save as"));
+    // An element with an id and no role is a generic container while inspecting.
     let toolbar = cx.locate(Query::id("toolbar")).unwrap();
-    assert!(
-        toolbar
-            .type_name
-            .ends_with("Stateful<gpux::elements::div::Div>")
-    );
+    assert_eq!(toolbar.role, "generic");
     // Suffixes match whole id segments only.
     assert_eq!(cx.locator(Query::id("ave-as")).count(), 0);
-    // `type` names the element type without its module path or generic parameters.
-    // toolbar, sidebar, label and list; the buttons, card and pile are wrapped by their
-    // semantics and report `InspectableElement`.
-    assert_eq!(cx.locator(Query::type_name("Stateful")).count(), 4);
-    assert_eq!(
-        cx.locator(Query::type_name("InspectableElement")).count(),
-        6
-    );
-    assert!(cx.locator(Query::type_name("Div")).count() > 0);
 }
 
 #[gpux::test]
@@ -198,7 +180,7 @@ fn within_scopes_and_nth_picks(cx: &mut TestAppContext) {
     let in_sidebar = cx
         .locate(Query::role("button").within(Query::id("sidebar")))
         .unwrap();
-    assert!(in_sidebar.global_id.unwrap().ends_with(".sidebar.save"));
+    assert!(in_sidebar.element_id.unwrap().ends_with(".sidebar.save"));
 
     let first = cx
         .locate(Query::role("button").with_name("Save").nth(0))
@@ -206,8 +188,8 @@ fn within_scopes_and_nth_picks(cx: &mut TestAppContext) {
     let second = cx
         .locate(Query::role("button").with_name("Save").nth(1))
         .unwrap();
-    assert!(first.global_id.unwrap().ends_with(".toolbar.save"));
-    assert!(second.global_id.unwrap().ends_with(".sidebar.save"));
+    assert!(first.element_id.unwrap().ends_with(".toolbar.save"));
+    assert!(second.element_id.unwrap().ends_with(".sidebar.save"));
 
     let all = cx.locator(Query::role("button").with_name("Save")).all();
     assert_eq!(all.len(), 2);
@@ -223,17 +205,11 @@ fn ambiguous_queries_fail_and_list_the_matches(cx: &mut TestAppContext) {
     assert_eq!(error.candidates.len(), 2);
     let message = error.to_string();
     assert!(
-        message.contains("2 elements match `role=button name=Save`"),
+        message.contains("2 nodes match `role=button name=Save`"),
         "{message}"
     );
-    assert!(
-        message.contains(".toolbar.save role=button name=Save"),
-        "{message}"
-    );
-    assert!(
-        message.contains(".sidebar.save role=button name=Save"),
-        "{message}"
-    );
+    assert!(message.contains(".toolbar.save name=Save"), "{message}");
+    assert!(message.contains(".sidebar.save name=Save"), "{message}");
 
     let error = cx
         .locate(Query::role("button").with_name("Save").nth(5))
@@ -251,17 +227,16 @@ fn missing_elements_fail_and_list_candidates(cx: &mut TestAppContext) {
     assert_eq!(error.kind, QueryErrorKind::NotFound);
     let message = error.to_string();
     assert!(
-        message.starts_with("no element matches `role=checkbox`"),
+        message.starts_with("no node matches `role=checkbox`"),
         "{message}"
     );
+    assert!(message.contains("role=button"), "{message}");
+    assert!(message.contains("name=\"Save as\""), "{message}");
     assert!(
-        message.contains("role=button name=\"Save as\""),
+        message.contains("role=textbox") && message.contains("name=Name"),
         "{message}"
     );
-    assert!(
-        message.contains("role=textbox name=Name value=Grace"),
-        "{message}"
-    );
+    assert!(message.contains("value=Grace"), "{message}");
 }
 
 #[gpux::test]
@@ -270,13 +245,12 @@ fn text_form_round_trips_and_rejects_bad_input(cx: &mut TestAppContext) {
         .with_name("Save as")
         .with_text_containing("a \"quoted\" \\ value")
         .with_id("save-as")
-        .with_type_name("Stateful")
         .within(Query::id("toolbar"))
         .nth(1);
     let text = query.to_string();
     assert_eq!(
         text,
-        r#"id=toolbar >> role=button name="Save as" text~="a \"quoted\" \\ value" id=save-as type=Stateful nth=1"#
+        r#"id=toolbar >> role=button name="Save as" text~="a \"quoted\" \\ value" id=save-as nth=1"#
     );
     assert_eq!(text.parse::<Query>().unwrap(), query);
     assert_eq!("*".parse::<Query>().unwrap(), Query::default());
@@ -300,7 +274,7 @@ fn text_form_round_trips_and_rejects_bad_input(cx: &mut TestAppContext) {
     // The text form drives the same resolution.
     let (_, _, cx) = open_form(cx);
     let from_text = cx.locate("id=sidebar >> role=button").unwrap();
-    assert!(from_text.global_id.unwrap().ends_with(".sidebar.save"));
+    assert!(from_text.element_id.unwrap().ends_with(".sidebar.save"));
 }
 
 #[gpux::test]

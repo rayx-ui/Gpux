@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/gpui
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-16T10:30:00+02:00
+  updated: 2026-10-17T10:00:00+02:00
   topics:
     - gpui
     - framework-boundary
@@ -17,9 +17,9 @@ agentx:
 - Modify gpux only for framework-level behavior that consumers cannot implement from public APIs; use existing public APIs first.
 - Keep framework contracts policy-neutral. Do not import RayX application configuration, platform-info services, theming, or component policy into gpux.
 - Foreground tasks that can resume from a re-entrant GPUI callback use `AsyncApp::try_update_entity(...)` and let their feature owner retry, stop, or surface the busy result. Do not call the panicking `update_entity` path where an active application borrow is a valid transient state.
-- Gate diagnostics-only collectors, retained diagnostic state, and injected failure hooks behind the `diagnostics` feature (`rayx_diagnostics` is a compatibility alias); production builds must not carry them.
+- Gate diagnostics-only collectors, retained diagnostic state, and injected failure hooks behind the `diagnostics` feature (gpui has no `rayx_diagnostics` alias; `gpui_web` and `gpui_wgpu` keep one for RayX); production builds must not carry them.
 - Measure performance changes on the reference workload with full-run aggregation where cache tiers matter, and keep a change only when behavior and every established counter stay exact (see [validation rules](../repository/validation/rules.md)).
-- Per-element DevKit nodes, semantics and writable properties exist only with the `devtools` feature (default; `test-support` turns it on). Crates that read `devtools_frame_snapshot` or semantic locators (`gpux_conformance`) ask for it explicitly; code that builds semantics for every frame uses `Window::set_devtools_semantics_with` so nothing is built without the feature.
+- AccessKit is gpux's one semantic tree: annotate with `role`/`aria_*`/`on_a11y_action`, and read it through `semantic_query` (feature `semantic-query`) or gpux-devtools. The tree is built only while a source asks for it (a screen reader, an inspection guard, `AccessibilityMode::Always`), so per-frame semantics cost nothing otherwise. The retired devtools layer (`InspectableElement`, `Devtools*`, the `devtools` feature) stays out; `tests/devtools_removed_guard.rs` enforces it.
 - Colors an application writes as `rgb(..)` or `hsla(..)` convert to `Color` through per-thread caches; do not add a `Color` construction to a per-element path that bypasses `From<Rgba>`/`From<Hsla>`.
 - A list layer holds `paint::list_overscan_viewports()` of rows on each side of those shown (0.15, shipped). Scripted layer tests that spell out rows run at 0.5 under `cfg(test)`; tests that measure what a layer holds call `run_at_shipped_list_overscan()`.
 - A scroll container whose layer is expected to composite does not request its children's layout (`layers::reuse::reuse_kept_content`); anything that must see the children's layout state in prepaint of such a container (it paints the layer after all) goes through the fallback in `Div::prepaint`, which gives the kept nodes back and requests the layout there. A new reader of the children's request-layout state must not assume it ran in `request_layout`.

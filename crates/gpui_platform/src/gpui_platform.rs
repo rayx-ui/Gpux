@@ -70,6 +70,13 @@ pub fn web_application_with_backend(
 #[cfg(target_family = "wasm")]
 pub use gpui_web::WebBackendPreference;
 
+/// How web windows offer their screen-reader mirror, and the label of its enable button.
+#[cfg(all(target_family = "wasm", feature = "accessibility"))]
+pub use gpui_web::{
+    DEFAULT_SCREEN_READER_LABEL, WebScreenReader, set_web_screen_reader,
+    set_web_screen_reader_label,
+};
+
 #[cfg(target_family = "wasm")]
 pub fn application_with_web_backend(backend_preference: WebBackendPreference) -> gpux::Application {
     let platform = Rc::new(gpui_web::WebPlatform::new_with_backend(

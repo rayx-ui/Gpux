@@ -1241,6 +1241,12 @@ impl Drop for AndroidWindow {
 /// `AndroidWindow` methods.
 #[allow(clippy::type_complexity)]
 pub struct AndroidPlatformWindow {
+    /// The window's place with TalkBack's adapter, from `a11y_init`; first, so it leaves the
+    /// adapter before the window it describes goes.
+    #[cfg(feature = "accessibility")]
+    accesskit: std::cell::RefCell<
+        Option<crate::accessibility_registry::Registration<super::accessibility::AndroidAdapter>>,
+    >,
     window: Arc<AndroidWindow>,
     fast_composition: std::cell::RefCell<crate::android::fast::composition::Composition>,
     display: Option<Rc<dyn PlatformDisplay>>,
@@ -1252,6 +1258,8 @@ impl AndroidPlatformWindow {
     /// Create a new `AndroidPlatformWindow` wrapping an existing `AndroidWindow`.
     pub fn new(window: Arc<AndroidWindow>, display: Option<Rc<dyn PlatformDisplay>>) -> Self {
         Self {
+            #[cfg(feature = "accessibility")]
+            accesskit: std::cell::RefCell::new(None),
             window,
             display,
             input_handler: None,
@@ -1297,6 +1305,18 @@ impl HasDisplayHandle for AndroidPlatformWindow {
 }
 
 impl PlatformWindow for AndroidPlatformWindow {
+    #[cfg(feature = "accessibility")]
+    fn a11y_init(&self, callbacks: gpui::A11yCallbacks) {
+        *self.accesskit.borrow_mut() = super::accessibility::register(callbacks);
+    }
+
+    #[cfg(feature = "accessibility")]
+    fn a11y_tree_update(&self, tree_update: accesskit::TreeUpdate) {
+        if let Some(registration) = self.accesskit.borrow().as_ref() {
+            registration.update(tree_update);
+        }
+    }
+
     fn bounds(&self) -> gpui::Bounds<gpui::Pixels> {
         let state = self.window.state.lock();
         let w = state.width as f32 / state.scale_factor;
