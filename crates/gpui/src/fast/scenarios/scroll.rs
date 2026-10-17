@@ -1,11 +1,15 @@
 //! Pointer and scrolling: a hover sweep across rows, and real wheel events
 //! over every kind of scroll container gpux has.
 
+use std::{cell::Cell, rc::Rc};
+
 use crate::{
-    AnyView, App, Context, Entity, FastStats, InputEvent as _, IntoElement, ListAlignment,
+    AnyView, App, Axis, Context, Entity, FastStats, InputEvent as _, IntoElement, ListAlignment,
     ListState, Modifiers, MouseMoveEvent, Pixels, Point, Render, ScrollDelta, ScrollHandle,
-    ScrollWheelEvent, SharedString, TouchPhase, UniformListScrollHandle, Window, backdrop_blur,
-    div, effect_frame, hsla, list, point, prelude::*, px, uniform_list,
+    ScrollWheelEvent, SharedString, Size, TouchPhase, UniformListScrollHandle,
+    VirtualListExternalScrollBehavior, VirtualListScrollHandle, VirtualStickyRow, Window,
+    backdrop_blur, div, effect_frame, hsla, list, point, prelude::*, px, size, uniform_list,
+    virtual_list,
 };
 
 use super::{
@@ -28,6 +32,18 @@ const WHEEL_TURN: usize = 30;
 /// resting here, over no row, and `scroll-same-view` with it over the rows,
 /// whose hover changes with every wheel step.
 const GUTTER: f32 = 40.;
+/// The rows of the `virtual_list` scenarios, of varying size.
+const VIRTUAL_ROWS: usize = 10_000;
+/// How wide the driver beside a `SynchronizedOffset` list is.
+const DRIVER: f32 = 120.;
+
+/// The extent along its axis of virtual row `index`.
+fn virtual_extent(index: usize, axis: Axis) -> f32 {
+    match axis {
+        Axis::Vertical => ROW_HEIGHT - 4. + (index % 5) as f32 * 4.,
+        Axis::Horizontal => 40. + (index % 5) as f32 * 12.,
+    }
+}
 
 pub(super) fn scenarios() -> Vec<Scenario> {
     vec![
@@ -61,6 +77,28 @@ pub(super) fn scenarios() -> Vec<Scenario> {
             Content::List,
         ),
         scroll_scenario(
+            "scroll-virtual-list",
+            "a virtual list of 10,000 rows of varying height; a wheel event per frame",
+            Content::VirtualList,
+        ),
+        scroll_scenario(
+            "scroll-virtual-list-horizontal",
+            "a horizontal virtual list of 10,000 columns of varying width; a wheel event per \
+             frame",
+            Content::VirtualListHorizontal,
+        ),
+        scroll_scenario(
+            "scroll-virtual-list-sticky",
+            "a virtual list of 10,000 rows with a sticky row every 50; a wheel event per frame",
+            Content::VirtualListSticky,
+        ),
+        scroll_scenario(
+            "scroll-virtual-list-synchronized",
+            "a virtual list of 10,000 rows following a scrolling div beside it \
+             (`SynchronizedOffset`); a wheel event per frame over the div",
+            Content::VirtualListSynchronized,
+        ),
+        scroll_scenario(
             "chat-scroll",
             "a bottom-aligned list of 400 chat messages of varying length; a wheel event per \
              frame",
@@ -92,6 +130,16 @@ fn scroll_scenario(name: &'static str, description: &'static str, content: Conte
             Content::Chat => |_, cx| Box::new(Scrolling::new(cx, Content::Chat)),
             Content::Sticky => |_, cx| Box::new(Scrolling::new(cx, Content::Sticky)),
             Content::Effect => |_, cx| Box::new(Scrolling::new(cx, Content::Effect)),
+            Content::VirtualList => |_, cx| Box::new(Scrolling::new(cx, Content::VirtualList)),
+            Content::VirtualListHorizontal => {
+                |_, cx| Box::new(Scrolling::new(cx, Content::VirtualListHorizontal))
+            }
+            Content::VirtualListSticky => {
+                |_, cx| Box::new(Scrolling::new(cx, Content::VirtualListSticky))
+            }
+            Content::VirtualListSynchronized => {
+                |_, cx| Box::new(Scrolling::new(cx, Content::VirtualListSynchronized))
+            }
         },
         warm_up_frames: 3,
     }
@@ -135,6 +183,23 @@ fn row(index: usize, height: f32) -> impl IntoElement {
         )))
 }
 
+/// Column `index` of `scroll-virtual-list-horizontal`: a strip as wide as its extent, with its
+/// number, drawing nothing outside its own room.
+fn column(index: usize) -> impl IntoElement {
+    div()
+        .id(("column", index))
+        .w(px(virtual_extent(index, Axis::Horizontal)))
+        .h_full()
+        .overflow_hidden()
+        .bg(if index.is_multiple_of(2) {
+            hsla(0., 0., 0.12, 1.)
+        } else {
+            hsla(0., 0., 0.16, 1.)
+        })
+        .hover(|style| style.bg(hsla(0.6, 0.4, 0.3, 1.)))
+        .child(SharedString::from(format!("{}", index % 1000)))
+}
+
 /// What a scroll scenario scrolls.
 #[derive(Clone, Copy, PartialEq)]
 enum Content {
@@ -145,6 +210,22 @@ enum Content {
     Chat,
     Sticky,
     Effect,
+    VirtualList,
+    VirtualListHorizontal,
+    VirtualListSticky,
+    VirtualListSynchronized,
+}
+
+impl Content {
+    fn is_virtual(self) -> bool {
+        matches!(
+            self,
+            Content::VirtualList
+                | Content::VirtualListHorizontal
+                | Content::VirtualListSticky
+                | Content::VirtualListSynchronized
+        )
+    }
 }
 
 /// The rows of `scroll-child-view`, a view of their own.
@@ -165,10 +246,47 @@ pub(crate) struct Scroller {
     uniform: UniformListScrollHandle,
     list: ListState,
     rows: Entity<Rows>,
+    /// The virtual list's own handle, and the one it shares with its driver.
+    virtual_handle: VirtualListScrollHandle,
+    synchronized: VirtualListScrollHandle,
+    /// The rows a virtual list's row renderer rendered.
+    virtual_rows: Rc<Cell<u64>>,
+}
+
+impl Scroller {
+    /// A `virtual_list` of [`VIRTUAL_ROWS`] rows along `axis`, counting the rows it renders.
+    fn virtual_list(&self, axis: Axis, cx: &mut Context<Self>) -> crate::VirtualList {
+        let sizes: Rc<Vec<Size<Pixels>>> = Rc::new(
+            (0..VIRTUAL_ROWS)
+                .map(|index| match axis {
+                    Axis::Vertical => size(px(VIEWPORT.2), px(virtual_extent(index, axis))),
+                    Axis::Horizontal => size(px(virtual_extent(index, axis)), px(VIEWPORT.3)),
+                })
+                .collect(),
+        );
+        let rendered = self.virtual_rows.clone();
+        virtual_list(
+            cx.entity(),
+            "virtual rows",
+            axis,
+            sizes,
+            move |_, range, _, _| {
+                rendered.set(rendered.get() + range.len() as u64);
+                range
+                    .map(|index| match axis {
+                        Axis::Vertical => {
+                            row(index, virtual_extent(index, axis)).into_any_element()
+                        }
+                        Axis::Horizontal => column(index).into_any_element(),
+                    })
+                    .collect::<Vec<_>>()
+            },
+        )
+    }
 }
 
 impl Render for Scroller {
-    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let area = div()
             .absolute()
             .left(px(VIEWPORT.0))
@@ -248,6 +366,56 @@ impl Render for Scroller {
                     }
                 }))
                 .into_any_element(),
+            Content::VirtualList => self
+                .virtual_list(Axis::Vertical, cx)
+                .track_scroll(&self.virtual_handle)
+                .size_full()
+                .into_any_element(),
+            Content::VirtualListHorizontal => self
+                .virtual_list(Axis::Horizontal, cx)
+                .track_scroll(&self.virtual_handle)
+                .size_full()
+                .into_any_element(),
+            Content::VirtualListSticky => self
+                .virtual_list(Axis::Vertical, cx)
+                .track_scroll(&self.virtual_handle)
+                .sticky_rows(
+                    (0..VIRTUAL_ROWS)
+                        .step_by(50)
+                        .map(|index| (index, VirtualStickyRow::top())),
+                )
+                .size_full()
+                .into_any_element(),
+            Content::VirtualListSynchronized => {
+                let extent: f32 = (0..VIRTUAL_ROWS)
+                    .map(|index| virtual_extent(index, Axis::Vertical))
+                    .sum();
+                div()
+                    .size_full()
+                    .flex()
+                    .child(
+                        div()
+                            .id("driver")
+                            .w(px(DRIVER))
+                            .h_full()
+                            .overflow_y_scroll()
+                            .track_scroll(self.synchronized.base_handle())
+                            .child(div().w(px(DRIVER)).h(px(extent)).bg(hsla(0., 0., 0.2, 1.))),
+                    )
+                    .child(
+                        // Clipped to the list's bounds, as a table's body is, so that the list
+                        // has a layer of its own.
+                        div().flex_1().h_full().overflow_hidden().child(
+                            self.virtual_list(Axis::Vertical, cx)
+                                .track_external_scroll(
+                                    &self.synchronized,
+                                    VirtualListExternalScrollBehavior::SynchronizedOffset,
+                                )
+                                .size_full(),
+                        ),
+                    )
+                    .into_any_element()
+            }
         };
         // An opaque panel, as an application's window has: what a scroll
         // layer's tiles are cleared with.
@@ -265,6 +433,8 @@ struct Scrolling {
     /// Whether the scenario's window runs scroll layers: a mode with them
     /// leaves them off in a window whose renderer rasterizes no tile.
     layers: bool,
+    /// The rows a virtual list's row renderer rendered.
+    virtual_rows: Rc<Cell<u64>>,
 }
 
 impl Scrolling {
@@ -274,17 +444,22 @@ impl Scrolling {
             Content::Chat => ListState::new(ROWS, ListAlignment::Bottom, px(200.)),
             _ => ListState::new(ROWS, ListAlignment::Top, px(200.)),
         };
+        let virtual_rows = Rc::new(Cell::new(0));
         let scroller = cx.new(|_| Scroller {
             content,
             scroll: ScrollHandle::new(),
             uniform: UniformListScrollHandle::new(),
             list,
             rows,
+            virtual_handle: VirtualListScrollHandle::new(),
+            synchronized: VirtualListScrollHandle::new(),
+            virtual_rows: virtual_rows.clone(),
         });
         Self {
             scroller,
             content,
             layers: false,
+            virtual_rows,
         }
     }
 }
@@ -307,22 +482,39 @@ impl Fixture for Scrolling {
             WHEEL_STEP
         };
         let position = match content {
-            Content::SameView | Content::UniformList | Content::List | Content::Chat => {
-                viewport_center()
-            }
+            Content::SameView
+            | Content::UniformList
+            | Content::List
+            | Content::Chat
+            | Content::VirtualList
+            | Content::VirtualListHorizontal
+            | Content::VirtualListSticky => viewport_center(),
             Content::ChildView | Content::Sticky | Content::Effect => gutter_center(),
+            // Over the div driving the list.
+            Content::VirtualListSynchronized => point(
+                px(VIEWPORT.0 + DRIVER / 2.),
+                px(VIEWPORT.1 + VIEWPORT.3 / 2.),
+            ),
+        };
+        let delta = match content {
+            Content::VirtualListHorizontal => point(px(delta), px(0.)),
+            _ => point(px(0.), px(delta)),
         };
         place_pointer(window, position);
         window.dispatch_event(
             ScrollWheelEvent {
                 position,
-                delta: ScrollDelta::Pixels(point(px(0.), px(delta))),
+                delta: ScrollDelta::Pixels(delta),
                 modifiers: Modifiers::default(),
                 touch_phase: TouchPhase::Moved,
             }
             .to_platform_input(),
             cx,
         );
+    }
+
+    fn rows_rendered(&self) -> Option<u64> {
+        self.content.is_virtual().then(|| self.virtual_rows.get())
     }
 
     fn expect(&self, mode: Mode, stats: &FastStats) -> Result<(), String> {
@@ -332,6 +524,16 @@ impl Fixture for Scrolling {
         }
         // Every scrolled frame builds the scroller.
         views_built_at_least(mode, stats, 2)?;
+        if self.content.is_virtual() {
+            // The rows in view with their glyphs, or the six or so columns in view with their
+            // numbers.
+            let primitives = if self.content == Content::VirtualListHorizontal {
+                12
+            } else {
+                30
+            };
+            return drawn_per_frame(stats, primitives);
+        }
         // The backgrounds and glyphs of the rows (or messages) in view, well
         // above the 31 backgrounds alone.
         drawn_per_frame(stats, 60)
@@ -419,6 +621,39 @@ impl Scrolling {
             // keeping the rows it held and rendering only those the scroll
             // uncovers and the two whose hover the pointer changes as the
             // rows move under it.
+            // A virtual list's layer, on either axis, with its sticky rows
+            // drawn above it, or driven by a sibling (whose own layer
+            // composites too), holds its rows as a uniform list's does.
+            Content::VirtualList
+            | Content::VirtualListHorizontal
+            | Content::VirtualListSticky
+            | Content::VirtualListSynchronized => {
+                let layers = if self.content == Content::VirtualListSynchronized {
+                    2
+                } else {
+                    1
+                };
+                check(
+                    stats.layers_composited + stats.layers_repainted == layers * frames,
+                    || format!("a frame went without its layers: {stats:?}"),
+                )?;
+                check(all_bypasses == 0, || {
+                    format!("a frame was drawn on today's path: {stats:?}")
+                })?;
+                check(stats.layers_repainted <= 2 * layers, || {
+                    format!("the rows were painted afresh for a scroll: {stats:?}")
+                })?;
+                check(stats.tiles_composited >= frames, || {
+                    format!("a frame composited no tile: {stats:?}")
+                })?;
+                check(stats.list_rows_rendered <= 4 * frames, || {
+                    format!("frames rendered rows their layer held: {stats:?}")
+                })?;
+                check(stats.list_rows_kept >= 5 * frames, || {
+                    format!("the layer kept too few rows to scroll over: {stats:?}")
+                })?;
+                views_built_at_least(Mode::Layers, stats, 2)
+            }
             Content::UniformList | Content::List | Content::Chat => {
                 check(
                     stats.layers_composited + stats.layers_repainted == frames,
