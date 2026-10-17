@@ -39,11 +39,13 @@ env:
   # Full debug info makes the workspace's test and example binaries outgrow the Linux runner's
   # disk; line tables keep backtraces readable.
   CARGO_PROFILE_DEV_DEBUG: line-tables-only
-  # The gpux-wgpu fork crates are upstream wgpu sources; gpux does not lint or test them.
+  # The vendored fork crates (gpux-wgpu, gpux-accesskit-macos) are upstream sources; gpux does
+  # not lint or test them. gpux-accesskit-macos builds only on Apple platforms.
   FORK_EXCLUDES: >-
     --exclude gpux-wgpu --exclude gpux-wgpu-core --exclude gpux-wgpu-hal
     --exclude gpux-wgpu-core-deps-apple --exclude gpux-wgpu-core-deps-emscripten
     --exclude gpux-wgpu-core-deps-wasm --exclude gpux-wgpu-core-deps-windows-linux-android
+    --exclude gpux-accesskit-macos
   LINUX_PACKAGES: >-
     pkg-config libfreetype6-dev libfontconfig1-dev libxkbcommon-dev libxkbcommon-x11-dev
     libvulkan1 mesa-vulkan-drivers
