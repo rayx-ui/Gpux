@@ -242,11 +242,37 @@ impl LineLayout {
         (left, right)
     }
 
+    /// Wrap boundaries for rows whose available width differs between the first row and the
+    /// rest, as paragraphs with a first-line or hanging indent have.
+    pub fn wrap_boundaries_for_widths(
+        &self,
+        text: &str,
+        first_row_width: Pixels,
+        other_row_width: Pixels,
+    ) -> SmallVec<[WrapBoundary; 1]> {
+        self.compute_wrap_boundaries_with(text, None, &|row| {
+            if row == 0 {
+                first_row_width
+            } else {
+                other_row_width
+            }
+        })
+    }
+
     fn compute_wrap_boundaries(
         &self,
         text: &str,
         wrap_width: Pixels,
         max_lines: Option<usize>,
+    ) -> SmallVec<[WrapBoundary; 1]> {
+        self.compute_wrap_boundaries_with(text, max_lines, &|_| wrap_width)
+    }
+
+    fn compute_wrap_boundaries_with(
+        &self,
+        text: &str,
+        max_lines: Option<usize>,
+        wrap_width: &dyn Fn(usize) -> Pixels,
     ) -> SmallVec<[WrapBoundary; 1]> {
         let mut boundaries = SmallVec::new();
         let mut first_non_whitespace_ix = None;
@@ -300,7 +326,7 @@ impl LineLayout {
             let next_x = glyphs.peek().map_or(self.width, |(_, _, x)| *x);
             let width = next_x - last_boundary_x;
 
-            if width > wrap_width && boundary > last_boundary {
+            if width > wrap_width(boundaries.len()) && boundary > last_boundary {
                 // When used line_clamp, we should limit the number of lines.
                 if let Some(max_lines) = max_lines
                     && boundaries.len() >= max_lines.saturating_sub(1)

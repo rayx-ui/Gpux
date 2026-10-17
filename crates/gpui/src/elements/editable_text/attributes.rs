@@ -380,6 +380,48 @@ impl AttributeSpans {
     }
 }
 
+/// How a paragraph's rows sit between its indents. Unset uses the element's `text_align`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ParagraphAlignment {
+    /// Rows start at the leading indent.
+    Left,
+    /// Rows are centered between the indents.
+    Center,
+    /// Rows end at the trailing indent.
+    Right,
+    /// Rows widen their inter-word spaces to end at the trailing indent; the paragraph's last
+    /// row, and any row with a single word, stays left-aligned.
+    Justify,
+}
+
+/// Formatting of a paragraph: the text between two hard line breaks.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ParagraphFormat {
+    /// Alignment; `None` uses the element's.
+    pub alignment: Option<ParagraphAlignment>,
+    /// Added to the leading indent on the first row; negative is a hanging indent.
+    pub first_line_indent: Pixels,
+    /// Where every row starts, from the field's leading edge.
+    pub leading_indent: Pixels,
+    /// How far before the field's trailing edge rows wrap.
+    pub trailing_indent: Pixels,
+    /// Space above the paragraph's first row.
+    pub space_before: Pixels,
+    /// Space below the paragraph's last row.
+    pub space_after: Pixels,
+    /// Multiplies the paragraph's row heights; `None` is 1.
+    pub line_height: Option<f32>,
+    /// Letter spacing for runs that set none; `None` uses the element's.
+    pub letter_spacing: Option<Pixels>,
+}
+
+impl ParagraphFormat {
+    /// Whether every field is the default.
+    pub fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
+}
+
 /// A snapshot of an editable field's text and everything stored with it, for owners to
 /// serialize and for the clipboard codec.
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -388,6 +430,9 @@ pub struct AttributedText {
     pub text: String,
     /// Character formatting over byte ranges of `text`, sorted and non-overlapping.
     pub spans: Vec<AttributeSpan>,
+    /// One format per paragraph of `text`, in order; empty when every paragraph has the
+    /// default format.
+    pub paragraphs: Vec<ParagraphFormat>,
 }
 
 impl AttributedText {
@@ -404,10 +449,59 @@ impl AttributedText {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub(crate) struct Formatting {
     pub spans: AttributeSpans,
+    /// One format per paragraph, or empty when every paragraph has the default.
+    pub paragraphs: Vec<Arc<ParagraphFormat>>,
 }
 
 impl Formatting {
     pub fn is_empty(&self) -> bool {
-        self.spans.is_empty()
+        self.spans.is_empty() && self.paragraphs.is_empty()
+    }
+
+    /// The format of paragraph `index`, if it is not the default.
+    pub fn paragraph(&self, index: usize) -> Option<&Arc<ParagraphFormat>> {
+        self.paragraphs
+            .get(index)
+            .filter(|format| !format.is_default())
+    }
+
+    /// Moves paragraph formats through an edit starting in paragraph `paragraph` that deleted
+    /// `deleted` line breaks and inserted `inserted`: joined paragraphs keep the first one's
+    /// format, and split or inserted paragraphs take the format of the one they came from.
+    pub fn remap_paragraphs(&mut self, paragraph: usize, deleted: usize, inserted: usize) {
+        if self.paragraphs.is_empty() || deleted == inserted && deleted == 0 {
+            return;
+        }
+        let Some(kept) = self.paragraphs.get(paragraph).cloned() else {
+            return;
+        };
+        let end = (paragraph + 1 + deleted).min(self.paragraphs.len());
+        self.paragraphs
+            .splice(paragraph + 1..end, std::iter::repeat_n(kept, inserted));
+        self.normalize_paragraphs();
+    }
+
+    /// Sets paragraphs `range` (of `count` in all) with `update`.
+    pub fn update_paragraphs(
+        &mut self,
+        range: std::ops::RangeInclusive<usize>,
+        count: usize,
+        update: &dyn Fn(&mut ParagraphFormat),
+    ) {
+        if self.paragraphs.len() != count {
+            // Every paragraph shares one default until it is changed.
+            let default = Arc::new(ParagraphFormat::default());
+            self.paragraphs = std::iter::repeat_n(default, count).collect();
+        }
+        for format in &mut self.paragraphs[range] {
+            update(Arc::make_mut(format));
+        }
+        self.normalize_paragraphs();
+    }
+
+    fn normalize_paragraphs(&mut self) {
+        if self.paragraphs.iter().all(|format| format.is_default()) {
+            self.paragraphs.clear();
+        }
     }
 }

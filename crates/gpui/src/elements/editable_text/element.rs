@@ -418,6 +418,7 @@ impl Element for EditableTextPaintElement {
                     height: row.height,
                     baseline: row.baseline,
                     x: row.x_offset,
+                    justify: row.justify,
                 })
                 .collect();
             lines.push(EditableTextPaintLine {

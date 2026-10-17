@@ -278,6 +278,7 @@ fn attributed_text_round_trips_and_replaces_everything(cx: &mut TestAppContext) 
                     AttributeSpan::new(2..6, TextAttributes::default()),
                     AttributeSpan::new(5..9, bold()),
                 ],
+                ..Default::default()
             },
             cx,
         ));
@@ -308,6 +309,7 @@ fn attributed_text_spans_follow_normalized_line_breaks(cx: &mut TestAppContext) 
                     AttributeSpan::new(3..5, bold()),
                     AttributeSpan::new(6..7, bold())
                 ],
+                ..Default::default()
             },
             cx,
         ));
@@ -329,6 +331,7 @@ fn attributed_text_spans_follow_normalized_line_breaks(cx: &mut TestAppContext) 
                     AttributeSpan::new(3..4, bold()),
                     AttributeSpan::new(5..6, bold())
                 ],
+                ..Default::default()
             },
             cx,
         ));
@@ -345,6 +348,7 @@ fn attributed_text_spans_follow_normalized_line_breaks(cx: &mut TestAppContext) 
             AttributedText {
                 text: "aéb".into(),
                 spans: vec![AttributeSpan::new(2..4, bold())],
+                ..Default::default()
             },
             cx,
         ));

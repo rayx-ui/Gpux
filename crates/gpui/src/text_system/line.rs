@@ -46,6 +46,8 @@ pub(crate) struct LineRowGeometry {
     pub height: Pixels,
     pub baseline: Pixels,
     pub x: Pixels,
+    /// Extra advance after each space of a justified row.
+    pub justify: Pixels,
 }
 
 /// A line of text that has been shaped and decorated.
@@ -162,6 +164,7 @@ impl ShapedLine {
             &self.decoration_runs,
             &[],
             None,
+            "",
             window,
             cx,
             &mut paint_underline,
@@ -187,6 +190,7 @@ impl ShapedLine {
             &self.decoration_runs,
             &[],
             None,
+            "",
             window,
             cx,
         )?;
@@ -420,6 +424,7 @@ impl LineLayout {
             decoration_runs,
             &[],
             None,
+            "",
             window,
             cx,
             &mut |_, origin, width, style, window| window.paint_underline(origin, width, style),
@@ -450,6 +455,7 @@ impl LineLayout {
             decoration_runs,
             &[],
             None,
+            "",
             window,
             cx,
         )
@@ -498,6 +504,7 @@ impl WrappedLine {
             &self.decoration_runs,
             &self.wrap_boundaries,
             None,
+            "",
             window,
             cx,
             &mut |_, origin, width, style, window| window.paint_underline(origin, width, style),
@@ -530,6 +537,7 @@ impl WrappedLine {
             &self.decoration_runs,
             &self.wrap_boundaries,
             None,
+            "",
             window,
             cx,
         )?;
@@ -556,6 +564,7 @@ impl WrappedLine {
             &self.decoration_runs,
             &self.wrap_boundaries,
             Some(rows),
+            &self.text,
             window,
             cx,
             &mut |_, origin, width, style, window| window.paint_underline(origin, width, style),
@@ -580,6 +589,7 @@ impl WrappedLine {
             &self.decoration_runs,
             &self.wrap_boundaries,
             Some(rows),
+            &self.text,
             window,
             cx,
         )
@@ -595,6 +605,7 @@ fn paint_line(
     decoration_runs: &[DecorationRun],
     wrap_boundaries: &[WrapBoundary],
     rows: Option<&[LineRowGeometry]>,
+    text: &str,
     window: &mut Window,
     cx: &mut App,
     paint_underline: &mut dyn FnMut(
@@ -621,9 +632,12 @@ fn paint_line(
         // Rows of their own geometry keep the underline as far below their baseline.
         let underline_below_baseline = underline_y_offset - baseline_offset.y;
         let mut row_ix = 0;
+        let mut justify = Pixels::ZERO;
+        let mut after_space = false;
         if let Some(first) = rows.and_then(|rows| rows.first()) {
             baseline_offset.y = first.baseline;
             underline_y_offset = first.baseline + underline_below_baseline;
+            justify = first.justify;
         }
         let mut decoration_runs = decoration_runs.iter();
         let mut wraps = wrap_boundaries.iter().peekable();
@@ -655,6 +669,10 @@ fn paint_line(
 
             for (glyph_ix, glyph) in run.glyphs.iter().enumerate() {
                 glyph_origin.x += glyph.position.x - prev_glyph_position.x;
+                // A justified row widens each space it has passed.
+                if after_space {
+                    glyph_origin.x += justify;
+                }
                 if glyph_ix == 0 && run_ix == 0 {
                     first_glyph_x = glyph_origin.x;
                 }
@@ -732,6 +750,7 @@ fn paint_line(
                             glyph_origin = point(origin.x + row.x, origin.y + row.top);
                             baseline_offset.y = row.baseline;
                             underline_y_offset = row.baseline + underline_below_baseline;
+                            justify = row.justify;
                         }
                         None => {
                             glyph_origin.x = aligned_origin_x(
@@ -747,6 +766,8 @@ fn paint_line(
                     }
                 }
                 prev_glyph_position = glyph.position;
+                after_space =
+                    justify != Pixels::ZERO && text.as_bytes().get(glyph.index) == Some(&b' ');
 
                 let mut finished_underline: Option<(Point<Pixels>, UnderlineStyle, Range<usize>)> =
                     None;
@@ -972,6 +993,7 @@ fn paint_line_background(
     decoration_runs: &[DecorationRun],
     wrap_boundaries: &[WrapBoundary],
     rows: Option<&[LineRowGeometry]>,
+    text: &str,
     window: &mut Window,
     cx: &mut App,
 ) -> Result<()> {
@@ -994,6 +1016,10 @@ fn paint_line_background(
         let mut row_height = rows
             .and_then(|rows| rows.first())
             .map_or(line_height, |row| row.height);
+        let mut justify = rows
+            .and_then(|rows| rows.first())
+            .map_or(Pixels::ZERO, |row| row.justify);
+        let mut after_space = false;
         let mut glyph_origin = match rows.and_then(|rows| rows.first()) {
             Some(first) => point(origin.x + first.x, origin.y + first.top),
             None => point(
@@ -1015,6 +1041,9 @@ fn paint_line_background(
 
             for (glyph_ix, glyph) in run.glyphs.iter().enumerate() {
                 glyph_origin.x += glyph.position.x - prev_glyph_position.x;
+                if after_space {
+                    glyph_origin.x += justify;
+                }
 
                 if wraps.peek() == Some(&&WrapBoundary { run_ix, glyph_ix }) {
                     wraps.next();
@@ -1052,6 +1081,7 @@ fn paint_line_background(
                         Some(row) => {
                             glyph_origin = point(origin.x + row.x, origin.y + row.top);
                             row_height = row.height;
+                            justify = row.justify;
                         }
                         None => {
                             glyph_origin.x = aligned_origin_x(
@@ -1067,6 +1097,8 @@ fn paint_line_background(
                     }
                 }
                 prev_glyph_position = glyph.position;
+                after_space =
+                    justify != Pixels::ZERO && text.as_bytes().get(glyph.index) == Some(&b' ');
 
                 let mut finished_background: Option<(Point<Pixels>, Color)> = None;
                 if glyph.index >= run_end {
@@ -1632,6 +1664,7 @@ mod tests {
                     &wrapped.decoration_runs,
                     &wrapped.wrap_boundaries,
                     None,
+                    "",
                     window,
                     cx,
                     &mut |range, origin, width, style, window| {

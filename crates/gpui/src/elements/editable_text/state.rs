@@ -11,9 +11,9 @@ use super::super::scroll_activity::ScrollActivity;
 use super::{
     AttributeSpan, AttributeState, AttributedText, EditableSelection, EditableTextEvent,
     EditableTextFormatEvent, EditableTextGeometry, EditableTextLineMode, EditableTextMode,
-    EditableTextStyleRuns, Formatting, TextAttributes, TextAttributesPatch, TextBuffer,
-    TextBufferError, TextBufferSnapshot, TextEdit, TextLayoutEdit, TextLayoutError, TextLayoutMap,
-    TextLayoutStyle, TextLayoutUpdate, editable_text_alignment_offset,
+    EditableTextStyleRuns, Formatting, ParagraphFormat, TextAttributes, TextAttributesPatch,
+    TextBuffer, TextBufferError, TextBufferSnapshot, TextEdit, TextLayoutEdit, TextLayoutError,
+    TextLayoutMap, TextLayoutStyle, TextLayoutUpdate, editable_text_alignment_offset,
     history::{EditHistory, EditKind, HistoryState},
     movement::{
         grapheme_boundary_at_or_before, logical_line_range_at, next_grapheme_boundary,
@@ -364,11 +364,85 @@ impl EditableTextState {
         cx.notify();
     }
 
+    /// The format of the paragraph containing `offset`.
+    pub fn paragraph_format(&self, offset: usize) -> ParagraphFormat {
+        let Some(formatting) = &self.formatting else {
+            return ParagraphFormat::default();
+        };
+        let snapshot = self.snapshot();
+        let paragraph = snapshot
+            .byte_to_point(offset.min(snapshot.len()))
+            .map_or(0, |point| point.y);
+        formatting
+            .paragraph(paragraph)
+            .map(|format| (**format).clone())
+            .unwrap_or_default()
+    }
+
+    /// Sets the format of every paragraph `range` touches, as one undo step.
+    pub fn set_paragraph_format(
+        &mut self,
+        range: Range<usize>,
+        format: ParagraphFormat,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        self.update_paragraph_format(range, move |paragraph| *paragraph = format.clone(), cx)
+    }
+
+    /// Resets the format of every paragraph `range` touches, as one undo step.
+    pub fn clear_paragraph_format(&mut self, range: Range<usize>, cx: &mut Context<Self>) -> bool {
+        self.set_paragraph_format(range, ParagraphFormat::default(), cx)
+    }
+
+    /// Changes the format of every paragraph `range` touches with `update`, as one undo step.
+    pub fn update_paragraph_format(
+        &mut self,
+        range: Range<usize>,
+        update: impl Fn(&mut ParagraphFormat),
+        cx: &mut Context<Self>,
+    ) -> bool {
+        if !self.mode.permits_mutation() {
+            return false;
+        }
+        let snapshot = self.snapshot();
+        let (Ok(first), Ok(mut last)) = (
+            snapshot.byte_to_point(range.start.min(snapshot.len())),
+            snapshot.byte_to_point(range.end.min(snapshot.len())),
+        ) else {
+            return false;
+        };
+        // A range ending where a paragraph starts does not reach into it.
+        if range.end > range.start && last.x == 0 && last.y > first.y {
+            last.y -= 1;
+        }
+        let before = self.history_state();
+        let mut formatting = self.formatting.as_deref().cloned().unwrap_or_default();
+        formatting.update_paragraphs(first.y..=last.y, snapshot.line_count(), &update);
+        if self.formatting.as_deref().unwrap_or(&Formatting::default()) == &formatting {
+            return false;
+        }
+        self.formatting = (!formatting.is_empty()).then(|| Arc::new(formatting));
+        let after = self.history_state();
+        self.history.record(before, after, EditKind::Format);
+        self.finish_format_change(cx);
+        true
+    }
+
     /// The text and everything stored with it.
     pub fn attributed_text(&self) -> AttributedText {
         AttributedText {
             text: self.text(),
             spans: self.attribute_spans().to_vec(),
+            paragraphs: self
+                .formatting
+                .as_ref()
+                .map_or_else(Vec::new, |formatting| {
+                    formatting
+                        .paragraphs
+                        .iter()
+                        .map(|format| (**format).clone())
+                        .collect()
+                }),
         }
     }
 
@@ -389,12 +463,26 @@ impl EditableTextState {
             attributes: span.attributes,
         });
         let spans = super::AttributeSpans::from_spans(spans, replacement.len());
+        // Paragraph formats follow their paragraphs; breaks a single-line field drops leave
+        // the first paragraph's.
+        let paragraph_count = replacement.matches('\n').count() + 1;
+        let mut paragraphs: Vec<Arc<ParagraphFormat>> = text
+            .paragraphs
+            .into_iter()
+            .take(paragraph_count)
+            .map(Arc::new)
+            .collect();
+        if !paragraphs.is_empty() {
+            paragraphs.resize(paragraph_count, Arc::new(ParagraphFormat::default()));
+        }
         let before = self.history_state();
         let edit = TextEdit::new(self.revision(), 0..self.buffer.len(), replacement.clone());
         if !self.apply_buffer_edit(edit, None) {
             return false;
         }
-        self.formatting = (!spans.is_empty()).then(|| Arc::new(Formatting { spans }));
+        let mut formatting = Formatting { spans, paragraphs };
+        formatting.update_paragraphs(0..=0, paragraph_count, &|_| {});
+        self.formatting = (!formatting.is_empty()).then(|| Arc::new(formatting));
         self.invalidate_style_runs();
         self.selection = EditableSelection::caret(replacement.len());
         self.marked_range = None;
@@ -1521,6 +1609,18 @@ impl EditableTextState {
         let pending = TextLayoutEdit::from(&edit);
         let range = edit.range().clone();
         let replacement_len = edit.replacement().len();
+        // Where the edit starts among the paragraphs and how many breaks it removes and adds,
+        // for paragraph formats.
+        let paragraph_edit = self
+            .formatting
+            .as_ref()
+            .filter(|formatting| !formatting.paragraphs.is_empty())
+            .and_then(|_| {
+                let snapshot = self.snapshot();
+                let paragraph = snapshot.byte_to_point(range.start).ok()?.y;
+                let deleted = snapshot.slice(range.clone()).ok()?.matches('\n').count();
+                Some((paragraph, deleted, edit.replacement().matches('\n').count()))
+            });
         if self.buffer.apply(edit).is_err() {
             return false;
         }
@@ -1530,6 +1630,9 @@ impl EditableTextState {
             return true;
         }
         let formatting = Arc::make_mut(self.formatting.get_or_insert_with(Default::default));
+        if let Some((paragraph, deleted, added)) = paragraph_edit {
+            formatting.remap_paragraphs(paragraph, deleted, added);
+        }
         formatting.spans.remap(
             range,
             replacement_len,

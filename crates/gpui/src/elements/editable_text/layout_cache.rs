@@ -46,6 +46,8 @@ pub(super) struct ShapeRunKey {
 pub(super) struct RowLayoutKey {
     text: Arc<str>,
     runs: Arc<[ShapeRunKey]>,
+    /// The first-row and other-row wrap widths of a paragraph with indents.
+    wrap_widths: Option<(Pixels, Pixels)>,
 }
 
 impl RowLayoutKey {
@@ -53,7 +55,13 @@ impl RowLayoutKey {
         Self {
             text,
             runs: runs.into(),
+            wrap_widths: None,
         }
+    }
+
+    pub(super) fn with_wrap_widths(mut self, wrap_widths: Option<(Pixels, Pixels)>) -> Self {
+        self.wrap_widths = wrap_widths;
+        self
     }
 }
 
