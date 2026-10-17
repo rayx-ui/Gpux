@@ -5539,6 +5539,34 @@ impl ScrollHandle {
         )
     }
 
+    /// Clamp and publish a wheel turn handled outside the scroll container, in its input turn,
+    /// as the container's own wheel listener publishes one.
+    ///
+    /// For an element that forwards wheel input to a handle it does not paint the container
+    /// of, such as a mask over a table: the owner and the handle's dependent views are notified
+    /// once, the notification counting as the scroll's, and no frame is queued after it.
+    pub fn publish_wheel_offset(
+        &self,
+        candidate: Point<Pixels>,
+        owner: EntityId,
+        cx: &mut App,
+    ) -> bool {
+        let Ok(state) = self.0.try_borrow() else {
+            return false;
+        };
+        let max_offset = state.max_offset;
+        let bounds = state.bounds;
+        drop(state);
+        self.publish_offset(
+            candidate,
+            max_offset,
+            bounds,
+            ScrollMutationSource::Wheel,
+            owner,
+            cx,
+        )
+    }
+
     fn publish_programmatic_offset(
         &self,
         candidate: Point<Pixels>,

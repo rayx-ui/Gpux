@@ -10,8 +10,8 @@ use super::{
 };
 use crate::fast::tests::layer_support::{draw, with_window};
 use crate::{
-    GlobalElementId, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, PlatformInput,
-    ScrollDelta, ScrollWheelEvent, TestAppContext, TouchPhase, point, px,
+    AppContext as _, GlobalElementId, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent,
+    PlatformInput, ScrollDelta, ScrollWheelEvent, TestAppContext, TouchPhase, point, px,
 };
 
 const FRAMES: usize = 60;
@@ -255,4 +255,42 @@ fn an_unclipped_synchronized_list_is_ineligible_and_draws_as_without_layers(
         wheel_by(cx, window, 0., -30.);
     }
     assert!(!list_layer_kept(cx, window), "the list has no layer");
+}
+
+/// A wheel turn an element forwards to the shared handle with
+/// `ScrollHandle::publish_wheel_offset`, as a mask over a table does, is a
+/// scroll as the driver's own wheel is: one frame follows it, shown from the
+/// list's layer.
+#[crate::test]
+fn a_forwarded_wheel_turn_composites_in_one_frame(cx: &mut TestAppContext) {
+    if !crate::fast::layers::COMPILED {
+        return;
+    }
+    let page = Page::new(Kind::Synchronized, varied_heights());
+    let handle = page.parent.clone();
+    let window = open(cx, page, false);
+    let owner = cx
+        .update_window(window, |root, _, _| root.entity_id())
+        .unwrap();
+    let mut composited = 0;
+    for turn in 0..20 {
+        let before = stats(cx, window);
+        let offset = handle.offset() - point(px(0.), px(15.));
+        cx.update(|cx| {
+            assert!(
+                handle.publish_wheel_offset(offset, owner, cx),
+                "turn {turn}: the offset was published"
+            );
+        });
+        cx.run_until_parked();
+        draw(cx, window);
+        let after = stats(cx, window);
+        assert_eq!(
+            after.frames - before.frames,
+            1,
+            "turn {turn}: one frame follows a forwarded turn"
+        );
+        composited += after.layers_composited - before.layers_composited;
+    }
+    assert!(composited >= 14, "{composited} of 20 turns composited");
 }
