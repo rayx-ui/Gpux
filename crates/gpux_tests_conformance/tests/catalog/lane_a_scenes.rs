@@ -19,6 +19,7 @@ macro_rules! lane_a_scenes {
             editable_text => "editable-text",
             editable_rich_attributes => "editable-rich-attributes",
             editable_paragraphs => "editable-paragraphs",
+            editable_lists => "editable-lists",
             editable_ime => "editable-ime",
             list_uniform => "list-uniform",
             list_variable => "list-variable",

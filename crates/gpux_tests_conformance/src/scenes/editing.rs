@@ -6,8 +6,8 @@ use gpux::prelude::*;
 use gpux::{
     AnyView, App, AttributeChange, AttributeState, Context, DevtoolsSemantics, EditableText,
     EditableTextLineMode, EditableTextState, Entity, FontStyle, FontWeight, IntoElement,
-    ParagraphAlignment, ParagraphFormat, Render, TextAttributes, TextAttributesPatch,
-    UnderlineStyle, Window, div, px, rgb, semantic_query::Query,
+    ParagraphAlignment, ParagraphFormat, Render, TextAttributes, TextAttributesPatch, TextListItem,
+    TextListKind, UnderlineStyle, Window, div, px, rgb, semantic_query::Query,
 };
 
 const ALL_LANES: &[Lane] = &[Lane::A, Lane::B, Lane::C, Lane::D, Lane::E, Lane::F];
@@ -424,6 +424,114 @@ pub const PARAGRAPHS: SceneSpec = SceneSpec {
             // Spacing: an empty 20 px band above the last paragraph.
             Step::ProbeUniform((12., 180., 230., 16.), WHITE, 0),
             Step::ProbeDiffer((12., 206., 30., 8.), (12., 180., 30., 8.), 40),
+        ]
+    },
+};
+
+/// A bullet, a nested bullet, two numbered items and a checkbox item, with a 40 px list step.
+struct Lists {
+    state: Entity<EditableTextState>,
+}
+
+impl Lists {
+    fn new(cx: &mut Context<Self>) -> Self {
+        let state = cx.new(|cx| {
+            let mut state = EditableTextState::with_line_mode(
+                "HHHH\nHHHH\nHHHH\nHHHH\nHHHH",
+                EditableTextLineMode::MultiLine,
+                cx,
+            );
+            state.set_list_indent_step(px(40.), cx);
+            let items = [
+                TextListItem::bullet(0),
+                TextListItem::bullet(1),
+                TextListItem::numbered(0),
+                TextListItem::numbered(0),
+                TextListItem::checkbox(0),
+            ];
+            for (paragraph, item) in items.into_iter().enumerate() {
+                let start = paragraph * 5;
+                state.set_paragraph_format(
+                    start..start,
+                    ParagraphFormat {
+                        list: Some(item),
+                        ..Default::default()
+                    },
+                    cx,
+                );
+            }
+            state
+        });
+        cx.observe(&state, |_, _, cx| cx.notify()).detach();
+        Self { state }
+    }
+}
+
+impl Render for Lists {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let checked = matches!(
+            self.state.read(cx).paragraph_format(20).list,
+            Some(TextListItem {
+                kind: TextListKind::Checkbox { checked: true },
+                ..
+            })
+        );
+        root()
+            .font_family("Lilex")
+            .child(
+                div()
+                    .absolute()
+                    .left(px(10.))
+                    .top(px(10.))
+                    .w(px(240.))
+                    .h(px(130.))
+                    .line_height(px(24.))
+                    .child(EditableText::new(&self.state)),
+            )
+            .child(
+                div()
+                    .absolute()
+                    .left(px(10.))
+                    .top(px(150.))
+                    .child(status(format!("checked {checked}"))),
+            )
+    }
+}
+
+/// List items in one field of 24 px rows (baselines 18 px down each row) of 16 px Lilex, with a
+/// 40 px list step: item text starts at x 40 (level 0) or 80 (level 1) in the field at (10, 10),
+/// and markers end 6.4 px before it. Rows: "\u{2022}", "\u{25e6}" (level 1), "1.", "2." and a 12.8 px
+/// checkbox at x 20.8-33.6, y 101.2-114 of the field.
+pub const LISTS: SceneSpec = SceneSpec {
+    id: "editable-lists",
+    areas: &[Area::EditableLists, Area::EditableText],
+    size: (260., 180.),
+    scales: &[1., 2.],
+    lanes: &[Lane::A, Lane::B, Lane::C],
+    golden: false,
+    build: |_, cx| cx.new(Lists::new).into(),
+    script: || {
+        vec![
+            Step::Expect(Expect::Exists(status_is("checked false"))),
+            // Item text starts at its level's indent; nothing is painted in front of a marker.
+            Step::ProbeUniform((11., 19., 10., 8.), WHITE, 0),
+            Step::ProbeDiffer((51., 18., 30., 9.), (11., 18., 30., 9.), 40),
+            Step::ProbeUniform((51., 42., 12., 9.), WHITE, 0),
+            Step::ProbeDiffer((91., 42., 30., 9.), (51., 42., 30., 9.), 40),
+            // Markers: the bullets and both numbers paint before their items.
+            Step::ProbeDiffer((34., 19., 9., 8.), (11., 19., 9., 8.), 40),
+            Step::ProbeDiffer((74., 43., 9., 8.), (11., 43., 9., 8.), 40),
+            Step::ProbeDiffer((25., 66., 18., 9.), (200., 66., 18., 9.), 40),
+            Step::ProbeDiffer((25., 90., 18., 9.), (200., 90., 18., 9.), 40),
+            // The numbers differ: "1." and "2.".
+            Step::ProbeDiffer((25., 66., 18., 9.), (25., 90., 18., 9.), 40),
+            // An empty checkbox; a click checks it, filling its middle.
+            Step::ProbeUniform((35., 115., 4., 4.), WHITE, 0),
+            Step::Capture("unchecked"),
+            Step::ClickAt(37.2, 117.6),
+            Step::Expect(Expect::Exists(status_is("checked true"))),
+            Step::ProbeUniform((35.5, 115.5, 3., 3.), BLACK, 0),
+            Step::ChangedSince("unchecked", (31., 111., 12., 12.)),
         ]
     },
 };
