@@ -1,0 +1,73 @@
+# gpux fork of accesskit_macos 0.27.1 from https://github.com/AccessKit/accesskit, published as
+# gpux-accesskit-macos until an AccessKit release exposes a table's rows and cells and a node's
+# expanded state to VoiceOver. The only changes are in src/node.rs and src/event.rs
+# (docs/upstream/accesskit-macos-tables-expanded.md). This manifest is the published (normalized)
+# manifest with the package renamed and only the library kept.
+
+[package]
+edition = "2024"
+rust-version = "1.87"
+name = "gpux-accesskit-macos"
+version = "0.27.1-gpux.1"
+authors = ["The AccessKit contributors"]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
+description = "Temporary gpux fork of accesskit_macos 0.27.1 (VoiceOver gets table rows and cells and expanded state). AccessKit UI accessibility infrastructure: macOS adapter"
+readme = "README.md"
+keywords = [
+    "gui",
+    "ui",
+    "accessibility",
+]
+categories = ["gui"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/rayx-ui/Gpux"
+homepage = "https://github.com/AccessKit/accesskit"
+
+[package.metadata.docs.rs]
+default-target = "x86_64-apple-darwin"
+
+[lib]
+name = "accesskit_macos"
+path = "src/lib.rs"
+
+[dependencies.accesskit]
+version = "0.25.1"
+
+[dependencies.accesskit_consumer]
+version = "0.39.1"
+
+[dependencies.hashbrown]
+version = "0.17"
+features = ["default-hasher"]
+default-features = false
+
+[dependencies.objc2]
+version = "0.5.1"
+
+[dependencies.objc2-app-kit]
+version = "0.2.0"
+features = [
+    "NSAccessibility",
+    "NSAccessibilityConstants",
+    "NSAccessibilityElement",
+    "NSAccessibilityProtocols",
+    "NSColor",
+    "NSResponder",
+    "NSText",
+    "NSView",
+    "NSWindow",
+]
+
+[dependencies.objc2-foundation]
+version = "0.2.0"
+features = [
+    "NSArray",
+    "NSDictionary",
+    "NSValue",
+    "NSThread",
+]

@@ -32,6 +32,7 @@ members = [
     "crates/util_macros",
     "tooling/perf",
     "tooling/testkit",
+    "vendor/accesskit_macos",
     "vendor/wgpu/wgpu",
     "vendor/wgpu/wgpu-core",
     "vendor/wgpu/wgpu-hal",
@@ -87,7 +88,7 @@ accesskit = { version = "0.25.1", features = ["enumn"] }
 accesskit_android = { version = "0.9.0", features = ["embedded-dex"] }
 accesskit_consumer = "0.39.1"
 accesskit_ios = "0.2.1"
-accesskit_macos = "0.27.1"
+accesskit_macos = { package = "gpux-accesskit-macos", path = "vendor/accesskit_macos", version = "=0.27.1-gpux.1" }
 accesskit_unix = "0.24.0"
 accesskit_windows = "0.35.1"
 anyhow = "1.0.86"

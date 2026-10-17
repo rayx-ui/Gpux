@@ -63,20 +63,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "accesskit_macos"
-version = "0.27.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5701624bf6a11efb6d4c8e922bf44126ed96250e5faa9a7a0468c979635839a4"
-dependencies = [
- "accesskit",
- "accesskit_consumer",
- "hashbrown 0.17.1",
- "objc2 0.5.2",
- "objc2-app-kit 0.2.2",
- "objc2-foundation 0.2.2",
-]
-
-[[package]]
 name = "accesskit_unix"
 version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3016,6 +3002,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "gpux-accesskit-macos"
+version = "0.27.1-gpux.1"
+dependencies = [
+ "accesskit",
+ "accesskit_consumer",
+ "hashbrown 0.17.1",
+ "objc2 0.5.2",
+ "objc2-app-kit 0.2.2",
+ "objc2-foundation 0.2.2",
+]
+
+[[package]]
 name = "gpux-apple"
 version = "0.3.0"
 dependencies = [
@@ -3229,7 +3227,6 @@ name = "gpux-macos"
 version = "0.3.0"
 dependencies = [
  "accesskit",
- "accesskit_macos",
  "anyhow",
  "block2 0.6.2",
  "cocoa 0.26.0",
@@ -3243,6 +3240,7 @@ dependencies = [
  "foreign-types",
  "futures",
  "gpux",
+ "gpux-accesskit-macos",
  "gpux-apple",
  "gpux-collections",
  "gpux-scheduler",
