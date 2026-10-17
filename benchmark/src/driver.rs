@@ -6,6 +6,11 @@
 //! mode's retained state settle; `frames` frames are measured. Each frame's sample spans one
 //! `on_next_frame` callback to the next: the scenario's step, the draw and present it caused and
 //! whatever else the platform ran on the main thread in between.
+//!
+//! The window must stay visible: a platform requests no frames for a window it does not present
+//! (on macOS one fully behind another app's window, minimized, on another Space or on a sleeping
+//! display). A run whose window is hidden after its first frame, or is not presented within
+//! [`OPEN_TIMEOUT`], ends with a report holding only `error` instead of waiting for frames.
 
 use std::{cell::RefCell, rc::Rc, time::Duration};
 
@@ -118,7 +123,11 @@ impl Config {
     }
 }
 
-/// Called once with the report, in the frame after the last measured one.
+/// How long a window may take to present its first frame before the run fails.
+pub const OPEN_TIMEOUT: Duration = Duration::from_secs(10);
+
+/// Called once with the report, in the frame after the last measured one, or with a report
+/// holding only `error` (and the run's names) when the window was hidden.
 pub type Done = Box<dyn FnOnce(Value, &mut Window, &mut App)>;
 
 struct Root {
@@ -149,6 +158,10 @@ struct Run {
     config: Config,
     /// Held for the whole run when [`Config::inspect`] asks for it.
     _inspection: Option<gpux::A11yInspection>,
+    /// Ends the run when the window is hidden after its first frame.
+    _visibility: Option<gpux::Subscription>,
+    /// Ends the run when the window presents no frame within [`OPEN_TIMEOUT`].
+    _open_timeout: Option<gpux::Task<()>>,
     step: Option<Step>,
     done: Option<Done>,
     phase: Phase,
@@ -177,6 +190,8 @@ pub fn open(cx: &mut App, config: Config, options: WindowOptions, done: Done) {
     let run = Rc::new(RefCell::new(Run {
         config,
         _inspection: None,
+        _visibility: None,
+        _open_timeout: None,
         step: None,
         done: Some(done),
         phase: Phase::Opening,
@@ -213,13 +228,75 @@ pub fn open(cx: &mut App, config: Config, options: WindowOptions, done: Done) {
         .expect("opening the benchmark window");
     run.borrow_mut().memory_after_open = metrics::memory();
     window
-        .update(cx, |_, window, _| {
+        .update(cx, |_, window, cx| {
             if run.borrow().config.inspect {
                 run.borrow_mut()._inspection = Some(window.begin_a11y_inspection());
             }
+            let visibility = window.observe_window_visibility({
+                let run = run.clone();
+                move |visibility, window, cx| {
+                    // A window is hidden until it is first presented; only a later change ends
+                    // the run.
+                    let opening = run.borrow().phase == Phase::Opening;
+                    if !visibility.is_visible() && !opening {
+                        fail(
+                            &run,
+                            "the window was hidden during the run (fully covered by another \
+                             window, minimized, on another Space or on a sleeping display); \
+                             keep it visible and run again",
+                            window,
+                            cx,
+                        );
+                    }
+                }
+            });
+            let open_timeout = window.spawn(cx, {
+                let run = run.clone();
+                async move |cx| {
+                    cx.background_executor().timer(OPEN_TIMEOUT).await;
+                    cx.update(|window, cx| {
+                        if run.borrow().phase == Phase::Opening {
+                            fail(
+                                &run,
+                                &format!(
+                                    "the window presented no frame within {}s (it opened \
+                                     hidden: behind another window, on another Space or on a \
+                                     sleeping display); keep it visible and run again",
+                                    OPEN_TIMEOUT.as_secs()
+                                ),
+                                window,
+                                cx,
+                            );
+                        }
+                    })
+                    .ok();
+                }
+            });
+            let mut state = run.borrow_mut();
+            state._visibility = Some(visibility);
+            state._open_timeout = Some(open_timeout);
+            drop(state);
             schedule(&run, window)
         })
         .expect("the window is open");
+}
+
+/// Ends the run without measurements: `done` gets a report holding `error`.
+fn fail(run: &Rc<RefCell<Run>>, error: &str, window: &mut Window, cx: &mut App) {
+    let mut state = run.borrow_mut();
+    if state.phase == Phase::Done {
+        return;
+    }
+    state.phase = Phase::Done;
+    let report = json!({
+        "scenario": state.config.scenario.id,
+        "label": state.config.label,
+        "target": state.config.target,
+        "error": error,
+    });
+    let done = state.done.take().expect("a run reports once");
+    drop(state);
+    done(report, window, cx);
 }
 
 fn set_fast_mode(window: &mut Window, fast: Fast) {

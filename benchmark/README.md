@@ -56,6 +56,11 @@ python3 benchmark/run.py --target macos --configs on --reps 1
 gpux limits an unfocused window to about 30 frames per second, and a moved pointer becomes a
 hover the scenario did not ask for. Desktop runs keep the display awake with `caffeinate`. Every
 report counts the frames its window was inactive (`inactive_frames`).
+A window that is not presented gets no frames at all (on macOS: fully behind another app's
+window, minimized, on another Space or on a sleeping display), so a run whose window is hidden
+after its first frame, or presents none within 10 seconds, stops: `gpux-bench` prints why and
+exits with status 2, writing no report, and `run.py` takes that run once more. On macOS
+`tools/hidden-window.sh` proves it with a window covering the screens.
 
 Results go to `results/<name>/`. That directory holds:
 

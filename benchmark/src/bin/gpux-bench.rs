@@ -8,7 +8,8 @@
 //!
 //! Opens one real, visible window of 1280 by 800 logical pixels, runs the scenario and writes the
 //! report as JSON to `--out` (or stdout), then quits. One run is one process, so the memory
-//! figures belong to that scenario alone.
+//! figures belong to that scenario alone. A run whose window is hidden (see [`driver`]) prints
+//! why to stderr and exits with status 2, writing no report.
 
 use gpux::{App, Bounds, WindowBounds, WindowOptions, px, size};
 use gpux_benchmark::{
@@ -44,6 +45,10 @@ fn main() {
                 config,
                 options,
                 Box::new(move |report, _, cx| {
+                    if let Some(error) = report["error"].as_str() {
+                        eprintln!("gpux-bench: {error}");
+                        std::process::exit(2);
+                    }
                     let text =
                         serde_json::to_string_pretty(&report).expect("the report serializes");
                     match &out {

@@ -72,7 +72,11 @@ pub fn run() {
         Some("off") => Some(gpux::AccessibilityMode::Off),
         Some("auto") => Some(gpux::AccessibilityMode::Auto),
         None => None,
-        Some(other) => return fail(format!("?accessibility= takes auto, always or off, not {other}")),
+        Some(other) => {
+            return fail(format!(
+                "?accessibility= takes auto, always or off, not {other}"
+            ));
+        }
     };
 
     gpui_platform::application_with_web_backend(backend).run(move |cx| async move {
@@ -86,6 +90,9 @@ pub fn run() {
                 config,
                 WindowOptions::default(),
                 Box::new(|mut report, window, _| {
+                    if let Some(error) = report["error"].as_str() {
+                        return fail(error.into());
+                    }
                     report["backend"] = window
                         .gpu_specs()
                         .map(|specs| format!("{:?}", specs.backend).trim_matches('"').into())

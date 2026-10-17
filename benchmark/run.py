@@ -219,10 +219,21 @@ def run_desktop_jobs(target, jobs, exe, options):
             accessibility = None
         else:
             accessibility = {"GPUX_ACCESSIBILITY": options.accessibility} if options.accessibility else None
-        try:
-            sh(command, timeout=300, env=accessibility)
-        except subprocess.SubprocessError as error:
-            log(f"FAILED {job['scenario']} {job['config']}: {error}")
+        # Exit status 2: the window was hidden (covered by another app's window, say), so the
+        # platform stopped requesting frames; the run is taken again once.
+        for attempt in range(2):
+            try:
+                sh(command, timeout=300, env=accessibility)
+                break
+            except subprocess.CalledProcessError as error:
+                if error.returncode == 2 and attempt == 0:
+                    log(f"RETRY {job['scenario']} {job['config']}: the window was hidden")
+                    continue
+                log(f"FAILED {job['scenario']} {job['config']}: {error}")
+                break
+            except subprocess.SubprocessError as error:
+                log(f"FAILED {job['scenario']} {job['config']}: {error}")
+                break
 
 
 def simulator(name):
