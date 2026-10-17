@@ -60,6 +60,7 @@ mod scene;
 #[cfg(any(test, feature = "test-support", feature = "bench-support"))]
 mod seeds;
 /// Semantic element queries and, with `test-support`, locators that act on what they find.
+#[cfg(any(test, feature = "test-support", feature = "semantic-query"))]
 pub mod semantic_query;
 mod shared_uri;
 mod spring;

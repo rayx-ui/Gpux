@@ -6,6 +6,8 @@ members = [
     "crates/gpui",
     "crates/gpui_apple",
     "crates/gpux_color",
+    "crates/gpux_devtools",
+    "crates/gpux_devtools_mcp",
     "crates/gpux_fonts",
     "crates/gpux_tests_conformance",
     "crates/gpui_linux",
@@ -30,6 +32,7 @@ members = [
     "crates/util_macros",
     "tools/perf",
     "tools/testkit",
+    "vendor/accesskit_macos",
     "vendor/wgpu/wgpu",
     "vendor/wgpu/wgpu-core",
     "vendor/wgpu/wgpu-hal",
@@ -54,6 +57,8 @@ collections = { package = "gpux-collections", path = "crates/collections", versi
 derive_refineable = { package = "gpux-derive-refineable", path = "crates/refineable/derive_refineable", version = "0.3.0" }
 gpux = { path = "crates/gpui", version = "0.3.0", default-features = false }
 gpux_color = { package = "gpux-color", path = "crates/gpux_color", version = "0.3.0" }
+gpux_devtools = { package = "gpux-devtools", path = "crates/gpux_devtools", version = "0.3.0" }
+gpux_devtools_mcp = { package = "gpux-devtools-mcp", path = "crates/gpux_devtools_mcp", version = "0.3.0" }
 gpux_fonts = { package = "gpux-fonts", path = "crates/gpux_fonts", version = "0.3.0" }
 gpux_tests_conformance = { package = "gpux-tests-conformance", path = "crates/gpux_tests_conformance", version = "0.3.0", default-features = false }
 gpui_shared_string = { package = "gpux-shared-string", path = "crates/gpui_shared_string", version = "0.3.0" }
@@ -63,7 +68,7 @@ gpui_macos = { package = "gpux-macos", path = "crates/gpui_macos", version = "0.
 gpui_macros = { package = "gpux-macros", path = "crates/gpui_macros", version = "0.3.0" }
 gpui_mobile = { package = "gpux-mobile", path = "crates/gpui_mobile", version = "0.3.0", default-features = false }
 gpui_platform = { package = "gpux-platform", path = "crates/gpui_platform", version = "0.3.0", default-features = false }
-gpui_web = { package = "gpux-web", path = "crates/gpui_web", version = "0.3.0" }
+gpui_web = { package = "gpux-web", path = "crates/gpui_web", version = "0.3.0", default-features = false }
 gpui_wgpu = { package = "gpux-wgpu-renderer", path = "crates/gpui_wgpu", version = "0.3.0" }
 gpui_windows = { package = "gpux-windows", path = "crates/gpui_windows", version = "0.3.0", default-features = false }
 gpui_util = { package = "gpux-util", path = "crates/gpui_util", version = "0.3.0" }
@@ -77,13 +82,19 @@ scheduler = { package = "gpux-scheduler", path = "crates/scheduler", version = "
 sum_tree = { package = "gpux-sum-tree", path = "crates/sum_tree", version = "0.3.0" }
 util = { package = "gpux-zed-util", path = "crates/util", version = "0.3.0" }
 util_macros = { package = "gpux-zed-util-macros", path = "crates/util_macros", version = "0.3.0" }
-accesskit = { version = "0.24.0", features = ["enumn"] }
-accesskit_macos = "0.26.0"
-accesskit_unix = "0.22"
-accesskit_windows = "0.34"
+# AccessKit 0.25: gpux is ahead of Zed here (an upstream import keeps these pins unless Zed's
+# are newer; see docs/upstream/accesskit-0.25.md). Every adapter moves with `accesskit`.
+accesskit = { version = "0.25.1", features = ["enumn"] }
+accesskit_android = { version = "0.9.0", features = ["embedded-dex"] }
+accesskit_consumer = "0.39.1"
+accesskit_ios = "0.2.1"
+accesskit_macos = { package = "gpux-accesskit-macos", path = "vendor/accesskit_macos", version = "=0.27.1-gpux.1" }
+accesskit_unix = "0.24.0"
+accesskit_windows = "0.35.1"
 anyhow = "1.0.86"
 ashpd = { version = "0.13", default-features = false, features = ["async-io", "inhibit", "open_uri", "file_chooser", "settings"] }
 async-channel = { version = "2.5", default-features = false }
+base64 = "0.22"
 async-compression = { version = "0.4", features = ["bzip2", "gzip", "futures-io"] }
 async-fs = "2.1"
 async-tar = "0.6"
@@ -192,6 +203,7 @@ thiserror = "2.0.12"
 tokio = "1"
 tracing = "0.1.40"
 unicase = "2.6"
+tungstenite = "0.30"
 unicode-bidi = { version = "0.3.18", default-features = false, features = ["hardcoded-data"] }
 unicode-script = "0.5.7"
 unicode-segmentation = "1.10"

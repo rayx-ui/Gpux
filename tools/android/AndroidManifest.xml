@@ -12,6 +12,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="dev.gpux.conformance">
 
+    <!-- The `devtools` group's connection to the testkit's sidecar, `adb reverse`d to loopback. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:label="gpux conformance"
         android:hasCode="true"

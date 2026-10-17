@@ -4,11 +4,10 @@ use super::common::*;
 use crate::scene::{Area, Expect, Lane, SceneSpec, Step};
 use gpux::prelude::*;
 use gpux::{
-    AnyView, App, AttributeChange, AttributeState, Context, DevtoolsSemantics, EditableText,
-    EditableTextLineMode, EditableTextState, Entity, FontStyle, FontWeight, InlineObject,
-    IntoElement, MouseButton, ParagraphAlignment, ParagraphFormat, Render, SharedString,
-    TextAttributes, TextAttributesPatch, TextListItem, TextListKind, UnderlineStyle, Window, div,
-    px, rgb, semantic_query::Query,
+    AnyView, App, AttributeChange, AttributeState, Context, EditableText, EditableTextLineMode,
+    EditableTextState, Entity, FontStyle, FontWeight, InlineObject, IntoElement, MouseButton,
+    ParagraphAlignment, ParagraphFormat, Render, SharedString, TextAttributes, TextAttributesPatch,
+    TextListItem, TextListKind, UnderlineStyle, Window, div, px, rgb, semantic_query::Query,
 };
 
 const ALL_LANES: &[Lane] = &[Lane::A, Lane::B, Lane::C, Lane::D, Lane::E, Lane::F];
@@ -21,7 +20,6 @@ struct Field {
 impl Render for Field {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let state = self.state.read(cx);
-        let value = state.text();
         let selection = state.selection().range();
         let marked = state
             .marked_range()
@@ -34,14 +32,9 @@ impl Render for Field {
                 selection.start, selection.end
             )))
             .child(
-                div().w(px(240.)).child(
-                    EditableText::new(&self.state).devtools_semantics(
-                        DevtoolsSemantics::new()
-                            .role("textbox")
-                            .name("Name")
-                            .value(value),
-                    ),
-                ),
+                div()
+                    .w(px(240.))
+                    .child(EditableText::new(&self.state).aria_label("Name")),
             )
     }
 }

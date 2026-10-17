@@ -44,18 +44,18 @@ pub use visual_test_context::*;
 use crate::InspectorElementRegistry;
 use crate::asset_cache::CachedLoad;
 use crate::{
-    Action, ActionBuildError, ActionRegistry, ActivationPolicy, ActivityGuard, Any, AnyView,
-    AnyWindowHandle, AppContext, Arena, ArenaBox, Asset, AssetSource, BackgroundExecutor, Bounds,
-    ClipboardItem, ClipboardReadError, CursorStyle, DispatchPhase, DisplayId, EventEmitter,
-    ExternalDragPayload, FocusHandle, FocusMap, ForegroundExecutor, Global, InputLayerId,
-    InputMapError, KeyBinding, KeyContext, Keymap, KeymapLayer, Keystroke, LayoutId, Menu,
-    MenuItem, MissingGlyph, OwnedMenu, PathPromptOptions, Pixels, Platform, PlatformDisplay,
-    PlatformKeyboardLayout, PlatformKeyboardMapper, Point, Priority, PromptBuilder, PromptButton,
-    PromptHandle, PromptLevel, Render, RenderImage, RenderablePromptHandle, Reservation,
-    ScreenCaptureSource, SharedString, SubscriberSet, Subscription, SvgRenderer,
-    SystemNotification, SystemNotificationResponse, Task, TextRenderingMode, TextSystem,
-    ThermalState, Window, WindowAppearance, WindowButtonLayout, WindowHandle, WindowId,
-    WindowInvalidator, WindowingRequest,
+    AccessibilityMode, Action, ActionBuildError, ActionRegistry, ActivationPolicy, ActivityGuard,
+    Any, AnyView, AnyWindowHandle, AppContext, Arena, ArenaBox, Asset, AssetSource,
+    BackgroundExecutor, Bounds, ClipboardItem, ClipboardReadError, CursorStyle, DispatchPhase,
+    DisplayId, EventEmitter, ExternalDragPayload, FocusHandle, FocusMap, ForegroundExecutor,
+    Global, InputLayerId, InputMapError, KeyBinding, KeyContext, Keymap, KeymapLayer, Keystroke,
+    LayoutId, Menu, MenuItem, MissingGlyph, OwnedMenu, PathPromptOptions, Pixels, Platform,
+    PlatformDisplay, PlatformKeyboardLayout, PlatformKeyboardMapper, Point, Priority,
+    PromptBuilder, PromptButton, PromptHandle, PromptLevel, Render, RenderImage,
+    RenderablePromptHandle, Reservation, ScreenCaptureSource, SharedString, SubscriberSet,
+    Subscription, SvgRenderer, SystemNotification, SystemNotificationResponse, Task,
+    TextRenderingMode, TextSystem, ThermalState, Window, WindowAppearance, WindowButtonLayout,
+    WindowHandle, WindowId, WindowInvalidator, WindowingRequest,
     colors::{Colors, GlobalColors},
     hash, init_app_menus,
 };
@@ -145,7 +145,7 @@ impl Drop for AppRefMut<'_> {
 
 /// A reference to a GPUI application, typically constructed in the `main` function of your app.
 /// You won't interact with this type much outside of initial configuration and startup.
-pub struct Application(Rc<AppCell>);
+pub struct Application(pub(crate) Rc<AppCell>);
 
 /// A strong handle to an [`Application`] started with [`Application::run_embedded`].
 pub struct ApplicationHandle {
@@ -195,6 +195,29 @@ impl Application {
         let this = Self::with_platform(platform);
         this.0.borrow_mut().accessibility_force_disabled = true;
         this
+    }
+
+    /// Sets when the application exposes its windows to screen readers, overriding
+    /// `GPUX_ACCESSIBILITY`. See [`AccessibilityMode`]; [`App::set_accessibility_mode`] changes
+    /// it later.
+    pub fn with_accessibility_mode(self, mode: AccessibilityMode) -> Self {
+        self.0.borrow().accessibility_mode.set(mode);
+        self
+    }
+
+    /// The application's accessibility mode: the builder's, else `GPUX_ACCESSIBILITY`'s.
+    pub fn accessibility_mode(&self) -> AccessibilityMode {
+        self.0.borrow().accessibility_mode()
+    }
+
+    /// An application on the test platform, for tests of what its builder sets.
+    #[cfg(any(test, feature = "test-support"))]
+    pub fn on_test_platform(dispatcher: crate::TestDispatcher) -> Self {
+        let dispatcher = Arc::new(dispatcher);
+        Self::with_platform(crate::TestPlatform::new(
+            crate::BackgroundExecutor::new(dispatcher.clone()),
+            crate::ForegroundExecutor::new(dispatcher),
+        ))
     }
 
     /// Assigns the source of assets for the application.
@@ -863,6 +886,8 @@ pub struct App {
     /// Whether the app was created by [`Application::new_inaccessible`]. No
     /// accesskit APIs will be called when this flag is set.
     pub(crate) accessibility_force_disabled: bool,
+    /// The application's [`AccessibilityMode`], shared with every window's accessibility state.
+    pub(crate) accessibility_mode: Rc<Cell<AccessibilityMode>>,
     pending_updates: usize,
     quit_mode: QuitMode,
     quitting: bool,
@@ -966,6 +991,7 @@ impl App {
                 reduce_motion: false,
                 synced_animation_epoch,
                 accessibility_force_disabled: false,
+                accessibility_mode: Rc::new(Cell::new(AccessibilityMode::from_env())),
 
                 #[cfg(any(test, feature = "test-support", debug_assertions))]
                 name: None,
@@ -1245,6 +1271,19 @@ impl App {
     pub fn set_reduce_motion(&mut self, reduce_motion: bool) {
         if self.reduce_motion != reduce_motion {
             self.reduce_motion = reduce_motion;
+            self.refresh_windows();
+        }
+    }
+
+    /// The application's [`AccessibilityMode`].
+    pub fn accessibility_mode(&self) -> AccessibilityMode {
+        self.accessibility_mode.get()
+    }
+
+    /// Changes when the application exposes its windows to screen readers, at any time; every
+    /// window redraws under the new mode. See [`AccessibilityMode`].
+    pub fn set_accessibility_mode(&mut self, mode: AccessibilityMode) {
+        if self.accessibility_mode.replace(mode) != mode {
             self.refresh_windows();
         }
     }

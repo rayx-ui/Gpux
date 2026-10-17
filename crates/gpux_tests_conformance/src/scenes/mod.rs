@@ -59,4 +59,5 @@ pub static CATALOG: &[SceneSpec] = &[
     effects::ANIMATED_FRAME,
     effects::TRANSITION_FRAME,
     semantics::ACCESSIBILITY,
+    semantics::CONTROLS,
 ];

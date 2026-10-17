@@ -9,7 +9,7 @@ agentx:
     - touch-gestures
     - drag
     - text-input
-    - devkit
+    - devtools
     - actions
   supersedes: []
   superseded_by: []
@@ -18,7 +18,7 @@ agentx:
 
 - A `TouchDragEvent` claim at `Started` removes the touch from tap, pan, and long-press recognition, so claiming it for a pan swallows taps on child controls. Observe the unclaimed offer to learn that a touch began, and take touch pans from the phased scroll steps that inner scroll containers consume first.
 - `on_drop` takes the active drag before `can_drop` runs: a matching but rejected drop still ends the drag, and no ancestor target sees it.
-- `TouchGestureRecognizer` treats a release sampled more than 40 ms after the last move as a stopped finger. Upstream times samples when it processes them, so a frame that blocked the main thread before the lift suppressed the fling and samples queued behind a stall had no usable velocity; gpux times them by `TouchEvent::timestamp`. Synthesized touches without a timestamp (DevKit, CDP) are still timed when processed, so automation must lift right after its last move.
+- `TouchGestureRecognizer` treats a release sampled more than 40 ms after the last move as a stopped finger. Upstream times samples when it processes them, so a frame that blocked the main thread before the lift suppressed the fling and samples queued behind a stall had no usable velocity; gpux times them by `TouchEvent::timestamp`. Synthesized touches without a timestamp (gpux-devtools, CDP) are still timed when processed, so automation must lift right after its last move.
 - Pressing a non-focusable element focuses its nearest `track_focus` ancestor (in RayX, the window `Root`) unless a descendant calls `window.prevent_default()` on the mouse down. Menu- and palette-like controls that dispatch to the focused element must prevent default, or their action starts from the ancestor and misses the editor.
 - A cancelled mouse pointer reaches GPUI only as the next move without the held button: the web platform clears `pressed_button` on `pointercancel` and dispatches nothing, and later releases still dispatch `MouseUp`. Components that own a press end it on such a move.
 - Dropping cached hitbox-to-dispatch-node associations on prepaint reuse makes visible cached controls lose their action scope; the owning regressions live in `window/action_target.rs`.

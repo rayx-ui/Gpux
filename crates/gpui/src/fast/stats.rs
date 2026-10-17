@@ -72,8 +72,6 @@ pub enum ViewBypassReason {
     /// The inspector is picking an element, which every view's build reports
     /// to.
     Inspector,
-    /// AccessKit is active, and its tree is built from every view's build.
-    Accessibility,
     /// Another view in the frame has the same id, so neither can be told
     /// apart from its record.
     Duplicate,
@@ -81,11 +79,10 @@ pub enum ViewBypassReason {
 
 impl ViewBypassReason {
     /// Every reason, in report order.
-    pub const ALL: [ViewBypassReason; 5] = [
+    pub const ALL: [ViewBypassReason; 4] = [
         ViewBypassReason::Refreshing,
         ViewBypassReason::Drag,
         ViewBypassReason::Inspector,
-        ViewBypassReason::Accessibility,
         ViewBypassReason::Duplicate,
     ];
 
@@ -95,7 +92,6 @@ impl ViewBypassReason {
             ViewBypassReason::Refreshing => "views_bypassed_refreshing",
             ViewBypassReason::Drag => "views_bypassed_drag",
             ViewBypassReason::Inspector => "views_bypassed_inspector",
-            ViewBypassReason::Accessibility => "views_bypassed_accessibility",
             ViewBypassReason::Duplicate => "views_bypassed_duplicate",
         }
     }
@@ -164,8 +160,6 @@ pub struct FastStats {
     pub views_bypassed_drag: u64,
     /// See [`ViewBypassReason::Inspector`].
     pub views_bypassed_inspector: u64,
-    /// See [`ViewBypassReason::Accessibility`].
-    pub views_bypassed_accessibility: u64,
     /// See [`ViewBypassReason::Duplicate`].
     pub views_bypassed_duplicate: u64,
     /// Views copied from the last frame around a rebuilt nested view.
@@ -207,7 +201,7 @@ impl FastStats {
 
     /// The names of the mechanism counters, zero with fast mode off. Layer
     /// bypasses are reported per reason as `layer_bypasses.<reason>`.
-    pub const MECHANISM: [&'static str; 22] = [
+    pub const MECHANISM: [&'static str; 21] = [
         "nodes_claimed",
         "nodes_released",
         "nodes_lingering",
@@ -219,7 +213,6 @@ impl FastStats {
         "views_bypassed_refreshing",
         "views_bypassed_drag",
         "views_bypassed_inspector",
-        "views_bypassed_accessibility",
         "views_bypassed_duplicate",
         "views_spliced",
         "views_prebuilt",
@@ -268,10 +261,6 @@ impl FastStats {
             (
                 "views_bypassed_inspector".into(),
                 self.views_bypassed_inspector,
-            ),
-            (
-                "views_bypassed_accessibility".into(),
-                self.views_bypassed_accessibility,
             ),
             (
                 "views_bypassed_duplicate".into(),
@@ -342,7 +331,6 @@ impl FastStats {
         self.views_bypassed_refreshing
             + self.views_bypassed_drag
             + self.views_bypassed_inspector
-            + self.views_bypassed_accessibility
             + self.views_bypassed_duplicate
     }
 
@@ -352,7 +340,6 @@ impl FastStats {
             ViewBypassReason::Refreshing => self.views_bypassed_refreshing += 1,
             ViewBypassReason::Drag => self.views_bypassed_drag += 1,
             ViewBypassReason::Inspector => self.views_bypassed_inspector += 1,
-            ViewBypassReason::Accessibility => self.views_bypassed_accessibility += 1,
             ViewBypassReason::Duplicate => self.views_bypassed_duplicate += 1,
         }
     }
@@ -414,7 +401,6 @@ impl FastStats {
         self.views_bypassed_refreshing += other.views_bypassed_refreshing;
         self.views_bypassed_drag += other.views_bypassed_drag;
         self.views_bypassed_inspector += other.views_bypassed_inspector;
-        self.views_bypassed_accessibility += other.views_bypassed_accessibility;
         self.views_bypassed_duplicate += other.views_bypassed_duplicate;
         self.views_spliced += other.views_spliced;
         self.views_prebuilt += other.views_prebuilt;

@@ -20,7 +20,11 @@
 mod checks;
 #[cfg(target_os = "ios")]
 mod composition;
+#[cfg(target_os = "ios")]
+mod devtools;
 mod platform_views;
+#[cfg(target_os = "ios")]
+mod screen_reader;
 #[cfg(target_os = "ios")]
 mod scroll_layers;
 
@@ -54,6 +58,8 @@ mod ios {
     struct Selection {
         scene: Option<String>,
         grep: Option<String>,
+        /// `--show <id>`: shows that scene for a person to use instead of running anything.
+        show: Option<String>,
     }
 
     fn selection() -> &'static Selection {
@@ -62,12 +68,14 @@ mod ios {
             let mut selection = Selection {
                 scene: None,
                 grep: None,
+                show: None,
             };
             let mut args = std::env::args().skip(1);
             while let Some(arg) = args.next() {
                 match arg.as_str() {
                     "--scene" => selection.scene = args.next(),
                     "--grep" => selection.grep = args.next(),
+                    "--show" => selection.show = args.next(),
                     _ => {}
                 }
             }
@@ -101,6 +109,20 @@ mod ios {
     async fn run(cx: &mut AsyncApp) {
         if let Err(error) = cx.update(app_host::register_bundled_fonts) {
             eprintln!("ios_host: could not register the bundled fonts: {error:#}");
+        }
+        if let Some(id) = selection().show.as_deref() {
+            // The screen-reader walkthrough of `docs/accessibility.md`: the scene stays open.
+            match CATALOG.iter().find(|scene| scene.id == id) {
+                Some(scene) => {
+                    if let Err(error) = cx.open_window(WindowOptions::default(), |window, cx| {
+                        cx.new(|cx| app_host::SceneFrame::new(scene, window, cx))
+                    }) {
+                        eprintln!("ios_host: could not open `{id}`: {error:#}");
+                    }
+                }
+                None => eprintln!("ios_host: no conformance scene `{id}`"),
+            }
+            return;
         }
         let _anchor = match cx.open_window(WindowOptions::default(), |_, cx| cx.new(|_| Anchor)) {
             Ok(anchor) => anchor,

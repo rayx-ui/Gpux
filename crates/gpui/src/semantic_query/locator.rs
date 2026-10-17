@@ -1,7 +1,7 @@
-use super::{Query, QueryError};
+use super::{Query, QueryError, SemanticNode, SemanticSnapshot};
 use crate::{
-    DevtoolsElementSnapshot, Modifiers, MouseButton, Pixels, Point, ScrollDelta, ScrollWheelEvent,
-    TouchPhase, VisualTestContext, point, px,
+    Modifiers, MouseButton, Pixels, Point, ScrollDelta, ScrollWheelEvent, TouchPhase,
+    VisualTestContext, point, px,
 };
 
 /// Where [`Locator::drag_to`] ends a drag.
@@ -31,9 +31,11 @@ impl From<Point<Pixels>> for DragTarget {
     }
 }
 
-/// A [`Query`] bound to a test window, with actions that drive simulated input at the element it
-/// identifies. Every call resolves the query again against the latest rendered frame, after the
-/// executor parks and pending invalidations draw.
+/// A [`Query`] bound to a test window, with actions that drive simulated input at the node it
+/// identifies. Every call resolves the query again against the latest rendered frame's
+/// accessibility tree, after the executor parks and pending invalidations draw. The first use
+/// starts the window's inspection for the rest of the test
+/// ([`VisualTestContext::settled_semantic_snapshot`]).
 ///
 /// Create one with [`VisualTestContext::locator`].
 pub struct Locator<'a> {
@@ -57,15 +59,23 @@ impl<'a> Locator<'a> {
         self
     }
 
-    /// The one element the query identifies.
-    pub fn resolve(&mut self) -> Result<DevtoolsElementSnapshot, QueryError> {
-        let snapshot = self.cx.settled_frame_snapshot();
+    fn snapshot(&mut self) -> Result<SemanticSnapshot, QueryError> {
+        self.cx
+            .settled_semantic_snapshot()
+            .ok_or_else(|| QueryError::no_tree(&self.query))
+    }
+
+    /// The one node the query identifies.
+    pub fn resolve(&mut self) -> Result<SemanticNode, QueryError> {
+        let snapshot = self.snapshot()?;
         self.query.resolve(&snapshot).cloned()
     }
 
-    /// Every element the query matches, in prepaint order, ignoring `nth`.
-    pub fn all(&mut self) -> Vec<DevtoolsElementSnapshot> {
-        let snapshot = self.cx.settled_frame_snapshot();
+    /// Every node the query matches, in tree order, ignoring `nth`.
+    pub fn all(&mut self) -> Vec<SemanticNode> {
+        let Ok(snapshot) = self.snapshot() else {
+            return Vec::new();
+        };
         self.query.matches(&snapshot).into_iter().cloned().collect()
     }
 
@@ -75,14 +85,14 @@ impl<'a> Locator<'a> {
     }
 
     /// Clicks the primary button at the element's center.
-    pub fn click(&mut self) -> Result<DevtoolsElementSnapshot, QueryError> {
+    pub fn click(&mut self) -> Result<SemanticNode, QueryError> {
         let element = self.resolve()?;
         self.cx.simulate_click(center(&element), Modifiers::none());
         Ok(element)
     }
 
     /// Moves the mouse to the element's center with no button held.
-    pub fn hover(&mut self) -> Result<DevtoolsElementSnapshot, QueryError> {
+    pub fn hover(&mut self) -> Result<SemanticNode, QueryError> {
         let element = self.resolve()?;
         self.cx
             .simulate_mouse_move(center(&element), None, Modifiers::none());
@@ -91,16 +101,16 @@ impl<'a> Locator<'a> {
 
     /// Drags with the primary button from the element's center to `target`, through evenly
     /// spaced intermediate positions.
-    pub fn drag_to(
-        &mut self,
-        target: impl Into<DragTarget>,
-    ) -> Result<DevtoolsElementSnapshot, QueryError> {
+    pub fn drag_to(&mut self, target: impl Into<DragTarget>) -> Result<SemanticNode, QueryError> {
         let element = self.resolve()?;
         let start = center(&element);
         let end = match target.into() {
             DragTarget::Point(point) => point,
             DragTarget::Element(query) => {
-                let snapshot = self.cx.settled_frame_snapshot();
+                let snapshot = self
+                    .cx
+                    .settled_semantic_snapshot()
+                    .ok_or_else(|| QueryError::no_tree(&query))?;
                 center(query.resolve(&snapshot)?)
             }
         };
@@ -120,7 +130,7 @@ impl<'a> Locator<'a> {
     }
 
     /// Scrolls the wheel by `delta` pixels over the element's center.
-    pub fn scroll(&mut self, delta: Point<Pixels>) -> Result<DevtoolsElementSnapshot, QueryError> {
+    pub fn scroll(&mut self, delta: Point<Pixels>) -> Result<SemanticNode, QueryError> {
         let element = self.resolve()?;
         self.cx.simulate_event(ScrollWheelEvent {
             position: center(&element),
@@ -132,8 +142,8 @@ impl<'a> Locator<'a> {
     }
 
     /// Focuses the element by clicking it, unless focus is already on it or inside it.
-    pub fn focus(&mut self) -> Result<DevtoolsElementSnapshot, QueryError> {
-        let snapshot = self.cx.settled_frame_snapshot();
+    pub fn focus(&mut self) -> Result<SemanticNode, QueryError> {
+        let snapshot = self.snapshot()?;
         let element = self.query.resolve(&snapshot)?.clone();
         if !super::focus_is_within(&snapshot, &element) {
             self.cx.simulate_click(center(&element), Modifiers::none());
@@ -142,22 +152,22 @@ impl<'a> Locator<'a> {
     }
 
     /// Focuses the element and types `text`, one keystroke per character.
-    pub fn type_text(&mut self, text: &str) -> Result<DevtoolsElementSnapshot, QueryError> {
+    pub fn type_text(&mut self, text: &str) -> Result<SemanticNode, QueryError> {
         let element = self.focus()?;
         self.cx.simulate_input(text);
         Ok(element)
     }
 
     /// Focuses the element and presses space-separated keystrokes, such as `"ctrl-a backspace"`.
-    pub fn press(&mut self, keystrokes: &str) -> Result<DevtoolsElementSnapshot, QueryError> {
+    pub fn press(&mut self, keystrokes: &str) -> Result<SemanticNode, QueryError> {
         let element = self.focus()?;
         self.cx.simulate_keystrokes(keystrokes);
         Ok(element)
     }
 }
 
-/// The center of an element's window-local bounds.
-pub fn center(element: &DevtoolsElementSnapshot) -> Point<Pixels> {
+/// The center of a node's bounds, in window pixels.
+pub fn center(element: &SemanticNode) -> Point<Pixels> {
     let bounds = element.bounds;
     point(
         px(bounds.x + bounds.width / 2.),

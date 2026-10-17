@@ -57,6 +57,7 @@ pub fn run() {
         label: param("label").unwrap_or_else(|| "unlabelled".into()),
         target: param("target").unwrap_or_else(|| "web".into()),
         fast,
+        inspect: param("inspect").as_deref() == Some("1"),
         on_measuring: Some(Box::new(|| publish("measuring", true.into()))),
     };
     let backend = match param("backend").as_deref() {
@@ -65,14 +66,33 @@ pub fn run() {
         _ => gpui_platform::WebBackendPreference::Auto,
     };
 
+    // The browser has no environment for `GPUX_ACCESSIBILITY`: the page names the mode.
+    let accessibility = match param("accessibility").as_deref() {
+        Some("always") => Some(gpux::AccessibilityMode::Always),
+        Some("off") => Some(gpux::AccessibilityMode::Off),
+        Some("auto") => Some(gpux::AccessibilityMode::Auto),
+        None => None,
+        Some(other) => {
+            return fail(format!(
+                "?accessibility= takes auto, always or off, not {other}"
+            ));
+        }
+    };
+
     gpui_platform::application_with_web_backend(backend).run(move |cx| async move {
         cx.update(|cx: &mut App| {
+            if let Some(mode) = accessibility {
+                cx.set_accessibility_mode(mode);
+            }
             crate::register_fonts(cx);
             driver::open(
                 cx,
                 config,
                 WindowOptions::default(),
                 Box::new(|mut report, window, _| {
+                    if let Some(error) = report["error"].as_str() {
+                        return fail(error.into());
+                    }
                     report["backend"] = window
                         .gpu_specs()
                         .map(|specs| format!("{:?}", specs.backend).trim_matches('"').into())

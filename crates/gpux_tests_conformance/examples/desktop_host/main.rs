@@ -5,6 +5,9 @@
 //! cargo run -p gpux-tests-conformance --no-default-features --features app-host --example desktop_host -- [--scene <id>] [--grep <pattern>]
 //! ```
 //!
+//! `--show <id>` instead opens that scene in a window and leaves it for a person to use (the
+//! screen-reader walkthrough of `docs/accessibility.md`); the app quits when the window closes.
+//!
 //! `gpux-testkit lane d` runs it and parses the result lines. OS-level input (`SendInput` on
 //! Windows, XTest through `xdotool` on X11) is required unless `GPUX_OS_INPUT=optional`, which
 //! reports the OS-input check skipped when the session cannot deliver synthetic input. When
@@ -16,6 +19,7 @@ mod composition;
 mod composition_linux;
 mod composition_windows;
 mod os;
+mod screen_reader;
 
 use gpux::{
     AppContext as _, AsyncApp, Bounds, Context, IntoElement, ParentElement as _, Render,
@@ -65,18 +69,21 @@ fn anchor_options() -> WindowOptions {
 struct Args {
     scene: Option<String>,
     grep: Option<String>,
+    show: Option<String>,
 }
 
 fn parse_args() -> Result<Args, String> {
     let mut args = Args {
         scene: None,
         grep: None,
+        show: None,
     };
     let mut iter = std::env::args().skip(1);
     while let Some(arg) = iter.next() {
         let slot = match arg.as_str() {
             "--scene" => &mut args.scene,
             "--grep" => &mut args.grep,
+            "--show" => &mut args.show,
             other => return Err(format!("unknown argument `{other}`")),
         };
         *slot = Some(
@@ -121,6 +128,40 @@ fn backend_check(anchor: WindowHandle<Anchor>, expected: &str, cx: &mut AsyncApp
     }
 }
 
+/// Opens the scene `id` in a titled window and runs until it closes.
+fn show(id: &str) {
+    let Some(scene) = CATALOG.iter().find(|scene| scene.id == id) else {
+        eprintln!("desktop_host: no conformance scene `{id}`");
+        std::process::exit(2);
+    };
+    gpui_platform::application().run(move |cx| async move {
+        if let Err(error) = cx.update(app_host::register_bundled_fonts) {
+            eprintln!("desktop_host: could not register the bundled fonts: {error:#}");
+        }
+        #[cfg(target_os = "macos")]
+        cx.update(|cx| cx.activate(true));
+        // Every platform quits with the window, macOS included.
+        cx.update(|cx| cx.on_window_closed(|cx, _| cx.quit()).detach());
+        let options = WindowOptions {
+            window_bounds: Some(WindowBounds::Windowed(Bounds {
+                origin: point(px(WINDOW_ORIGIN.0), px(WINDOW_ORIGIN.1)),
+                size: size(px(scene.size.0), px(scene.size.1)),
+            })),
+            titlebar: Some(TitlebarOptions {
+                title: Some(format!("gpux {}", scene.id).into()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        if let Err(error) = cx.open_window(options, |window, cx| {
+            cx.new(|cx| app_host::SceneFrame::new(scene, window, cx))
+        }) {
+            eprintln!("desktop_host: could not open `{}`: {error:#}", scene.id);
+            cx.update(|cx| cx.quit());
+        }
+    });
+}
+
 /// The selection `gpux-testkit` planned, through the same function.
 fn selected(id: &str, args: &Args) -> bool {
     gpux_tests_conformance::selects(id, args.scene.as_deref(), args.grep.as_deref())
@@ -134,6 +175,10 @@ fn main() {
             std::process::exit(2);
         }
     };
+    if let Some(id) = args.show {
+        show(&id);
+        return;
+    }
     let failed = Rc::new(Cell::new(false));
     let any_failed = failed.clone();
     gpui_platform::application().run(move |mut cx| async move {

@@ -16,7 +16,11 @@ readme = "README.md"
 workspace = true
 
 [features]
-default = []
+default = ["accessibility"]
+# The VoiceOver (`accesskit_ios`) and TalkBack (`accesskit_android`) adapters. Without it the window
+# never turns the platform accessibility source on; inspection and `AccessibilityMode::Always` still
+# build the tree.
+accessibility = ["dep:accesskit", "dep:accesskit_ios", "dep:accesskit_android", "dep:jni-021"]
 # Counters hosts report (`PlatformWindow::layer_tile_counters`).
 diagnostics = ["gpui/diagnostics", "gpui_wgpu/diagnostics"]
 android-native-activity = ["android-activity/native-activity"]
@@ -62,8 +66,11 @@ gpui_wgpu = { workspace = true }
 log.workspace = true
 parking_lot.workspace = true
 raw-window-handle = "0.6"
+accesskit = { workspace = true, optional = true }
 
 [target.'cfg(target_os = "ios")'.dependencies]
+# On objc2 0.5; it meets gpux's objc2 0.6 only through the view's raw pointer.
+accesskit_ios = { workspace = true, optional = true }
 block2 = "0.6"
 core-foundation.workspace = true
 core-foundation-sys.workspace = true
@@ -79,6 +86,9 @@ uuid = { workspace = true, features = ["v4", "v5"] }
 wgpu.workspace = true
 
 [target.'cfg(target_os = "android")'.dependencies]
+# On jni 0.21; it meets gpux's jni 0.22 only through the raw VM, environment and view handles.
+accesskit_android = { workspace = true, optional = true }
+jni-021 = { package = "jni", version = "0.21.1", optional = true }
 android-activity = { version = "0.6", optional = true, default-features = false }
 android_logger = "0.15"
 image.workspace = true

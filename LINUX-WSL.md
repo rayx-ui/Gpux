@@ -336,7 +336,9 @@ Things to expect on WSL:
 
 Also consumer-only, RayX's native Test Suite opens a WSLg window. It uses Wayland by default;
 start it with `env -u WAYLAND_DISPLAY` to use X11 instead. `--features devkit` starts the RayX
-DevKit, so an agent can drive the app over JSON-RPC on `127.0.0.1` (port `RAYX_DEVKIT_PORT`).
+DevKit: the app connects to a `gpux-devtools-mcp` sidecar on `127.0.0.1` (port 9230 unless
+`GPUX_DEVTOOLS_URL` names another), through which an agent drives it
+([docs/devtools.md](docs/devtools.md)).
 
 ```bash
 cargo run -p xtask -- app apps/test_suite run linux --features devkit
@@ -346,8 +348,8 @@ Startup prints harmless libEGL and Mesa warnings, from EGL failing to probe a GP
 rendering uses Vulkan through lavapipe.
 
 The `rayx` crate enables gpux-platform's `wayland` and `x11` features. If a native app on Linux
-renders once and then never redraws, or DevKit reports `render_to_image not implemented`, check
-those features first: without them gpux runs on its headless platform.
+renders once and then never redraws, or a devtools screenshot fails with
+`render_to_image not implemented`, check those features first: without them gpux runs on its headless platform.
 
 ## 8. Cleanup
 

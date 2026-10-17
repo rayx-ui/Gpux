@@ -4,8 +4,8 @@
 from the [Zed](https://github.com/zed-industries/zed) editor. It keeps Zed's GPUI crate closure and
 crate boundaries and carries RayX's patch stack on top: web (WebGPU/WebGL) and mobile (Android,
 iOS) platforms, a wgpu renderer on Windows, Linux and the web, frame and shader effects,
-fixed/sticky positioning, programmatic scrolling, editable text, accessibility and DevKit
-semantics.
+fixed/sticky positioning, programmatic scrolling, editable text, and an AccessKit accessibility
+tree that screen readers read on every platform and agents inspect through gpux-devtools.
 
 For GPUI concepts, [gpui.rs](https://gpui.rs) remains a useful introduction; for exact APIs and
 behavior, use this repository, because gpux differs from upstream GPUI.
@@ -59,6 +59,8 @@ fn main() {
 | `crates/gpui_macros` | `gpux-macros` | `gpui_macros` | Derive and attribute macros |
 | `crates/gpux_color` | `gpux-color` | `gpux_color` | Standards color engine behind `gpux::Color` |
 | `crates/gpux_fonts` | `gpux-fonts` | `gpux_fonts` | Bundled IBM Plex Sans and Lilex fonts |
+| `crates/gpux_devtools` | `gpux-devtools` | `gpux_devtools` | Agent inspection: connects an app to the `gpux-devtools-mcp` sidecar |
+| `crates/gpux_devtools_mcp` | `gpux-devtools-mcp` | `gpux_devtools_mcp` | The stdio MCP sidecar agents use to inspect and drive gpux apps |
 | `crates/gpux_tests_conformance` | `gpux-tests-conformance` | `gpux_tests_conformance` | Conformance scenes, test hosts and image comparison |
 | `crates/gpui_shared_string` | `gpux-shared-string` | `gpui_shared_string` | `SharedString` |
 | `crates/gpui_util` | `gpux-util` | `gpui_util` | GPUI utilities |
@@ -76,6 +78,7 @@ fn main() {
 | `crates/util_macros` | `gpux-zed-util-macros` | `util_macros` | Zed's utility macros |
 | `tools/perf` | `gpux-perf` | `perf` | Test performance measurement |
 | `tools/testkit` | `gpux-testkit` | `gpux_testkit` | The `gpux-testkit` test-lane runner |
+| `vendor/accesskit_macos` | `gpux-accesskit-macos` | `accesskit_macos` | Temporary AccessKit macOS adapter fork, see below |
 | `vendor/wgpu/...` | `gpux-wgpu`, `gpux-wgpu-core`, `gpux-wgpu-hal`, `gpux-wgpu-core-deps-*` | `wgpu`, ... | Temporary wgpu fork, see below |
 
 Crates prefixed `gpux_tests_` verify gpux; no consumer depends on them:
@@ -110,6 +113,15 @@ Windows window does not stretch the previous frame
 upstream wgpu ships an equivalent option; gpux then returns to the crates.io `wgpu` release.
 [docs/upstream/wgpu-dx12-swapchain-scaling.md](docs/upstream/wgpu-dx12-swapchain-scaling.md)
 tracks the upstream change.
+
+## The accesskit_macos fork
+
+`vendor/accesskit_macos` contains `gpux-accesskit-macos`, upstream `accesskit_macos` 0.27.1 with
+the changes VoiceOver needs to read a table's rows and cells, an expanded state, a range
+widget's value (and to adjust it by increment) and a disabled control as dimmed. The fork exists
+only until an AccessKit release ships them;
+[docs/upstream/accesskit-macos-tables-expanded.md](docs/upstream/accesskit-macos-tables-expanded.md)
+lists the changes and tracks the upstream change.
 
 ## Maintenance
 

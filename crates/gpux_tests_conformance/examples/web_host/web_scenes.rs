@@ -31,6 +31,7 @@ pub static WEB_SCENES: &[SceneSpec] = &[
     SCROLL_LAYERS,
     SCROLL_LAYERS_HTML,
     SCROLL_LAYERS_ISLAND,
+    DEVTOOLS,
 ];
 
 /// The browser-only scene with this id.
@@ -71,6 +72,11 @@ impl Render for DomOverlay {
                 this.child(
                     div()
                         .id("dom-host")
+                        // Its `accessibility_id` names the overlay, so the screen-reader mirror
+                        // reads the overlay's DOM here (`aria-owns`).
+                        .role(gpux::Role::Group)
+                        .aria_label("DOM content")
+                        .accessibility_id("gpux-dom-button")
                         .absolute()
                         .top(px(70.))
                         .left(px(20.))
@@ -143,7 +149,12 @@ impl Render for ComposedPage {
                 "composition {} clicks {}",
                 self.composition, self.popover_clicks
             )))
-            .child(status(format!("exits {}", self.exits)))
+            // Its own id: two siblings with the same id would be one node of the tree.
+            .child(
+                div()
+                    .id("exits")
+                    .child(status(format!("exits {}", self.exits))),
+            )
             .child(
                 canvas(
                     |_, _, _| {},
@@ -657,4 +668,20 @@ pub const SCROLL_LAYERS_ISLAND: SceneSpec = SceneSpec {
         .into()
     },
     script: || vec![Step::Expect(Expect::Exists(id("scroller")))],
+};
+
+/// The window the `devtools: ...` specs drive through gpux-devtools, with the page's
+/// `gpux_devtools` parameter naming the spec's sidecar.
+pub const DEVTOOLS: SceneSpec = SceneSpec {
+    id: "web-devtools",
+    areas: &[],
+    size: (400., 240.),
+    scales: &[1.],
+    lanes: &[Lane::B],
+    golden: false,
+    build: |_, cx| {
+        cx.new(|_| gpux_tests_conformance::devtools::ProbeWindow::new())
+            .into()
+    },
+    script: || vec![Step::Expect(Expect::Exists(id("devtools-tap")))],
 };

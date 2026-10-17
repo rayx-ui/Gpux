@@ -412,9 +412,6 @@ fn description_detects_every_input_field() {
         history.push(crate::TabStopOperation::GroupEnd);
         true
     });
-    assert_detected(&mut cx, window, "the DevKit node tree", |window, _| {
-        window.rendered_frame.devtools_nodes.pop().is_some()
-    });
 }
 
 /// The randomized cached-view oracle: a window reusing cached views draws

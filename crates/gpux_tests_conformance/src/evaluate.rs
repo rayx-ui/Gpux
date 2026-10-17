@@ -1,5 +1,6 @@
-//! Checks shared by every host: element-tree expectations against a devtools snapshot, and
-//! pixel steps against a captured frame.
+//! Checks shared by every host: expectations against the window's AccessKit tree (read as a
+//! [`SemanticSnapshot`] while the host inspects the window), and pixel steps against a captured
+//! frame.
 
 use crate::{
     probe::{self, DEFAULT_TOLERANCE, PixelRect},
@@ -7,14 +8,14 @@ use crate::{
 };
 use anyhow::bail;
 use gpux::{
-    DevtoolsElementSnapshot, DevtoolsFrameSnapshot, Pixels, Point, point, px,
-    semantic_query::{self, Query},
+    A11yInspection, Pixels, Point, Window, point, px,
+    semantic_query::{self, Query, SemanticNode, SemanticSnapshot},
 };
 use image::RgbaImage;
 use std::collections::HashMap;
 
-/// The center of an element's window-local bounds.
-pub fn center(element: &DevtoolsElementSnapshot) -> Point<Pixels> {
+/// The center of a node's bounds in window pixels.
+pub fn center(element: &SemanticNode) -> Point<Pixels> {
     let bounds = element.bounds;
     point(
         px(bounds.x + bounds.width / 2.),
@@ -22,19 +23,57 @@ pub fn center(element: &DevtoolsElementSnapshot) -> Point<Pixels> {
     )
 }
 
-/// The one element `query` identifies in `snapshot`.
-pub fn locate(
-    snapshot: &DevtoolsFrameSnapshot,
-    query: &Query,
-) -> anyhow::Result<DevtoolsElementSnapshot> {
+/// Starts inspecting a scene's window, so it builds its accessibility tree (generic containers
+/// for elements with an id and no role included) for the host's queries. Hold the guard while
+/// the scene is shown.
+pub fn inspect(window: &mut Window) -> A11yInspection {
+    window.begin_a11y_inspection()
+}
+
+std::thread_local! {
+    /// The windows hosts keep inspecting, with their guards ([`keep_inspecting`]).
+    static INSPECTIONS: std::cell::RefCell<Vec<(gpux::AnyWindowHandle, A11yInspection)>> =
+        const { std::cell::RefCell::new(Vec::new()) };
+}
+
+/// Keeps `window` inspected until [`stop_inspecting`], for hosts that open their own windows
+/// and query them over many frames. Calling it again changes nothing.
+pub fn keep_inspecting(window: &mut Window) {
+    let handle = window.window_handle();
+    INSPECTIONS.with(|inspections| {
+        let mut inspections = inspections.borrow_mut();
+        if !inspections.iter().any(|(kept, _)| *kept == handle) {
+            inspections.push((handle, window.begin_a11y_inspection()));
+        }
+    });
+}
+
+/// Stops the inspection [`keep_inspecting`] started for `handle`.
+pub fn stop_inspecting(handle: gpux::AnyWindowHandle) {
+    INSPECTIONS.with(|inspections| inspections.borrow_mut().retain(|(kept, _)| *kept != handle));
+}
+
+/// The tree a window built last, as queries read it.
+pub fn snapshot(window: &Window) -> anyhow::Result<SemanticSnapshot> {
+    SemanticSnapshot::of(window).ok_or_else(|| {
+        anyhow::anyhow!(
+            "the window builds no accessibility tree: inspection has not started, or \
+             accessibility is disabled"
+        )
+    })
+}
+
+/// The one node `query` identifies in `snapshot`.
+pub fn locate(snapshot: &SemanticSnapshot, query: &Query) -> anyhow::Result<SemanticNode> {
     Ok(query.resolve(snapshot)?.clone())
 }
 
-/// Checks an element-tree expectation. `min_tolerance` widens bounds tolerances to at least
-/// one device pixel on hosts whose scale snaps layout to fractions of a logical pixel.
-/// [`Expect::Accessible`] needs the platform's accessibility tree, so hosts check it themselves.
+/// Checks an expectation against the window's accessibility tree. `min_tolerance` widens bounds
+/// tolerances to at least one device pixel on hosts whose scale snaps layout to fractions of a
+/// logical pixel. [`Expect::Accessible`] reads the same tree; the test host also checks that the
+/// platform adapter receives it.
 pub fn expect(
-    snapshot: &DevtoolsFrameSnapshot,
+    snapshot: &SemanticSnapshot,
     expect: &Expect,
     min_tolerance: f32,
 ) -> anyhow::Result<()> {
@@ -45,19 +84,19 @@ pub fn expect(
         Expect::Missing(query) => {
             let count = query.matches(snapshot).len();
             if count != 0 {
-                bail!("{count} elements match `{query}`, expected none");
+                bail!("{count} nodes match `{query}`, expected none");
             }
         }
         Expect::Count(query, expected) => {
             let count = query.matches(snapshot).len();
             if count != *expected {
-                bail!("{count} elements match `{query}`, expected {expected}");
+                bail!("{count} nodes match `{query}`, expected {expected}");
             }
         }
         Expect::AtLeast(query, expected) => {
             let count = query.matches(snapshot).len();
             if count < *expected {
-                bail!("{count} elements match `{query}`, expected at least {expected}");
+                bail!("{count} nodes match `{query}`, expected at least {expected}");
             }
         }
         Expect::Focused(query) => {
@@ -65,7 +104,7 @@ pub fn expect(
             if !semantic_query::focus_is_within(snapshot, element) {
                 bail!(
                     "`{query}` does not hold focus: {}",
-                    semantic_query::describe_element(element)
+                    semantic_query::describe_node(element)
                 );
             }
         }
@@ -95,8 +134,19 @@ pub fn expect(
                 );
             }
         }
-        Expect::Accessible(_) => {
-            bail!("accessibility expectations are checked by the host's own accessibility tree")
+        Expect::Accessible(label) => {
+            if !snapshot
+                .nodes
+                .iter()
+                .any(|node| node.name.as_deref() == Some(label.as_str()))
+            {
+                let names: Vec<&str> = snapshot
+                    .nodes
+                    .iter()
+                    .filter_map(|node| node.name.as_deref())
+                    .collect();
+                bail!("no accessibility node is named {label:?}; names: {names:?}");
+            }
         }
     }
     Ok(())

@@ -140,6 +140,7 @@ pub struct WaylandWindowState {
     in_progress_window_controls: Option<WindowControls>,
     window_controls: WindowControls,
     client_inset: Option<Pixels>,
+    #[cfg(feature = "accessibility")]
     accesskit_adapter: Option<accesskit_unix::Adapter>,
 }
 
@@ -646,6 +647,7 @@ impl WaylandWindowState {
             in_progress_window_controls: None,
             window_controls: WindowControls::default(),
             client_inset: None,
+            #[cfg(feature = "accessibility")]
             accesskit_adapter: None,
         })
     }
@@ -1601,6 +1603,7 @@ impl WaylandWindowStatePtr {
             fun(focus);
             self.callbacks.borrow_mut().active_status_change = Some(fun);
         }
+        #[cfg(feature = "accessibility")]
         if let Some(adapter) = self.state.borrow_mut().accesskit_adapter.as_mut() {
             adapter.update_window_focus_state(focus);
         }
@@ -2249,6 +2252,7 @@ impl PlatformWindow for WaylandWindow {
         }
     }
 
+    #[cfg(feature = "accessibility")]
     fn a11y_init(&self, callbacks: gpux::A11yCallbacks) {
         let activation_handler = TrivialActivationHandler {
             callback: callbacks.activation,
@@ -2264,6 +2268,7 @@ impl PlatformWindow for WaylandWindow {
         self.borrow_mut().accesskit_adapter = Some(adapter);
     }
 
+    #[cfg(feature = "accessibility")]
     fn a11y_tree_update(&self, tree_update: accesskit::TreeUpdate) {
         let mut state = self.borrow_mut();
         if let Some(adapter) = state.accesskit_adapter.as_mut() {
@@ -2276,28 +2281,34 @@ impl PlatformWindow for WaylandWindow {
     }
 }
 
+#[cfg(feature = "accessibility")]
 struct TrivialActivationHandler {
     callback: Box<dyn Fn() -> Option<accesskit::TreeUpdate> + Send + 'static>,
 }
 
+#[cfg(feature = "accessibility")]
 impl accesskit::ActivationHandler for TrivialActivationHandler {
     fn request_initial_tree(&mut self) -> Option<accesskit::TreeUpdate> {
         (self.callback)()
     }
 }
 
+#[cfg(feature = "accessibility")]
 struct TrivialActionHandler(Box<dyn Fn(accesskit::ActionRequest) + Send + 'static>);
 
+#[cfg(feature = "accessibility")]
 impl accesskit::ActionHandler for TrivialActionHandler {
     fn do_action(&mut self, request: accesskit::ActionRequest) {
         (self.0)(request);
     }
 }
 
+#[cfg(feature = "accessibility")]
 struct TrivialDeactivationHandler {
     callback: Box<dyn Fn() + Send + 'static>,
 }
 
+#[cfg(feature = "accessibility")]
 impl accesskit::DeactivationHandler for TrivialDeactivationHandler {
     fn deactivate_accessibility(&mut self) {
         (self.callback)();

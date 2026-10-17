@@ -17,6 +17,7 @@
 pub mod app_host;
 pub mod backend;
 pub mod compare;
+pub mod devtools;
 pub mod evaluate;
 pub mod host;
 pub mod platform_checks;

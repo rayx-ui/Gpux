@@ -63,6 +63,10 @@ fn open(
     cx.update_window(window.into(), |_, window, _| {
         window.set_fast_mode(VIEWS);
         window.set_retention_verify(verify);
+        // The view's text reaches the frame through the accessibility tree: the test
+        // platform's glyphs do not tell `count 0` from `count 7`. Every window of these tests
+        // builds it, verified or not, for its whole life.
+        std::mem::forget(window.begin_a11y_inspection());
         let reports = reports.clone();
         window.on_retention_mismatch(move |mismatch| reports.borrow_mut().push(mismatch.clone()));
     })

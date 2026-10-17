@@ -25,8 +25,27 @@ pub struct EditableText {
     selection_color: Option<Color>,
     caret_color: Option<Color>,
     display_transform: EditableTextDisplayTransform,
+    aria_label: Option<SharedString>,
+    aria: EditableTextAria,
     inline_object_renderer: Option<InlineObjectRenderer>,
 }
+
+/// What a control built around the field says of it: the field is the control's one
+/// accessibility node, the one that holds the focus.
+#[derive(Default)]
+struct EditableTextAria {
+    role: Option<accesskit::Role>,
+    description: Option<SharedString>,
+    required: bool,
+    invalid: bool,
+    accessibility_id: Option<SharedString>,
+    labelled_by: Vec<SharedString>,
+    described_by: Vec<SharedString>,
+    error_message: Option<SharedString>,
+    on_set_value: Option<SetValueHandler>,
+}
+
+type SetValueHandler = Rc<dyn Fn(&str, &mut Window, &mut App)>;
 
 #[allow(missing_docs)]
 impl EditableText {
@@ -37,6 +56,8 @@ impl EditableText {
             selection_color: None,
             caret_color: None,
             display_transform: EditableTextDisplayTransform::Identity,
+            aria_label: None,
+            aria: EditableTextAria::default(),
             inline_object_renderer: None,
         }
     }
@@ -50,6 +71,69 @@ impl EditableText {
         renderer: impl Fn(&InlineObject, &mut Window, &mut App) -> AnyElement + 'static,
     ) -> Self {
         self.inline_object_renderer = Some(Rc::new(renderer));
+        self
+    }
+
+    /// The field's role when it is more than a text input (a `SearchInput`, say); a masked
+    /// field stays a password input.
+    pub fn aria_role(mut self, role: crate::Role) -> Self {
+        self.aria.role = Some(role);
+        self
+    }
+
+    /// The field's accessible description.
+    pub fn aria_description(mut self, description: impl Into<SharedString>) -> Self {
+        self.aria.description = Some(description.into());
+        self
+    }
+
+    /// Whether the field needs a value.
+    pub fn aria_required(mut self, required: bool) -> Self {
+        self.aria.required = required;
+        self
+    }
+
+    /// Whether the field's value is invalid.
+    pub fn aria_invalid(mut self, invalid: bool) -> Self {
+        self.aria.invalid = invalid;
+        self
+    }
+
+    /// The id other elements' relations name the field by.
+    pub fn accessibility_id(mut self, id: impl Into<SharedString>) -> Self {
+        self.aria.accessibility_id = Some(id.into());
+        self
+    }
+
+    /// An element (by `accessibility_id`) that labels the field.
+    pub fn aria_labelled_by(mut self, id: impl Into<SharedString>) -> Self {
+        self.aria.labelled_by.push(id.into());
+        self
+    }
+
+    /// An element (by `accessibility_id`) that describes the field.
+    pub fn aria_described_by(mut self, id: impl Into<SharedString>) -> Self {
+        self.aria.described_by.push(id.into());
+        self
+    }
+
+    /// The element (by `accessibility_id`) holding the field's error.
+    pub fn aria_error_message(mut self, id: impl Into<SharedString>) -> Self {
+        self.aria.error_message = Some(id.into());
+        self
+    }
+
+    /// What an assistive technology's SetValue does with the new value. Without it, SetValue
+    /// replaces the field's text.
+    pub fn on_set_value(mut self, handler: impl Fn(&str, &mut Window, &mut App) + 'static) -> Self {
+        self.aria.on_set_value = Some(Rc::new(handler));
+        self
+    }
+
+    /// The accessible name of the text field, which screen readers announce and queries match
+    /// by `name`.
+    pub fn aria_label(mut self, label: impl Into<SharedString>) -> Self {
+        self.aria_label = Some(label.into());
         self
     }
 
@@ -82,6 +166,22 @@ impl RenderOnce for EditableText {
             let state = self.state.read(cx);
             (state.focus_handle(), state.mode(), state.line_mode())
         };
+        // The text field's accessibility node: its text is copied only while the tree is built,
+        // and it is the text the field shows, so a masked field never exposes what it hides.
+        let masked = matches!(
+            self.display_transform,
+            EditableTextDisplayTransform::PerGrapheme(_)
+        );
+        let a11y = window.is_a11y_active().then(|| {
+            let state = self.state.read(cx);
+            let text = state.text();
+            let shown = match self.display_transform.project(&text) {
+                Some(projection) => projection.text().to_string(),
+                None => text,
+            };
+            (shown, state.placeholder().to_string())
+        });
+        let entity_id = self.state.entity_id();
 
         let key_state = self.state.clone();
         let down_state = self.state.clone();
@@ -90,6 +190,64 @@ impl RenderOnce for EditableText {
         let scroll_state = self.state.clone();
 
         div()
+            .id(("editable-text", entity_id.as_u64() as usize))
+            .role(match line_mode {
+                _ if masked => accesskit::Role::PasswordInput,
+                _ if self.aria.role.is_some() => {
+                    self.aria.role.unwrap_or(accesskit::Role::TextInput)
+                }
+                EditableTextLineMode::SingleLine => accesskit::Role::TextInput,
+                EditableTextLineMode::MultiLine => accesskit::Role::MultilineTextInput,
+            })
+            .when_some(self.aria_label, |element, label| element.aria_label(label))
+            .when_some(self.aria.description, |element, description| {
+                element.aria_description(description)
+            })
+            .when(self.aria.required, |element| element.aria_required(true))
+            .when(self.aria.invalid, |element| element.aria_invalid(true))
+            .when_some(self.aria.accessibility_id, |element, id| {
+                element.accessibility_id(id)
+            })
+            .when_some(self.aria.error_message, |element, id| {
+                element.aria_error_message(id)
+            })
+            .map(|mut element| {
+                for id in self.aria.labelled_by {
+                    element = element.aria_labelled_by(id);
+                }
+                for id in self.aria.described_by {
+                    element = element.aria_described_by(id);
+                }
+                element
+            })
+            .when(mode.permits_mutation(), |element| {
+                let set_state = self.state.clone();
+                let handler = self.aria.on_set_value;
+                element.on_a11y_action(
+                    crate::AccessibleAction::SetValue,
+                    move |data, window, cx| {
+                        let Some(accesskit::ActionData::Value(value)) = data else {
+                            return;
+                        };
+                        match &handler {
+                            Some(handler) => handler(value, window, cx),
+                            None => set_state.update(cx, |state, cx| {
+                                state.select_all(cx);
+                                state.replace_selection(value, cx);
+                            }),
+                        }
+                    },
+                )
+            })
+            .when_some(a11y, |element, (text, placeholder)| {
+                element
+                    .aria_value(text)
+                    .when(!placeholder.is_empty(), |element| {
+                        element.aria_placeholder(placeholder)
+                    })
+            })
+            .aria_read_only(mode == super::EditableTextMode::ReadOnly)
+            .aria_disabled(mode == super::EditableTextMode::Disabled)
             .flex()
             .w_full()
             .overflow_hidden()

@@ -1,6 +1,7 @@
 //! gpux names its diagnostics surface itself: a `diagnostics` feature, `__gpux*` browser globals
 //! and the `?gpux-html-island=1` opt-in. The former names keep working as aliases until consumers
-//! move: `rayx_diagnostics` enables `diagnostics`, `__rayx*` globals are still read (and published
+//! move: `rayx_diagnostics` enables `diagnostics` in the web crates (gpui itself has no alias:
+//! RayX does not enable one on it), `__rayx*` globals are still read (and published
 //! under the alias feature), and `?rayx-html-island=1` is still honoured.
 
 use std::path::{Path, PathBuf};
@@ -55,7 +56,7 @@ fn feature_line<'a>(manifest: &'a str, feature: &str) -> Option<&'a str> {
 }
 
 #[test]
-fn rayx_diagnostics_is_an_alias_of_diagnostics_in_every_manifest() {
+fn rayx_diagnostics_is_an_alias_of_diagnostics_in_the_web_manifests() {
     for crate_name in DIAGNOSTICS_CRATES {
         let manifest =
             std::fs::read_to_string(crates_dir().join(crate_name).join("Cargo.toml")).unwrap();
@@ -63,6 +64,13 @@ fn rayx_diagnostics_is_an_alias_of_diagnostics_in_every_manifest() {
             feature_line(&manifest, "diagnostics").is_some(),
             "{crate_name} has no `diagnostics` feature"
         );
+        if crate_name == "gpui" {
+            assert!(
+                feature_line(&manifest, "rayx_diagnostics").is_none(),
+                "gpui keeps the `rayx_diagnostics` alias nothing enables"
+            );
+            continue;
+        }
         let alias = feature_line(&manifest, "rayx_diagnostics")
             .unwrap_or_else(|| panic!("{crate_name} dropped the `rayx_diagnostics` alias"));
         assert!(

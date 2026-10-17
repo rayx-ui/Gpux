@@ -91,6 +91,9 @@ pub enum Content {
     Wide,
     /// The text rows in a `uniform_list`, whose layer holds them row by row.
     UniformList,
+    /// Rows in a `uniform_list` that are controls: each an identified, focusable button with
+    /// a name, a click listener and an accessibility action handler.
+    Controls,
     /// Text rows of three heights in a `list`.
     List,
 }
@@ -155,6 +158,31 @@ impl RowOf {
     pub fn row(&self, index: usize) -> gpux::AnyElement {
         let marked = self.tick > 0 && index % 7 == self.tick % 7;
         match self.content {
+            Content::Controls => div()
+                .id(("control", index))
+                .role(gpux::Role::Button)
+                .aria_label(SharedString::from(format!("Control {index}")))
+                .focusable()
+                .on_click(|_, _, _| {})
+                .on_a11y_action(gpux::AccessibleAction::Increment, |_, _, _| {})
+                .h(px(27.))
+                .px_3()
+                .flex()
+                .items_center()
+                .border_b_1()
+                .border_color(rgb(0xc9c2b4))
+                .bg(if index.is_multiple_of(2) {
+                    rgb(0xf4f1ea)
+                } else {
+                    rgb(0xe9e4d8)
+                })
+                .text_color(rgb(0x1e2430))
+                .text_size(px(13.))
+                .child(SharedString::from(format!(
+                    "Control {index:03} · {}",
+                    self.tick
+                )))
+                .into_any_element(),
             Content::Text | Content::Wide | Content::UniformList | Content::List => div()
                 .h(px(match self.content {
                     Content::List => 27. + (index % 3) as f32 * 9.,
@@ -780,7 +808,7 @@ impl Render for Page {
                     )
                     .child(container("scroll"));
             }
-            Content::UniformList | Content::AlternatingList => {
+            Content::UniformList | Content::AlternatingList | Content::Controls => {
                 return panel.child(
                     uniform_list(
                         "scroll",
@@ -882,6 +910,12 @@ impl Run {
         .expect("the window is open");
         cx.run_until_parked();
         Run { window, page }
+    }
+
+    /// The window, for tests that read more than its pixels.
+    #[allow(dead_code)]
+    pub fn window(&self) -> AnyWindowHandle {
+        self.window
     }
 
     pub fn wheel(&self, cx: &TestAppContext, dx: f32, dy: f32) {
