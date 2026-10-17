@@ -1,4 +1,4 @@
-use std::{ops::Range, time::Duration};
+use std::{ops::Range, sync::Arc, time::Duration};
 
 use crate::{
     Bounds, ClipboardItem, Context, EntityInputHandler, EventEmitter, FocusHandle, Focusable,
@@ -9,10 +9,11 @@ use crate::{
 use super::super::scroll_activity::ScrollActivity;
 
 use super::{
-    EditableSelection, EditableTextEvent, EditableTextGeometry, EditableTextLineMode,
-    EditableTextMode, EditableTextStyleRuns, TextBuffer, TextBufferError, TextBufferSnapshot,
-    TextEdit, TextLayoutEdit, TextLayoutError, TextLayoutMap, TextLayoutStyle, TextLayoutUpdate,
-    editable_text_alignment_offset,
+    AttributeSpan, AttributeState, AttributedText, EditableSelection, EditableTextEvent,
+    EditableTextFormatEvent, EditableTextGeometry, EditableTextLineMode, EditableTextMode,
+    EditableTextStyleRuns, Formatting, TextAttributes, TextAttributesPatch, TextBuffer,
+    TextBufferError, TextBufferSnapshot, TextEdit, TextLayoutEdit, TextLayoutError, TextLayoutMap,
+    TextLayoutStyle, TextLayoutUpdate, editable_text_alignment_offset,
     history::{EditHistory, EditKind, HistoryState},
     movement::{
         grapheme_boundary_at_or_before, logical_line_range_at, next_grapheme_boundary,
@@ -54,6 +55,14 @@ pub struct EditableTextState {
     blink_epoch: u64,
     focus_subscriptions: Vec<Subscription>,
     text_export_enabled: bool,
+    /// Formatting stored with the text; `None` until a field is formatted, so plain fields
+    /// allocate nothing.
+    formatting: Option<Arc<Formatting>>,
+    format_revision: u64,
+    /// Attributes the next insertion takes, until the caret moves or focus changes.
+    typing_attributes: Option<Arc<TextAttributes>>,
+    /// Attributes an IME composition keeps for its whole life.
+    composition_attributes: Option<Arc<TextAttributes>>,
 }
 
 #[allow(missing_docs)]
@@ -103,6 +112,10 @@ impl EditableTextState {
             blink_epoch: 0,
             focus_subscriptions: Vec::new(),
             text_export_enabled: true,
+            formatting: None,
+            format_revision: 0,
+            typing_attributes: None,
+            composition_attributes: None,
         }
     }
 
@@ -240,6 +253,162 @@ impl EditableTextState {
         Ok(())
     }
 
+    /// Counts formatting-only changes; edits to the text bump [`Self::revision`] instead.
+    pub fn format_revision(&self) -> u64 {
+        self.format_revision
+    }
+
+    /// The stored character formatting, as sorted, non-overlapping spans.
+    pub fn attribute_spans(&self) -> &[AttributeSpan] {
+        self.formatting
+            .as_ref()
+            .map_or(&[], |formatting| formatting.spans.spans())
+    }
+
+    /// The stored attributes of the character at `offset` (none stored reads as default).
+    pub fn attributes_at(&self, offset: usize) -> TextAttributes {
+        self.stored_attributes(offset)
+            .map(|attributes| (*attributes).clone())
+            .unwrap_or_default()
+    }
+
+    /// Whether the characters of `range` all have a field on (`is_on`), none have it, or
+    /// some do. An empty range answers for the attributes the next insertion there takes.
+    pub fn attribute_state(
+        &self,
+        range: Range<usize>,
+        is_on: impl Fn(&TextAttributes) -> bool,
+    ) -> AttributeState {
+        if range.is_empty() {
+            let attributes = self.insertion_attributes(range).unwrap_or_default();
+            return if is_on(&attributes) {
+                AttributeState::On
+            } else {
+                AttributeState::Off
+            };
+        }
+        let range = range.start.min(self.buffer.len())..range.end.min(self.buffer.len());
+        let off = TextAttributes::default();
+        let mut on_len = 0;
+        let mut covered = 0;
+        if let Some(formatting) = &self.formatting {
+            for span in formatting.spans.clipped(range.clone()) {
+                covered += span.range.len();
+                if is_on(&span.attributes) {
+                    on_len += span.range.len();
+                }
+            }
+        }
+        if is_on(&off) {
+            on_len += range.len() - covered;
+        }
+        if on_len == range.len() {
+            AttributeState::On
+        } else if on_len == 0 {
+            AttributeState::Off
+        } else {
+            AttributeState::Mixed
+        }
+    }
+
+    /// Sets or clears attribute fields over `range` as one undo step. An empty range sets the
+    /// typing attributes the next insertion there takes instead.
+    pub fn set_attributes(
+        &mut self,
+        range: Range<usize>,
+        patch: &TextAttributesPatch,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        if !self.mode.permits_mutation() || patch.is_empty() {
+            return false;
+        }
+        if range.is_empty() {
+            let mut attributes = self
+                .insertion_attributes(range)
+                .map(|attributes| (*attributes).clone())
+                .unwrap_or_default();
+            patch.apply(&mut attributes);
+            self.typing_attributes = Some(Arc::new(attributes));
+            cx.notify();
+            return true;
+        }
+        let snapshot = self.snapshot();
+        if snapshot.validate_range(&range).is_err() {
+            return false;
+        }
+        let before = self.history_state();
+        let mut formatting = self.formatting.as_deref().cloned().unwrap_or_default();
+        formatting.spans.patch(range, patch);
+        if self.formatting.as_deref().unwrap_or(&Formatting::default()) == &formatting {
+            return false;
+        }
+        self.formatting = (!formatting.is_empty()).then(|| Arc::new(formatting));
+        let after = self.history_state();
+        self.history.record(before, after, EditKind::Format);
+        self.finish_format_change(cx);
+        true
+    }
+
+    /// The attributes the next insertion takes, when set explicitly.
+    pub fn typing_attributes(&self) -> Option<&TextAttributes> {
+        self.typing_attributes.as_deref()
+    }
+
+    /// Sets the attributes the next insertion takes; they are dropped when the caret moves or
+    /// focus changes.
+    pub fn set_typing_attributes(&mut self, attributes: TextAttributes, cx: &mut Context<Self>) {
+        self.typing_attributes = Some(Arc::new(attributes));
+        cx.notify();
+    }
+
+    /// The text and everything stored with it.
+    pub fn attributed_text(&self) -> AttributedText {
+        AttributedText {
+            text: self.text(),
+            spans: self.attribute_spans().to_vec(),
+        }
+    }
+
+    /// Replaces the text and everything stored with it, as one undo step.
+    pub fn set_attributed_text(&mut self, text: AttributedText, cx: &mut Context<Self>) -> bool {
+        if !self.mode.permits_mutation() {
+            return false;
+        }
+        // Spans follow their characters through line-break normalization, and land on
+        // character boundaries.
+        let (replacement, offsets) = super::movement::normalize_with_offsets(
+            &text.text,
+            self.line_mode == EditableTextLineMode::SingleLine,
+        );
+        let map = |offset: usize| offsets[offset.min(text.text.len())];
+        let spans = text.spans.into_iter().map(|span| AttributeSpan {
+            range: map(span.range.start)..map(span.range.end),
+            attributes: span.attributes,
+        });
+        let spans = super::AttributeSpans::from_spans(spans, replacement.len());
+        let before = self.history_state();
+        let edit = TextEdit::new(self.revision(), 0..self.buffer.len(), replacement.clone());
+        if !self.apply_buffer_edit(edit, None) {
+            return false;
+        }
+        self.formatting = (!spans.is_empty()).then(|| Arc::new(Formatting { spans }));
+        self.invalidate_style_runs();
+        self.selection = EditableSelection::caret(replacement.len());
+        self.marked_range = None;
+        self.typing_attributes = None;
+        self.composition_attributes = None;
+        self.geometry = None;
+        let after = self.history_state();
+        self.history.record(before, after, EditKind::Other);
+        self.restart_blink(cx);
+        cx.emit(EditableTextEvent::Changed {
+            revision: self.revision(),
+            composition_active: false,
+        });
+        cx.notify();
+        true
+    }
+
     pub fn focus_handle(&self) -> FocusHandle {
         self.focus_handle.clone()
     }
@@ -279,6 +448,7 @@ impl EditableTextState {
         };
         let snapshot = self.snapshot();
         let projection = display_transform.project(&snapshot.text());
+        self.layout_map.set_formatting(self.formatting.clone());
         let update_result = match (&projection, self.pending_layout_edit.as_ref()) {
             (None, Some(edit)) => self.layout_map.update_after_layout_edit_with_shaper(
                 &snapshot,
@@ -486,6 +656,7 @@ impl EditableTextState {
         let head = grapheme_boundary_at_or_before(&text, head);
         self.selection = EditableSelection::new(anchor, head);
         self.marked_range = None;
+        self.typing_attributes = None;
         self.caret_reveal_pending = true;
         self.restart_blink(cx);
         cx.notify();
@@ -522,6 +693,7 @@ impl EditableTextState {
         }
         self.selection = EditableSelection::new(0, self.buffer.len());
         self.marked_range = None;
+        self.typing_attributes = None;
         self.caret_reveal_pending = true;
         self.restart_blink(cx);
         cx.notify();
@@ -731,8 +903,11 @@ impl EditableTextState {
         {
             return false;
         }
-        let edit = TextEdit::new(self.revision(), 0..self.buffer.len(), replacement);
-        if !self.apply_buffer_edit(edit) {
+        // Only the part the rewrite changed is replaced, so formatting outside it stays put.
+        let changed = changed_range(&current.text, &replacement);
+        let inserted = self.insertion_attributes(changed.old.clone());
+        let edit = TextEdit::new(self.revision(), changed.old, &replacement[changed.new]);
+        if !self.apply_buffer_edit(edit, inserted) {
             return false;
         }
         self.invalidate_style_runs();
@@ -743,6 +918,7 @@ impl EditableTextState {
         if !self.history.rewrite_current_after(&current, rewritten) {
             let restore = TextEdit::new(self.revision(), 0..self.buffer.len(), current.text);
             let _ = self.buffer.apply(restore);
+            self.formatting = current.formatting;
             self.invalidate_style_runs();
             self.selection = current.selection;
             self.marked_range = current.marked_range;
@@ -840,6 +1016,7 @@ impl EditableTextState {
     }
 
     pub fn unmark(&mut self, cx: &mut Context<Self>) {
+        self.composition_attributes = None;
         if self.marked_range.take().is_some() {
             cx.notify();
         }
@@ -905,6 +1082,8 @@ impl EditableTextState {
         }
         if self.replace_byte_range(0..self.buffer.len(), "", EditKind::Other, cx) {
             self.history.clear();
+            self.typing_attributes = None;
+            self.composition_attributes = None;
         }
     }
 
@@ -986,6 +1165,7 @@ impl EditableTextState {
             EditableSelection::caret(offset)
         };
         self.marked_range = None;
+        self.typing_attributes = None;
         self.preferred_vertical_x = None;
         self.caret_reveal_pending = true;
         self.restart_blink(cx);
@@ -1213,13 +1393,39 @@ impl EditableTextState {
         cx: &mut Context<Self>,
     ) -> bool {
         let before = self.history_state();
+        let composing = self.marked_range.is_some();
+        let inserted = if replacement.is_empty() {
+            None
+        } else if composing {
+            // A composition keeps the attributes it started with, through its commit.
+            self.composition_attributes.clone()
+        } else {
+            self.insertion_attributes(range.clone())
+        };
+        if kind == EditKind::Composition && !composing {
+            self.composition_attributes = inserted.clone();
+        }
+        let deleted = (replacement.is_empty() && !range.is_empty())
+            .then(|| self.stored_attributes(range.start))
+            .flatten();
         let edit = TextEdit::new(self.revision(), range, replacement);
-        if !self.apply_buffer_edit(edit) {
+        if !self.apply_buffer_edit(edit, inserted) {
             return false;
         }
         self.invalidate_style_runs();
         self.selection = selection;
         self.marked_range = marked_range;
+        if self.marked_range.is_none() {
+            self.composition_attributes = None;
+        }
+        self.typing_attributes = None;
+        // Deleting all of a paragraph leaves its last attributes for the next insertion.
+        if let Some(deleted) = deleted
+            && self.selection.is_empty()
+            && self.paragraph_is_empty_at(self.selection.head())
+        {
+            self.typing_attributes = Some(deleted);
+        }
         self.geometry = None;
         let after = self.history_state();
         self.history.record(before, after, kind);
@@ -1233,10 +1439,23 @@ impl EditableTextState {
     }
 
     fn restore_history_state(&mut self, state: HistoryState, cx: &mut Context<Self>) -> bool {
+        if state.text == self.text() {
+            // A formatting-only step: the text and its revision stay.
+            self.formatting = state.formatting;
+            self.selection = state.selection;
+            self.marked_range = state.marked_range;
+            self.typing_attributes = None;
+            self.composition_attributes = None;
+            self.finish_format_change(cx);
+            return true;
+        }
         let edit = TextEdit::new(self.revision(), 0..self.buffer.len(), state.text);
-        if !self.apply_buffer_edit(edit) {
+        if !self.apply_buffer_edit(edit, None) {
             return false;
         }
+        self.formatting = state.formatting;
+        self.typing_attributes = None;
+        self.composition_attributes = None;
         self.invalidate_style_runs();
         self.selection = state.selection;
         self.marked_range = state.marked_range;
@@ -1254,12 +1473,29 @@ impl EditableTextState {
         self.style_runs = EditableTextStyleRuns::empty(self.revision());
     }
 
-    fn apply_buffer_edit(&mut self, edit: TextEdit) -> bool {
+    /// The single path every buffer mutation takes: stored formatting moves with the edit, and
+    /// the inserted text takes `inserted`.
+    fn apply_buffer_edit(&mut self, edit: TextEdit, inserted: Option<Arc<TextAttributes>>) -> bool {
         let pending = TextLayoutEdit::from(&edit);
+        let range = edit.range().clone();
+        let replacement_len = edit.replacement().len();
         if self.buffer.apply(edit).is_err() {
             return false;
         }
         self.pending_layout_edit = Some(pending);
+        let inserted = inserted.filter(|attributes| !attributes.is_empty());
+        if self.formatting.is_none() && inserted.is_none() {
+            return true;
+        }
+        let formatting = Arc::make_mut(self.formatting.get_or_insert_with(Default::default));
+        formatting.spans.remap(
+            range,
+            replacement_len,
+            &inserted.unwrap_or_else(|| Arc::new(TextAttributes::default())),
+        );
+        if formatting.is_empty() {
+            self.formatting = None;
+        }
         true
     }
 
@@ -1268,7 +1504,71 @@ impl EditableTextState {
             text: self.text(),
             selection: self.selection,
             marked_range: self.marked_range.clone(),
+            formatting: self.formatting.clone(),
         }
+    }
+
+    /// The stored attributes of the character at `offset`.
+    fn stored_attributes(&self, offset: usize) -> Option<Arc<TextAttributes>> {
+        self.formatting.as_ref()?.spans.at(offset).cloned()
+    }
+
+    fn paragraph_is_empty_at(&self, offset: usize) -> bool {
+        self.buffer
+            .char_before(offset)
+            .is_none_or(|(_, ch)| ch == '\n')
+            && self.buffer.char_at(offset).is_none_or(|ch| ch == '\n')
+    }
+
+    /// The attributes text inserted over `range` takes: explicit typing attributes; else those
+    /// of the first replaced character; else of the character before (within its paragraph);
+    /// at a paragraph start those of the character after; in an empty paragraph those of the
+    /// break before it. Links and tags never extend past their end.
+    fn insertion_attributes(&self, range: Range<usize>) -> Option<Arc<TextAttributes>> {
+        if let Some(typing) = &self.typing_attributes {
+            return Some(typing.clone());
+        }
+        let formatting = self.formatting.as_ref()?;
+        let spans = &formatting.spans;
+        if !range.is_empty() {
+            return spans.at(range.start).cloned();
+        }
+        let offset = range.start;
+        let exclusive = |attributes: &Arc<TextAttributes>, next: Option<&Arc<TextAttributes>>| {
+            if attributes.link.is_none() && attributes.tag.is_none() {
+                return attributes.clone();
+            }
+            let mut kept = (**attributes).clone();
+            if next.is_none_or(|next| next.link != kept.link) {
+                kept.link = None;
+            }
+            if next.is_none_or(|next| next.tag != kept.tag) {
+                kept.tag = None;
+            }
+            Arc::new(kept)
+        };
+        match self.buffer.char_before(offset) {
+            Some((start, ch)) if ch != '\n' => spans
+                .at(start)
+                .map(|before| exclusive(before, spans.at(offset))),
+            before => match self.buffer.char_at(offset) {
+                Some(ch) if ch != '\n' => spans
+                    .at(offset)
+                    .map(|after| Arc::new(after.without_exclusive())),
+                _ => before
+                    .and_then(|(start, _)| spans.at(start))
+                    .map(|newline| Arc::new(newline.without_exclusive())),
+            },
+        }
+    }
+
+    fn finish_format_change(&mut self, cx: &mut Context<Self>) {
+        self.format_revision = self.format_revision.wrapping_add(1);
+        self.geometry = None;
+        cx.emit(EditableTextFormatEvent::Changed {
+            format_revision: self.format_revision,
+        });
+        cx.notify();
     }
 
     fn strict_range_from_utf16(&self, range: Range<usize>) -> Option<Range<usize>> {
@@ -1296,6 +1596,7 @@ impl EditableTextState {
 
     fn did_blur(&mut self, cx: &mut Context<Self>) {
         self.is_focused = false;
+        self.typing_attributes = None;
         self.is_selecting = false;
         self.drag_position = None;
         self.stop_drag_auto_scroll();
@@ -1338,6 +1639,39 @@ impl EditableTextState {
 }
 
 impl EventEmitter<EditableTextEvent> for EditableTextState {}
+
+impl EventEmitter<EditableTextFormatEvent> for EditableTextState {}
+
+/// The byte ranges in which `old` and `new` differ, trimmed of their common prefix and suffix
+/// at character boundaries.
+struct ChangedRange {
+    old: Range<usize>,
+    new: Range<usize>,
+}
+
+fn changed_range(old: &str, new: &str) -> ChangedRange {
+    let prefix = old
+        .char_indices()
+        .zip(new.chars())
+        .find(|((_, a), b)| a != b)
+        .map_or(old.len().min(new.len()), |((index, _), _)| index);
+    let prefix = (0..=prefix)
+        .rev()
+        .find(|index| old.is_char_boundary(*index) && new.is_char_boundary(*index))
+        .unwrap_or(0);
+    let max_suffix = (old.len() - prefix).min(new.len() - prefix);
+    let mut suffix = 0;
+    for (a, b) in old.chars().rev().zip(new.chars().rev()) {
+        if a != b || suffix + a.len_utf8() > max_suffix {
+            break;
+        }
+        suffix += a.len_utf8();
+    }
+    ChangedRange {
+        old: prefix..old.len() - suffix,
+        new: prefix..new.len() - suffix,
+    }
+}
 
 impl Focusable for EditableTextState {
     fn focus_handle(&self, _: &crate::App) -> FocusHandle {

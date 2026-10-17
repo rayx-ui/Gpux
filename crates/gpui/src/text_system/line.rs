@@ -1787,7 +1787,7 @@ mod tests {
                 color: black(),
                 ..TextRun::default()
             };
-            let plain = struck_line(window, &[run.clone()]);
+            let plain = struck_line(window, std::slice::from_ref(&run));
             let expected = strikethrough_ys(&plain, window, cx);
             assert_eq!(expected.len(), 1);
 

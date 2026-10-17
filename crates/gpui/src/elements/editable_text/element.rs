@@ -8,8 +8,8 @@ use crate::{
 use std::ops::Range;
 
 use super::{
-    EditableTextDisplayTransform, EditableTextLineMode, EditableTextMode, EditableTextState,
-    EditableTextStyleRun, TextDisplayPoint, TextLayoutStyle,
+    AttributeSpan, EditableTextDisplayTransform, EditableTextLineMode, EditableTextMode,
+    EditableTextState, EditableTextStyleRun, TextDisplayPoint, TextLayoutStyle,
 };
 
 /// A reusable editable-text element backed by [`EditableTextState`].
@@ -385,6 +385,7 @@ impl Element for EditableTextPaintElement {
                 display_start,
                 text.len(),
                 state.layout_map().projected_style_runs(),
+                state.layout_map().projected_attributes(),
                 marked_range.clone(),
                 style.color.clone(),
             );
@@ -562,10 +563,13 @@ fn schedule_editable_programmatic_scroll(
     });
 }
 
+/// Paint runs for one row: stored color, background, underline and strikethrough, with the
+/// owner's style runs over them for the fields they set, and the IME underline.
 fn decoration_runs(
     display_start: usize,
     len: usize,
     style_runs: &[EditableTextStyleRun],
+    attributes: &[AttributeSpan],
     marked_range: Option<Range<usize>>,
     color: Color,
 ) -> Vec<DecorationRun> {
@@ -574,7 +578,19 @@ fn decoration_runs(
         return Vec::new();
     }
 
+    let first_attribute = attributes.partition_point(|span| span.range.end <= row_range.start);
+    let attributes = &attributes[first_attribute..];
     let mut boundaries = vec![row_range.start, row_range.end];
+    for span in attributes
+        .iter()
+        .take_while(|span| span.range.start < row_range.end)
+    {
+        let start = span.range.start.max(row_range.start);
+        let end = span.range.end.min(row_range.end);
+        if start < end {
+            boundaries.extend([start, end]);
+        }
+    }
     for run in style_runs {
         let start = run.range.start.max(row_range.start);
         let end = run.range.end.min(row_range.end);
@@ -602,6 +618,19 @@ fn decoration_runs(
                 let mut background_color = None;
                 let mut underline = None;
                 let mut strikethrough = None;
+                if let Some(span) = attributes
+                    .iter()
+                    .take_while(|span| span.range.start < end)
+                    .find(|span| span.range.start <= start && span.range.end >= end)
+                {
+                    let stored = &span.attributes;
+                    if let Some(stored_color) = &stored.color {
+                        run_color = stored_color.clone();
+                    }
+                    background_color = stored.background_color.clone();
+                    underline = stored.underline.clone();
+                    strikethrough = stored.strikethrough.clone();
+                }
                 for run in style_runs
                     .iter()
                     .filter(|run| run.range.start <= start && run.range.end >= end)
@@ -642,6 +671,34 @@ fn decoration_runs(
             })
         })
         .collect()
+}
+
+/// Returns the paint runs the editable-text paint path prepares for one logical row, over
+/// text painted in `color`.
+///
+/// Publicly hidden, like [`editable_text_selection_quads`], so integration tests can inspect
+/// exact paint attributes without screenshots.
+#[doc(hidden)]
+pub fn editable_text_decoration_runs(
+    state: &EditableTextState,
+    row: usize,
+    color: Color,
+) -> Vec<DecorationRun> {
+    let map = state.layout_map();
+    let Some((display_start, _, text, _)) = map.paint_row(row) else {
+        return Vec::new();
+    };
+    let marked_range = state
+        .marked_range()
+        .map(|range| map.buffer_range_to_display(range));
+    decoration_runs(
+        display_start,
+        text.len(),
+        map.projected_style_runs(),
+        map.projected_attributes(),
+        marked_range,
+        color,
+    )
 }
 
 /// Returns the selection quads prepared by the editable-text paint path.

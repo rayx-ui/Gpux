@@ -1,3 +1,4 @@
+mod attributes;
 mod buffer;
 mod display_transform;
 mod edit;
@@ -16,6 +17,7 @@ mod snapshot;
 mod state;
 mod style_runs;
 
+pub use attributes::*;
 pub use buffer::*;
 pub use display_transform::*;
 pub use edit::*;

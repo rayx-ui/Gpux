@@ -119,6 +119,33 @@ pub(crate) fn normalize_multiline(text: &str) -> String {
     normalized
 }
 
+/// Normalizes line breaks as [`normalize_single_line`] or [`normalize_multiline`] do and maps
+/// every input byte offset to its output offset; an offset inside a character or a CRLF pair
+/// maps to where that character's replacement starts.
+pub(crate) fn normalize_with_offsets(text: &str, single_line: bool) -> (String, Vec<usize>) {
+    let mut normalized = String::with_capacity(text.len());
+    let mut offsets = vec![0; text.len() + 1];
+    let mut characters = text.char_indices().peekable();
+    while let Some((index, character)) = characters.next() {
+        let start = normalized.len();
+        let mut end = index + character.len_utf8();
+        match character {
+            '\r' => {
+                if let Some((_, '\n')) = characters.peek() {
+                    characters.next();
+                    end += 1;
+                }
+                normalized.push(if single_line { ' ' } else { '\n' });
+            }
+            '\n' if single_line => normalized.push(' '),
+            _ => normalized.push(character),
+        }
+        offsets[index..end].fill(start);
+    }
+    offsets[text.len()] = normalized.len();
+    (normalized, offsets)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

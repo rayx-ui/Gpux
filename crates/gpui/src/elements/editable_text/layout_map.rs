@@ -1,14 +1,14 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    Font, Pixels, Point, SharedString, Size, TextRun, WindowTextSystem, WrappedLineLayout, point,
-    px, size,
+    Font, Pixels, Point, RunMetrics, SharedString, Size, TextRun, WindowTextSystem,
+    WrappedLineLayout, point, px, size,
 };
 
 use super::{
-    EditableTextProjection, EditableTextStyleRun, EditableTextStyleRuns, LayoutStyleKey,
-    RowLayoutKey, ShapeRunKey, TextBufferError, TextBufferSnapshot, TextEdit, TextLayoutCache,
-    TextLayoutCacheStats, TextLayoutUpdate,
+    AttributeSpan, EditableTextProjection, EditableTextStyleRun, EditableTextStyleRuns, Formatting,
+    LayoutStyleKey, RowLayoutKey, ShapeRunKey, TextBufferError, TextBufferSnapshot, TextEdit,
+    TextLayoutCache, TextLayoutCacheStats, TextLayoutUpdate,
 };
 
 /// A byte-based point in the visual rows produced by soft wrapping.
@@ -173,6 +173,11 @@ pub struct TextLayoutMap {
     visual_line_count: usize,
     size: Size<Pixels>,
     projection: Option<EditableTextProjection>,
+    /// Stored formatting the next update lays out, and the one installed.
+    formatting: Option<Arc<Formatting>>,
+    installed_formatting: Option<Arc<Formatting>>,
+    /// The installed formatting's spans in display coordinates.
+    projected_attributes: Vec<AttributeSpan>,
 }
 
 impl TextLayoutMap {
@@ -199,6 +204,28 @@ impl TextLayoutMap {
     /// Returns the maximum row width and total visual height.
     pub fn size(&self) -> Size<Pixels> {
         self.size
+    }
+
+    /// Sets the stored formatting the next update lays out with the text.
+    pub(crate) fn set_formatting(&mut self, formatting: Option<Arc<Formatting>>) {
+        self.formatting = formatting;
+    }
+
+    fn formatting_installed(&self) -> bool {
+        match (&self.formatting, &self.installed_formatting) {
+            (None, None) => true,
+            (Some(next), Some(installed)) => Arc::ptr_eq(next, installed) || next == installed,
+            _ => false,
+        }
+    }
+
+    /// The shaped layout of one logical row (a line between hard breaks).
+    pub fn logical_row_layout(&self, row: usize) -> Option<Arc<WrappedLineLayout>> {
+        self.rows.get(row).map(|row| row.layout.clone())
+    }
+
+    pub(crate) fn projected_attributes(&self) -> &[AttributeSpan] {
+        &self.projected_attributes
     }
 
     /// Atomically installs wrapping geometry for a snapshot using GPUI's text system.
@@ -283,12 +310,19 @@ impl TextLayoutMap {
             .matches_installed(snapshot.revision(), &style_key)
             && self.installed_style_runs.as_ref() == Some(style_runs)
             && self.projection.as_ref() == projection
+            && self.formatting_installed()
         {
             return Ok(TextLayoutUpdate::default());
         }
 
         let clipped_runs = style_runs.clipped_to(snapshot, 0..snapshot.len())?;
         let projected_runs = project_style_runs(&clipped_runs, projection);
+        let projected_attributes = self
+            .formatting
+            .as_ref()
+            .map(|formatting| project_attribute_spans(formatting.spans.spans(), projection))
+            .unwrap_or_default();
+        let mut attribute_start = 0;
         let style_matches = self.cache.style_matches(&style_key);
         let reusable = self.cache.reusable_rows(&style_key);
         let line_count = projection.map_or_else(
@@ -316,10 +350,19 @@ impl TextLayoutMap {
             let style_run_end = style_run_start
                 + projected_runs[style_run_start..]
                     .partition_point(|run| run.range.start < display_end);
+            while attribute_start < projected_attributes.len()
+                && projected_attributes[attribute_start].range.end <= display_start
+            {
+                attribute_start += 1;
+            }
+            let attribute_end = attribute_start
+                + projected_attributes[attribute_start..]
+                    .partition_point(|span| span.range.start < display_end);
             let (shape_runs, run_keys) = shape_runs_for_line(
                 display_start,
                 display_end,
                 &projected_runs[style_run_start..style_run_end],
+                &projected_attributes[attribute_start..attribute_end],
                 style.font.clone(),
             );
             let line_text: Arc<str> = Arc::from(line);
@@ -398,6 +441,8 @@ impl TextLayoutMap {
         self.visual_line_count = visual_start;
         self.size = size(max_width, style.line_height * visual_start);
         self.projection = projection.cloned();
+        self.installed_formatting = self.formatting.clone();
+        self.projected_attributes = projected_attributes;
         self.cache
             .install(snapshot.revision(), style_key, next_cache, update);
         Ok(update)
@@ -420,6 +465,8 @@ impl TextLayoutMap {
                 .as_ref()
                 .is_some_and(EditableTextStyleRuns::is_empty)
             || self.projection.is_some()
+            || self.formatting.is_some()
+            || self.installed_formatting.is_some()
             || !self.cache.style_matches(&style.cache_key())
         {
             return Ok(None);
@@ -447,7 +494,7 @@ impl TextLayoutMap {
         if text.contains('\n') {
             return Ok(None);
         }
-        let (runs, run_keys) = shape_runs_for_line(0, text.len(), &[], style.font.clone());
+        let (runs, run_keys) = shape_runs_for_line(0, text.len(), &[], &[], style.font.clone());
         let text: Arc<str> = Arc::from(text);
         let layout = shaper
             .shape_layout(TextLayoutShapeRequest {
@@ -684,13 +731,47 @@ fn project_style_runs(
         .collect()
 }
 
+fn project_attribute_spans(
+    spans: &[AttributeSpan],
+    projection: Option<&EditableTextProjection>,
+) -> Vec<AttributeSpan> {
+    let Some(projection) = projection else {
+        return spans.to_vec();
+    };
+    spans
+        .iter()
+        .filter_map(|span| {
+            let start = projection.buffer_to_display(span.range.start);
+            let end = projection.buffer_to_display(span.range.end);
+            (start < end).then(|| AttributeSpan {
+                range: start..end,
+                attributes: span.attributes.clone(),
+            })
+        })
+        .collect()
+}
+
+/// Shaping runs for one line: stored family, weight, style, size, letter spacing and baseline
+/// shift, then the owner's style runs' weight and style over them.
 fn shape_runs_for_line(
     line_start: usize,
     line_end: usize,
     style_runs: &[EditableTextStyleRun],
+    attributes: &[AttributeSpan],
     base_font: Font,
 ) -> (Vec<TextRun>, Vec<ShapeRunKey>) {
     let mut boundaries = vec![line_start, line_end];
+    for span in attributes
+        .iter()
+        .filter(|span| span.attributes.affects_shaping())
+    {
+        let start = span.range.start.max(line_start);
+        let end = span.range.end.min(line_end);
+        if start < end {
+            boundaries.push(start);
+            boundaries.push(end);
+        }
+    }
     for run in style_runs {
         let start = run.range.start.max(line_start);
         let end = run.range.end.min(line_end);
@@ -702,8 +783,8 @@ fn shape_runs_for_line(
     boundaries.sort_unstable();
     boundaries.dedup();
 
-    let mut text_runs = Vec::new();
-    let mut keys = Vec::new();
+    let mut text_runs: Vec<TextRun> = Vec::new();
+    let mut keys: Vec<ShapeRunKey> = Vec::new();
     for range in boundaries.windows(2) {
         let start = range[0];
         let end = range[1];
@@ -711,6 +792,26 @@ fn shape_runs_for_line(
             continue;
         }
         let mut font = base_font.clone();
+        let mut metrics = RunMetrics::default();
+        if let Some(span) = attributes.iter().find(|span| {
+            span.range.start <= start && span.range.end > start && span.attributes.affects_shaping()
+        }) {
+            let stored = &span.attributes;
+            if let Some(family) = &stored.font_family {
+                font.family = family.clone();
+            }
+            if let Some(weight) = stored.font_weight {
+                font.weight = weight;
+            }
+            if let Some(font_style) = stored.font_style {
+                font.style = font_style;
+            }
+            metrics = RunMetrics {
+                font_size: stored.font_size,
+                letter_spacing: stored.letter_spacing,
+                baseline_shift: stored.baseline_shift.unwrap_or_default(),
+            };
+        }
         for run in style_runs
             .iter()
             .filter(|run| run.range.start <= start && run.range.end >= end)
@@ -723,6 +824,15 @@ fn shape_runs_for_line(
             }
         }
         let len = end - start;
+        // Spans that differ only in paint shape as one run, so paint changes never reshape.
+        if let (Some(last_run), Some(last_key)) = (text_runs.last_mut(), keys.last_mut())
+            && last_run.font == font
+            && last_run.metrics == metrics
+        {
+            last_run.len += len;
+            last_key.len += len;
+            continue;
+        }
         text_runs.push(TextRun {
             len,
             font: font.clone(),
@@ -730,15 +840,16 @@ fn shape_runs_for_line(
             background_color: None,
             underline: None,
             strikethrough: None,
-            metrics: Default::default(),
+            metrics,
         });
-        keys.push(ShapeRunKey { len, font });
+        keys.push(ShapeRunKey { len, font, metrics });
     }
 
     if line_start == line_end {
         keys.push(ShapeRunKey {
             len: 0,
             font: base_font,
+            metrics: RunMetrics::default(),
         });
     }
     (text_runs, keys)

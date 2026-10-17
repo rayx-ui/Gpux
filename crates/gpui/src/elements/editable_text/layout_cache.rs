@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{Font, Pixels, WrappedLineLayout};
+use crate::{Font, Pixels, RunMetrics, WrappedLineLayout};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub(super) struct LayoutStyleKey {
@@ -39,6 +39,7 @@ impl LayoutStyleKey {
 pub(super) struct ShapeRunKey {
     pub(super) len: usize,
     pub(super) font: Font,
+    pub(super) metrics: RunMetrics,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
