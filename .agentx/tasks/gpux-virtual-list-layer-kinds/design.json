@@ -181,7 +181,7 @@
       "requirementIds": [
         "RXK"
       ],
-      "descriptionMarkdown": "**Consumer test.** RayX's consumer group drives the real components (ListView, TreeView, DataTable) with their default row content and the sticky policy API. It asserts the layer counters and visible rows, not gpux internals.\n\n**Fixes found there.** A RayX row wrapper that makes rows ineligible is fixed in RayX, with the reason in the commit.",
+      "descriptionMarkdown": "**Consumer test.** RayX's consumer group drives the real components (ListView, TreeView, DataTable) with their default row content and the sticky policy API. It asserts the layer counters and visible rows, not gpux internals.\n\n**Fixes found there.** A RayX row wrapper that makes rows ineligible is fixed in RayX, with the reason in the commit.\n\n**DataTable (owner's choice (a), 2026-10-17: \"(a) Refactor DataTable's header so the table's render reads no scroll offset, then finish s05.\").** What kept its rows off their layers, fixed in RayX:\n- the header leaf row virtualized its columns from the horizontal offset read as the table rendered; it is now a `ParentViewport` horizontal virtual list in the header's flow, with its own handle state over the shared offset, and the filler rows' cells follow the header through a `SynchronizedOffset` list instead of an offset read at render;\n- the header cells wrote their window-space bounds into the table's state on every prepaint, so every row reading the table changed with every scroll; the bounds live in shared cells, and the table's and the fixed columns' bounds are written only when they move;\n- `ScrollableMask` queued its wheel turn as a programmatic offset and notified the view directly, which drew a second frame after each turn and a notification gpux could not tell from a change; it publishes the turn as a wheel through gpux's new `ScrollHandle::publish_wheel_offset`;\n- each row's list is clipped to its own width, short of the last empty column (s03's rule: a synchronized list has a layer only where what holds it clips it within its bounds).",
       "sourceRefs": [
         {
           "repositoryId": "rayx",
@@ -317,6 +317,23 @@
         {
           "repositoryId": "gpux",
           "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-oracle.md"
+        }
+      ]
+    },
+    {
+      "id": "d-accesskit-merge",
+      "requirementIds": [
+        "MG"
+      ],
+      "descriptionMarkdown": "**Merge.** Merge (not rebase) gpux `main` into `feat/virtual-list` and RayX `master` into RayX `feat/virtual-list`, resolving conflicts in favour of main's AccessKit model: the list layers' row records (hidden rows, focus, tab order, nodes) and `describe_rendered_frame` follow main's a11y recording, and `hidden_hitboxes`, `NodeRow` and the DevKit `devtools_nodes` go where main removed them.\n\n**s04 after it.** s04's record hiding for the rows a `ParentViewport` list renders off screen inside a promoted `div` layer is built on that mechanism (the rows recorded hidden while the layer holds them off screen; the composited layer's a11y replay), from the work kept on the local branch `wip/s04-parent-viewport` (a6d5808).",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/reuse.rs"
         }
       ]
     }

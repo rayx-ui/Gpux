@@ -1,12 +1,12 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list-layer-kinds",
-  "revision": 46,
-  "planRevision": 7,
+  "revision": 58,
+  "planRevision": 9,
   "specHashes": {
-    "requirements": "6624ffc34f924fe7c0c2363d3e6013bf10669885d6b44b6f000d06f239120c33",
-    "design": "667d8762d45005a39f293cbd2358f160eac43c1923486d127584914cac3a4908",
-    "plan": "afd861f5068baca8a984348ceff9e0efe1c258edf193c8ffe70d7dbe05d84fbb"
+    "requirements": "b0511d7e5dc2f81eef30f56a97b85348eb4557516cc4fbd46f4efcda72c9012a",
+    "design": "84012477aed757dfddf8d6bfdc1c2e538c56ac1a2fd4d0027a71528f776ebe9b",
+    "plan": "ac0a086f490cadc4558ab990e0bb25506662cb8fef8462dd230dce6959e300f6"
   },
   "tasks": {
     "t01-axis-slots": {
@@ -40,13 +40,20 @@
       ]
     },
     "t06-parent-promoted": {
-      "status": "pending"
+      "status": "blocked",
+      "workerIds": [
+        "virtual-list"
+      ],
+      "blockerMarkdown": "Held by the owner (2026-10-17) until the AccessKit epic merges into main: the off-screen rows' records must be hidden on main's AccessKit model (s06b). Work kept on local branch wip/s04-parent-viewport (a6d5808)."
     },
     "t07-rayx-dependent-registration": {
       "status": "pending"
     },
     "t08-rayx-kinds": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
     },
     "t09-scenarios": {
       "status": "pending"
@@ -74,6 +81,12 @@
       "workerIds": [
         "virtual-list"
       ]
+    },
+    "t-merge-main": {
+      "status": "pending"
+    },
+    "t09b-parent-scenario": {
+      "status": "pending"
     }
   },
   "validationBatches": {
@@ -146,6 +159,16 @@
         }
       },
       "recordedAt": "2026-10-17T00:20:35Z"
+    },
+    "28095b66a012cfeeea2115869f0aba75ab2a5edcca2d10a8dd3dd346bfa03475": {
+      "snapshot": {
+        "specHash": "49abea1e5ee67ea44fca0ffdc7d17c9e15e05efb0685585ab37e93756b662ec2",
+        "repositories": {
+          "gpux": "ba518918cf6bab25bcb873ce1596396862422e67cc3ba06e2da48ecc6a9a6bff",
+          "rayx": "11ee0a5f7e615e9ab523f6d8e282dfe5042eb777de4faa16858cd97ea0bcdc30"
+        }
+      },
+      "recordedAt": "2026-10-17T01:43:19Z"
     }
   },
   "checkResults": {
@@ -369,6 +392,40 @@
       "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s03-synchronized-final-31e1e58798c0.log",
       "logSha256": "e168ed177bdf7a1b03a796e237558ab42eac290de93f70109ea0c4c0dfd5fdd4",
       "inputsHash": "cb9e06965e674be93acd7152bf70b3ec976afdc77b8c5e5581eff6c7f060d6e6"
+    },
+    "s05-rayx-kinds/c-rx-kinds/final": {
+      "checkId": "c-rx-kinds",
+      "boundaryId": "s05-rayx-kinds",
+      "phase": "final",
+      "batchId": "28095b66a012cfeeea2115869f0aba75ab2a5edcca2d10a8dd3dd346bfa03475",
+      "definitionHash": "873a38e3fa37d3eafabbf6cd1a2068aa63923cca7bd060e91a0ef36d0a36b7e6",
+      "basisHash": "065f590581db25cf1031eb15832af9eb060a3635cab1179af8736e949690687b",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 47.4045,
+      "recordedAt": "2026-10-17T01:43:15Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s05-rayx-kinds-final-6be34a4b6d14.log",
+      "logSha256": "db15cbdfd2f69cc7465adbc0b26a8ccd7a5ecac732da1affea6f8e806074ed2a",
+      "inputsHash": "6cf27ff1e58b1bdafa75f98d07445dd0e269cdd6607457ac666e1b5014b9a4a5"
+    },
+    "s05-rayx-kinds/c-rx-kinds-table/final": {
+      "checkId": "c-rx-kinds-table",
+      "boundaryId": "s05-rayx-kinds",
+      "phase": "final",
+      "batchId": "28095b66a012cfeeea2115869f0aba75ab2a5edcca2d10a8dd3dd346bfa03475",
+      "definitionHash": "2785b9c741dee74e77c93610eb84b62fd1d7b80a2188c104ecb2460dd2ca53fb",
+      "basisHash": "51cd706ce4bd5e48bcd552c7e6c94498b778c3bb5158da14613b6b1df8512da8",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 2.9853,
+      "recordedAt": "2026-10-17T01:43:18Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s05-rayx-kinds-final-e3dc8f7b6ec6.log",
+      "logSha256": "d0166e68f1dc29290e67a0395715d3afb1854a20391ca01fb222c1d75e1a1421",
+      "inputsHash": "6cf27ff1e58b1bdafa75f98d07445dd0e269cdd6607457ac666e1b5014b9a4a5"
     }
   },
   "reviews": {
@@ -803,6 +860,84 @@
         "lk-s03-F1"
       ],
       "recordedAt": "2026-10-17T00:21:53Z"
+    },
+    "s05-rayx-kinds": {
+      "reviewerId": "reviewer-lk-s05",
+      "snapshotId": "28095b66a012cfeeea2115869f0aba75ab2a5edcca2d10a8dd3dd346bfa03475",
+      "criterionIds": [
+        "RXK-1"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RXK-1"
+          ],
+          "sha256": "0fa0ce585d758ccab3d4aa84daa3f2947ceb9352671f456a98d78a880cfa6bc1"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/synchronized.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RXK-1"
+          ],
+          "sha256": "42b16794d067c62d4fcb52854e675b618b0f9c28be91360984c70e09e699ef1a"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_datatable/src/state/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RXK-1"
+          ],
+          "sha256": "0474c1ac6efad81b74b1a9973e165efaa1ea3504e4985d2450f4f97919d7a52b"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_datatable/src/column/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RXK-1"
+          ],
+          "sha256": "3d213d45f1714dd1c06c75d1be63d8fcfb904f08d5ccc8e0b94ac12673758f65"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/layout/scroll/scrollable_mask.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RXK-1"
+          ],
+          "sha256": "f96f4a79b115881c5745db38dbd0b7aa24f16bd08968bbd2d90cd851ea19789d"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/virtual_list_layer_kinds.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RXK-1"
+          ],
+          "sha256": "ffa14dffaafccfb03fe90c9ba8779b77b3cd22ab44baae09a1fb7b266d0f2604"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_datatable/tests/virtual_list_layer_kinds.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RXK-1"
+          ],
+          "sha256": "4b8e10e60e1fdbca50bd03755336f4eb4c52d200499b9ecb46dfac166917c769"
+        }
+      ],
+      "summaryMarkdown": "Passed. RayX's `virtual_list_layer_kinds` groups prove the consumer on real components: a sticky ListView with two levels, a horizontal ListView, a TreeView with sticky roots, a click reaching a stuck header first on a composited frame, and a DataTable whose `SynchronizedOffset` rows composite from their layers with exactly one frame per wheel turn. The DataTable fixes match the owner's choice (a) recorded in d-consumer-proof: a `ParentViewport` leaf header row, `SynchronizedOffset` filler rows, column bounds in shared cells with the table and fixed-column bounds written only on change, and rows clipped in `overflow_hidden` containers. Also `ScrollableMask` publishing through gpux's new `ScrollHandle::publish_wheel_offset`, with the container's own clamping and edge behaviour (gpux test `a_forwarded_wheel_turn_composites_in_one_frame`). The sprint checks are fresh at revision 56 on the s05-only tree.",
+      "findingIds": [
+        "lk-s05-F1"
+      ],
+      "recordedAt": "2026-10-17T01:43:45Z"
     }
   },
   "checkpoints": {
@@ -850,6 +985,15 @@
       },
       "reviewHash": "153bdfd54f3780392d28e5c5308f06b043ad4c3d083517eb7b0f3080ab5a5189",
       "recordedAt": "2026-10-17T00:22:10Z"
+    },
+    "s05-rayx-kinds": {
+      "snapshotId": "28095b66a012cfeeea2115869f0aba75ab2a5edcca2d10a8dd3dd346bfa03475",
+      "commits": {
+        "gpux": "a4131c8388a875f84f131fec6474f0727ab8730f",
+        "rayx": "5b839689e0a3af24915629bb22a50b3c7f9557fa"
+      },
+      "reviewHash": "5dee3941e2f20591b7ff76f9717c30ce4965403103254cd941c4b1d5853b79d9",
+      "recordedAt": "2026-10-17T01:44:09Z"
     }
   },
   "findings": [
@@ -1013,9 +1157,25 @@
         }
       ],
       "boundaryId": "s03-synchronized"
+    },
+    {
+      "id": "lk-s05-F1",
+      "criterionIds": [
+        "RXK-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved. The second frame came from `ScrollableMask`'s old `request_offset(Programmatic)` path, a queued offset taken in at the next prepaint with a deferred notify, which `publish_wheel_offset` replaces. The DataTable test keeps draw-on-flush on, draws every frame the table asks for (`run_until_parked`, plus a draw only if none happened), and asserts exactly one frame per wheel turn on each of the 40 measured turns. A deferred frame left behind by a turn would be drawn at the next turn's `run_until_parked` and fail that turn's count, so the one-frame assertion covers it. Composite-with-rows-kept on at least 38 of 40 turns and cells shown are asserted as before.",
+      "regressionRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_datatable/tests/virtual_list_layer_kinds.rs"
+        }
+      ],
+      "boundaryId": "s05-rayx-kinds"
     }
   ],
-  "handoffMarkdown": "SynchronizedOffset lists take the layered path (own_scroll = !ParentViewport): snapped offset, begin_virtual_list inside a ContentMask of the list's bounds, row hooks, measure_item. invalidate::painted_synchronized remembers the list id as a container sourced by the shared handle's state. Paint clips such a list to its bounds (needed for a baked background; prepaint already clipped). New group virtual_list_layers::synchronized (4); ineligible's synchronized case removed; Kind::SynchronizedHorizontal page.",
+  "handoffMarkdown": "RayX groups: rayx_components_core/tests/virtual_list_layer_kinds.rs (sticky ListView at two levels, horizontal ListView, TreeView with sticky roots, click on a stuck header) and rayx_components_datatable/tests/virtual_list_layer_kinds.rs (DataTable synchronized rows). DataTable fixes (owner choice (a)): header leaf row as a ParentViewport h_virtual_list with its own handle state; filler cells through a SynchronizedOffset list; header cell bounds in shared cells, table/fixed-column bounds written only when they move; rows' lists clipped to their width; ScrollableMask publishes its turn via gpux's new ScrollHandle::publish_wheel_offset (test in virtual_list_layers::synchronized).",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",

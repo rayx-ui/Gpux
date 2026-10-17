@@ -116,7 +116,7 @@
         {
           "id": "RXK-1",
           "verification": "automated",
-          "descriptionMarkdown": "**Consumer proof.** A new RayX group, `crates/rayx_components/rayx_components_core/tests/virtual_list_layer_kinds.rs`, scrolls each of these with fast mode on:\n- a ListView with a `sticky_policy` (nested levels);\n- a horizontal ListView;\n- a TreeView with sticky ancestors;\n- a DataTable whose rows follow its header through `SynchronizedOffset`.\n\n**Required.** Each composites on scroll-only frames after promotion and shows its rows, and the sticky rows keep their listeners: a click on a stuck header reaches it. This proves the consumer, not gpux."
+          "descriptionMarkdown": "**Consumer proof.** A new RayX group, `crates/rayx_components/rayx_components_core/tests/virtual_list_layer_kinds.rs`, scrolls each of these with fast mode on:\n- a ListView with a `sticky_policy` (nested levels);\n- a horizontal ListView;\n- a TreeView with sticky ancestors;\n- a DataTable whose rows follow its header through `SynchronizedOffset`.\n\n**Required.** Each composites on scroll-only frames after promotion and shows its rows, and the sticky rows keep their listeners: a click on a stuck header reaches it. This proves the consumer, not gpux.\n\n**Where the DataTable case lives.** `rayx_components_core` cannot depend on `rayx_components_datatable`, which depends on it: the DataTable case is the datatable crate's group of the same name, `crates/rayx_components/rayx_components_datatable/tests/virtual_list_layer_kinds.rs` (finding of t08, 2026-10-17)."
         }
       ]
     },
@@ -128,12 +128,17 @@
         {
           "id": "TM-1",
           "verification": "automated",
-          "descriptionMarkdown": "**Scenarios.** Fast-mode bench scenarios in `crates/gpui/src/fast/scenarios/scroll.rs`:\n- `scroll-virtual-list`, `scroll-virtual-list-horizontal`, `scroll-virtual-list-sticky`, `scroll-virtual-list-synchronized`, `scroll-virtual-list-parent-viewport`;\n- each a wheel step over 10,000 variable-size rows built like the existing `scroll-uniform-list` scenario.\n\n**CI counters.** Each is listed in `fast_mode_attribution`. Its deterministic counters show that `layers` composites (`tiles_composited > 0`) and renders fewer rows than `splice`, and `every_scenario_is_attributed` passes."
+          "descriptionMarkdown": "**Scenarios.** Fast-mode bench scenarios in `crates/gpui/src/fast/scenarios/scroll.rs`:\n- `scroll-virtual-list`, `scroll-virtual-list-horizontal`, `scroll-virtual-list-sticky`, `scroll-virtual-list-synchronized` (`scroll-virtual-list-parent-viewport` moved with PV into s04: TM-3);\n- each a wheel step over 10,000 variable-size rows built like the existing `scroll-uniform-list` scenario.\n\n**CI counters.** Each is listed in `fast_mode_attribution`. Its deterministic counters show that `layers` composites (`tiles_composited > 0`) and renders fewer rows than `splice`, and `every_scenario_is_attributed` passes."
         },
         {
           "id": "TM-2",
           "verification": "manual",
           "descriptionMarkdown": "**Run.** `gpux-testkit perf fast-mode --name virtual-list` on the owner's Mac (Metal, display awake). For every new scenario and each cumulative mode it records the median and interval.\n\n**Acceptance.** In `docs/fast-mode.md`'s Measurements:\n- `layers` is faster than `off` for each scenario;\n- any scenario where `layers` is not faster than `splice`, beyond the interval, is explained;\n- the results sit beside `scroll-uniform-list` and `scroll-list`.\n\nThe raw report stays in ignored `artifacts-temp/testkit/perf/virtual-list/`. Owner-attended (sprint s07)."
+        },
+        {
+          "id": "TM-3",
+          "verification": "automated",
+          "descriptionMarkdown": "The owner decided (2026-10-17), relayed by the coordinating session: \"Lets skip s04 until acceskit is merged in and skip to s05 and everything that can be done until the merge\". The `ParentViewport` scenario moves with PV.\n\n**Scenario.** `scroll-virtual-list-parent-viewport` in `crates/gpui/src/fast/scenarios/scroll.rs`, built as TM-1's scenarios are: a `ParentViewport` `VirtualList` of 10,000 variable-size rows in a scrolling `div`.\n\n**CI counters.** It is listed in `fast_mode_attribution`; its deterministic counters show that `layers` composites (`tiles_composited > 0`) and renders fewer rows than `splice`, and `every_scenario_is_attributed` passes."
         }
       ]
     },
@@ -146,6 +151,18 @@
           "id": "DOC-1",
           "verification": "manual",
           "descriptionMarkdown": "`docs/fast-mode.md`'s \"Virtual lists\" section describes how each `VirtualList` kind uses layers:\n- horizontal lists;\n- sticky rows drawn over the layer;\n- `SynchronizedOffset`;\n- `ParentViewport` inside a promoted `div` layer.\n\nIt also gives:\n- the per-frame counts of each new test group;\n- what remains `ineligible`: `uniform_list` and `list` with sticky items, content no tile can hold, rounded or transformed clips.\n\nA reviewer reads it against the source."
+        }
+      ]
+    },
+    {
+      "id": "MG",
+      "title": "The branches carry main's AccessKit model",
+      "descriptionMarkdown": "The owner decided (2026-10-17), relayed by the coordinating session: \"Lets skip s04 until acceskit is merged in and skip to s05 and everything that can be done until the merge\". The coordinating session's plan, which the owner agreed: hold s04 until the AccessKit epic (gpux-a11y-devtools) merges into `main`; then merge `main` into `feat/virtual-list`, so that the DevKit hooks move to AccessKit there, and build s04's record hiding on the AccessKit mechanism.",
+      "criteria": [
+        {
+          "id": "MG-1",
+          "verification": "automated",
+          "descriptionMarkdown": "**Merge.** gpux `main`, with the AccessKit epic, is merged into gpux `feat/virtual-list`, and RayX `master`, with its a11y side, into RayX `feat/virtual-list`.\n\n**Model.** `VirtualList`'s and the list layers' uses of DevKit nodes and the fast-mode scenes' `DevtoolsSemantics` move onto the AccessKit model main carries (content a layer holds off screen recorded under the window's a11y nodes; a composited layer replaying its a11y events). Main's DevKit-based record hiding is not ported.\n\n**Proof.** This epic's and `gpux-virtual-list`'s test groups pass afterwards, in gpux and in RayX.\n\n**Start.** Only once the owner says the AccessKit epic is merged."
         }
       ]
     }

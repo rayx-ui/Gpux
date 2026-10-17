@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list-layer-kinds",
-  "revision": 7,
+  "revision": 9,
   "title": "Measured leaves kept under view retention, and every VirtualList kind on scroll layers: horizontal, sticky, SynchronizedOffset and ParentViewport lists composite, RayX's parent-viewport invalidation narrowed, timings measured",
   "validationMode": "sprint",
   "repositories": [
@@ -402,7 +402,7 @@
       "criterionIds": [
         "TM-1"
       ],
-      "descriptionMarkdown": "The five new scenarios' attribution tests (named `scroll_virtual_list*`).",
+      "descriptionMarkdown": "The four TM-1 scenarios' attribution tests (named `scroll_virtual_list*`).",
       "argv": [
         "cargo",
         "test",
@@ -416,7 +416,7 @@
       ],
       "expected": {
         "exitCode": 0,
-        "minimumTests": 5
+        "minimumTests": 4
       },
       "inputs": [
         "crates/gpui/**",
@@ -726,6 +726,169 @@
         "crates/gpui_macos/**",
         "crates/gpui_platform/**"
       ]
+    },
+    {
+      "id": "c-attribution-parent",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "TM-3"
+      ],
+      "descriptionMarkdown": "The parent-viewport scenario's attribution test.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support,bench-support",
+        "--test",
+        "fast_mode_attribution",
+        "scroll_virtual_list_parent_viewport"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "c-merge-gpux-groups",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "MG-1"
+      ],
+      "descriptionMarkdown": "This epic's and gpux-virtual-list's lib groups after the merge.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "--",
+        "fast::tests::virtual_list_layers::",
+        "fast::tests::half_pixel_edges",
+        "fast::tests::uniform_measured_item",
+        "fast::tests::oracle_measured_leaves",
+        "fast::tests::list_layers::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 60
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "c-merge-gpux-integration",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "MG-1"
+      ],
+      "descriptionMarkdown": "The integration groups of both epics after the merge.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support,bench-support",
+        "--test",
+        "retained_measured_leaves",
+        "--test",
+        "virtual_list",
+        "--test",
+        "virtual_list_default_handle",
+        "--test",
+        "virtual_list_parent_viewport",
+        "--test",
+        "fast_mode_attribution"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 40
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "c-merge-rayx-groups",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "MG-1"
+      ],
+      "descriptionMarkdown": "RayX's virtual-list groups after the merge.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_components_core",
+        "--test",
+        "virtual_list_layers",
+        "--test",
+        "virtual_list_rebuilds",
+        "--test",
+        "virtual_list_layer_kinds"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 10
+      },
+      "inputs": [
+        "crates/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "c-rx-kinds-table",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "RXK-1"
+      ],
+      "descriptionMarkdown": "The DataTable case of RXK-1: synchronized rows composite as the table scrolls across.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_components_datatable",
+        "--test",
+        "virtual_list_layer_kinds"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_components/**",
+        "crates/rayx_runtime/**",
+        "crates/rayx_theme/**",
+        "crates/rayx_macros/**",
+        "gpux:crates/gpui/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock"
+      ]
     }
   ],
   "finalCheckIds": [
@@ -1008,10 +1171,141 @@
       ]
     },
     {
+      "id": "s05-rayx-kinds",
+      "title": "RayX's lists composite in every kind",
+      "dependsOn": [
+        "s03-synchronized"
+      ],
+      "checkIds": [
+        "c-rx-kinds",
+        "c-rx-kinds-table"
+      ],
+      "tasks": [
+        {
+          "id": "t08-rayx-kinds",
+          "title": "Prove sticky, horizontal and synchronized RayX lists composite",
+          "descriptionMarkdown": "The `virtual_list_layer_kinds` RayX group (RXK-1): sticky ListView, horizontal ListView, sticky TreeView, DataTable synchronized rows, and a click on a stuck header. Fix any RayX wrapper that blocks a layer, in RayX.",
+          "criterionIds": [
+            "RXK-1"
+          ],
+          "designIds": [
+            "d-consumer-proof"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "c-rx-kinds",
+            "c-rx-kinds-table"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_datatable/src/state/mod.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/state.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_core/src/layout/scroll/scrollable_mask.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/div.rs"
+            }
+          ]
+        }
+      ],
+      "memoryScopes": [
+        "rayx:ui/virtualization"
+      ]
+    },
+    {
+      "id": "s06-bench-scenarios",
+      "title": "Fast-mode bench scenarios for every kind",
+      "dependsOn": [
+        "s05-rayx-kinds"
+      ],
+      "memoryScopes": [
+        "gpux:repository/validation"
+      ],
+      "checkIds": [
+        "c-attribution"
+      ],
+      "tasks": [
+        {
+          "id": "t09-scenarios",
+          "title": "Add the virtual-list scroll scenarios and their attribution",
+          "descriptionMarkdown": "Add the four `scroll-virtual-list*` scenarios of TM-1 to `fast/scenarios/scroll.rs` and list them in `fast_mode_attribution`'s `scenarios!`. The parent-viewport scenario moved with PV into s04 (TM-3).",
+          "criterionIds": [
+            "TM-1"
+          ],
+          "designIds": [
+            "d-timings"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "c-attribution"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/scenarios/scroll.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s06b-accesskit-merge",
+      "title": "Merge main's AccessKit model into the branches (after the owner says it is merged)",
+      "dependsOn": [
+        "s06-bench-scenarios"
+      ],
+      "memoryScopes": [
+        "gpux:gpui/frame-pipeline",
+        "rayx:ui/virtualization"
+      ],
+      "checkIds": [
+        "c-merge-gpux-groups",
+        "c-merge-gpux-integration",
+        "c-merge-rayx-groups"
+      ],
+      "tasks": [
+        {
+          "id": "t-merge-main",
+          "title": "Merge main and RayX master; move the DevKit uses to AccessKit",
+          "descriptionMarkdown": "The owner decided (2026-10-17), relayed by the coordinating session: \"Lets skip s04 until acceskit is merged in and skip to s05 and everything that can be done until the merge\".\n\nStart only once the owner says the AccessKit epic is merged into `main`. Merge gpux `main` into `feat/virtual-list` and RayX `master` into RayX `feat/virtual-list` (d-accesskit-merge), moving `VirtualList`'s and the list layers' DevKit uses and the scenes' `DevtoolsSemantics` onto the AccessKit model; this epic's and `gpux-virtual-list`'s groups pass afterwards.",
+          "criterionIds": [
+            "MG-1"
+          ],
+          "designIds": [
+            "d-accesskit-merge"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "c-merge-gpux-groups",
+            "c-merge-gpux-integration",
+            "c-merge-rayx-groups"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/layers/lists.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/virtual_list/mod.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "s04-parent-viewport",
       "title": "A ParentViewport list keeps its parent's layer",
       "dependsOn": [
-        "s03-synchronized"
+        "s06b-accesskit-merge"
       ],
       "memoryScopes": [
         "gpux:gpui/frame-pipeline",
@@ -1020,19 +1314,21 @@
       "checkIds": [
         "c-parent-promoted",
         "c-rx-parent-layers",
-        "c-rx-parent-existing"
+        "c-rx-parent-existing",
+        "c-attribution-parent"
       ],
       "tasks": [
         {
           "id": "t06-parent-promoted",
           "title": "Paint the painted region, answer metrics and range on composited frames",
-          "descriptionMarkdown": "Implement d-parent-viewport-promotion's gpux side:\n- rows for the painted region, with no offset read while a layer paints;\n- geometry recorded with the handle;\n- metrics answered on read from the parent offset;\n- a composite-frame callback in `fast::layers::reuse` that runs the range listener.\n\nAdd the `parent_promoted` group. A bare list holder needs no dependent view.",
+          "descriptionMarkdown": "Implement d-parent-viewport-promotion's gpux side:\n- rows for the painted region, with no offset read while a layer paints;\n- geometry recorded with the handle;\n- metrics answered on read from the parent offset;\n- a composite-frame callback in `fast::layers::reuse` that runs the range listener.\n\nAdd the `parent_promoted` group. A bare list holder needs no dependent view.\n\nThe owner decided (2026-10-17), relayed by the coordinating session: \"Lets skip s04 until acceskit is merged in and skip to s05 and everything that can be done until the merge\". Built after s06b on main's AccessKit record model, from `wip/s04-parent-viewport` (a6d5808): the rows rendered off screen for the painted region are recorded hidden while the layer holds them, as main records the content a layer holds off screen.",
           "criterionIds": [
             "PV-1"
           ],
           "designIds": [
             "d-parent-viewport-promotion",
-            "d-proof"
+            "d-proof",
+            "d-accesskit-merge"
           ],
           "dependsOn": [],
           "checkIds": [
@@ -1076,75 +1372,22 @@
               "path": "crates/rayx_components/rayx_components_base/src/tree/state.rs"
             }
           ]
-        }
-      ]
-    },
-    {
-      "id": "s05-rayx-kinds",
-      "title": "RayX's lists composite in every kind",
-      "dependsOn": [
-        "s04-parent-viewport"
-      ],
-      "checkIds": [
-        "c-rx-kinds"
-      ],
-      "tasks": [
+        },
         {
-          "id": "t08-rayx-kinds",
-          "title": "Prove sticky, horizontal and synchronized RayX lists composite",
-          "descriptionMarkdown": "The `virtual_list_layer_kinds` RayX group (RXK-1): sticky ListView, horizontal ListView, sticky TreeView, DataTable synchronized rows, and a click on a stuck header. Fix any RayX wrapper that blocks a layer, in RayX.",
+          "id": "t09b-parent-scenario",
+          "title": "Add the parent-viewport scroll scenario",
+          "descriptionMarkdown": "The owner decided (2026-10-17), relayed by the coordinating session: \"Lets skip s04 until acceskit is merged in and skip to s05 and everything that can be done until the merge\". Add `scroll-virtual-list-parent-viewport` (TM-3) to `fast/scenarios/scroll.rs` and to `fast_mode_attribution`'s `scenarios!`.",
           "criterionIds": [
-            "RXK-1"
-          ],
-          "designIds": [
-            "d-consumer-proof"
-          ],
-          "dependsOn": [],
-          "checkIds": [
-            "c-rx-kinds"
-          ],
-          "sourceRefs": [
-            {
-              "repositoryId": "rayx",
-              "path": "crates/rayx_components/rayx_components_datatable/src/state/mod.rs"
-            },
-            {
-              "repositoryId": "rayx",
-              "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/state.rs"
-            }
-          ]
-        }
-      ],
-      "memoryScopes": [
-        "rayx:ui/virtualization"
-      ]
-    },
-    {
-      "id": "s06-bench-scenarios",
-      "title": "Fast-mode bench scenarios for every kind",
-      "dependsOn": [
-        "s05-rayx-kinds"
-      ],
-      "memoryScopes": [
-        "gpux:repository/validation"
-      ],
-      "checkIds": [
-        "c-attribution"
-      ],
-      "tasks": [
-        {
-          "id": "t09-scenarios",
-          "title": "Add the virtual-list scroll scenarios and their attribution",
-          "descriptionMarkdown": "Add the five `scroll-virtual-list*` scenarios to `fast/scenarios/scroll.rs` (TM-1) and list them in `fast_mode_attribution`'s `scenarios!`.",
-          "criterionIds": [
-            "TM-1"
+            "TM-3"
           ],
           "designIds": [
             "d-timings"
           ],
-          "dependsOn": [],
+          "dependsOn": [
+            "t06-parent-promoted"
+          ],
           "checkIds": [
-            "c-attribution"
+            "c-attribution-parent"
           ],
           "sourceRefs": [
             {
@@ -1159,7 +1402,7 @@
       "id": "s07-timings-docs",
       "title": "Lane G timings and documentation (owner-attended)",
       "dependsOn": [
-        "s06-bench-scenarios"
+        "s04-parent-viewport"
       ],
       "memoryScopes": [
         "gpux:repository/validation"
