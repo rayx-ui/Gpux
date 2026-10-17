@@ -11,6 +11,7 @@ cover=$(mktemp -d)/cover
 swiftc -O tools/cover.swift -o "$cover" || exit 1
 args=(--scenario dashboard-clock --fast on --frames 600 --warmup 120 --target macos)
 failed=0
+passed=0
 
 # `expect_hidden <name> <pid> <log> [completing]`: the run ends with status 2 and the reason, or,
 # with `completing`, may also complete with status 0.
@@ -22,9 +23,9 @@ expect_hidden() {
     fi
     wait "$pid"; local status=$?
     if [ "$status" -eq 2 ] && grep -q "gpux-bench: the window" "$log"; then
-        echo "ok $name: $(grep 'gpux-bench:' "$log")"
+        echo "ok $name: $(grep 'gpux-bench:' "$log")"; passed=$((passed + 1))
     elif [ "$status" -eq 0 ] && [ -n "$completing" ]; then
-        echo "ok $name: the window was presented and the run completed"
+        echo "ok $name: the window was presented and the run completed"; passed=$((passed + 1))
     else
         echo "FAIL $name: status $status"; cat "$log"; failed=1
     fi
@@ -46,4 +47,5 @@ pid=$!
 expect_hidden "opened while the screens are covered" "$pid" "$log" completing
 wait "$cover_pid"
 
+echo "hidden-window: $passed passed"
 exit $failed
