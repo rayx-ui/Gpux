@@ -232,7 +232,7 @@ impl Render for RichAttributes {
                     .left(px(10.))
                     .top(px(10.))
                     .w(px(280.))
-                    .line_height(px(48.))
+                    .line_height(px(24.))
                     .child(EditableText::new(&self.state)),
             )
             .child(button("make-bold", 10.).on_click({
@@ -270,9 +270,10 @@ impl Render for RichAttributes {
     }
 }
 
-/// Stored formatting in one field. The 48 px row's ascent comes from the 28 px run (28.7) and
-/// its descent from the subscript (10.4), so the baseline sits at y 43.15 and the underline at
-/// about y 49.6. The runs span x 10-29.2 (bold target), 29.2-48.4 (italic target), 48.4-82
+/// Stored formatting in one field with a 24 px line height. The 28 px run makes its row 42 px
+/// tall (24 x 28 / 16); the row's ascent comes from that run (28.7) and its descent from the
+/// subscript (10.4), so the baseline sits at y 40.15 and the underline about 6.4 px below it.
+/// The runs span x 10-29.2 (bold target), 29.2-48.4 (italic target), 48.4-82
 /// (28 px), 82-101.2 (red, underlined), 101.2-120.4 (blue background), 120.4-130 (superscript,
 /// raised 8) and 130-139.6 (subscript, lowered 6).
 pub const RICH_ATTRIBUTES: SceneSpec = SceneSpec {
@@ -287,26 +288,26 @@ pub const RICH_ATTRIBUTES: SceneSpec = SceneSpec {
         vec![
             Step::Expect(Expect::Exists(status_is("bold off italic off"))),
             // The 28 px run's ink reaches above the 16 px runs'.
-            Step::ProbeDiffer((52., 26., 26., 5.), (200., 26., 26., 5.), 40),
-            Step::ProbeUniform((11., 26., 36., 5.), WHITE, 0),
+            Step::ProbeDiffer((52., 23., 26., 4.), (200., 23., 26., 4.), 40),
+            Step::ProbeUniform((11., 23., 36., 4.), WHITE, 0),
             // The red run's underline takes its color.
-            Step::ProbeUniform((84., 50.2, 15., 1.5), RED, 0),
-            // The background covers the row above and below the glyphs.
+            Step::ProbeUniform((84., 47.2, 15., 1.5), RED, 0),
+            // The background covers the whole 42 px row, above and below the glyphs.
             Step::ProbeUniform((103., 12., 15., 3.), BLUE, 0),
-            Step::ProbeUniform((103., 54., 15., 3.), BLUE, 0),
+            Step::ProbeUniform((103., 49., 15., 2.), BLUE, 0),
             // The superscript sits above the baseline runs' x-height; the subscript reaches
             // below the baseline.
-            Step::ProbeDiffer((122., 26., 6., 7.), (200., 26., 6., 7.), 40),
-            Step::ProbeUniform((121., 37., 8., 5.), WHITE, 0),
-            Step::ProbeDiffer((131., 45., 7., 3.), (200., 45., 7., 3.), 40),
+            Step::ProbeDiffer((122., 23., 6., 7.), (200., 23., 6., 7.), 40),
+            Step::ProbeUniform((121., 33.5, 8., 5.), WHITE, 0),
+            Step::ProbeDiffer((131., 42., 7., 3.), (200., 42., 7., 3.), 40),
             Step::Capture("regular"),
             Step::Click(id("make-bold")),
             Step::Expect(Expect::Exists(status_is("bold on italic off"))),
-            Step::ChangedSince("regular", (10., 30., 19., 14.)),
+            Step::ChangedSince("regular", (10., 29., 19., 11.)),
             Step::Capture("bold"),
             Step::Click(id("make-italic")),
             Step::Expect(Expect::Exists(status_is("bold on italic on"))),
-            Step::ChangedSince("bold", (29., 30., 19., 14.)),
+            Step::ChangedSince("bold", (29., 29., 19., 11.)),
         ]
     },
 };
