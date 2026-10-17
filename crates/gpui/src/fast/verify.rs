@@ -727,9 +727,9 @@ pub(crate) mod retention {
             return;
         };
         let frame = super::describe_frame(window);
-        let Some(difference) = super::first_frame_difference(&frame, &shadow.frame) else {
-            return;
-        };
+        // The frame-wide description leaves sprites' atlas tiles out, so a view showing stale
+        // text may differ only by its own description, which keeps them.
+        let frame_difference = super::first_frame_difference(&frame, &shadow.frame);
         let records = &window.rendered_frame.fast_retained.records;
         let differs = |index: usize| {
             let record = &records[index];
@@ -750,6 +750,10 @@ pub(crate) mod retention {
                 None => break,
             }
         }
+        if found.is_none() && frame_difference.is_none() {
+            return;
+        }
+        let difference = frame_difference.unwrap_or_default();
         let mismatch = match found {
             Some(index) => {
                 let record = &records[index];
@@ -790,6 +794,27 @@ pub(crate) mod retention {
         }
     }
 
+    /// A primitive of a view as text, with its sprite's atlas tile. The verifier compares two
+    /// frames of one window, which share its atlas, so a tile names the glyph or image drawn:
+    /// a view that shows stale text differs by it (the frame-wide description leaves tiles out,
+    /// for windows whose atlases differ).
+    fn describe_view_primitive(primitive: &crate::scene::Primitive) -> String {
+        let tile = match primitive {
+            crate::scene::Primitive::MonochromeSprite(sprite) => Some(sprite.tile),
+            crate::scene::Primitive::SubpixelSprite(sprite) => Some(sprite.tile),
+            crate::scene::Primitive::PolychromeSprite(sprite) => Some(sprite.tile),
+            _ => None,
+        };
+        let description = super::describe_primitive(primitive);
+        match tile {
+            Some(tile) => format!(
+                "{description} tile {:?} {}",
+                tile.texture_id, tile.tile_id.0
+            ),
+            None => description,
+        }
+    }
+
     /// The part of the rendered frame `record` stands for: what it painted
     /// and the hitboxes it inserted.
     fn describe_view(window: &Window, record: &RetainedSubtree) -> Vec<String> {
@@ -804,7 +829,7 @@ pub(crate) mod retention {
             {
                 lines.push(match operation {
                     crate::scene::PaintOperation::Primitive(primitive) => {
-                        super::describe_primitive(primitive)
+                        describe_view_primitive(primitive)
                     }
                     crate::scene::PaintOperation::FastDropped(dropped) => {
                         format!("dropped {dropped:?}")
@@ -827,6 +852,15 @@ pub(crate) mod retention {
                 "hitbox {:?} {:?} {:?}",
                 hitbox.bounds, hitbox.content_mask, hitbox.behavior
             ));
+        }
+        // What it told the accessibility tree, its text among it, while the tree is built: the
+        // view's text where the scene does not tell glyphs apart (the test platform).
+        let events = &window.a11y.rendered_events;
+        let a11y = prepaint.start.a11y_events_index..prepaint.end.a11y_events_index;
+        for event in events.get(a11y).into_iter().flatten() {
+            if let Some(line) = event.describe() {
+                lines.push(line);
+            }
         }
         lines
     }

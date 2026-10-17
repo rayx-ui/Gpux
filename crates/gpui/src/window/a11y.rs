@@ -1317,6 +1317,23 @@ pub(crate) struct A11yNodeBuilder {
     node_info: FxHashMap<NodeId, debug::NodeDebugInfo>,
 }
 
+#[cfg(feature = "diagnostics")]
+impl A11yEvent {
+    /// The event as the retention verifier tells a view by: the nodes it pushed and the text
+    /// leaves it added, with their properties, without the ids a frame derives.
+    pub(crate) fn describe(&self) -> Option<String> {
+        match self {
+            Self::Push {
+                node: Some(node), ..
+            } => Some(format!("a11y node {node:?}")),
+            Self::TextLeaf { node } | Self::Leaf { node, .. } => {
+                Some(format!("a11y leaf {node:?}"))
+            }
+            _ => None,
+        }
+    }
+}
+
 /// What building one frame's tree did, in order: fast mode replays a stretch of the last frame's
 /// log through the builder wherever it reuses the content that recorded it (cached view replay,
 /// retained paint, splice stretches, composited layers and list rows), so the tree of a reused
