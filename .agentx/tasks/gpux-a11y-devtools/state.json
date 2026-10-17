@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-a11y-devtools",
-  "revision": 174,
+  "revision": 176,
   "planRevision": 22,
   "specHashes": {
     "requirements": "4709d821a3df7eed3812b759720c5aecac4997eb752de8a495eb938f45c0ad99",
@@ -281,7 +281,7 @@
       ]
     },
     "t33-ci-repairs": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "local_a11y_impl"
       ]
@@ -3910,6 +3910,77 @@
         "gpux:docs/measurements/a11y-devtools.md": "e8e4f95bb77b8676c4816348f8b46089ace75a88346c2e467c5535803f54ed31",
         "gpux:docs/measurements/screen-reader-walkthrough.md": "152a5d2a5d854f8f546ac3681f5472e4b8f7cd267ce40e55fb6f1ba1b1ab779c"
       }
+    },
+    "s10b-ci-repairs": {
+      "reviewerId": "independent-reviewer-s08-rayx-opus-091c999e",
+      "snapshotId": "5aa3b008231806b2b0f965b27e49ad65db229debe1aaf2a82887914820294fc1",
+      "criterionIds": [
+        "REM-4"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/verify.rs",
+          "kind": "source",
+          "criterionIds": [
+            "REM-4"
+          ],
+          "sha256": "6e4a24708f25875c8d2c81c1f53144565200d7596a0a244c6430c15e786a790d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window/a11y.rs",
+          "kind": "source",
+          "criterionIds": [
+            "REM-4"
+          ],
+          "sha256": "18947a6b709dbc51a45be0f9024bf20552986e499e3b630317c4d393053cdc94"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/web_host/web_scenes.rs",
+          "kind": "source",
+          "criterionIds": [
+            "REM-4"
+          ],
+          "sha256": "e9e4cff9b917989344d939cc0349670a07b37ac9db4bcc35c9ef7338a7a605d3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/verify_mode.rs",
+          "kind": "test",
+          "criterionIds": [
+            "REM-4"
+          ],
+          "sha256": "3867bedf40413f64aae2c9093b771f77615ddb00c3d0186799ac51894c5a6479"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/a11y_describe.rs",
+          "kind": "test",
+          "criterionIds": [
+            "REM-4"
+          ],
+          "sha256": "28798dd0f3fa769d2aa18df05cbcf9dfc9013b6bfd67a24e1e2c7b849c3ce2f6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/composition.spec.ts",
+          "kind": "runtime",
+          "criterionIds": [
+            "REM-4"
+          ],
+          "sha256": "753bcf2b31b287dc121484f6017ff2c079dfa0414919ecb0cec19adf4fca1447"
+        }
+      ],
+      "summaryMarkdown": "**The cause is right.** Before s09, the DevKit node lines of `describe_view` (and of the frame-wide listing) carried every element's text whatever the platform. Without them, on the test platform, whose glyph sprites repeat tile ids, a view showing stale text matched its shadow. The old `check()` also returned before looking at views unless the frame-wide description differed, which is why the a11y_describe report fell to \"window\".\n\n**Coverage.** 680f662 restores it in two complementary ways. (1) Each view primitive's line now includes its sprite's `texture_id`/`tile_id`. The shadow and the real frame are drawn by one window into one atlas, so on real platforms a different glyph is a different tile, and reordered glyphs change the line order. (2) The view's accessibility events in its prepaint range (`Push` nodes, `TextLeaf`/`Leaf`) are described from `a11y.rendered_events`. `draw_shadow` swaps in the shadow's own `A11y` and describes after `end_shadow`, and `check()` reads the real frame's, so the comparison is not vacuous. This covers text on the test platform whenever a tree is built, which is why the verify-mode tests hold an inspection in both windows. The only case left uncovered is a test-platform window with no tree, where nothing distinguishes glyphs; real platforms and every tree-building run are covered.\n\n**False positives.** Reporting a view without a frame-wide difference is safe on the evidence. The per-view description is normalized the same way as before (orders zeroed, bounds and clips as drawn), both sides come from one window and one atlas, and an unchanged view's tile ids are stable: both tests assert no report over several frames before the untracked change. The new path can only add reports where the view's own content differs. Verify mode is exercised by these two test files only, so wider runs under `GPUX_RETENTION_VERIFY=1` remain the real-app proof.\n\n**The lane B half** is 81d3b88's scene id fix, already reviewed. Local checks passed 2/2 at revision 174. The dispatched CI reruns (38992709138 test on three platforms, 38992720850 lane B) were still in progress when I looked; they belong to the epic's close gate.",
+      "findingIds": [],
+      "recordedAt": "2026-10-17T01:58:41Z",
+      "recordHashes": {
+        "gpux:docs/measurements/a11y-devtools.md": "e8e4f95bb77b8676c4816348f8b46089ace75a88346c2e467c5535803f54ed31",
+        "gpux:docs/measurements/screen-reader-walkthrough.md": "152a5d2a5d854f8f546ac3681f5472e4b8f7cd267ce40e55fb6f1ba1b1ab779c"
+      }
     }
   },
   "checkpoints": {
@@ -4038,6 +4109,15 @@
       },
       "reviewHash": "329a6c07a68b085b835ebfd50c1c1a11f51c8b43ad849a5832ae5a99cb4c0e4f",
       "recordedAt": "2026-10-17T01:21:34Z"
+    },
+    "s10b-ci-repairs": {
+      "snapshotId": "5aa3b008231806b2b0f965b27e49ad65db229debe1aaf2a82887914820294fc1",
+      "commits": {
+        "gpux": "1459a49e26adda0c26c66410a34da9aa5f48b0d7",
+        "rayx": "3716df725aec4fe9923900b6aa79350f1342dc09"
+      },
+      "reviewHash": "79c43e5c5418669440b4aea0e33b861a2bc7b8975e0349241404c7b13e0322eb",
+      "recordedAt": "2026-10-17T01:59:01Z"
     }
   },
   "findings": [
