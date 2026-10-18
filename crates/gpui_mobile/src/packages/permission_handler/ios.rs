@@ -71,7 +71,8 @@ pub fn check_permission(permission: Permission) -> Result<PermissionStatus, Stri
 }
 
 unsafe fn check_av_authorization(media_type: &str) -> Result<PermissionStatus, String> {
-    let ns_media = nsstring(media_type);
+    // SAFETY: the caller upholds `nsstring`'s contract (an active autorelease pool).
+    let ns_media = unsafe { nsstring(media_type) };
     let status: i64 = msg_send![class!(AVCaptureDevice), authorizationStatusForMediaType: ns_media];
     Ok(av_status_to_permission(status))
 }
@@ -241,7 +242,8 @@ pub fn request_permission(permission: Permission) -> Result<PermissionStatus, St
 
 unsafe fn request_av_authorization(media_type: &str) -> Result<PermissionStatus, String> {
     let (tx, rx) = mpsc::channel();
-    let ns_media = nsstring(media_type);
+    // SAFETY: the caller upholds `nsstring`'s contract (an active autorelease pool).
+    let ns_media = unsafe { nsstring(media_type) };
 
     let block = block2::RcBlock::new(move |granted: Bool| {
         let status = if granted.as_bool() {
@@ -291,7 +293,9 @@ unsafe fn request_location_when_in_use() -> Result<PermissionStatus, String> {
     let _: () = msg_send![mgr, requestWhenInUseAuthorization];
     // Location authorization is async via delegate; return current status after a brief wait
     std::thread::sleep(std::time::Duration::from_millis(500));
-    check_location_authorization()
+    // SAFETY: the caller upholds `check_location_authorization`'s contract, the same one this
+    // function states.
+    unsafe { check_location_authorization() }
 }
 
 unsafe fn request_location_always() -> Result<PermissionStatus, String> {
@@ -299,7 +303,9 @@ unsafe fn request_location_always() -> Result<PermissionStatus, String> {
     let mgr: *mut AnyObject = msg_send![mgr, init];
     let _: () = msg_send![mgr, requestAlwaysAuthorization];
     std::thread::sleep(std::time::Duration::from_millis(500));
-    check_location_authorization()
+    // SAFETY: the caller upholds `check_location_authorization`'s contract, the same one this
+    // function states.
+    unsafe { check_location_authorization() }
 }
 
 unsafe fn request_contacts_authorization() -> Result<PermissionStatus, String> {

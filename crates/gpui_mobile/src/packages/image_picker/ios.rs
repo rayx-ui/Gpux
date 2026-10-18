@@ -165,14 +165,18 @@ unsafe extern "C" fn uipicker_did_finish(
     let _: () = msg_send![controller, dismissViewControllerAnimated: true, completion: std::ptr::null::<AnyObject>()];
 
     // Try to get the image URL first (for videos or saved photos)
-    let media_url_key = nsstring("UIImagePickerControllerMediaURL");
+    // SAFETY: UIKit invokes this delegate callback on the main thread, inside its autorelease
+    // pool, which is `nsstring`'s contract.
+    let media_url_key = unsafe { nsstring("UIImagePickerControllerMediaURL") };
     let media_url: *mut AnyObject = msg_send![info, objectForKey: media_url_key];
 
     if !media_url.is_null() {
         let abs_string: *mut AnyObject = msg_send![media_url, absoluteString];
         let cstr: *const std::ffi::c_char = msg_send![abs_string, UTF8String];
         if !cstr.is_null() {
-            let path = std::ffi::CStr::from_ptr(cstr)
+            // SAFETY: `cstr` is non-null and points to the NUL-terminated buffer of
+            // `abs_string`, which is alive for this callback; the contents are copied.
+            let path = unsafe { std::ffi::CStr::from_ptr(cstr) }
                 .to_string_lossy()
                 .into_owned();
             let path = path.strip_prefix("file://").unwrap_or(&path).to_string();
@@ -182,18 +186,21 @@ unsafe extern "C" fn uipicker_did_finish(
     }
 
     // Fall back to getting the UIImage and saving it
-    let image_key = nsstring("UIImagePickerControllerOriginalImage");
+    // SAFETY: as above, the callback runs inside UIKit's autorelease pool.
+    let image_key = unsafe { nsstring("UIImagePickerControllerOriginalImage") };
     let image: *mut AnyObject = msg_send![info, objectForKey: image_key];
 
     if !image.is_null() {
         // Convert to JPEG data
         // Use UIImageJPEGRepresentation C function
-        let jpeg_data = uiimage_jpeg_representation(image, 0.9);
+        // SAFETY: `image` is the non-null UIImage UIKit handed to this callback.
+        let jpeg_data = unsafe { uiimage_jpeg_representation(image, 0.9) };
         if !jpeg_data.is_null() {
             let uuid_str = uuid::Uuid::new_v4().to_string();
             let file_name = format!("captured_{}.jpg", uuid_str);
             let file_path = std::env::temp_dir().join(file_name);
-            let ns_path = nsstring(&file_path.to_string_lossy());
+            // SAFETY: as above, the callback runs inside UIKit's autorelease pool.
+            let ns_path = unsafe { nsstring(&file_path.to_string_lossy()) };
             let wrote: Bool = msg_send![jpeg_data, writeToFile: ns_path, atomically: true];
             if wrote.as_bool() {
                 send_result(vec![file_path.to_string_lossy().into_owned()]);
@@ -220,7 +227,8 @@ unsafe extern "C" {
 }
 
 unsafe fn uiimage_jpeg_representation(image: *mut AnyObject, quality: f64) -> *mut AnyObject {
-    UIImageJPEGRepresentation(image, quality)
+    // SAFETY: the caller passes a valid UIImage pointer, which is what the C function requires.
+    unsafe { UIImageJPEGRepresentation(image, quality) }
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────

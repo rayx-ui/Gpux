@@ -371,11 +371,13 @@ fn cmtime_to_ms(time: CMTime) -> i64 {
 use crate::ios::util::nsstring;
 
 unsafe fn nsstring_from_str(s: &str) -> *mut AnyObject {
-    nsstring(s)
+    // SAFETY: the caller upholds `nsstring`'s contract, the same one this function states.
+    unsafe { nsstring(s) }
 }
 
 unsafe fn nsurl_from_str(url: &str) -> Result<*mut AnyObject, String> {
-    let ns_string = nsstring_from_str(url);
+    // SAFETY: the caller upholds `nsurl_from_str`'s contract, which is `nsstring_from_str`'s.
+    let ns_string = unsafe { nsstring_from_str(url) };
     if ns_string.is_null() {
         return Err("Failed to create NSString".into());
     }

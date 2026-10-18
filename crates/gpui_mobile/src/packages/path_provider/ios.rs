@@ -62,6 +62,10 @@ unsafe fn nsstring_to_pathbuf(ns: *mut AnyObject) -> Result<PathBuf, String> {
     if utf8.is_null() {
         return Err("UTF8String returned null".into());
     }
-    let s = CStr::from_ptr(utf8).to_string_lossy().into_owned();
+    // SAFETY: `utf8` is non-null and points to the NUL-terminated buffer of `ns`, which the
+    // caller keeps alive; the contents are copied before returning.
+    let s = unsafe { CStr::from_ptr(utf8) }
+        .to_string_lossy()
+        .into_owned();
     Ok(PathBuf::from(s))
 }

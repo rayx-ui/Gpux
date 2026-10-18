@@ -214,7 +214,9 @@ unsafe fn objc_string_to_rust(ns: *mut AnyObject) -> String {
     if cstr.is_null() {
         return String::new();
     }
-    std::ffi::CStr::from_ptr(cstr)
+    // SAFETY: `cstr` is non-null and points to the NUL-terminated buffer of `ns`, which the
+    // caller keeps alive; the contents are copied before returning.
+    unsafe { std::ffi::CStr::from_ptr(cstr) }
         .to_string_lossy()
         .into_owned()
 }

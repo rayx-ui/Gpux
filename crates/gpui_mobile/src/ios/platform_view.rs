@@ -147,7 +147,10 @@ impl IosPlatformView {
                         if !player_layer.is_null() {
                             let _: () = msg_send![player_layer, setFrame: frame];
                             // Set video gravity to aspect fit
-                            let gravity = Self::make_nsstring("AVLayerVideoGravityResizeAspect");
+                            // SAFETY: runs on the main thread, inside the autorelease pool UIKit
+                            // provides; the string is autoreleased, so it is not released here.
+                            let gravity =
+                                unsafe { Self::make_nsstring("AVLayerVideoGravityResizeAspect") };
                             let _: () = msg_send![player_layer, setVideoGravity: gravity];
                             let _: () = msg_send![gravity, release];
                             let view_layer: *mut AnyObject = msg_send![view, layer];

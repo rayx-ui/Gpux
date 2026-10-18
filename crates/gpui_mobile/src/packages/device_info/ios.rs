@@ -60,7 +60,11 @@ unsafe fn nsstring_to_string(ns: *mut AnyObject) -> String {
     if utf8.is_null() {
         return String::new();
     }
-    CStr::from_ptr(utf8).to_string_lossy().into_owned()
+    // SAFETY: `utf8` is non-null and points to the NUL-terminated buffer of `ns`, which the
+    // caller keeps alive; the contents are copied before returning.
+    unsafe { CStr::from_ptr(utf8) }
+        .to_string_lossy()
+        .into_owned()
 }
 
 // libc types needed for uname

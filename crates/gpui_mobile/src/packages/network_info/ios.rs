@@ -123,11 +123,15 @@ unsafe extern "C" {
 const CF_STRING_ENCODING_UTF8: u32 = 0x08000100;
 
 unsafe fn cfstring_from_static(s: &[u8]) -> CFStringRef {
-    CFStringCreateWithCString(
-        std::ptr::null(),
-        s.as_ptr() as *const i8,
-        CF_STRING_ENCODING_UTF8,
-    )
+    // SAFETY: the caller passes a NUL-terminated byte string; the null allocator selects the
+    // default CoreFoundation allocator, and the string is copied.
+    unsafe {
+        CFStringCreateWithCString(
+            std::ptr::null(),
+            s.as_ptr() as *const i8,
+            CF_STRING_ENCODING_UTF8,
+        )
+    }
 }
 
 unsafe fn cfstring_to_string(cf: CFStringRef) -> Option<String> {
@@ -135,16 +139,30 @@ unsafe fn cfstring_to_string(cf: CFStringRef) -> Option<String> {
         return None;
     }
     // Try fast path
-    let ptr = CFStringGetCStringPtr(cf, CF_STRING_ENCODING_UTF8);
+    // SAFETY: `cf` is a non-null CFString that the caller keeps alive.
+    let ptr = unsafe { CFStringGetCStringPtr(cf, CF_STRING_ENCODING_UTF8) };
     if !ptr.is_null() {
-        return Some(CStr::from_ptr(ptr).to_string_lossy().into_owned());
+        // SAFETY: a non-null result is the NUL-terminated internal buffer of `cf`, valid while
+        // `cf` is alive; the contents are copied before returning.
+        return Some(
+            unsafe { CStr::from_ptr(ptr) }
+                .to_string_lossy()
+                .into_owned(),
+        );
     }
     // Slow path: copy to buffer
-    let len = CFStringGetLength(cf);
+    // SAFETY: `cf` is a non-null CFString that the caller keeps alive.
+    let len = unsafe { CFStringGetLength(cf) };
     let buf_size = len * 4 + 1; // UTF-8 worst case
     let mut buf = vec![0i8; buf_size as usize];
-    if CFStringGetCString(cf, buf.as_mut_ptr(), buf_size, CF_STRING_ENCODING_UTF8) {
-        Some(CStr::from_ptr(buf.as_ptr()).to_string_lossy().into_owned())
+    // SAFETY: `buf` holds `buf_size` writable bytes, and `cf` is a live CFString.
+    if unsafe { CFStringGetCString(cf, buf.as_mut_ptr(), buf_size, CF_STRING_ENCODING_UTF8) } {
+        // SAFETY: on success CoreFoundation wrote a NUL-terminated string into `buf`.
+        Some(
+            unsafe { CStr::from_ptr(buf.as_ptr()) }
+                .to_string_lossy()
+                .into_owned(),
+        )
     } else {
         None
     }
