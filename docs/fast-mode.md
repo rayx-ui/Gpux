@@ -468,6 +468,32 @@ itself runs at the test overscan of half a viewport. The planning measurement (2
 the list had a layer) found 21 primitives and 25 rows a frame for RayX's lists, against 5 to 6
 primitives and 0 to 2 rows for `uniform_list` and `list`.
 
+Per frame, over the 20 measured frames of each kind's bench scenario (a wheel turn a frame,
+10,000 rows; the deterministic counters of `fast_mode_attribution`, in
+[Virtual lists by kind](#virtual-lists-by-kind)), with every mechanism on:
+
+| Kind | Layers composited | Primitives painted | Rows rendered | Rows kept | Tests |
+|---|---|---|---|---|---|
+| vertical, scrolling itself | 1 | 5.4 | 1.05 | 17.0 | `virtual_list_layers::rows`, `oracle` |
+| horizontal | 1 | 6.2 | 1.75 | 8.3 | `virtual_list_layers::horizontal`, `horizontal_oracle` |
+| sticky rows (every 50th) | 1 | 12.4 | 1.05 | 17.0 | `virtual_list_layers::sticky`, `sticky_oracle` |
+| `SynchronizedOffset`, beside its driver | 2 | 7.6 | 1.05 | 17.0 | `virtual_list_layers::synchronized` |
+| `ParentViewport`, in a scrolling `div` | 1 (the `div`'s) | 5.4 | 0 | (the `div`'s content) | `virtual_list_layers::parent_promoted` |
+
+RayX's collections prove the consumer side: `rayx_components_core`'s `virtual_list_layer_kinds`
+(a ListView with sticky levels, a horizontal ListView, a TreeView with sticky roots),
+`parent_viewport_layers` and `parent_rerender_cost` (what a parent's re-render costs ListView and
+TreeView, in their own scroll and their parent's), and `rayx_components_datatable`'s
+`virtual_list_layer_kinds` and `wheel_frames` (DataTable's synchronized rows).
+
+What stays off its layer, counted `ineligible` (see the reasons above): a `uniform_list` or a
+`list` with sticky items; a uniform list drawn bottom up; content no tile can hold (a backdrop
+blur, a shader effect); a container whose clip is rounded or transformed or does not lie on device pixels; a
+`SynchronizedOffset` list that nothing around it clips within its bounds; and content that lies
+over no opaque background. A `ParentViewport` list is part of its `div`'s layer, which gives way
+when the view drawing the `div` renders again for its own reasons (draw the `div` in a view of its
+own, `layer_owner_replay`) or when its content read hovers the scroll changes.
+
 While scroll layers snap (in a window with them, and in the reference they are held to), the
 device-pixel rounding of edges (layout bounds, quad and underline bounds, sprite origins) takes ties
 down, `ceil(x - 0.5)`: the same rounding wherever the edge lies, so an edge a layer moves by whole
@@ -1020,6 +1046,61 @@ window reported "no frame within 10s", and the rerun with the display held awake
 was stopped before it reached lane D. Lane D is proved in CI (`ci.yml`, three platforms); no lane G
 desktop-window or benchmark result is recorded here. The Windows and WSL runs are in
 [On a wgpu desktop](#on-a-wgpu-desktop).
+
+### Virtual lists by kind
+
+`gpux-testkit perf fast-mode --name virtual-list` ran on this Mac (Metal, arm64, display awake) on
+2026-10-18 at `2c3764e` (the epic's state file uncommitted); 110 ids passed. The report stays in
+git-ignored `artifacts-temp/testkit/perf/virtual-list/`; the sprint's check ran it a second and,
+after TM-2 was amended, a third time at the same commit, and the owner asked for a fourth under
+steadier conditions (on AC power, low-power mode off, no thermal or performance warning recorded,
+no other build running, the display awake), which the report holds now. Each
+`virtual_list` kind against the lists of the same run, cumulative modes as above (medians of the
+first run, the later runs' deltas beside):
+
+| Scenario | `off` | `splice` | `layers` | Δ `layers` / `off` | Δ `layers` / `splice` | Second run: Δ / `off`, Δ / `splice` | Third run: Δ / `off`, Δ / `splice` | Fourth run (steady): Δ / `off`, Δ / `splice` | Primitives a frame (`off` → `layers`) | Rows rendered / kept a frame |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `scroll-uniform-list` | 9.294 ms | 9.339 ms | 9.299 ms | +0.0% | -0.4% | +0.3%, -0.4% | +0.6%, +1.0% | +1.3%, +2.5% | 123.3 → 5.4 | 1.25 / 23.2 |
+| `scroll-list` | 9.152 ms | 9.184 ms | 9.172 ms | +0.2% | -0.1% | -1.4%, -1.1% | +0.6%, +3.5% | +0.7%, +1.4% | 76.8 → 5.3 | 0.80 / 14.2 |
+| `scroll-virtual-list` | 9.296 ms | 9.319 ms | 9.250 ms | -0.5% | -0.7% | -2.7%, -1.0% | +0.2%, +2.1% | +2.0%, +0.5% | 102.6 → 5.4 | 1.05 / 17.0 |
+| `scroll-virtual-list-horizontal` | 9.278 ms | 9.174 ms | 9.286 ms | +0.1% | +1.2% | -0.7%, -1.8% | +2.0%, +0.4% | -0.5%, -0.2% | 16.5 → 6.2 | 1.75 / 8.3 |
+| `scroll-virtual-list-sticky` | 9.335 ms | 9.283 ms | 9.285 ms | -0.5% | +0.0% | +1.5%, -0.3% | +0.4%, +1.4% | +5.4%, +3.6% | 109.6 → 12.4 | 1.05 / 17.0 |
+| `scroll-virtual-list-synchronized` | 9.238 ms | 9.338 ms | 9.169 ms | -0.8% | -1.8% | -1.4%, +0.8% | +2.1%, +4.8% | -0.6%, -1.0% | 103.6 → 7.6 | 1.05 / 17.0 |
+| `scroll-virtual-list-parent-viewport` | 9.196 ms | 9.375 ms | 9.051 ms | -1.6% | -3.5% | -0.0%, -2.0% | -2.4%, -0.4% | -1.2%, -3.7% | 100.9 → 5.4 | none (the `div`'s layer) |
+
+The runs order the kinds differently (the horizontal list +0.1%, -0.7% and +2.0% against `off`,
+the sticky list -0.5%, +1.5% and +0.4%), and the machine drifted between them by more than any
+mechanism moves a scenario (`off` of `scroll-virtual-list` 9.296, 9.331 and 9.428 ms). Every
+difference of the first two runs lies within the confidence intervals. In the third, which ran
+slower in every mode, `layers` of `scroll-virtual-list-synchronized` lies 0.006 ms past the end of
+`off`'s interval (9.748 ms, 9.707–9.791, against 9.551 ms, 9.337–9.701), +2.1%, below the
+report's 3% regression threshold and with fewer instructions (89.82 M against 90.01 M); nothing else does. Against `splice` the third
+run's report flags two regressions (slower beyond both intervals and by more than 3%):
+`scroll-virtual-list-synchronized` +4.8% (`splice` 9.298 ms, 9.217–9.532) and `scroll-list` +3.5%
+(`splice` 9.113 ms, 8.968–9.312, against `layers` 9.434 ms, 9.387–9.511). In both, `layers` does
+no more work than `splice` (instructions 89.82 M against 90.01 M, and 89.12 M against 89.14 M,
+with an order of magnitude fewer primitives and draw orders), and the first two runs put the same
+steps at -1.8% and +0.8% (the synchronized list) and -0.1% and -1.1% (`scroll-list`); in that run `splice` was the fastest mode of five of these seven
+scenarios. They are the run's drift, not a cost of the layers.
+
+The fourth run, the steady one, is the one TM-2 is judged on: in it no `virtual_list` kind, nor
+`scroll-uniform-list` or `scroll-list`, is slower with `layers` than with `off` or `splice`
+beyond the confidence intervals, and the report flags no regression among them. Its widest
+median gap, the sticky list's +5.4% against `off` (9.780 ms, 9.331–9.877, against 9.283 ms,
+9.174–9.592), lies within overlapping intervals, with fewer instructions (89.89 M against
+90.19 M); the sticky rows are the one part of that frame drawn afresh every time (12.4 primitives).
+The `ParentViewport` list is the fastest mode of its scenario (-1.2% against `off`, -3.7% against
+`splice`, -1.2% instructions). A frame of this suite takes about 9 ms
+whatever it draws, and the work layers save (primitives painted, draw orders computed, nodes
+claimed, leaves carried, all down by an order of magnitude) is below what the suite's frames can
+time, as with `scroll-uniform-list` and `scroll-list` in the comparison above. Where one run puts `layers` behind `off` or `splice`, another puts it
+level or ahead. The horizontal list has the least to save, its columns drawing 16.5
+primitives a frame without a layer, and rasterizes tiles more often (2 a frame) as columns are
+wider than rows are tall; the sticky list draws its sticky rows above the layer every frame (12.4
+primitives). The `ParentViewport` list gains in every run against `off` or `splice` (-3.5%, -2.0% and -0.4%
+against `splice`, -1.1% instructions): the `div`'s layer stays promoted and the frame lays nothing out, measures no leaf and
+shapes no line. What layers save shows in a renderer that pays for draws and fragments; see the
+browser and mobile measurements above.
 
 ### On a wgpu desktop
 
