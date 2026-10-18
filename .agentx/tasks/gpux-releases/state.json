@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-releases",
-  "revision": 35,
+  "revision": 44,
   "planRevision": 8,
   "specHashes": {
     "requirements": "4b8ccac970134e2240ab6ae0d803ae3f10ef2a37af4130c419ee512b6f05a81c",
@@ -46,13 +46,22 @@
       ]
     },
     "t07-releasing-doc": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "d20e6e5f-43b6-4725-9ce6-9fe0c0529c62"
+      ]
     },
     "t08-install-docs": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "d20e6e5f-43b6-4725-9ce6-9fe0c0529c62"
+      ]
     },
     "t09-contributor-docs": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "d20e6e5f-43b6-4725-9ce6-9fe0c0529c62"
+      ]
     },
     "t10-owner-prerequisites": {
       "status": "pending"
@@ -100,6 +109,15 @@
         }
       },
       "recordedAt": "2026-10-18T22:35:53Z"
+    },
+    "ac92ef51c4b30ec05dd712a4c1ff12169993ef046545359d5230e54fee6e3019": {
+      "snapshot": {
+        "specHash": "9c32a4d8da1cf7a7dea4ac15c66d58c069fe785552ddad9271fe477c25ea9337",
+        "repositories": {
+          "gpux": "c0a74142d4a8144c4a6515d708f286db9814d92fac398ecfc591e6334de5c872"
+        }
+      },
+      "recordedAt": "2026-10-18T22:46:28Z"
     }
   },
   "checkResults": {
@@ -237,6 +255,23 @@
       "logPath": "artifacts-temp/agentx/gpux-releases/s4-rayx-declarations-final-d7db0fdbd67c.log",
       "logSha256": "b927f4505e738a23885cbee5d41d7a9c48d9b0f65076095e14d2751776a7a237",
       "inputsHash": "d5c12f369ac1134686f3551417ffaa30d9436d7d28c5ec9f300020b8456b23b5"
+    },
+    "s5-release-docs/check-release-docs/final": {
+      "checkId": "check-release-docs",
+      "boundaryId": "s5-release-docs",
+      "phase": "final",
+      "batchId": "ac92ef51c4b30ec05dd712a4c1ff12169993ef046545359d5230e54fee6e3019",
+      "definitionHash": "b04471d3b2ae89bc62e81b1e5f9205bfc1364de1c9b798beff6cb8539671e13e",
+      "basisHash": "b1a2c30228f29f07f71435e41a9d0cb9bea1725a3a8f11666b3135d2fbf8d55d",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 0.1871,
+      "recordedAt": "2026-10-18T22:46:27Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-releases/s5-release-docs-final-fbb2a4f9cb25.log",
+      "logSha256": "d10924f68259dd2f9a49fb36d9e298b61f72226c25a0de8706e217b58601bdf0",
+      "inputsHash": "5c2af85011680fdf4cd6ee335beb8398d5ebf5dba859302d5175b9ee75131ddd"
     }
   },
   "reviews": {
@@ -542,6 +577,183 @@
         "s4-f2-rayx-version-stated-as-released"
       ],
       "recordedAt": "2026-10-18T22:36:26Z"
+    },
+    "s5-release-docs": {
+      "reviewerId": "review-s5-independent-7c2e94b1",
+      "snapshotId": "ac92ef51c4b30ec05dd712a4c1ff12169993ef046545359d5230e54fee6e3019",
+      "criterionIds": [
+        "DOC-1",
+        "DOC-2",
+        "DOC-3",
+        "CONS-1"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/releasing.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-1"
+          ],
+          "sha256": "19d411e7ada061345f1eb04cb275e0128208fe382d81bb435dc0257498fc2d5e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "release-plz.toml",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-1"
+          ],
+          "sha256": "01422ab44e1e6c1681594525e7325081710901a4f9e422cfebe3bc56b2fc884f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/release-plz.yml",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-1"
+          ],
+          "sha256": "c9570a957ec5d39176f15c1599d49b30cfec5755ba90c5c5042fa60f94956252"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/ci.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-1"
+          ],
+          "sha256": "527f0998a617a4ced7fbeb4801f3a6e2873e96f9a8d92a21e9c942e78ed3fd8c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/release_config.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-1"
+          ],
+          "sha256": "44880cf945fc67967e34cc2d6054427d8377e9e92390686b165c1f31d51a944a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "README.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-1",
+            "DOC-2",
+            "CONS-1"
+          ],
+          "sha256": "a7caf3535e05fd56d8d13088c8e0bd70bca71bb76274394f0abe6b6359e0880c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/installation-and-usage.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-2"
+          ],
+          "sha256": "2e43b344878ac650197524a4982eaebe5e61b4aa5cd0f8e23858f82fcf2d98bc"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/references/installation-and-usage.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-2"
+          ],
+          "sha256": "594404828abbdb223ada040af13fde61135cdba1708f2474ef6ac831e942a391"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/references/multithreaded-wasm-apps.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-2"
+          ],
+          "sha256": "e2765f90b21dacb4beefff6d6fee702234e9916925e67e8b6956748d62f5960c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-2"
+          ],
+          "sha256": "1b7c3a23d1e897650c8574823ed984eedd5960524569df81317da43df8098c42"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/release_docs.rs",
+          "kind": "test",
+          "criterionIds": [
+            "DOC-2"
+          ],
+          "sha256": "926a2c32d6c1d244a6dd59c7984a630f5ab0a1da41d7ee021537a7ab54c87189"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "CLAUDE.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-3"
+          ],
+          "sha256": "533b4b9e10eb1a1190dbc18f50d64338efbabc0481a40ea090bdeee0418eb64c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "AGENTS.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-3"
+          ],
+          "sha256": "9bdd6a0597afbd5a17574dd2cac41d50c7687282af6747be46907eb16ea568b9"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/SKILL.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-3"
+          ],
+          "sha256": "0638321211fff102cfa10b5c551cb12e2f8723232757851982626d9eeffc884f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/references/update-from-zed-gpui-closure.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-3"
+          ],
+          "sha256": "1b2fc734323f0cb4d9dc8ba3ed1bc20fa68a3ae70b32fe160039bb0869c407f1"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "CONS-1"
+          ],
+          "sha256": "fafbeb4529f826eaa0262da588a17b34bf4959dd8d5c6a5c5b4504d81e7af5bb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "CONS-1"
+          ],
+          "sha256": "f80a45c655e3ab8d03536ca97abf2f0673231d90ecda6cdf6b1ab4cd76aeb609"
+        }
+      ],
+      "deltaSummaryMarkdown": "I inspected the repair delta in docs/releasing.md (By-hand fallback steps 5-6, Rehearsing a configuration change), tools/testkit/tests/release_docs.rs and README.md:46-53. The rehearsal now installs release-plz 0.3.172, the version both release-plz.yml steps pin. The stub's three calls match the spike record (spike/out/final-s6-release.forge.jsonl): `GET .../commits/<sha>/pull`, `POST .../tags` with `message`/`tag_name`/`target`, and `POST .../releases` with `tag_name`/`name`/`body`/`draft`/`prerelease`. It also adds `git fetch --tags` after each run. The fallback now tags the rebased commit locally and pushes the branch and tag atomically with `--force-with-lease`, and creates the Release only when `gh release view` shows none. That removes the race with `release` (release_always). In the test, the package-key regex `^\\s*gpux-[a-z0-9-]+\\s*=` replaces the two `gpux-platform` literals and covers every package name. The backticked `gpux-<name>/` feature check does not match the existing `target/gpux-web/...` paths. A new test requires the exact git-tag `test-support` lines for `gpux` and `gpui_platform` after `[dev-dependencies]` in both installation guides. I trust the coordinator's mutation evidence and did not repeat it. The README rewrap changes no wording. Rerun: release_docs 4/4 passed.",
+      "reattestedFrom": "50115963bb1790835f0864adaa634ff420dc97103f27fb0feafa9cbeffbce86f",
+      "summaryMarkdown": "The sprint delivers its criteria, and the open findings are three minor gaps in the rehearsal steps, the DOC-2 test and the fallback order. DOC-1: every bullet is present in docs/releasing.md and matches the source: the commit table and the skip parsers of release-plz.toml, `release-pr` running after `release`, the version pin 0.3.172, the release PR running `check` on ubuntu plus `package` (docs/ci.md, plan.sh), the changes allowed in a release PR, the 1.x policy and `Migration:` rendering, the token's access, failure mode and rotation, the fallback (including gpui_mobile's inline requirement and the release-plz tag message), the ruleset, the push policy, and the new-crate rule, which release_config.rs really enforces (version_group, changelog_include, `version.workspace`, and a root-versioned count of own-1). The spike scenarios and observations match SUMMARY.md. The README links releasing.md, and docs/ci.md's link to it now resolves. DOC-2: the four documents show only the git-tag form, with test-support dev-dependencies in the same form and features prefixed with the dependency key. They say gpux is consumed only by tag, that Cargo.lock records the commit, that tags never move, and that rayx 1.4.0 or later is needed. A grep of all touched files finds no crates.io, `../Gpux` or `0.3` dependency form, and the remaining crates.io mentions are the stay-publishable rules and fork retirement. The crate table equals `cargo metadata --no-deps --offline` (31 own rows, gpux-apple and gpux-bench-metrics added, crates/media gone), and the fork rows cover all 8 forks (core-deps through the unchanged wildcard). The release_docs test passed again (3/3). DOC-3: the CLAUDE.md and AGENTS.md diffs are line-for-line identical (Consumers, Releases, stay-publishable wording), and the SKILL.md and update-from-zed-gpui-closure.md bullets are all present. CONS-1: the consumer has no .cargo directory, uses the CONS-1 path dependencies, has a main.rs byte-equal to the README example, and its log ends `exit=0`. Non-blocking: README.md:49 is a 250-character unwrapped line. The docs state rayx 1.4.0 as fact, which s6 must confirm.",
+      "findingIds": [
+        "s5-f1-rehearsal-version-and-stub",
+        "s5-f2-release-docs-test-gaps",
+        "s5-f3-by-hand-tag-race"
+      ],
+      "recordedAt": "2026-10-18T22:47:17Z"
     }
   },
   "checkpoints": {
@@ -576,6 +788,14 @@
       },
       "reviewHash": "f166852b5a11342c7e2651d0b338972abeafdd3ecb8a6497166abd2ce6ae9fcf",
       "recordedAt": "2026-10-18T22:37:14Z"
+    },
+    "s5-release-docs": {
+      "snapshotId": "ac92ef51c4b30ec05dd712a4c1ff12169993ef046545359d5230e54fee6e3019",
+      "commits": {
+        "gpux": "a33ab15b4beab145d87704eb6e2c0927d4393592"
+      },
+      "reviewHash": "9b0791e7e2fede5bcc59f7f6393a4c7c52f5ac6234fa090e11131177e93b2565",
+      "recordedAt": "2026-10-18T22:47:39Z"
     }
   },
   "findings": [
@@ -660,9 +880,57 @@
           "path": "crates/gpux_fonts/Cargo.toml"
         }
       ]
+    },
+    {
+      "id": "s5-f1-rehearsal-version-and-stub",
+      "boundaryId": "s5-release-docs",
+      "criterionIds": [
+        "DOC-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved: the rehearsal installs the pinned release-plz 0.3.172 (kept equal to release-plz.yml's `version:`) and documents the forge stub's three calls and responses, matching the spike's recorded calls.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/releasing.md"
+        }
+      ]
+    },
+    {
+      "id": "s5-f2-release-docs-test-gaps",
+      "boundaryId": "s5-release-docs",
+      "criterionIds": [
+        "DOC-2"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved: release_docs.rs rejects any dependency keyed by a package name and any package-name feature prefix. A new test requires the git-tag `test-support` dev-dependency lines for `gpux` and `gpui_platform` in both installation guides.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/release_docs.rs"
+        }
+      ]
+    },
+    {
+      "id": "s5-f3-by-hand-tag-race",
+      "boundaryId": "s5-release-docs",
+      "criterionIds": [
+        "DOC-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved: the by-hand fallback tags the rebased commit locally, pushes it with `git push --atomic --force-with-lease origin main vX.Y.Z`, and creates the GitHub Release only if a working `release` job did not, with the reason stated.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/releasing.md"
+        }
+      ]
     }
   ],
-  "handoffMarkdown": "Spike passed with candidate A (release-plz 0.3.172 = release-plz/action@v0.5 default; pin version: \"0.3.172\"). Evidence + full notes: artifacts-temp/agentx/gpux-releases/spike/SUMMARY.md, proven config: spike/proven-release-plz.toml, outputs: spike/out/. release needs a forge even for --dry-run, so it ran against a local Gitea-API mock (127.0.0.1) creating tags in the bare remote. Proven config = d-release-tooling A plus gpux git_release_name = \"v{{ version }}\" (default name gpux-vX.Y.Z) and Migration footer rendered as nested '  - Migration: <note>' (Dtcg/SignalR form). Release PR changes exactly Cargo.toml, Cargo.lock, crates/gpui_mobile/Cargo.toml, CHANGELOG.md (t05 input). Untagged 1.0.0 tree: update = initial release at 1.0.0, no diff (old ! history ignored). release-plz compiles nothing (no Linux packages). Observations: refactor(gpui)! alone no release, with fix/feat 2.0.0; BREAKING CHANGE footer or feat! 2.0.0; fix commits touching only root Cargo.toml, only Cargo.lock, only vendor/** or only README release nothing; release_always default tags whenever the version has no tag; JSON output lists all 31 own packages released at tag vX.Y.Z but only gpux creates the tag/release; tag is annotated via forge API.",
+  "handoffMarkdown": "CONS-1 passed: a Cargo project outside the Gpux tree (scratchpad gpux-consumer, path deps on crates/gpui and crates/gpui_platform, README example as main.rs) passes cargo check on this Mac (rustc 1.96.0, exit 0, 37 s); log artifacts-temp/agentx/gpux-releases/consumer/cons-1-path.log. Its 760 warnings are pre-existing cocoa deprecations in gpux-macos, visible because path dependencies do not cap lints (git dependencies do).",
   "protectedPaths": {
     "gpux": {
       "vendor/**": "c4081a3160e3bd0770bb61241497fc1577079f9a42fc0113092bff872b9377f1",
