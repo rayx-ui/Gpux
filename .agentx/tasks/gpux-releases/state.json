@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-releases",
-  "revision": 44,
+  "revision": 46,
   "planRevision": 8,
   "specHashes": {
     "requirements": "4b8ccac970134e2240ab6ae0d803ae3f10ef2a37af4130c419ee512b6f05a81c",
@@ -64,10 +64,16 @@
       ]
     },
     "t10-owner-prerequisites": {
-      "status": "pending"
+      "status": "implemented",
+      "workerIds": [
+        "d20e6e5f-43b6-4725-9ce6-9fe0c0529c62"
+      ]
     },
     "t11-first-release": {
-      "status": "pending"
+      "status": "in_progress",
+      "workerIds": [
+        "d20e6e5f-43b6-4725-9ce6-9fe0c0529c62"
+      ]
     },
     "t12-tag-consumer": {
       "status": "pending"
@@ -930,7 +936,7 @@
       ]
     }
   ],
-  "handoffMarkdown": "CONS-1 passed: a Cargo project outside the Gpux tree (scratchpad gpux-consumer, path deps on crates/gpui and crates/gpui_platform, README example as main.rs) passes cargo check on this Mac (rustc 1.96.0, exit 0, 37 s); log artifacts-temp/agentx/gpux-releases/consumer/cons-1-path.log. Its 760 warnings are pre-existing cocoa deprecations in gpux-macos, visible because path dependencies do not cap lints (git dependencies do).",
+  "handoffMarkdown": "OWN-1 verified read-only on 2026-10-18 22:45 UTC (log artifacts-temp/agentx/gpux-releases/own-1.log): (1) gh secret list --repo rayx-ui/Gpux lists RELEASE_PLZ_TOKEN (updated 2026-10-18T21:07:35Z); (2) ruleset 25358676 'Release tags' active, target tag, include refs/tags/v*, rules update/deletion/non_fast_forward, bypass_actors [], no creation rule (branch ruleset DefaultProtection: deletion/non_fast_forward on the default branch, bypass user 226146274 always); (3) rayx-ui/RayX.CLI release v1.4.0 published 2026-10-18T22:42:03Z, not draft/prerelease, its notes list the library-agnostic changes (pins only from [workspace.metadata.rayx], fonts only as package assets, android_java_dirs to Gradle); (4) git ls-remote --tags origin 'v*' is empty. Risk: the sibling libraries' first Release-plz runs (RayX.Dtcg 39171612775, RayX.Reactive 39171622602, RayX.SignalR 39171188847) all failed creating the v1.0.0 tag with HTTP 403 'Resource not accessible by personal access token': the shared PAT's repository access probably does not include Gpux either; none has been re-run green yet.",
   "protectedPaths": {
     "gpux": {
       "vendor/**": "c4081a3160e3bd0770bb61241497fc1577079f9a42fc0113092bff872b9377f1",
