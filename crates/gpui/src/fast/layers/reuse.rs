@@ -107,6 +107,8 @@ pub(crate) fn carry_prepaint(
                 .collect()
         })
         .unwrap_or_default();
+    // A `div`'s records begin with its own scroll target; a list's are its rows'.
+    let container = !layer.rows.list;
     let Some(record) = layer.record.as_mut() else {
         return;
     };
@@ -123,9 +125,13 @@ pub(crate) fn carry_prepaint(
     input.handle_offset.set(delta);
     // The hitboxes are the layer's, lent to the carry while it runs.
     let hitboxes = std::mem::take(&mut input.hitboxes);
+    if container {
+        window.a11y.begin_container_replay();
+    }
     let carried = carry_prepaint_records(
         window, &range, &hitboxes, delta, step, viewport, !moved, true, &told,
     );
+    window.a11y.end_container_replay();
     let Some(layer) = window.fast_layers.layers.get_mut(id) else {
         return;
     };

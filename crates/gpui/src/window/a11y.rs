@@ -312,6 +312,11 @@ pub(crate) struct A11y {
     /// How far content replayed now has moved since it recorded its events (a composited
     /// layer's scroll since the last frame).
     pub(crate) replay_offset: Point<Pixels>,
+    /// While a scroll container's layer carries its content's events: how many replayed scroll
+    /// containers were open when the carry began. The container's own `EnterScroll`, which its
+    /// layer's records begin with, opens at that depth: its scrollport stands where it is and its
+    /// offset moved by the scroll, while the containers nested in the content move with it.
+    replay_container_depth: Option<usize>,
     /// Beside the builder's open element nodes while prepainting, and around each element
     /// painted with a node: the node id its path derives and the one it holds, which differ
     /// for a duplicate (see [`A11yNodeBuilder::element_node_id`]).
@@ -373,6 +378,7 @@ impl A11y {
             rendered_listeners: Vec::new(),
             rendered_events: Vec::new(),
             replay_offset: Point::default(),
+            replay_container_depth: None,
             replay_skipped: Vec::new(),
             replay_scroll_parents: Vec::new(),
             element_nodes: SmallVec::new(),
@@ -610,6 +616,18 @@ impl A11y {
         parent
     }
 
+    /// Makes what is replayed until [`Self::end_container_replay`] the content of a scroll
+    /// container whose layer composites it moved by [`Self::replay_offset`]: the container's own
+    /// scroll target, its records' first, stands and scrolls by that much.
+    pub(crate) fn begin_container_replay(&mut self) {
+        self.replay_container_depth = Some(self.replay_scroll_parents.len());
+    }
+
+    /// Ends what [`Self::begin_container_replay`] began.
+    pub(crate) fn end_container_replay(&mut self) {
+        self.replay_container_depth = None;
+    }
+
     /// Closes the scroll container [`Self::enter_scroll_target`] opened, restoring `parent`.
     pub(crate) fn exit_scroll_target(&mut self, parent: Option<u32>) {
         self.nodes.events.push(A11yEvent::ExitScroll);
@@ -788,12 +806,14 @@ impl A11y {
                     offset: scroll_offset,
                     max,
                 } => {
-                    let parent = self.enter_scroll(
-                        scroll.clone(),
-                        *scrollport + offset,
-                        *scroll_offset,
-                        *max,
-                    );
+                    // The scrolled container itself stands; what it scrolls moves.
+                    let (scrollport, scroll_offset) =
+                        if self.replay_container_depth == Some(self.replay_scroll_parents.len()) {
+                            (*scrollport, *scroll_offset + offset)
+                        } else {
+                            (*scrollport + offset, *scroll_offset)
+                        };
+                    let parent = self.enter_scroll(scroll.clone(), scrollport, scroll_offset, *max);
                     self.replay_scroll_parents.push(parent);
                 }
                 A11yEvent::ExitScroll => {

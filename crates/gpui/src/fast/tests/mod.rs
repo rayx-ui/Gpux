@@ -16,6 +16,7 @@ mod edge_shadows;
 mod glyph_runs;
 mod half_pixel_edges;
 mod hover_dependencies;
+mod layer_a11y_scroll_targets;
 mod layer_carry;
 mod layer_content_layout;
 mod layer_extent;
