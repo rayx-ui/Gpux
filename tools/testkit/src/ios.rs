@@ -37,8 +37,10 @@ pub const HOST_MARKER: &str = "gpux-conformance-host:";
 /// How long a run may take before it counts as hung.
 pub const RUN_TIMEOUT: Duration = Duration::from_secs(20 * 60);
 
+/// The check that runs under `NSZombieEnabled` when it is the only one selected.
+pub const ZOMBIE_CHECK: &str = "platform-view-ios-webview";
 /// The ids of the iOS platform checks the host reports, in order.
-pub const PLATFORM_CHECKS: [&str; 18] = [
+pub const PLATFORM_CHECKS: [&str; 19] = [
     "ios-startup",
     "ios-metal",
     "ios-text-metrics",
@@ -53,6 +55,7 @@ pub const PLATFORM_CHECKS: [&str; 18] = [
     "scroll-layers-ios-resume",
     "scroll-layers-ios-timing",
     "platform-view-ios",
+    "platform-view-ios-webview",
     "screen-reader-ios-tree",
     "screen-reader-ios-activate",
     "devtools-ios",
@@ -279,6 +282,18 @@ pub fn launch(udid: &str, selection: &Selection) -> Vec<String> {
     args
 }
 
+/// The environment `simctl launch` gives the host (each variable carries the `SIMCTL_CHILD_`
+/// prefix, which `simctl` strips): `NSZombieEnabled` when `selection` is the webview check alone,
+/// so a message to an over-released `NSString` aborts the host instead of going unnoticed. Zombies
+/// keep every freed object alive, so the other checks, which time and measure, run without them.
+pub fn launch_environment(selection: &Selection) -> Vec<(String, String)> {
+    if selection.scene.as_deref() == Some(ZOMBIE_CHECK) {
+        vec![("SIMCTL_CHILD_NSZombieEnabled".into(), "YES".into())]
+    } else {
+        Vec::new()
+    }
+}
+
 /// What the iOS lane needs from the host: macOS with Xcode's tools, XcodeGen and cargo.
 fn tools(environment: &dyn Environment) -> Result<(PathBuf, PathBuf, PathBuf, PathBuf), String> {
     if environment.os() != Os::MacOs {
@@ -435,7 +450,8 @@ fn run_on_simulator(
     writeln!(out, "lane f: following the host's console").ok();
     out.flush().ok();
 
-    let console = tool_invocation("console", &xcrun, launch(&udid, selection));
+    let mut console = tool_invocation("console", &xcrun, launch(&udid, selection));
+    console.env = launch_environment(selection);
     let mut collected = String::new();
     let mut failures = Vec::new();
     let mut handle = |line: &str| -> bool {

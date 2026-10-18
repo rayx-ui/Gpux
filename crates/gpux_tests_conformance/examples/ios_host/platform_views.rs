@@ -215,3 +215,87 @@ fn placed(
     }
     Ok(())
 }
+
+const WEBVIEW_ID: &str = "platform-view-ios-webview";
+
+struct Webviews {
+    views: Vec<Arc<PlatformViewHandle>>,
+}
+
+impl Render for Webviews {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .size_full()
+            .relative()
+            .bg(rgb(0xffffff))
+            .children(self.views.iter().cloned().map(|view| {
+                platform_view_element(view)
+                    .absolute()
+                    .left(px(NATIVE.0 as f32))
+                    .top(px(NATIVE.1 as f32))
+                    .w(px(NATIVE.2 as f32))
+                    .h(px(NATIVE.3 as f32))
+            }))
+    }
+}
+
+/// Webview platform views created with a `url` and with an `html` creation param become
+/// `WKWebView`s, and survive the main run loop's next autorelease pool drains. The creation
+/// strings are autoreleased, so a view that also released them would send `release` to a freed
+/// `NSString` at the drain: the launch enables `NSZombieEnabled` when this check is selected on
+/// its own (`ios::launch_environment`), which turns that message into an abort of the host and
+/// so into a missing result.
+pub async fn webview(cx: &mut AsyncApp) -> ResultLine {
+    let mut views = Vec::new();
+    let mut natives = Vec::new();
+    for (key, value) in [("url", "about:blank"), ("html", "<p>gpux webview html</p>")] {
+        let mut params = PlatformViewParams::default();
+        params
+            .creation_params
+            .insert(key.to_string(), value.to_string());
+        let view = match IosPlatformView::new("webview", &params) {
+            Ok(view) => view,
+            Err(error) => return line(Outcome::Fail, WEBVIEW_ID, format!("{key}: {error}")),
+        };
+        natives.push((key, view.native_view_ptr()));
+        views.push(Arc::new(PlatformViewHandle::new(Box::new(view))));
+    }
+    let opened = cx.open_window(WindowOptions::default(), |_, cx| {
+        cx.new(|_| Webviews {
+            views: views.clone(),
+        })
+    });
+    let handle = match opened {
+        Ok(handle) => handle,
+        Err(error) => return line(Outcome::Fail, WEBVIEW_ID, format!("{error:#}")),
+    };
+    let window = AnyWindowHandle::from(handle);
+    // Several frames: the run loop drains the autorelease pool the creation strings sit in.
+    app_host::wait_frames(cx, window, 5).await.ok();
+    let result = match natives
+        .iter()
+        .find(|(_, native)| class_name(*native) != "WKWebView")
+    {
+        Some((key, native)) => line(
+            Outcome::Fail,
+            WEBVIEW_ID,
+            format!(
+                "the {key} view is a {}, not a WKWebView",
+                class_name(*native)
+            ),
+        ),
+        None => line(
+            Outcome::Pass,
+            WEBVIEW_ID,
+            "webviews created with a url and with html are WKWebViews, and live on past the \
+             autorelease pool drains",
+        ),
+    };
+    for view in &views {
+        view.dispose();
+    }
+    window
+        .update(cx, |_, window, _| window.remove_window())
+        .ok();
+    result
+}

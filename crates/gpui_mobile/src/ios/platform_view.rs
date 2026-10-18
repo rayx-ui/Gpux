@@ -152,7 +152,6 @@ impl IosPlatformView {
                             let gravity =
                                 unsafe { Self::make_nsstring("AVLayerVideoGravityResizeAspect") };
                             let _: () = msg_send![player_layer, setVideoGravity: gravity];
-                            let _: () = msg_send![gravity, release];
                             let view_layer: *mut AnyObject = msg_send![view, layer];
                             let _: () = msg_send![view_layer, addSublayer: player_layer];
                         }
@@ -211,7 +210,6 @@ impl IosPlatformView {
                         msg_send![class!(NSURLRequest), requestWithURL: nsurl];
                     let _: *mut AnyObject = msg_send![webview, loadRequest: request];
                 }
-                let _: () = msg_send![ns_url_str, release];
             }
         } else if let Some(html) = params.creation_params.get("html") {
             if !html.is_empty() {
@@ -220,7 +218,6 @@ impl IosPlatformView {
                 let base_url: *mut AnyObject = std::ptr::null_mut();
                 let _: *mut AnyObject =
                     msg_send![webview, loadHTMLString: ns_html, baseURL: base_url];
-                let _: () = msg_send![ns_html, release];
             }
         }
 
@@ -261,7 +258,6 @@ impl IosPlatformView {
                                 Self::make_nsstring("AVLayerVideoGravityResizeAspectFill")
                             };
                             let _: () = msg_send![layer, setVideoGravity: gravity];
-                            let _: () = msg_send![gravity, release];
                             let view_layer: *mut AnyObject = msg_send![view, layer];
                             let _: () = msg_send![view_layer, addSublayer: layer];
                         }

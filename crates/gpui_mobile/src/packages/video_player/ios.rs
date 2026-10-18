@@ -69,38 +69,54 @@ pub fn get_player_ptr(id: u32) -> Option<*mut AnyObject> {
 }
 
 pub fn set_url(id: u32, url: &str) -> Result<VideoInfo, String> {
-    with_player(id, |entry| unsafe {
-        let url_str = make_nsstring(url);
-        let nsurl: *mut AnyObject = msg_send![class!(NSURL), URLWithString: url_str];
-        if nsurl.is_null() {
-            let _: () = msg_send![url_str, release];
-            return Err("Invalid URL".into());
-        }
+    with_player(id, |entry| {
+        // The URL string is autoreleased, so it must not be released here. The pool keeps
+        // it from leaking when the caller is a worker thread without a run loop.
+        objc2::rc::autoreleasepool(|_| {
+            // SAFETY: `make_nsstring` runs inside the pool above; `entry.player` is a live
+            // AVPlayer owned by the PLAYERS map, and `nsurl` and `item` are checked or
+            // produced by AVFoundation before use.
+            unsafe {
+                let url_str = make_nsstring(url);
+                let nsurl: *mut AnyObject = msg_send![class!(NSURL), URLWithString: url_str];
+                if nsurl.is_null() {
+                    return Err("Invalid URL".into());
+                }
 
-        let item: *mut AnyObject = msg_send![class!(AVPlayerItem), playerItemWithURL: nsurl];
-        let _: () = msg_send![entry.player, replaceCurrentItemWithPlayerItem: item];
-        let _: () = msg_send![url_str, release];
+                let item: *mut AnyObject =
+                    msg_send![class!(AVPlayerItem), playerItemWithURL: nsurl];
+                let _: () = msg_send![entry.player, replaceCurrentItemWithPlayerItem: item];
 
-        wait_for_item_ready(entry.player)?;
-        get_video_info(entry.player)
+                wait_for_item_ready(entry.player)?;
+                get_video_info(entry.player)
+            }
+        })
     })
 }
 
 pub fn set_file_path(id: u32, path: &str) -> Result<VideoInfo, String> {
-    with_player(id, |entry| unsafe {
-        let path_str = make_nsstring(path);
-        let nsurl: *mut AnyObject = msg_send![class!(NSURL), fileURLWithPath: path_str];
-        if nsurl.is_null() {
-            let _: () = msg_send![path_str, release];
-            return Err("Invalid file path".into());
-        }
+    with_player(id, |entry| {
+        // The path string is autoreleased, so it must not be released here. The pool keeps
+        // it from leaking when the caller is a worker thread without a run loop.
+        objc2::rc::autoreleasepool(|_| {
+            // SAFETY: `make_nsstring` runs inside the pool above; `entry.player` is a live
+            // AVPlayer owned by the PLAYERS map, and `nsurl` and `item` are checked or
+            // produced by AVFoundation before use.
+            unsafe {
+                let path_str = make_nsstring(path);
+                let nsurl: *mut AnyObject = msg_send![class!(NSURL), fileURLWithPath: path_str];
+                if nsurl.is_null() {
+                    return Err("Invalid file path".into());
+                }
 
-        let item: *mut AnyObject = msg_send![class!(AVPlayerItem), playerItemWithURL: nsurl];
-        let _: () = msg_send![entry.player, replaceCurrentItemWithPlayerItem: item];
-        let _: () = msg_send![path_str, release];
+                let item: *mut AnyObject =
+                    msg_send![class!(AVPlayerItem), playerItemWithURL: nsurl];
+                let _: () = msg_send![entry.player, replaceCurrentItemWithPlayerItem: item];
 
-        wait_for_item_ready(entry.player)?;
-        get_video_info(entry.player)
+                wait_for_item_ready(entry.player)?;
+                get_video_info(entry.player)
+            }
+        })
     })
 }
 
