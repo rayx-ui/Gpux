@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list-layer-kinds",
-  "revision": 12,
+  "revision": 16,
   "title": "Measured leaves kept under view retention, and every VirtualList kind on scroll layers: horizontal, sticky, SynchronizedOffset and ParentViewport lists composite, RayX's parent-viewport invalidation narrowed, timings measured",
   "validationMode": "sprint",
   "repositories": [
@@ -956,6 +956,165 @@
         "gpux:Cargo.toml",
         "gpux:Cargo.lock"
       ]
+    },
+    {
+      "id": "c-rx-rerender-cost",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "PR-1"
+      ],
+      "descriptionMarkdown": "New RayX group: what a parent's re-render costs a ListView or TreeView, per frame; red before the fix.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_components_core",
+        "--test",
+        "parent_rerender_cost"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 12
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_components/**",
+        "crates/rayx_runtime/**",
+        "crates/rayx_theme/**",
+        "crates/rayx_macros/**",
+        "gpux:crates/gpui/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock"
+      ],
+      "baselineRequired": true,
+      "baselineExpected": {
+        "exitCode": "nonzero",
+        "failurePattern": "re-render cost"
+      }
+    },
+    {
+      "id": "c-rx-renderer-sameness",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "PR-2"
+      ],
+      "descriptionMarkdown": "`row_renderer_changes` with the capture-free and keyed cases: the guard against stale rows.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_components_core",
+        "--test",
+        "row_renderer_changes"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 7
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_components/**",
+        "crates/rayx_runtime/**",
+        "crates/rayx_theme/**",
+        "crates/rayx_macros/**",
+        "gpux:crates/gpui/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock"
+      ]
+    },
+    {
+      "id": "c-rx-test-suite-build",
+      "repositoryId": "rayx",
+      "kind": "build",
+      "criterionIds": [
+        "PR-3"
+      ],
+      "descriptionMarkdown": "The converted Test Suite pages build with the diagnostics they publish (`rayx_diagnostics`); their Playwright specs run in CI.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "rayx_test_suite",
+        "--features",
+        "rayx_diagnostics"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_components/**",
+        "crates/rayx_runtime/**",
+        "crates/rayx_theme/**",
+        "crates/rayx_macros/**",
+        "gpux:crates/gpui/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock",
+        "apps/test_suite/**"
+      ]
+    },
+    {
+      "id": "c-layer-owner-replay",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "PR-4"
+      ],
+      "descriptionMarkdown": "New gpux group: a hover-free div layer composites after its owner view is copied from the last frame; one with hovers is painted again; frames equal frames drawn without layers.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::layer_owner_replay"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "c-layer-a11y-scroll",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "PR-5"
+      ],
+      "descriptionMarkdown": "New gpux group: a composited scrolling div's accessibility scroll target stands and scrolls, its content's move, as without layers.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::layer_a11y_scroll_targets"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
     }
   ],
   "finalCheckIds": [
@@ -1530,10 +1689,157 @@
       ]
     },
     {
+      "id": "s04c-parent-rerender",
+      "title": "A parent's re-render leaves its list as it was",
+      "dependsOn": [
+        "s04-parent-viewport"
+      ],
+      "memoryScopes": [
+        "rayx:ui/virtualization",
+        "gpux:gpui/frame-pipeline"
+      ],
+      "checkIds": [
+        "c-rx-rerender-cost",
+        "c-layer-owner-replay",
+        "c-layer-a11y-scroll",
+        "c-rx-renderer-sameness",
+        "c-rx-test-suite-build"
+      ],
+      "tasks": [
+        {
+          "id": "t12-rerender-measure",
+          "title": "Measure what a parent's re-render costs its list",
+          "descriptionMarkdown": "The owner decided (2026-10-18), relayed by the coordinating session: \"Ok, do this: I'd add one sprint to the follow-up epic, before the timings sprint (s07): 1. Measure a parent re-rendering on every range change, and a parent re-rendering for an unrelated reason: views built, rows rendered and layers composited per frame. 2. Make the state writes conditional, guarded by `row_renderer_changes`. 3. Write the guidance in RayX's docs and convert the Test Suite pages.\"\n\nAdd `parent_rerender_cost` and record its red baseline before t13.",
+          "criterionIds": [
+            "PR-1"
+          ],
+          "designIds": [
+            "d-conditional-state-writes",
+            "d-proof"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "c-rx-rerender-cost"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/element.rs"
+            }
+          ]
+        },
+        {
+          "id": "t13-conditional-writes",
+          "title": "Write a collection's state only when it changes",
+          "descriptionMarkdown": "For the row renderer's sameness the owner chose (2026-10-18): \"Yes, A + B together\": (A) the write is skipped when the scroll policy and scrollbar are unchanged and the row renderer is provably the same, of the same type and capture-free (zero-sized); a capturing closure still writes, as before. (B) an opt-in `renderer_key(k)` (Eq) on `list_view(..)` and on TreeBase: an equal key skips the write; without a key, behaviour stays as before.\n\nImplement d-conditional-state-writes in ListView's and TreeBase's elements and extend `row_renderer_changes`.",
+          "criterionIds": [
+            "PR-2"
+          ],
+          "designIds": [
+            "d-conditional-state-writes"
+          ],
+          "dependsOn": [
+            "t12-rerender-measure"
+          ],
+          "checkIds": [
+            "c-rx-renderer-sameness",
+            "c-rx-rerender-cost"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/element.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_base/src/tree/element.rs"
+            }
+          ]
+        },
+        {
+          "id": "t13b-owner-replay-layer",
+          "title": "Let a hover-free div layer follow its owner's copy",
+          "descriptionMarkdown": "Finding of t13: a pane beside a re-rendering parent repainted its `div`'s layer after every frame the pane was copied from the last one. Let a `div` layer whose content read no hover follow the copy, as a list's layer does, with its own gpux group.",
+          "criterionIds": [
+            "PR-4"
+          ],
+          "designIds": [
+            "d-conditional-state-writes"
+          ],
+          "dependsOn": [
+            "t12-rerender-measure"
+          ],
+          "checkIds": [
+            "c-layer-owner-replay"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/layers/reuse.rs"
+            }
+          ]
+        },
+        {
+          "id": "t13c-a11y-scroll-target",
+          "title": "Replay a composited div's scroll target where it stands",
+          "descriptionMarkdown": "Repair of review finding lk-s04c-F1: proving t13b on whole frame descriptions found that a composited `div` layer replayed its own accessibility scroll target as content. Fix the replay and add `layer_a11y_scroll_targets`.",
+          "criterionIds": [
+            "PR-5"
+          ],
+          "designIds": [
+            "d-conditional-state-writes"
+          ],
+          "dependsOn": [
+            "t13b-owner-replay-layer"
+          ],
+          "checkIds": [
+            "c-layer-a11y-scroll"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window/a11y.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/layers/reuse.rs"
+            }
+          ]
+        },
+        {
+          "id": "t14-subscriber-guidance",
+          "title": "Document the pattern and convert the Test Suite pages",
+          "descriptionMarkdown": "Write the guidance in RayX's docs and convert the four Test Suite pages to subscribe from a dedicated view or model, keeping what their Playwright specs assert. The RayX memory rule is written at closure. The guidance also says to draw a scrolling `div` holding a `ParentViewport` collection in a view of its own when the view around it re-renders often.",
+          "criterionIds": [
+            "PR-3"
+          ],
+          "designIds": [
+            "d-conditional-state-writes"
+          ],
+          "dependsOn": [
+            "t13-conditional-writes"
+          ],
+          "checkIds": [
+            "c-rx-test-suite-build"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "rayx",
+              "path": "apps/test_suite/src/pages/virtualization.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "docs/src/sliver-view.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "s07-timings-docs",
       "title": "Lane G timings and documentation (owner-attended)",
       "dependsOn": [
-        "s04-parent-viewport"
+        "s04c-parent-rerender"
       ],
       "memoryScopes": [
         "gpux:repository/validation"

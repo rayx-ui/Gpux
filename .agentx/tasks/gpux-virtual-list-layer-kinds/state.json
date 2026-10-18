@@ -1,12 +1,12 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list-layer-kinds",
-  "revision": 86,
-  "planRevision": 12,
+  "revision": 103,
+  "planRevision": 16,
   "specHashes": {
-    "requirements": "bc7b3abf35d8468643c2315111d7148e22835a98914084578544469d9f295665",
-    "design": "212382eef99e0944f41307b820c7e7ae536103234fe17cc47920ab832f62fd68",
-    "plan": "072dd776f606909836261d6a46231461935f5d0bc6bd74714e3c0589c7a68e95"
+    "requirements": "597163c035f515652c1475e2ab2017fe0c2680427117543c5a4ecedb85ea9fde",
+    "design": "8301bc62492265e58cf464608e502afd3c8c87ce8838113d6cdf9b2f07da0118",
+    "plan": "75ad494037117c163a92803b19d14c616d7f194d4e9b8e36608dd9bef7338a47"
   },
   "tasks": {
     "t01-axis-slots": {
@@ -106,6 +106,36 @@
       ]
     },
     "t07b-renderer-regression": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t12-rerender-measure": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t13-conditional-writes": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t14-subscriber-guidance": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t13b-owner-replay-layer": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t13c-a11y-scroll-target": {
       "status": "done",
       "workerIds": [
         "virtual-list"
@@ -232,6 +262,26 @@
         }
       },
       "recordedAt": "2026-10-18T01:52:48Z"
+    },
+    "1623475f04a25fa3c1cce0bca0a34630a3af7c1b06c9183ac7747a5c91063b49": {
+      "snapshot": {
+        "specHash": "38d9a32e64d847b7a29e403e2fb8c5d504e6577307751dea0ff25bcde8c2dc9b",
+        "repositories": {
+          "gpux": "2d09608adfb3332702c171fe3e1e69bb727352619d9bd2c2f29bad4a5162a3e1",
+          "rayx": "61f102ef2266ebad725b8b77d1af324eca5d131652dc3f02d3ff5d930da46a9d"
+        }
+      },
+      "recordedAt": "2026-10-18T01:55:28Z"
+    },
+    "97611d2ff44091cd9d905cae9911622d6d9400aed0d549a7001ea7dc20566fd2": {
+      "snapshot": {
+        "specHash": "fd1fc0bd043e0f2844e4a276a7006204ce35d5a8eba50a633121fb88b932dd92",
+        "repositories": {
+          "gpux": "07f0ed8581d8d0958c2876c4a367c93a2f448809a6e1d2f7a3dad6fd7dd32adb",
+          "rayx": "2a22aea97220e64cf84e4d7f9f583ce764a84f6de02332f3ea87ccc35cce79d1"
+        }
+      },
+      "recordedAt": "2026-10-18T02:37:23Z"
     }
   },
   "checkResults": {
@@ -659,6 +709,108 @@
       "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04-parent-viewport-final-2c24868846dc.log",
       "logSha256": "ee4698274d9427967654db93dbf0358adf09ef2829ab5b9ebbeece29992e2a4e",
       "inputsHash": "f7b8dffa9b752fa9c723448c7d3fcedf5b988a2be42087b1f2933c6cd8c6d372"
+    },
+    "s04c-parent-rerender/c-rx-rerender-cost/baseline": {
+      "checkId": "c-rx-rerender-cost",
+      "boundaryId": "s04c-parent-rerender",
+      "phase": "baseline",
+      "batchId": "1623475f04a25fa3c1cce0bca0a34630a3af7c1b06c9183ac7747a5c91063b49",
+      "definitionHash": "9a00a4ab6ff86e9f1c3d3de14ce7ca02b75d6e9fd5593ac67ecedb6ce291ac0d",
+      "basisHash": "3f6f8bada740bde97de91ba574fad8c391bb22228c388c3a4ac22712847a8efd",
+      "status": "passed",
+      "exitCode": 101,
+      "testCount": 8,
+      "durationSeconds": 1.7995,
+      "recordedAt": "2026-10-18T01:55:28Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04c-parent-rerender-baseline-40ef82d69c9c.log",
+      "logSha256": "0d49fe240b8bd458541fef2f5db623b91f8d3cabf66471d35ce9aff7dfeb7426",
+      "inputsHash": "852cd9b04d0a960577b2047e5b9fd4ec69dd6224ba7db9be2c4d05c6a105b1f7"
+    },
+    "s04c-parent-rerender/c-rx-rerender-cost/final": {
+      "checkId": "c-rx-rerender-cost",
+      "boundaryId": "s04c-parent-rerender",
+      "phase": "final",
+      "batchId": "97611d2ff44091cd9d905cae9911622d6d9400aed0d549a7001ea7dc20566fd2",
+      "definitionHash": "5b6533caa6d731a0c4199760da4049f33b18b1fc09d76fcc0b8abd3c3aa34182",
+      "basisHash": "f8b66611db256b9bf269eb9476920ed1b7be770604023d56af90191f72fb8234",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 12,
+      "durationSeconds": 0.8738,
+      "recordedAt": "2026-10-18T02:37:10Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04c-parent-rerender-final-26b0369be60e.log",
+      "logSha256": "23aa8d3b7d903624ebdac20758b8b7bdb323f1a0d7f377ce61bac5184c6e04d1",
+      "inputsHash": "2a971f5459e8b54bbfed7f9c2b9b368d78d1423773b0ee8460eaa9210c522352"
+    },
+    "s04c-parent-rerender/c-rx-renderer-sameness/final": {
+      "checkId": "c-rx-renderer-sameness",
+      "boundaryId": "s04c-parent-rerender",
+      "phase": "final",
+      "batchId": "97611d2ff44091cd9d905cae9911622d6d9400aed0d549a7001ea7dc20566fd2",
+      "definitionHash": "1ad224bd37a9725cf96d10a4d9e1af1c92005aa4497edba24609ed8e0708095d",
+      "basisHash": "69c625ead92bc42c9cff2d62db82b01a919ffa5fe6ae0f60904cfdcce0db019b",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 8,
+      "durationSeconds": 0.58,
+      "recordedAt": "2026-10-18T02:37:11Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04c-parent-rerender-final-0a99ecbad3d2.log",
+      "logSha256": "0a15fd00e8a2e609d0d299b254f1418f999cb5a4e67e6782f898b9f1f6a3c01a",
+      "inputsHash": "2a971f5459e8b54bbfed7f9c2b9b368d78d1423773b0ee8460eaa9210c522352"
+    },
+    "s04c-parent-rerender/c-rx-test-suite-build/final": {
+      "checkId": "c-rx-test-suite-build",
+      "boundaryId": "s04c-parent-rerender",
+      "phase": "final",
+      "batchId": "97611d2ff44091cd9d905cae9911622d6d9400aed0d549a7001ea7dc20566fd2",
+      "definitionHash": "1c9ef54c5585b86a0c12621bbcb652aa4654496aea664a1f4cf54c39c7126bf0",
+      "basisHash": "aeddf7f581d92d5583b7c14a00831bce0a2eb6685be0c02d72142673ce875525",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 11.3122,
+      "recordedAt": "2026-10-18T02:37:22Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04c-parent-rerender-final-02eacd8af308.log",
+      "logSha256": "dbe4b5b3d4be5592ab573299a70fae33b6b5d45cc3e01d55cf7e3fd6804faa09",
+      "inputsHash": "b9c1682818921efbf0b2275be29637233d9c7324827cd48918d78b3396a13eb5"
+    },
+    "s04c-parent-rerender/c-layer-owner-replay/final": {
+      "checkId": "c-layer-owner-replay",
+      "boundaryId": "s04c-parent-rerender",
+      "phase": "final",
+      "batchId": "97611d2ff44091cd9d905cae9911622d6d9400aed0d549a7001ea7dc20566fd2",
+      "definitionHash": "d83e402146483e5648944f5a74b9eb731f87a246235ad0d52ee64e331a634699",
+      "basisHash": "af0aa08e6af0f06319dcf4f55429fda077df2993bf401dd25b62d4bddc9e49f5",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 0.5419,
+      "recordedAt": "2026-10-18T02:37:23Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04c-parent-rerender-final-e8e832445270.log",
+      "logSha256": "0b6dcf57f3fc1fcb5cbd29701b98ddb439dfe8762af79fecc1793dd79ac0384f",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "s04c-parent-rerender/c-layer-a11y-scroll/final": {
+      "checkId": "c-layer-a11y-scroll",
+      "boundaryId": "s04c-parent-rerender",
+      "phase": "final",
+      "batchId": "97611d2ff44091cd9d905cae9911622d6d9400aed0d549a7001ea7dc20566fd2",
+      "definitionHash": "15ce2ef9d70fb3111e7d49b7e02380e0d4581456ba679723ee1039726f28d18d",
+      "basisHash": "31fb8f9b39b38e9315fbff7a5364e76f58106f4ca8882dd986e3010effb366de",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 0.3118,
+      "recordedAt": "2026-10-18T02:37:23Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04c-parent-rerender-final-ded9e27a2dbf.log",
+      "logSha256": "c86e7392b12e18d760dcce8f290667f8cb8f0234db113f603ab4789f9e45c62e",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
     }
   },
   "reviews": {
@@ -1464,6 +1616,162 @@
         "lk-s04-F2"
       ],
       "recordedAt": "2026-10-18T01:53:44Z"
+    },
+    "s04c-parent-rerender": {
+      "reviewerId": "reviewer-lk-s04c",
+      "snapshotId": "97611d2ff44091cd9d905cae9911622d6d9400aed0d549a7001ea7dc20566fd2",
+      "criterionIds": [
+        "PR-1",
+        "PR-2",
+        "PR-3",
+        "PR-4",
+        "PR-5"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/renderer_identity.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PR-2"
+          ],
+          "sha256": "fd07fe991f709cc30793ad7abf829f6e79779c06d80b5a51687c239173384a0b"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/element.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PR-1",
+            "PR-2"
+          ],
+          "sha256": "36499f1420aeafc32f967c119a150597ce735c9593cc40e261dd4ab5d2c650bc"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/state.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PR-2"
+          ],
+          "sha256": "2dff42a05c87b8761be8e51368368cf33c754255f6606881d2dffd064c66a6f3"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/tree/element.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PR-1",
+            "PR-2"
+          ],
+          "sha256": "146c68b8c3a9b463664b0f64b865d208499e1353344628e0a110554efa96d22d"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/tree/state.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PR-2"
+          ],
+          "sha256": "a60f1196a154b515c74149fe25a361edb3699669b65396b388d19ca8db47da35"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/parent_rerender_cost.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PR-1"
+          ],
+          "sha256": "05f44c9064d3904d3b99fe0cc5ff61069d2bfcb605f638463d18e6a164596528"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/row_renderer_changes.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PR-2"
+          ],
+          "sha256": "2040d07d3d53855bef62f618f6c690a6be3f8783ddc5b690fd5862846c495b32"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "docs/src/virtualized-collections.md",
+          "kind": "source",
+          "criterionIds": [
+            "PR-3"
+          ],
+          "sha256": "69e9cef7745ff984478e33c103b7f2902ce273433a3ca8a501cc18156b8b40c7"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "apps/test_suite/src/pages/range_recorder.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PR-3"
+          ],
+          "sha256": "6cf2596f2afb2ceb1af485d1fc585e2efbe8b07f1456c5a0abd9530ae92a4727"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/reuse.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PR-4"
+          ],
+          "sha256": "e884fbbd30298b144cc7fab8070322ff1242bea0b695799ee48de1ec7a3b878f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/layer_owner_replay.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PR-4"
+          ],
+          "sha256": "fdcdf9c544d787515077f805ee40923d54ea5afee24befabe8b6314e187e77ff"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "apps/test_suite/src/pages/virtualization.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "PR-3"
+          ],
+          "sha256": "1d7f45f2faac58c9d847abf8f5519c8c0879b5a6e3faf625d81a5a325397a665"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window/a11y.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PR-5"
+          ],
+          "sha256": "e642e867cce39f3c7aea2633f00a40674ceda5d5428334fd7acff3976746f58a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/reuse.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PR-5"
+          ],
+          "sha256": "e884fbbd30298b144cc7fab8070322ff1242bea0b695799ee48de1ec7a3b878f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/layer_a11y_scroll_targets.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PR-5"
+          ],
+          "sha256": "5d403861c3278300a75949b84969fb7f3a76f376514fb6b4d1522234704b64f2"
+        }
+      ],
+      "summaryMarkdown": "Passed.\n\n**PR-2:** ListView's and TreeBase's elements write their state only when the scroll policy, scrollbar or renderer identity differs. The identity is the type of a zero-sized closure or an `Eq` `renderer_key`, and every renderer setter sets or clears it, so capturing renderers without a key write as before, matching the owner's (A)+(B).\n\n**PR-1 and PR-3:** `parent_rerender_cost` (12, red baseline logged) and `row_renderer_changes` (8) prove the cost and the guard, and the docs and Test Suite recorder carry the guidance.\n\n**PR-4:** a `div` layer whose content read no hover follows its owner's copy (records, told rows, paint ranges) and composites the next turn. Whole frame descriptions, a11y and clicks equal the reference on every step.\n\n**PR-5:** a non-list layer's carry replays the container's own `EnterScroll`, opened at the carry's starting depth, standing with its offset moved by the scroll, while nested containers move with the content (`begin_container_replay`/`end_container_replay`). `layer_a11y_scroll_targets` (nested scrolling divs, a11y on) is red without the fix.\n\nThe sprint checks are fresh at revision 101.",
+      "findingIds": [
+        "lk-s04c-F1"
+      ],
+      "recordedAt": "2026-10-18T02:38:07Z"
     }
   },
   "checkpoints": {
@@ -1556,6 +1864,15 @@
       },
       "reviewHash": "40f10438b044997d459958de866a2de06071727ccdd887980573354e5479192e",
       "recordedAt": "2026-10-18T01:54:15Z"
+    },
+    "s04c-parent-rerender": {
+      "snapshotId": "97611d2ff44091cd9d905cae9911622d6d9400aed0d549a7001ea7dc20566fd2",
+      "commits": {
+        "gpux": "1ba7bbf18ec5e698f42c56363036b15cfafeeb07",
+        "rayx": "c346720d8928ca23b1ee147603904a0acf815f53"
+      },
+      "reviewHash": "1f10483c54d8341956053011471e354b407cff9870d571582fdeb74f0e83acbd",
+      "recordedAt": "2026-10-18T02:40:09Z"
     }
   },
   "findings": [
@@ -1767,9 +2084,25 @@
         }
       ],
       "boundaryId": "s04-parent-viewport"
+    },
+    {
+      "id": "lk-s04c-F1",
+      "criterionIds": [
+        "PR-4"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved. `layer_owner_replay` runs each window in its own `oracle_app` with a11y inspection and labelled, clickable rows. On all 30 steps (wheel, tick, click, wheel, click) it compares the whole `describe_rendered_frame()` and the clicked rows with the reference. The composite bound (≥ 11 composited, ≤ 1 repainted) comes from a tick-only run, since clicks into content repaint under the input policy. It stays red with the list-only rule. The comparison exposed PR-5, a real a11y defect on composited `div` layers, now fixed and proven.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/layer_owner_replay.rs"
+        }
+      ],
+      "boundaryId": "s04c-parent-rerender"
     }
   ],
-  "handoffMarkdown": "scroll-virtual-list-parent-viewport scenario, listed in fast_mode_attribution and the fast_mode bench; attribution bounds a region-painting layer's layout by the rows it rendered.",
+  "handoffMarkdown": "A11yState::begin_container_replay keeps a composited div's own scroll target standing with the offset moved; fast::tests::layer_a11y_scroll_targets red without it; layer_owner_replay compares describe_rendered_frame with a11y on and clicks.",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",

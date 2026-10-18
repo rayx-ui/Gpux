@@ -182,6 +182,38 @@
           "descriptionMarkdown": "**Requirement.** One wheel turn over a DataTable, across or down, draws exactly one frame, with fast mode off and with every switch on; no frame follows it once it is drawn.\n\n**Cause.** `ScrollableMask` handled the table's wheel by queueing a programmatic offset (`request_offset`), which the header's scroll container took in at its next prepaint and published with a deferred notification, and by notifying the view itself: the deferred notification drew a second frame. It now publishes the turn as a wheel in its input turn (`ScrollHandle::publish_wheel_offset`, RayX 5b839689, gpux a4131c8).\n\n**Test.** A new RayX group, `crates/rayx_components/rayx_components_datatable/tests/wheel_frames.rs`, naming the cause in its doc comment; it fails with the mask's old handler."
         }
       ]
+    },
+    {
+      "id": "PR",
+      "title": "A parent's re-render leaves the list it holds as it was",
+      "descriptionMarkdown": "The owner decided (2026-10-18), relayed by the coordinating session: \"Ok, do this: I'd add one sprint to the follow-up epic, before the timings sprint (s07): 1. Measure a parent re-rendering on every range change, and a parent re-rendering for an unrelated reason: views built, rows rendered and layers composited per frame. 2. Make the state writes conditional, guarded by `row_renderer_changes`. 3. Write the guidance in RayX's docs and convert the Test Suite pages.\"\n\nListView's element (`list_view/element.rs`) and TreeBase's write the row renderer, scroll policy and scrollbar into their state on every render of the view holding them, so any re-render of that view rebuilds the collection's state view, renders its visible rows again and, in `ParentViewport` mode, paints the parent div's layer again. A view that subscribes to `VisibleRangeChanged` and notifies itself, or that re-renders for state of its own, pays that on every frame.",
+      "criteria": [
+        {
+          "id": "PR-1",
+          "verification": "automated",
+          "descriptionMarkdown": "**Measurement.** A new RayX group records, per frame, the views built, the rows rendered and the layers composited for ListView and TreeView, scrolling themselves and in `ParentViewport` mode, under two parents: one that keeps the reported range and notifies itself on every change, and one that re-renders for a counter of its own between wheel turns. Its red baseline is the cost before the fix (recorded under `artifacts-temp`). After the fix, a parent that re-renders with the same settings leaves the state view unbuilt, the wheel frames composite, and only the rows a scroll uncovers render.\n\n**Finding (t13).** In `ParentViewport` mode the wheel frames composite when the scrolling `div` is drawn by a view of its own beside the parent (the group's `ParentViewportInPane` surface, 4 cases): a parent that draws the `div` itself changes what the `div`'s layer holds with every re-render, and the layer gives way; the group bounds that case by the scroll and the repaints instead (its state view is built only for the scroll, and a tick renders rows only where the layer is painted again).\n\n**Test.** `crates/rayx_components/rayx_components_core/tests/parent_rerender_cost.rs` (12 cases)."
+        },
+        {
+          "id": "PR-2",
+          "verification": "automated",
+          "descriptionMarkdown": "**Conditional writes.** ListView's and TreeBase's elements write their state only when the scroll policy or scrollbar settings differ or the row renderer may have changed. For the row renderer's sameness the owner chose (2026-10-18): \"Yes, A + B together\": (A) the write is skipped when the scroll policy and scrollbar are unchanged and the row renderer is provably the same, of the same type and capture-free (zero-sized); a capturing closure still writes, as before. (B) an opt-in `renderer_key(k)` (Eq) on `list_view(..)` and on TreeBase: an equal key skips the write; without a key, behaviour stays as before.\n\n**Guard.** `row_renderer_changes` keeps passing, the capturing `generation` case included, and gains cases for a capture-free renderer under a re-rendering parent (no write, rows still updated through entity reads) and for an equal key against a changed key."
+        },
+        {
+          "id": "PR-3",
+          "verification": "automated",
+          "descriptionMarkdown": "**Guidance.** RayX's docs say to keep row renderers capture-free and read parent data through entities, or to give a capturing renderer a key, and to subscribe to a collection's events from a small dedicated view or model, not from the view that holds the collection or owns its scroll container. The virtualization rules in RayX memory say the same at the epic's closure. The Test Suite pages `virtualization`, `sliver_list_tree`, `sliver_virtualization_scaling` and `keyed_sticky_stacking` are converted to that pattern, keeping what their Playwright specs assert (run by CI)."
+        },
+        {
+          "id": "PR-4",
+          "verification": "automated",
+          "descriptionMarkdown": "**Finding (t13).** On the frames where the view holding a scrolling `div` is drawn from the last frame (`views_reused`, as when the view around it renders again), gpux copied the records of a list's layer along with the view but painted a `div`'s layer again the next frame, so a pane beside a re-rendering parent never composited. A `div`'s layer whose content read no hover now follows the copy as a list's does (`fast::layers::reuse::follow_prepaint`); one whose content read hovers is still painted again, its hovers judged afresh. Every frame describes itself as a frame drawn without layers does (`describe_rendered_frame`: primitives, hitboxes, listeners, tab stops, dispatch and accessibility trees, accessibility on), and clicks on a copied frame and on the composited turn after it reach the rows they reach without layers (review finding lk-s04c-F1).\n\n**Test.** A new gpux group, `fast::tests::layer_owner_replay`, red with the old list-only rule."
+        },
+        {
+          "id": "PR-5",
+          "verification": "automated",
+          "descriptionMarkdown": "**Finding (lk-s04c-F1 repair).** On a frame that composites a scrolling `div`'s layer, the accessibility scroll target of the `div` itself (the first event its layer's records hold) was replayed moved like content: its scrollport shifted by the scroll and its offset stayed the one the layer was painted at, so `ScrollIntoView` and the targets assistive technology reads were wrong on every composited frame. The carry of a `div`'s layer now replays that target standing, with the offset moved by the scroll, while the containers nested in the content move with it (`A11yState::begin_container_replay`).\n\n**Test.** A new gpux group, `fast::tests::layer_a11y_scroll_targets`, red without the fix."
+        }
+      ]
     }
   ]
 }

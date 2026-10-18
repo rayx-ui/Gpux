@@ -349,6 +349,23 @@
           "path": "crates/rayx_components/rayx_components_core/src/layout/scroll/scrollable_mask.rs"
         }
       ]
+    },
+    {
+      "id": "d-conditional-state-writes",
+      "requirementIds": [
+        "PR"
+      ],
+      "descriptionMarkdown": "The owner decided (2026-10-18), relayed by the coordinating session: \"Ok, do this: I'd add one sprint to the follow-up epic, before the timings sprint (s07): 1. Measure a parent re-rendering on every range change, and a parent re-rendering for an unrelated reason: views built, rows rendered and layers composited per frame. 2. Make the state writes conditional, guarded by `row_renderer_changes`. 3. Write the guidance in RayX's docs and convert the Test Suite pages.\" For the row renderer's sameness the owner chose (2026-10-18): \"Yes, A + B together\": (A) the write is skipped when the scroll policy and scrollbar are unchanged and the row renderer is provably the same, of the same type and capture-free (zero-sized); a capturing closure still writes, as before. (B) an opt-in `renderer_key(k)` (Eq) on `list_view(..)` and on TreeBase: an equal key skips the write; without a key, behaviour stays as before.\n\n**Mechanism.** The element compares what it would write with what the state holds: the scroll policy and scrollbar by value, the renderer by its key when it has one, else by its type when it is zero-sized (a capture-free closure of one type behaves the same every time). Only a difference updates the entity. The proof is per frame: the measurement group, red before, and `row_renderer_changes` as the guard against stale rows.",
+      "sourceRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/element.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/tree/element.rs"
+        }
+      ]
     }
   ],
   "memoryDecisionsConsidered": [
@@ -447,6 +464,14 @@
     {
       "repositoryId": "gpux",
       "path": ".agentx/memory/decisions/repository/validation/2026-10-16-repository-validation-test-tooling-layout.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/examples/lab/2026-07-06-examples-lab-sidebar-taxonomy.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/examples/lab/2026-07-31-examples-lab-general-positioning-tutorials.md"
     }
   ]
 }
