@@ -12,10 +12,13 @@ behavior, use this repository, because gpux differs from upstream GPUI.
 
 ## Usage
 
+gpux is consumed by release tag; take the latest
+[release](https://github.com/rayx-ui/Gpux/releases):
+
 ```toml
 [dependencies]
-gpux = "0.3"
-gpux-platform = "0.3"
+gpux = { git = "https://github.com/rayx-ui/Gpux", tag = "v1.0.0" }
+gpui_platform = { package = "gpux-platform", git = "https://github.com/rayx-ui/Gpux", tag = "v1.0.0" }
 ```
 
 ```rust
@@ -40,9 +43,14 @@ fn main() {
 }
 ```
 
-`gpux-platform` selects the platform crate for the compilation target. Packages publish under
-`gpux-*` names and keep their GPUI Rust names, so `gpux-platform` is imported as `gpui_platform`.
-`crates/gpui/examples` has more examples, including the web entry point (`gpui_platform::web_init`).
+`gpux-platform` selects the platform crate for the compilation target. Packages are named
+`gpux-*` and keep their GPUI Rust names, so `gpux-platform` is imported as `gpui_platform` (its
+dependency key). `Cargo.lock` records the tag's commit, and tags never move. Nothing is published
+to a registry. Building apps with rayx needs rayx 1.4.0 or later, the release that reads the
+declarations gpux 1.0.0 makes (its font assets, Android Java sources and Android pins).
+[docs/installation-and-usage.md](docs/installation-and-usage.md) has the features and
+dev-dependencies, and `crates/gpui/examples` has more examples, including the web entry point
+(`gpui_platform::web_init`).
 
 ## Crates
 
@@ -55,6 +63,7 @@ fn main() {
 | `crates/gpui_linux` | `gpux-linux` | `gpui_linux` | Linux platform (Wayland and X11) |
 | `crates/gpui_web` | `gpux-web` | `gpui_web` | Browser platform (WebGPU, WebGL fallback) |
 | `crates/gpui_mobile` | `gpux-mobile` | `gpui_mobile` | Android and iOS platforms |
+| `crates/gpui_apple` | `gpux-apple` | `gpui_apple` | Metal renderer and dispatcher shared by the Apple platforms |
 | `crates/gpui_wgpu` | `gpux-wgpu-renderer` | `gpui_wgpu` | wgpu renderer and cosmic-text text system |
 | `crates/gpui_macros` | `gpux-macros` | `gpui_macros` | Derive and attribute macros |
 | `crates/gpux_color` | `gpux-color` | `gpux_color` | Standards color engine behind `gpux::Color` |
@@ -72,10 +81,10 @@ fn main() {
 | `crates/http_client` | `gpux-http-client` | `http_client` | HTTP client abstraction |
 | `crates/http_client_tls` | `gpux-http-client-tls` | `http_client_tls` | TLS configuration |
 | `crates/reqwest_client` | `gpux-reqwest-client` | `reqwest_client` | reqwest-backed HTTP client |
-| `crates/media` | `gpux-media` | `media` | macOS media bindings |
 | `crates/path` | `gpux-path` | `path` | Path helpers |
 | `crates/util` | `gpux-zed-util` | `util` | Zed's general utilities |
 | `crates/util_macros` | `gpux-zed-util-macros` | `util_macros` | Zed's utility macros |
+| `crates/bench_metrics` | `gpux-bench-metrics` | `bench_metrics` | Multi-metric Criterion measurements for the benchmarks |
 | `tools/perf` | `gpux-perf` | `perf` | Test performance measurement |
 | `tools/testkit` | `gpux-testkit` | `gpux_testkit` | The `gpux-testkit` test-lane runner |
 | `vendor/accesskit_macos` | `gpux-accesskit-macos` | `accesskit_macos` | Temporary AccessKit macOS adapter fork, see below |
@@ -128,8 +137,9 @@ lists the changes and tracks the upstream change.
 Upstream imports (Zed GPUI closure, gpui-mobile, wgpu), installation, platform prerequisites and
 validation are documented in the [gpux skill](.claude/skills/gpux/SKILL.md). gpux tests itself in
 lanes run by `gpux-testkit`, from the test platform to browsers, desktop windows, Android, iOS
-and the local GPU; [docs/testing.md](docs/testing.md) describes them. Contributor rules are in
-[CLAUDE.md](CLAUDE.md).
+and the local GPU; [docs/testing.md](docs/testing.md) describes them. Releases (one `vX.Y.Z` tag
+for the whole workspace, cut by release-plz from Conventional Commits) are described in
+[docs/releasing.md](docs/releasing.md). Contributor rules are in [CLAUDE.md](CLAUDE.md).
 
 ## License
 

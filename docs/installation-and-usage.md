@@ -1,30 +1,29 @@
 # Installation and usage
 
-`gpux` is the RayX-maintained GPUI fork. The repository keeps Zed's GPUI closure paths (`crates/gpui`, `crates/gpui_platform`, ...); the main package and import crate are named `gpux`, and the other crates publish as `gpux-*` packages that keep their GPUI Rust names (the [README](../README.md) lists them).
+`gpux` is the RayX-maintained GPUI fork. The repository keeps Zed's GPUI closure paths (`crates/gpui`, `crates/gpui_platform`, ...); the main package and import crate are named `gpux`, and the other crates are `gpux-*` packages that keep their GPUI Rust names (the [README](../README.md) lists them).
 
 ## Add gpux to a Rust project
 
-From crates.io:
+gpux is consumed only by release tag: one tag `vX.Y.Z` releases the whole workspace (one version
+for every crate, [releasing.md](releasing.md)). Take the latest
+[release](https://github.com/rayx-ui/Gpux/releases); `Cargo.lock` records the tag's commit, and
+tags never move. Nothing is published to a registry. The other packages use their Rust name as the
+dependency key with `package = "gpux-..."`:
 
 ```toml
 [dependencies]
-gpux = "0.3"
-gpux-platform = "0.3"
+gpux = { git = "https://github.com/rayx-ui/Gpux", tag = "v1.0.0" }
+gpui_platform = { package = "gpux-platform", git = "https://github.com/rayx-ui/Gpux", tag = "v1.0.0" }
 
 [dev-dependencies]
-gpux = { version = "0.3", features = ["test-support"] }
-gpux-platform = { version = "0.3", features = ["test-support"] }
+gpux = { git = "https://github.com/rayx-ui/Gpux", tag = "v1.0.0", features = ["test-support"] }
+gpui_platform = { package = "gpux-platform", git = "https://github.com/rayx-ui/Gpux", tag = "v1.0.0", features = ["test-support"] }
 ```
 
-From a sibling checkout of this repository, for co-development:
+Building apps with rayx needs rayx 1.4.0 or later, the release that reads the declarations gpux 1.0.0 makes (its font assets, Android Java sources and Android pins). A change that spans gpux and its consumer releases gpux first; the consumer then
+moves its tag.
 
-```toml
-[dependencies]
-gpux = { path = "../Gpux/crates/gpui" }
-gpui_platform = { package = "gpux-platform", path = "../Gpux/crates/gpui_platform" }
-```
-
-Enable platform features as needed:
+Enable platform features as needed, prefixed with the dependency key:
 
 - `gpui_platform/font-kit` for macOS font-kit support
 - `gpui_platform/wayland` and `gpui_platform/x11` for Linux windowing backends

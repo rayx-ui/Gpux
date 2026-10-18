@@ -8,21 +8,21 @@ Run the commands here from the Gpux repository root. gpux's own threaded browser
 
 - Keep `gpui_web` default features enabled. Its default feature set enables `multithreaded`, which pulls `wasm_thread`.
 - Do not write `gpui_web = { ..., default-features = false }` for browser apps (RayX's included) unless the task explicitly requires a single-threaded build. Inside Gpux, `cargo check -p gpux-web --target wasm32-unknown-unknown --no-default-features` is only a stable-toolchain compile check; the multithreaded default build needs nightly `-Z build-std`, which `gpux-testkit web build` provides.
-- Keep app source imports on `gpux::{...}` and dependencies pointed at the gpux crates (RayX uses the sibling `../Gpux` checkout; other projects can use the crates.io `gpux-*` releases).
+- Keep app source imports on `gpux::{...}` and dependencies pointed at the gpux crates by release tag (`git = "https://github.com/rayx-ui/Gpux", tag = "vX.Y.Z"`, the only supported form; RayX uses it). Building apps with rayx needs rayx 1.4.0 or later.
 - Build gpux's threaded host through Rust orchestration: `cargo run -p gpux-testkit -- web build [--verify]` writes it to `target/gpux-web/dist`, and `cargo run -p gpux-testkit -- web serve [--port 8000]` serves it cross-origin isolated (open `/?scene=<id>`).
 
 GOOD (consumer guidance, RayX root `Cargo.toml`):
 
 ```toml
 [workspace.dependencies]
-gpui_web = { package = "gpux-web", path = "../Gpux/crates/gpui_web" }
+gpui_web = { package = "gpux-web", git = "https://github.com/rayx-ui/Gpux", tag = "v1.0.0" }
 ```
 
 BAD:
 
 ```toml
 [workspace.dependencies]
-gpui_web = { package = "gpux-web", path = "../Gpux/crates/gpui_web", default-features = false }
+gpui_web = { package = "gpux-web", git = "https://github.com/rayx-ui/Gpux", tag = "v1.0.0", default-features = false }
 ```
 
 ## Toolchain

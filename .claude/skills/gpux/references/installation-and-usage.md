@@ -19,33 +19,23 @@ Run commands from the Gpux repository root. Runtime proof runs in gpux's own tes
 
 ## Cargo Dependency Setup
 
-gpux publishes to crates.io. The repository keeps the upstream closure path `crates/gpui`, but the public Rust package and import crate are named `gpux`; the other crates publish as `gpux-*` packages that keep their GPUI Rust names (the [README crate table](../../../../README.md#crates) lists them).
+gpux is consumed only by release tag (`vX.Y.Z` for the whole workspace, [docs/releasing.md](../../../../docs/releasing.md)); nothing is published to a registry, and the manifests stay publishable. The repository keeps the upstream closure path `crates/gpui`, but the public Rust package and import crate are named `gpux`; the other crates are `gpux-*` packages that keep their GPUI Rust names (the [README crate table](../../../../README.md#crates) lists them).
 
-From crates.io (`gpux-platform` is imported as `gpui_platform`):
-
-```toml
-[dependencies]
-gpux = "0.3"
-gpux-platform = "0.3"
-
-[dev-dependencies]
-gpux = { version = "0.3", features = ["test-support"] }
-gpux-platform = { version = "0.3", features = ["test-support"] }
-```
-
-From a sibling checkout of this repository, for co-development (RayX uses this form):
+By release tag, the only supported form (RayX uses it; take the latest release, `Cargo.lock` records the tag's commit, tags never move):
 
 ```toml
 [dependencies]
-gpux = { path = "../Gpux/crates/gpui" }
-gpui_platform = { package = "gpux-platform", path = "../Gpux/crates/gpui_platform" }
+gpux = { git = "https://github.com/rayx-ui/Gpux", tag = "v1.0.0" }
+gpui_platform = { package = "gpux-platform", git = "https://github.com/rayx-ui/Gpux", tag = "v1.0.0" }
 
 [dev-dependencies]
-gpux = { path = "../Gpux/crates/gpui", features = ["test-support"] }
-gpui_platform = { package = "gpux-platform", path = "../Gpux/crates/gpui_platform", features = ["test-support"] }
+gpux = { git = "https://github.com/rayx-ui/Gpux", tag = "v1.0.0", features = ["test-support"] }
+gpui_platform = { package = "gpux-platform", git = "https://github.com/rayx-ui/Gpux", tag = "v1.0.0", features = ["test-support"] }
 ```
 
-Enable features as needed, prefixed with the dependency key (`gpux-platform/...` in the crates.io form, `gpui_platform/...` in the sibling form):
+Building apps with rayx needs rayx 1.4.0 or later, the release that reads the declarations gpux 1.0.0 makes (its font assets, Android Java sources and Android pins). There is no local-override mechanism: a change spanning gpux and RayX releases gpux first, then RayX bumps its tag by hand.
+
+Enable features as needed, prefixed with the dependency key (`gpux/...`, `gpui_platform/...`):
 
 - `gpui_platform/font-kit` for macOS font-kit support.
 - `gpui_platform/wayland` and `gpui_platform/x11` for Linux windowing backends.
