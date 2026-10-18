@@ -44,7 +44,7 @@ members = [
 default-members = ["crates/gpui"]
 
 [workspace.package]
-version = "0.3.0"
+version = "1.0.0"
 edition = "2024"
 rust-version = "1.95"
 license = "Apache-2.0"
@@ -52,36 +52,36 @@ repository = "https://github.com/rayx-ui/Gpux"
 homepage = "https://github.com/rayx-ui/Gpux"
 
 [workspace.dependencies]
-bench_metrics = { package = "gpux-bench-metrics", path = "crates/bench_metrics", version = "0.3.0" }
-collections = { package = "gpux-collections", path = "crates/collections", version = "0.3.0" }
-derive_refineable = { package = "gpux-derive-refineable", path = "crates/refineable/derive_refineable", version = "0.3.0" }
-gpux = { path = "crates/gpui", version = "0.3.0", default-features = false }
-gpux_color = { package = "gpux-color", path = "crates/gpux_color", version = "0.3.0" }
-gpux_devtools = { package = "gpux-devtools", path = "crates/gpux_devtools", version = "0.3.0" }
-gpux_devtools_mcp = { package = "gpux-devtools-mcp", path = "crates/gpux_devtools_mcp", version = "0.3.0" }
-gpux_fonts = { package = "gpux-fonts", path = "crates/gpux_fonts", version = "0.3.0" }
-gpux_tests_conformance = { package = "gpux-tests-conformance", path = "crates/gpux_tests_conformance", version = "0.3.0", default-features = false }
-gpui_shared_string = { package = "gpux-shared-string", path = "crates/gpui_shared_string", version = "0.3.0" }
-gpui_apple = { package = "gpux-apple", path = "crates/gpui_apple", version = "0.3.0" }
-gpui_linux = { package = "gpux-linux", path = "crates/gpui_linux", version = "0.3.0", default-features = false }
-gpui_macos = { package = "gpux-macos", path = "crates/gpui_macos", version = "0.3.0", default-features = false }
-gpui_macros = { package = "gpux-macros", path = "crates/gpui_macros", version = "0.3.0" }
-gpui_mobile = { package = "gpux-mobile", path = "crates/gpui_mobile", version = "0.3.0", default-features = false }
-gpui_platform = { package = "gpux-platform", path = "crates/gpui_platform", version = "0.3.0", default-features = false }
-gpui_web = { package = "gpux-web", path = "crates/gpui_web", version = "0.3.0", default-features = false }
-gpui_wgpu = { package = "gpux-wgpu-renderer", path = "crates/gpui_wgpu", version = "0.3.0" }
-gpui_windows = { package = "gpux-windows", path = "crates/gpui_windows", version = "0.3.0", default-features = false }
-gpui_util = { package = "gpux-util", path = "crates/gpui_util", version = "0.3.0" }
-http_client = { package = "gpux-http-client", path = "crates/http_client", version = "0.3.0" }
-http_client_tls = { package = "gpux-http-client-tls", path = "crates/http_client_tls", version = "0.3.0" }
-path = { package = "gpux-path", path = "crates/path", version = "0.3.0" }
-perf = { package = "gpux-perf", path = "tools/perf", version = "0.3.0" }
-refineable = { package = "gpux-refineable", path = "crates/refineable", version = "0.3.0" }
-reqwest_client = { package = "gpux-reqwest-client", path = "crates/reqwest_client", version = "0.3.0" }
-scheduler = { package = "gpux-scheduler", path = "crates/scheduler", version = "0.3.0" }
-sum_tree = { package = "gpux-sum-tree", path = "crates/sum_tree", version = "0.3.0" }
-util = { package = "gpux-zed-util", path = "crates/util", version = "0.3.0" }
-util_macros = { package = "gpux-zed-util-macros", path = "crates/util_macros", version = "0.3.0" }
+bench_metrics = { package = "gpux-bench-metrics", path = "crates/bench_metrics", version = "1.0.0" }
+collections = { package = "gpux-collections", path = "crates/collections", version = "1.0.0" }
+derive_refineable = { package = "gpux-derive-refineable", path = "crates/refineable/derive_refineable", version = "1.0.0" }
+gpux = { path = "crates/gpui", version = "1.0.0", default-features = false }
+gpux_color = { package = "gpux-color", path = "crates/gpux_color", version = "1.0.0" }
+gpux_devtools = { package = "gpux-devtools", path = "crates/gpux_devtools", version = "1.0.0" }
+gpux_devtools_mcp = { package = "gpux-devtools-mcp", path = "crates/gpux_devtools_mcp", version = "1.0.0" }
+gpux_fonts = { package = "gpux-fonts", path = "crates/gpux_fonts", version = "1.0.0" }
+gpux_tests_conformance = { package = "gpux-tests-conformance", path = "crates/gpux_tests_conformance", version = "1.0.0", default-features = false }
+gpui_shared_string = { package = "gpux-shared-string", path = "crates/gpui_shared_string", version = "1.0.0" }
+gpui_apple = { package = "gpux-apple", path = "crates/gpui_apple", version = "1.0.0" }
+gpui_linux = { package = "gpux-linux", path = "crates/gpui_linux", version = "1.0.0", default-features = false }
+gpui_macos = { package = "gpux-macos", path = "crates/gpui_macos", version = "1.0.0", default-features = false }
+gpui_macros = { package = "gpux-macros", path = "crates/gpui_macros", version = "1.0.0" }
+gpui_mobile = { package = "gpux-mobile", path = "crates/gpui_mobile", version = "1.0.0", default-features = false }
+gpui_platform = { package = "gpux-platform", path = "crates/gpui_platform", version = "1.0.0", default-features = false }
+gpui_web = { package = "gpux-web", path = "crates/gpui_web", version = "1.0.0", default-features = false }
+gpui_wgpu = { package = "gpux-wgpu-renderer", path = "crates/gpui_wgpu", version = "1.0.0" }
+gpui_windows = { package = "gpux-windows", path = "crates/gpui_windows", version = "1.0.0", default-features = false }
+gpui_util = { package = "gpux-util", path = "crates/gpui_util", version = "1.0.0" }
+http_client = { package = "gpux-http-client", path = "crates/http_client", version = "1.0.0" }
+http_client_tls = { package = "gpux-http-client-tls", path = "crates/http_client_tls", version = "1.0.0" }
+path = { package = "gpux-path", path = "crates/path", version = "1.0.0" }
+perf = { package = "gpux-perf", path = "tools/perf", version = "1.0.0" }
+refineable = { package = "gpux-refineable", path = "crates/refineable", version = "1.0.0" }
+reqwest_client = { package = "gpux-reqwest-client", path = "crates/reqwest_client", version = "1.0.0" }
+scheduler = { package = "gpux-scheduler", path = "crates/scheduler", version = "1.0.0" }
+sum_tree = { package = "gpux-sum-tree", path = "crates/sum_tree", version = "1.0.0" }
+util = { package = "gpux-zed-util", path = "crates/util", version = "1.0.0" }
+util_macros = { package = "gpux-zed-util-macros", path = "crates/util_macros", version = "1.0.0" }
 # AccessKit 0.25: gpux is ahead of Zed here (an upstream import keeps these pins unless Zed's
 # are newer; see docs/upstream/accesskit-0.25.md). Every adapter moves with `accesskit`.
 accesskit = { version = "0.25.1", features = ["enumn"] }
@@ -201,6 +201,7 @@ tempfile = "3.20.0"
 tendril = "0.5"
 thiserror = "2.0.12"
 tokio = "1"
+toml = "0.9"
 tracing = "0.1.40"
 unicase = "2.6"
 tungstenite = "0.30"

@@ -1,0 +1,76 @@
+name: Release-plz
+
+# The one workflow that runs on pushes to `main`. It runs no tests and builds nothing: `ci.yml`
+# covers the release pull request (`check` on ubuntu and `package`) and the nightly covers `main`.
+# `release` tags `vX.Y.Z` and creates the GitHub Release when the workspace version has no tag yet
+# (the first push of 1.0.0, then every merged release pull request); `release-pr` keeps the next
+# release pull request up to date. See docs/releasing.md.
+#
+# Differences from RayX.CLI's workflow: `release-pr` waits for `release`, so a push that tags a
+# version never opens a release pull request for it, and the release-plz version is pinned to the
+# one release-plz.toml was proven with (it relies on git-only version groups sharing one tag).
+#
+# RELEASE_PLZ_TOKEN is a fine-grained personal access token (see docs/releasing.md). Events made
+# with the default GITHUB_TOKEN start no workflows, so with it the release pull request would get
+# no CI.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  release:
+    name: release
+    if: github.repository == 'rayx-ui/Gpux'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    concurrency:
+      group: release-plz-release-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_PLZ_TOKEN }}
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache: false
+          rustflags: ""
+
+      - uses: release-plz/action@v0.5
+        with:
+          command: release
+          version: "0.3.172"
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_PLZ_TOKEN }}
+
+  release-pr:
+    name: release-pr
+    needs: release
+    if: github.repository == 'rayx-ui/Gpux'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: write
+    concurrency:
+      group: release-plz-pr-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_PLZ_TOKEN }}
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache: false
+          rustflags: ""
+
+      - uses: release-plz/action@v0.5
+        with:
+          command: release-pr
+          version: "0.3.172"
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_PLZ_TOKEN }}

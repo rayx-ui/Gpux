@@ -2915,7 +2915,7 @@ dependencies = [
 
 [[package]]
 name = "gpux"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "accesskit",
  "accesskit_consumer",
@@ -3016,7 +3016,7 @@ dependencies = [
 
 [[package]]
 name = "gpux-apple"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "async-task",
@@ -3045,7 +3045,7 @@ dependencies = [
 
 [[package]]
 name = "gpux-bench-metrics"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "criterion 0.8.2",
@@ -3055,7 +3055,7 @@ dependencies = [
 
 [[package]]
 name = "gpux-collections"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "gpux-util",
  "indexmap",
@@ -3064,7 +3064,7 @@ dependencies = [
 
 [[package]]
 name = "gpux-color"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "criterion 0.5.1",
  "dhat",
@@ -3073,7 +3073,7 @@ dependencies = [
 
 [[package]]
 name = "gpux-derive-refineable"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3082,7 +3082,7 @@ dependencies = [
 
 [[package]]
 name = "gpux-devtools"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "async-channel 2.5.0",
@@ -3102,7 +3102,7 @@ dependencies = [
 
 [[package]]
 name = "gpux-devtools-mcp"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "serde_json",
  "tungstenite",
@@ -3110,11 +3110,11 @@ dependencies = [
 
 [[package]]
 name = "gpux-fonts"
-version = "0.3.0"
+version = "1.0.0"
 
 [[package]]
 name = "gpux-http-client"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "async-compression",
@@ -3137,7 +3137,7 @@ dependencies = [
 
 [[package]]
 name = "gpux-http-client-tls"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "log",
  "rustls",
@@ -3147,7 +3147,7 @@ dependencies = [
 
 [[package]]
 name = "gpux-linux"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "accesskit",
  "accesskit_unix",
@@ -3191,7 +3191,7 @@ dependencies = [
 
 [[package]]
 name = "gpux-macos"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "accesskit",
  "anyhow",
@@ -3235,7 +3235,7 @@ dependencies = [
 
 [[package]]
 name = "gpux-macros"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "gpux",
  "heck 0.5.0",
@@ -3247,7 +3247,7 @@ dependencies = [
 
 [[package]]
 name = "gpux-mobile"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "accesskit",
  "accesskit_android",
@@ -3285,7 +3285,7 @@ dependencies = [
 
 [[package]]
 name = "gpux-path"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "dunce",
@@ -3297,7 +3297,7 @@ dependencies = [
 
 [[package]]
 name = "gpux-perf"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "gpux-collections",
  "serde",
@@ -3306,7 +3306,7 @@ dependencies = [
 
 [[package]]
 name = "gpux-platform"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "console_error_panic_hook",
@@ -3337,14 +3337,14 @@ dependencies = [
 
 [[package]]
 name = "gpux-refineable"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "gpux-derive-refineable",
 ]
 
 [[package]]
 name = "gpux-reqwest-client"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "bytes",
@@ -3360,7 +3360,7 @@ dependencies = [
 
 [[package]]
 name = "gpux-scheduler"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "async-task",
  "backtrace",
@@ -3375,7 +3375,7 @@ dependencies = [
 
 [[package]]
 name = "gpux-shared-string"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "schemars",
  "serde",
@@ -3384,7 +3384,7 @@ dependencies = [
 
 [[package]]
 name = "gpux-sum-tree"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "heapless",
  "log",
@@ -3396,12 +3396,14 @@ dependencies = [
 
 [[package]]
 name = "gpux-testkit"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "gpux-devtools-mcp",
  "gpux-tests-conformance",
+ "regex",
  "tempfile",
+ "toml 0.9.8",
  "wasm-encoder",
  "wasmparser",
  "zip",
@@ -3409,7 +3411,7 @@ dependencies = [
 
 [[package]]
 name = "gpux-tests-conformance"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "android-activity",
  "anyhow",
@@ -3443,7 +3445,7 @@ dependencies = [
 
 [[package]]
 name = "gpux-util"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "log",
@@ -3452,7 +3454,7 @@ dependencies = [
 
 [[package]]
 name = "gpux-web"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "accesskit",
  "accesskit_consumer",
@@ -3630,7 +3632,7 @@ dependencies = [
 
 [[package]]
 name = "gpux-wgpu-renderer"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "bytemuck",
@@ -3662,7 +3664,7 @@ dependencies = [
 
 [[package]]
 name = "gpux-windows"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "accesskit",
  "accesskit_windows",
@@ -3693,7 +3695,7 @@ dependencies = [
 
 [[package]]
 name = "gpux-zed-util"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "async-fs",
@@ -3733,7 +3735,7 @@ dependencies = [
 
 [[package]]
 name = "gpux-zed-util-macros"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "gpux-perf",
  "quote",

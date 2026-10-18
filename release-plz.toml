@@ -1,0 +1,272 @@
+# release-plz: releases the whole gpux workspace as ONE version under ONE tag `vX.Y.Z`, with one root
+# CHANGELOG.md and one GitHub Release. It keeps a release pull request with the version bump and the
+# CHANGELOG.md section open on `main`; merging it makes the next `release` run tag `vX.Y.Z` and
+# create the GitHub Release. See docs/releasing.md, which also records how this file was proven.
+#
+# 1.x policy (while the owner is the only consumer): `fix`/`perf` -> patch, `feat` -> minor. Never
+# write `!` or a `BREAKING CHANGE:` footer (release-plz would propose 2.0.0): breaking work, Zed
+# imports included, is a `feat` whose body states the break, with RayX notes in a `Migration:`
+# footer, which the changelog prints under the commit.
+
+[workspace]
+# Versions come from git tags; nothing goes to a registry (the manifests stay publishable).
+git_only = true
+publish = false
+git_tag_name = "v{{ version }}"
+# Every Zed import breaks API; the 1.x policy decides the bump, not cargo-semver-checks.
+semver_check = false
+# Only changes that reach users start a release; docs, tests, CI, refactors and agentx commits
+# ride along in the next one.
+release_commits = "^(feat|fix|perf)"
+# Off by default: only `gpux` below tags, creates the GitHub Release and writes the changelog, so a
+# package missing from this file can never tag `vX.Y.Z` by itself (release_config.rs reports it).
+git_tag_enable = false
+git_release_enable = false
+changelog_update = false
+
+# The workspace's one tag, Release and changelog. Its section lists the commits of every own package.
+[[package]]
+name = "gpux"
+version_group = "gpux"
+git_tag_enable = true
+git_release_enable = true
+# The default Release name would be `gpux-vX.Y.Z`.
+git_release_name = "v{{ version }}"
+changelog_update = true
+changelog_path = "CHANGELOG.md"
+changelog_include = [
+  "gpux-apple",
+  "gpux-bench-metrics",
+  "gpux-collections",
+  "gpux-color",
+  "gpux-derive-refineable",
+  "gpux-devtools",
+  "gpux-devtools-mcp",
+  "gpux-fonts",
+  "gpux-http-client",
+  "gpux-http-client-tls",
+  "gpux-linux",
+  "gpux-macos",
+  "gpux-macros",
+  "gpux-mobile",
+  "gpux-path",
+  "gpux-perf",
+  "gpux-platform",
+  "gpux-refineable",
+  "gpux-reqwest-client",
+  "gpux-scheduler",
+  "gpux-shared-string",
+  "gpux-sum-tree",
+  "gpux-testkit",
+  "gpux-tests-conformance",
+  "gpux-util",
+  "gpux-web",
+  "gpux-wgpu-renderer",
+  "gpux-windows",
+  "gpux-zed-util",
+  "gpux-zed-util-macros",
+]
+
+# Every other own package shares the version and acts through `gpux` (a new crate joins here and
+# in `changelog_include` above).
+[[package]]
+name = "gpux-apple"
+version_group = "gpux"
+
+[[package]]
+name = "gpux-bench-metrics"
+version_group = "gpux"
+
+[[package]]
+name = "gpux-collections"
+version_group = "gpux"
+
+[[package]]
+name = "gpux-color"
+version_group = "gpux"
+
+[[package]]
+name = "gpux-derive-refineable"
+version_group = "gpux"
+
+[[package]]
+name = "gpux-devtools"
+version_group = "gpux"
+
+[[package]]
+name = "gpux-devtools-mcp"
+version_group = "gpux"
+
+[[package]]
+name = "gpux-fonts"
+version_group = "gpux"
+
+[[package]]
+name = "gpux-http-client"
+version_group = "gpux"
+
+[[package]]
+name = "gpux-http-client-tls"
+version_group = "gpux"
+
+[[package]]
+name = "gpux-linux"
+version_group = "gpux"
+
+[[package]]
+name = "gpux-macos"
+version_group = "gpux"
+
+[[package]]
+name = "gpux-macros"
+version_group = "gpux"
+
+[[package]]
+name = "gpux-mobile"
+version_group = "gpux"
+
+[[package]]
+name = "gpux-path"
+version_group = "gpux"
+
+[[package]]
+name = "gpux-perf"
+version_group = "gpux"
+
+[[package]]
+name = "gpux-platform"
+version_group = "gpux"
+
+[[package]]
+name = "gpux-refineable"
+version_group = "gpux"
+
+[[package]]
+name = "gpux-reqwest-client"
+version_group = "gpux"
+
+[[package]]
+name = "gpux-scheduler"
+version_group = "gpux"
+
+[[package]]
+name = "gpux-shared-string"
+version_group = "gpux"
+
+[[package]]
+name = "gpux-sum-tree"
+version_group = "gpux"
+
+[[package]]
+name = "gpux-testkit"
+version_group = "gpux"
+
+[[package]]
+name = "gpux-tests-conformance"
+version_group = "gpux"
+
+[[package]]
+name = "gpux-util"
+version_group = "gpux"
+
+[[package]]
+name = "gpux-web"
+version_group = "gpux"
+
+[[package]]
+name = "gpux-wgpu-renderer"
+version_group = "gpux"
+
+[[package]]
+name = "gpux-windows"
+version_group = "gpux"
+
+[[package]]
+name = "gpux-zed-util"
+version_group = "gpux"
+
+[[package]]
+name = "gpux-zed-util-macros"
+version_group = "gpux"
+
+# The vendored forks keep their own `-gpux.N` versions and are never released.
+[[package]]
+name = "gpux-accesskit-macos"
+release = false
+
+[[package]]
+name = "gpux-wgpu"
+release = false
+
+[[package]]
+name = "gpux-wgpu-core"
+release = false
+
+[[package]]
+name = "gpux-wgpu-core-deps-apple"
+release = false
+
+[[package]]
+name = "gpux-wgpu-core-deps-emscripten"
+release = false
+
+[[package]]
+name = "gpux-wgpu-core-deps-wasm"
+release = false
+
+[[package]]
+name = "gpux-wgpu-core-deps-windows-linux-android"
+release = false
+
+[[package]]
+name = "gpux-wgpu-hal"
+release = false
+
+[changelog]
+header = """# Changelog
+
+All notable changes to gpux are documented in this file. The whole workspace is released as one
+version under one `vX.Y.Z` tag. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html). It is generated from
+Conventional Commits by release-plz.
+
+"""
+# One `## [X.Y.Z] - YYYY-MM-DD` section per release; release-plz uses its body as the GitHub Release
+# notes. Each `Migration:` footer of a commit is printed as a nested line under its entry.
+body = """
+## [{{ version }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | upper_first }}
+{% for commit in commits %}
+{%- if commit.scope -%}
+- *({{ commit.scope }})* {% if commit.breaking %}[**breaking**] {% endif %}{{ commit.message }}
+{% else -%}
+- {% if commit.breaking %}[**breaking**] {% endif %}{{ commit.message }}
+{% endif -%}
+{%- for footer in commit.footers -%}
+{%- if footer.token == "Migration" %}  - Migration: {{ footer.value }}
+{% endif -%}
+{%- endfor -%}
+{% endfor -%}
+{% endfor %}
+"""
+trim = true
+protect_breaking_commits = true
+tag_pattern = "v[0-9].*"
+sort_commits = "oldest"
+commit_parsers = [
+  # Merge commits and housekeeping that is not a change to gpux.
+  { message = "^Merge ", skip = true },
+  { message = "^chore\\(agentx\\)", skip = true },
+  { message = "^chore\\(release\\)", skip = true },
+  { message = "^chore\\(deps\\)", skip = true },
+  { message = "^feat", group = "Features" },
+  { message = "^fix", group = "Fixes" },
+  { message = "^perf", group = "Performance" },
+  { message = "^refactor", group = "Refactoring" },
+  { message = "^docs", group = "Documentation" },
+  { message = "^(ci|build)", group = "Build and CI" },
+  { message = "^test", group = "Tests" },
+  { message = "^chore", group = "Maintenance" },
+]

@@ -61,7 +61,7 @@ name = "gpui_mobile"
 [dependencies]
 anyhow.workspace = true
 futures.workspace = true
-gpui = { package = "gpux", path = "../gpui", version = "0.3.0", default-features = false }
+gpui = { package = "gpux", path = "../gpui", version = "1.0.0", default-features = false }
 gpui_wgpu = { workspace = true }
 log.workspace = true
 parking_lot.workspace = true
