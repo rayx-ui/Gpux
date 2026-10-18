@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/repository/packaging
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-07T18:00:00+02:00
+  updated: 2026-10-19T09:00:00+02:00
   topics:
     - crates-io
     - packaging
@@ -12,6 +12,7 @@ agentx:
     - wgpu-fork
     - licenses
     - taffy
+    - releases
   supersedes: []
   superseded_by: []
 ---
@@ -29,11 +30,14 @@ Every crate publishes as `gpux` or `gpux-*` and keeps its GPUI Rust name through
 
 Dependencies come only from crates.io: no git dependencies and no `[patch]` tables. Zed's own forks come from their published `zed-*` crates (`zed-reqwest`, `zed-scap`, `zed-font-kit`, `zed-xim`). Taffy is the registry `=0.14.0` with a minimal feature set. `zlog`, `ztracing`, and `ztracing_macro` are not carried. Dev-dependencies on the `gpui_macros` → `gpux` and `gpux` → `gpui_platform`/`gpui_web` cycle edges are path-only.
 
+The workspace is released as one version (1.0.0 onward, 1.x while the owner is the only consumer) under one `vX.Y.Z` tag by release-plz in git-only mode ([release-plz.toml](../../../../../release-plz.toml), [release-plz.yml](../../../../../.github/workflows/release-plz.yml)): every own package sits in the `gpux` version group, only `gpux` tags, creates the GitHub Release and writes the root `CHANGELOG.md`, and the forks are `release = false`. Every own requirement (the root `[workspace.dependencies]` and `crates/gpui_mobile`'s inline `gpux` one) carries the workspace version; `tools/testkit/tests/release_config.rs` guards it. Nothing is published to a registry; the manifests stay publishable.
+
 `vendor/wgpu` holds `gpux-wgpu`: upstream wgpu's `wgpu`, `wgpu-core`, `wgpu-hal`, and `wgpu-core-deps-*` at the released version (currently `30.0.1`, published as `=30.0.1-gpux.1`), carrying exactly one change: DX12 HWND swap chains use `DXGI_SCALING_NONE` (gfx-rs/wgpu#10196). Its manifests are the published wgpu manifests with forked dependencies renamed and only library targets kept. HTML-island element upload is gpux code in `gpui_wgpu`, not a wgpu patch. The upstream replacement is tracked in [wgpu-dx12-swapchain-scaling](../../../../../docs/upstream/wgpu-dx12-swapchain-scaling.md).
 
 ## Backlinks
 
 - [Workspace manifest](../../../../../Cargo.toml)
+- [release-plz configuration](../../../../../release-plz.toml)
 - [wgpu fork](../../../../../vendor/wgpu)
 - [Fork script](../../../../../.claude/skills/gpux/scripts/fork_wgpu.py)
 - 2026-10-05 current [crates.io packaging](../../../decisions/repository/packaging/2026-10-05-repository-packaging-crates-io-packaging.md)
