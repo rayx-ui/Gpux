@@ -339,11 +339,14 @@ pub(crate) fn carry_paint_records(
 /// the last one neither prepaints nor paints the list, but carries its rows'
 /// records along, so that the next frame can carry them in turn.
 ///
-/// A `div`'s layer is painted again after such a frame instead: whether its
-/// content's hovers changed is told from the last frame's hit test, which a
-/// scroll since leaves behind, while a list keeps a row only where no
-/// hitbox can change the hovers it read (see
-/// [`crate::fast::layers::lists`]).
+/// A `div`'s layer whose content read hovers is painted again after such a
+/// frame instead: whether those hovers changed is told from the last frame's
+/// hit test, which a scroll since leaves behind, while a list keeps a row
+/// only where no hitbox can change the hovers it read (see
+/// [`crate::fast::layers::lists`]). Content that read no hover follows the
+/// copy as a list's rows do, so that a view holding a scrolling `div`, drawn
+/// from the last frame while the view around it renders again, leaves the
+/// `div`'s layer compositing.
 pub(crate) fn follow_prepaint(
     window: &mut Window,
     from: &Range<PrepaintStateIndex>,
@@ -383,7 +386,8 @@ pub(crate) fn follow_prepaint(
         let Some(record) = layer.record.as_mut() else {
             continue;
         };
-        if !current || !layer.rows.list || !inside(&record.prepaint_range) {
+        let follows = layer.rows.list || record.hovers.is_empty();
+        if !current || !follows || !inside(&record.prepaint_range) {
             continue;
         }
         record.prepaint_range = shift(&record.prepaint_range);

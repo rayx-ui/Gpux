@@ -445,6 +445,18 @@ on whole device pixels, its origin and each row's offset snapped apart, so a row
 at one offset lands where one drawn afresh at another does at a fractional scale factor
 (`fast::tests::virtual_list_layers::parent_promoted`).
 
+A frame that draws the view holding a scrolling `div` from the last one (`views_reused`, as when
+only the view around it renders again) copies the `div`'s layer's records with the view's. The
+layer follows the copy and composites the next scroll when its content read no hover, as a list's
+layer does; content that read hovers is painted again then, as its hovers are told from the last
+frame's hit test, which the scroll leaves behind (`fast::tests::layer_owner_replay`). A view that
+renders again for its own reasons and draws the scrolling `div` itself changes the layer's
+content each time: a `ParentViewport` list stays on its parent's layer when the `div` is drawn
+by a view of its own. A composited `div`'s own accessibility scroll target, the first event its
+layer's records hold, is replayed where the `div` stands, with the offset the frame scrolled to;
+the scroll containers nested in its content move with the content
+(`fast::tests::layer_a11y_scroll_targets`).
+
 Over 60 wheel frames of 15 px on 10,000 rows in a 100 px list (the harness of
 `fast::tests::virtual_list_layers::rows`, the test platform at scale 1, the shipped overscan), a
 frame paints 2.17 primitives on average for a `virtual_list` of rows 16 to 28 px tall and for one
