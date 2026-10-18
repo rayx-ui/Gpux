@@ -108,6 +108,7 @@ scenarios! {
     scroll_virtual_list_horizontal => "scroll-virtual-list-horizontal",
     scroll_virtual_list_sticky => "scroll-virtual-list-sticky",
     scroll_virtual_list_synchronized => "scroll-virtual-list-synchronized",
+    scroll_virtual_list_parent_viewport => "scroll-virtual-list-parent-viewport",
     chat_scroll => "chat-scroll",
     sticky_scroll => "sticky-scroll",
     effect_scroll => "effect-scroll",

@@ -99,6 +99,12 @@ pub(super) fn scenarios() -> Vec<Scenario> {
             Content::VirtualListSynchronized,
         ),
         scroll_scenario(
+            "scroll-virtual-list-parent-viewport",
+            "a virtual list of 10,000 rows of varying height in the flow of a scrolling div \
+             (`ParentViewport`); a wheel event per frame",
+            Content::VirtualListParentViewport,
+        ),
+        scroll_scenario(
             "chat-scroll",
             "a bottom-aligned list of 400 chat messages of varying length; a wheel event per \
              frame",
@@ -139,6 +145,9 @@ fn scroll_scenario(name: &'static str, description: &'static str, content: Conte
             }
             Content::VirtualListSynchronized => {
                 |_, cx| Box::new(Scrolling::new(cx, Content::VirtualListSynchronized))
+            }
+            Content::VirtualListParentViewport => {
+                |_, cx| Box::new(Scrolling::new(cx, Content::VirtualListParentViewport))
             }
         },
         warm_up_frames: 3,
@@ -214,6 +223,7 @@ enum Content {
     VirtualListHorizontal,
     VirtualListSticky,
     VirtualListSynchronized,
+    VirtualListParentViewport,
 }
 
 impl Content {
@@ -224,6 +234,7 @@ impl Content {
                 | Content::VirtualListHorizontal
                 | Content::VirtualListSticky
                 | Content::VirtualListSynchronized
+                | Content::VirtualListParentViewport
         )
     }
 }
@@ -249,6 +260,8 @@ pub(crate) struct Scroller {
     /// The virtual list's own handle, and the one it shares with its driver.
     virtual_handle: VirtualListScrollHandle,
     synchronized: VirtualListScrollHandle,
+    /// The scroll area's handle, as the handle of a virtual list in its flow.
+    parent_viewport: VirtualListScrollHandle,
     /// The rows a virtual list's row renderer rendered.
     virtual_rows: Rc<Cell<u64>>,
 }
@@ -416,6 +429,22 @@ impl Render for Scroller {
                     )
                     .into_any_element()
             }
+            // The list lies in the scroll area's flow, between two strips, and is part of the
+            // area's layer.
+            Content::VirtualListParentViewport => scroll_area()
+                .flex()
+                .flex_col()
+                .child(div().flex_none().h(px(60.)).w_full())
+                .child(
+                    self.virtual_list(Axis::Vertical, cx)
+                        .track_external_scroll(
+                            &self.parent_viewport,
+                            VirtualListExternalScrollBehavior::ParentViewport,
+                        )
+                        .w_full(),
+                )
+                .child(div().flex_none().h(px(60.)).w_full())
+                .into_any_element(),
         };
         // An opaque panel, as an application's window has: what a scroll
         // layer's tiles are cleared with.
@@ -445,14 +474,16 @@ impl Scrolling {
             _ => ListState::new(ROWS, ListAlignment::Top, px(200.)),
         };
         let virtual_rows = Rc::new(Cell::new(0));
+        let scroll = ScrollHandle::new();
         let scroller = cx.new(|_| Scroller {
             content,
-            scroll: ScrollHandle::new(),
+            scroll: scroll.clone(),
             uniform: UniformListScrollHandle::new(),
             list,
             rows,
             virtual_handle: VirtualListScrollHandle::new(),
             synchronized: VirtualListScrollHandle::new(),
+            parent_viewport: scroll.into(),
             virtual_rows: virtual_rows.clone(),
         });
         Self {
@@ -488,7 +519,8 @@ impl Fixture for Scrolling {
             | Content::Chat
             | Content::VirtualList
             | Content::VirtualListHorizontal
-            | Content::VirtualListSticky => viewport_center(),
+            | Content::VirtualListSticky
+            | Content::VirtualListParentViewport => viewport_center(),
             Content::ChildView | Content::Sticky | Content::Effect => gutter_center(),
             // Over the div driving the list.
             Content::VirtualListSynchronized => point(
@@ -651,6 +683,25 @@ impl Scrolling {
                 })?;
                 check(stats.list_rows_kept >= 5 * frames, || {
                     format!("the layer kept too few rows to scroll over: {stats:?}")
+                })?;
+                views_built_at_least(Mode::Layers, stats, 2)
+            }
+            // A list in a scrolling div's flow is part of the div's layer, which stays
+            // promoted: the list renders the rows of the region the layer paints when it paints,
+            // and none on the frames that composite it.
+            Content::VirtualListParentViewport => {
+                check(
+                    stats.layers_composited + stats.layers_repainted == frames,
+                    || format!("a frame went without the div's layer: {stats:?}"),
+                )?;
+                check(all_bypasses == 0, || {
+                    format!("a frame was drawn on today's path: {stats:?}")
+                })?;
+                check(stats.layers_repainted <= 2, || {
+                    format!("the layer was painted more than the scroll exposes: {stats:?}")
+                })?;
+                check(stats.tiles_composited >= frames, || {
+                    format!("a frame composited no tile: {stats:?}")
                 })?;
                 views_built_at_least(Mode::Layers, stats, 2)
             }

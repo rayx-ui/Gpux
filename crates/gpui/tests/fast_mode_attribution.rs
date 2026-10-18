@@ -262,15 +262,29 @@ fn modes_differ_only_by_landed_mechanisms(name: &str) {
             0 => splice,
             _ => splice + splice / 4 + 4,
         };
+        // A list in a scrolling div's flow (`ParentViewport`) renders, on the
+        // frames that paint the div's layer, the rows of the region the layer
+        // holds, five viewports: it lays out each of those rows' text then,
+        // one line measured as often as one layout pass measures a text leaf
+        // (four times), where splice lays out only the rows a scroll uncovers.
+        // Its extra layout is bounded by the rows it rendered, which are far
+        // fewer than splice's (`virtual_lists_render_fewer_rows_on_their_layers`).
+        let region_rows = match layers.list_rows_rendered {
+            0 => {
+                let scenario = fast_scenarios::scenario(name).unwrap();
+                measure_rows(&scenario, Mode::Layers).2.unwrap_or(0)
+            }
+            _ => 0,
+        };
         for (counter, more) in [
             ("views_built", layers.views_built > splice.views_built),
             (
                 "leaves_measured",
-                layers.leaves_measured > ahead(splice.leaves_measured),
+                layers.leaves_measured > ahead(splice.leaves_measured) + 4 * region_rows,
             ),
             (
                 "lines_shaped",
-                layers.lines_shaped > ahead(splice.lines_shaped),
+                layers.lines_shaped > ahead(splice.lines_shaped) + region_rows,
             ),
             (
                 "primitives_painted",
@@ -320,6 +334,7 @@ scenarios! {
     scroll_virtual_list_horizontal => "scroll-virtual-list-horizontal",
     scroll_virtual_list_sticky => "scroll-virtual-list-sticky",
     scroll_virtual_list_synchronized => "scroll-virtual-list-synchronized",
+    scroll_virtual_list_parent_viewport => "scroll-virtual-list-parent-viewport",
     chat_scroll => "chat-scroll",
     sticky_scroll => "sticky-scroll",
     effect_scroll => "effect-scroll",
@@ -335,6 +350,7 @@ fn virtual_lists_render_fewer_rows_on_their_layers() {
         "scroll-virtual-list-horizontal",
         "scroll-virtual-list-sticky",
         "scroll-virtual-list-synchronized",
+        "scroll-virtual-list-parent-viewport",
     ] {
         let scenario = fast_scenarios::scenario(name).unwrap();
         let (_, _, splice) = measure_rows(&scenario, Mode::Splice);
