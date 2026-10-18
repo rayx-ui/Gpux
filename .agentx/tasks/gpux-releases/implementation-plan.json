@@ -1,0 +1,912 @@
+{
+  "schemaVersion": 7,
+  "epicId": "gpux-releases",
+  "revision": 7,
+  "title": "Versioned gpux releases: one workspace version and one v-tag with release-plz, v1.0.0, release-PR CI, rayx declarations, consumption by git tag",
+  "validationMode": "sprint",
+  "repositories": [
+    {
+      "id": "gpux",
+      "path": ".",
+      "role": "execution"
+    },
+    {
+      "id": "rayx-cli",
+      "path": "../RayX.CLI",
+      "role": "reference"
+    }
+  ],
+  "boundaries": {
+    "repositoryIds": [
+      "gpux"
+    ],
+    "forbiddenPaths": [
+      "vendor/**",
+      "crates/gpux_tests_benchmark/**",
+      "crates/gpux_tests_conformance/tests/goldens/**",
+      "docs/history/**",
+      ".agentx/experiments/**",
+      ".agentx/tasks/frame-effects-navigation-transitions/**",
+      ".agentx/tasks/frame-family-component-transitions/**",
+      ".agentx/tasks/gpux-a11y-devtools/**",
+      ".agentx/tasks/gpux-cross-platform-test-lanes/**",
+      ".agentx/tasks/gpux-fast-mode/**",
+      ".agentx/tasks/gpux-faster-test-lanes/**",
+      ".agentx/tasks/gpux-fixed-sticky-positioning/**",
+      ".agentx/tasks/gpux-platform-text-input/**",
+      ".agentx/tasks/gpux-rich-editable-text/**",
+      ".agentx/tasks/gpux-text-rendering-quality-performance/**",
+      ".agentx/tasks/gpux-tools-layout/**",
+      ".agentx/tasks/gpux-virtual-list/**",
+      ".agentx/tasks/gpux-virtual-list-layer-kinds/**",
+      ".agentx/tasks/gpux-wgpu-platform-renderers/**",
+      ".agentx/tasks/high-quality-wasm-text-rendering/**",
+      ".agentx/tasks/html-element-dom-overlay/**",
+      ".agentx/tasks/html-island-wasm/**",
+      ".agentx/tasks/keyed-sticky-stacking/**",
+      ".agentx/tasks/macos-only-metal-port-and-ci-repair/**",
+      ".agentx/tasks/shader-effects-and-screen-transitions/**"
+    ]
+  },
+  "checks": [
+    {
+      "id": "check-release-config",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "VER-1",
+        "RPZ-1",
+        "RPZ-2",
+        "RPZ-3"
+      ],
+      "descriptionMarkdown": "New group `tools/testkit/tests/release_config.rs`: own versions and requirements equal with major 1 (the 1.x policy), fork versions untouched, `release-plz.toml` (fields, version group and `changelog_include` against the workspace's packages, forks `release = false`, `release_commits` on sample subjects with `regex`, changelog template), `release-plz.yml` structure and that it is the only workflow with a `push` trigger, a `CHANGELOG.md` section for the workspace version and its header equal to the configured one. The first run compiles gpux-testkit's dependency graph, hence the timeout.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-testkit",
+        "--test",
+        "release_config"
+      ],
+      "cwd": ".",
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 8
+      },
+      "timeoutSeconds": 3600,
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/**/Cargo.toml",
+        "tools/**/Cargo.toml",
+        "vendor/**/Cargo.toml",
+        "release-plz.toml",
+        "CHANGELOG.md",
+        ".github/workflows/**",
+        "tools/testkit/tests/release_config.rs"
+      ]
+    },
+    {
+      "id": "check-workflow-yaml",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [
+        "RPZ-2"
+      ],
+      "descriptionMarkdown": "AgentX's workflow YAML checker (syntax errors and the duplicate keys GitHub rejects) over every workflow and the plan action. The script path is the installed AgentX skill's.",
+      "argv": [
+        "ruby",
+        "/Users/dinko/.claude/skills/agentx/scripts/check_workflow_yaml.rb",
+        ".github/workflows/release-plz.yml",
+        ".github/workflows/ci.yml",
+        ".github/workflows/lane-b.yml",
+        ".github/workflows/lane-e.yml",
+        ".github/workflows/lane-f.yml",
+        ".github/actions/plan/action.yml"
+      ],
+      "cwd": ".",
+      "expected": {
+        "exitCode": 0,
+        "stdoutPattern": "workflow yaml ok"
+      },
+      "inputs": [
+        ".github/**"
+      ]
+    },
+    {
+      "id": "check-repository-layout",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "RPZ-3"
+      ],
+      "descriptionMarkdown": "The existing group that exercises the touched guard: `repository_layout.rs` now lists `CHANGELOG.md` as historical, and its stale-path scan reads every tracked live file (hence no `inputs`: any change makes it stale and `check --epic` reruns it; it takes seconds once built).",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-testkit",
+        "--test",
+        "repository_layout"
+      ],
+      "cwd": ".",
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 11
+      },
+      "timeoutSeconds": 3600
+    },
+    {
+      "id": "check-ci-plan-release-pr",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "CI-1"
+      ],
+      "descriptionMarkdown": "New group `tools/testkit/tests/ci_plan_release_pr.rs`: runs `plan.sh` in temporary git repositories for the eight cases of CI-1 (needs `bash`, `jq`, `git`; ignored on Windows with the reason).",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-testkit",
+        "--test",
+        "ci_plan_release_pr"
+      ],
+      "cwd": ".",
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 6
+      },
+      "timeoutSeconds": 3600,
+      "inputs": [
+        ".github/actions/plan/**",
+        "tools/testkit/tests/ci_plan_release_pr.rs",
+        "tools/testkit/Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-ci-plan",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "CI-1"
+      ],
+      "descriptionMarkdown": "The existing group that runs the touched script: `ci_plan.rs` (documentation-only rule, long file lists, labels, dispatch, schedule, ci.yml wiring) must still pass after `plan.sh` gains the release rule and `CHANGELOG.md` joins the documentation list.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-testkit",
+        "--test",
+        "ci_plan"
+      ],
+      "cwd": ".",
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 14
+      },
+      "timeoutSeconds": 3600,
+      "inputs": [
+        ".github/actions/plan/**",
+        ".github/workflows/ci.yml",
+        "tools/testkit/tests/ci_plan.rs"
+      ]
+    },
+    {
+      "id": "check-rayx-declarations",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "RAYX-1",
+        "RAYX-2",
+        "RAYX-3"
+      ],
+      "descriptionMarkdown": "New group `tools/testkit/tests/rayx_declarations.rs`: the gpux-fonts asset manifest and metadata, gpux-mobile's `android_java_dirs` against `android::JAVA_SOURCES`, and `[workspace.metadata.rayx]` against `android::{COMPILE_SDK, BUILD_TOOLS_VERSION, NDK_VERSION}` and `lane-e.yml`'s `ANDROID_PACKAGES`.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-testkit",
+        "--test",
+        "rayx_declarations"
+      ],
+      "cwd": ".",
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
+      },
+      "timeoutSeconds": 3600,
+      "inputs": [
+        "Cargo.toml",
+        "crates/gpux_fonts/**",
+        "crates/gpui_mobile/Cargo.toml",
+        "crates/gpui_mobile/java/**",
+        "tools/testkit/src/android.rs",
+        ".github/workflows/lane-e.yml",
+        "tools/testkit/tests/rayx_declarations.rs",
+        "tools/testkit/Cargo.toml"
+      ]
+    },
+    {
+      "id": "check-package-list-fonts",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [
+        "RAYX-1"
+      ],
+      "descriptionMarkdown": "The asset manifest is packaged with gpux-fonts (listing only; `--allow-dirty` so it can run before the sprint commit).",
+      "argv": [
+        "cargo",
+        "package",
+        "--list",
+        "--allow-dirty",
+        "-p",
+        "gpux-fonts"
+      ],
+      "cwd": ".",
+      "expected": {
+        "exitCode": 0,
+        "stdoutPattern": "(?m)^rayx\\.assets\\.toml$"
+      },
+      "inputs": [
+        "Cargo.toml",
+        "crates/gpux_fonts/**"
+      ]
+    },
+    {
+      "id": "check-package-list-mobile",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [
+        "RAYX-2"
+      ],
+      "descriptionMarkdown": "The declared Java directory is packaged with gpux-mobile (listing only).",
+      "argv": [
+        "cargo",
+        "package",
+        "--list",
+        "--allow-dirty",
+        "-p",
+        "gpux-mobile"
+      ],
+      "cwd": ".",
+      "expected": {
+        "exitCode": 0,
+        "stdoutPattern": "(?m)^java/dev/gpux/mobile/GpuxNativeActivity\\.java$"
+      },
+      "inputs": [
+        "Cargo.toml",
+        "crates/gpui_mobile/Cargo.toml",
+        "crates/gpui_mobile/java/**"
+      ]
+    },
+    {
+      "id": "check-release-docs",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "DOC-2"
+      ],
+      "descriptionMarkdown": "New group `tools/testkit/tests/release_docs.rs`: the README crate table equals the workspace's packages (directory, package, Rust name; the fork row names all fork packages), and the four install documents show the git-tag form and no crates.io or `../Gpux` form.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-testkit",
+        "--test",
+        "release_docs"
+      ],
+      "cwd": ".",
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2
+      },
+      "timeoutSeconds": 3600,
+      "inputs": [
+        "README.md",
+        "docs/installation-and-usage.md",
+        ".claude/skills/gpux/references/installation-and-usage.md",
+        ".claude/skills/gpux/references/multithreaded-wasm-apps.md",
+        "Cargo.toml",
+        "crates/**/Cargo.toml",
+        "tools/**/Cargo.toml",
+        "vendor/**/Cargo.toml",
+        "tools/testkit/tests/release_docs.rs",
+        "tools/testkit/Cargo.toml"
+      ]
+    },
+    {
+      "id": "final-fmt",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [
+        "VER-1",
+        "CI-1",
+        "RAYX-1",
+        "DOC-2"
+      ],
+      "descriptionMarkdown": "`cargo fmt --check` (the new test groups).",
+      "argv": [
+        "cargo",
+        "fmt",
+        "--check"
+      ],
+      "cwd": ".",
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-clippy-testkit",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [
+        "VER-1",
+        "RPZ-1",
+        "CI-1",
+        "RAYX-3",
+        "DOC-2"
+      ],
+      "descriptionMarkdown": "Clippy of the one package whose code changes (its new test groups and dev-dependencies), as CLAUDE.md runs it.",
+      "argv": [
+        "cargo",
+        "clippy",
+        "-p",
+        "gpux-testkit",
+        "--all-targets",
+        "--no-deps",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": ".",
+      "expected": {
+        "exitCode": 0
+      },
+      "timeoutSeconds": 3600
+    },
+    {
+      "id": "final-package",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "VER-1",
+        "RAYX-1",
+        "RAYX-2",
+        "RAYX-3"
+      ],
+      "descriptionMarkdown": "`cargo package --workspace` after the manifest changes (version 1.0.0, rayx metadata, new dev-dependency) and before the release, as CLAUDE.md and the packaging rules require; it builds every packaged crate, so it is the compile proof of the version bump. Runs on this Mac (gpux-accesskit-macos builds only on Apple platforms).",
+      "argv": [
+        "cargo",
+        "package",
+        "--workspace"
+      ],
+      "cwd": ".",
+      "expected": {
+        "exitCode": 0
+      },
+      "timeoutSeconds": 5400
+    }
+  ],
+  "finalCheckIds": [
+    "final-fmt",
+    "final-clippy-testkit",
+    "final-package"
+  ],
+  "sprints": [
+    {
+      "id": "s1-release-spike",
+      "title": "Spike: release-plz gives the workspace one version, one tag and one changelog (scratch clone only)",
+      "dependsOn": [],
+      "memoryScopes": [
+        "repository/packaging"
+      ],
+      "checkIds": [],
+      "tasks": [
+        {
+          "id": "t01-release-plz-spike",
+          "title": "Prove release-plz's git-only version group in a scratch clone, or switch to the fallback",
+          "descriptionMarkdown": "Prove d-release-tooling before anything lands. The real checkout does not change in this sprint (its checkpoint reuses the current commit).\n\n1. Install the latest release-plz (`cargo install release-plz --locked`) and record `release-plz --version`; read `release-plz/action@v0.5`'s `action.yml` for a version input.\n2. Under ignored `artifacts-temp/agentx/gpux-releases/spike/`: `git clone --no-local <checkout> gpux`, `git init --bare remote.git`, `git -C gpux remote set-url origin <abs>/remote.git`, push `main` there **before** any release-plz command. Pass no GitHub token; no command points at `github.com`.\n3. In the scratch clone apply VER-1's edits (version 1.0.0, the 30 requirements, gpui_mobile's inline one), candidate A's `release-plz.toml` and a stub `CHANGELOG.md` with RayX.CLI's header and a `## [1.0.0]` section; commit.\n4. Run SPIKE-1's scenarios with `release-plz update` (a release PR's content) and `release-plz release --dry-run` (or a real `release` against the bare remote with `git_release_enable = false` in a scratch-only copy), committing scenario commits with exactly the listed subjects and resetting between scenarios; save each output and `git diff --stat`.\n5. If A fails a must-hold scenario, try B; if both fail, tell the owner and switch to fallback C with `amend --specification` (d-release-tooling, d-release-workflow, RPZ-1, RPZ-2, t03), then prove C against the same scenarios.\n6. Record in the handoff (`advance --handoff`): the proven `release-plz.toml` text, the release-plz version, the exact files a release PR changes (input of t05), what `update` does on the untagged 1.0.0 tree, whether release-plz compiles anything, and the observations for `docs/releasing.md`.",
+          "criterionIds": [
+            "SPIKE-1"
+          ],
+          "designIds": [
+            "d-release-tooling",
+            "d-release-workflow"
+          ],
+          "dependsOn": [],
+          "checkIds": [],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "Cargo.toml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/Cargo.toml",
+              "symbol": "gpui"
+            },
+            {
+              "repositoryId": "rayx-cli",
+              "path": "release-plz.toml"
+            },
+            {
+              "repositoryId": "rayx-cli",
+              "path": ".github/workflows/release-plz.yml"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s2-release-config",
+      "title": "Version 1.0.0, release-plz configuration and workflow, CHANGELOG",
+      "dependsOn": [
+        "s1-release-spike"
+      ],
+      "memoryScopes": [
+        "repository/packaging",
+        "repository/validation"
+      ],
+      "checkIds": [
+        "check-release-config",
+        "check-workflow-yaml",
+        "check-repository-layout"
+      ],
+      "tasks": [
+        {
+          "id": "t02-version-1-0-0",
+          "title": "Version 1.0.0 for every own crate and the release_config guard group",
+          "descriptionMarkdown": "Set `[workspace.package] version = \"1.0.0\"`, the 30 own `[workspace.dependencies]` entries' `version = \"0.3.0\"` to `\"1.0.0\"` (the forks' `=30.0.1-gpux.1`/`=0.27.1-gpux.1` untouched) and `crates/gpui_mobile/Cargo.toml`'s inline `gpui = { package = \"gpux\", path = \"../gpui\", version = ... }` to `\"1.0.0\"`; leave the versionless cycle-edge dev-dependencies alone. Refresh only workspace members in the lockfile (`cargo update --workspace --offline`) and inspect `git diff Cargo.lock`.\n\nAdd `toml = \"0.9\"` to `[workspace.dependencies]` and `toml.workspace = true`, `regex.workspace = true` to gpux-testkit's `[dev-dependencies]` (the lockfile gains them only in gpux-testkit's dependency list). Start the new group `tools/testkit/tests/release_config.rs` (module doc saying what it guards, workspace lints, the `ci_plan.rs` style) with VER-1's lasting invariants: own requirements reached by a `path` outside `vendor/` equal the workspace version (root and member manifests), the version's major is 1, fork versions carry `-gpux.` and differ.",
+          "criterionIds": [
+            "VER-1"
+          ],
+          "designIds": [
+            "d-release-tooling",
+            "d-git-tag-distribution",
+            "d-guard-tests"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-release-config"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "Cargo.toml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/Cargo.toml",
+              "symbol": "gpui"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "Cargo.lock"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tools/testkit/Cargo.toml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tools/testkit/tests/release_config.rs"
+            }
+          ]
+        },
+        {
+          "id": "t03-release-plz-config",
+          "title": "release-plz.toml and the release workflow",
+          "descriptionMarkdown": "Commit the `release-plz.toml` the spike proved (d-release-tooling; comments explain each non-obvious key, as RayX.CLI's file does) and `.github/workflows/release-plz.yml` (d-release-workflow; header comment as RayX.CLI's, naming the Gpux differences). Extend `release_config.rs` with RPZ-1 and RPZ-2: parse the config with `toml`, compare the version group and `changelog_include` with the workspace's own packages, assert fork `release = false` and one entry per workspace package, evaluate `release_commits` with `regex` on RPZ-1's sample subjects, check the changelog template keys; assert the workflow line-wise as `ci_plan.rs` reads `ci.yml`, and that no other workflow has a `push` trigger. Run the YAML checker.",
+          "criterionIds": [
+            "RPZ-1",
+            "RPZ-2"
+          ],
+          "designIds": [
+            "d-release-tooling",
+            "d-release-workflow"
+          ],
+          "dependsOn": [
+            "t02-version-1-0-0"
+          ],
+          "checkIds": [
+            "check-release-config",
+            "check-workflow-yaml"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "release-plz.toml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": ".github/workflows/release-plz.yml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tools/testkit/tests/release_config.rs"
+            },
+            {
+              "repositoryId": "rayx-cli",
+              "path": "release-plz.toml"
+            },
+            {
+              "repositoryId": "rayx-cli",
+              "path": ".github/workflows/release-plz.yml"
+            }
+          ]
+        },
+        {
+          "id": "t04-changelog",
+          "title": "Root CHANGELOG.md with the hand-written 1.0.0 section",
+          "descriptionMarkdown": "Write `CHANGELOG.md`: exactly the `[changelog]` header of `release-plz.toml` (release-plz keeps it only if identical) and a hand-written `## [1.0.0] - <today>` section per RPZ-3 (the date is set to the push day again in t11); read `docs/history/zed-imports.tsv`, the README and `docs/` for facts, invent no history. Add `CHANGELOG.md` to `HISTORICAL` in `tools/testkit/tests/repository_layout.rs` and to its not-scanned assertion list. Extend `release_config.rs` with RPZ-3's lasting invariant (a section for the workspace version, the header equal to the configured one).",
+          "criterionIds": [
+            "RPZ-3"
+          ],
+          "designIds": [
+            "d-release-tooling",
+            "d-git-tag-distribution",
+            "d-guard-tests"
+          ],
+          "dependsOn": [
+            "t03-release-plz-config"
+          ],
+          "checkIds": [
+            "check-release-config",
+            "check-repository-layout"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "CHANGELOG.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tools/testkit/tests/repository_layout.rs",
+              "symbol": "HISTORICAL"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "docs/history/zed-imports.tsv"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s3-release-pr-ci",
+      "title": "Release pull requests run only check and package",
+      "dependsOn": [
+        "s1-release-spike"
+      ],
+      "memoryScopes": [
+        "repository/validation"
+      ],
+      "checkIds": [
+        "check-ci-plan-release-pr",
+        "check-ci-plan"
+      ],
+      "tasks": [
+        {
+          "id": "t05-release-pr-planner",
+          "title": "Recognize a release pull request in the CI planner",
+          "descriptionMarkdown": "Implement d-release-pr-ci in `.github/actions/plan/plan.sh` from the spike's list of files a release PR changes: after the `ci:` label branch, when `BASE_SHA` is set, a documentation-only change keeps `jobs=(check)` (now including `CHANGELOG.md`); otherwise a release-shaped change sets `jobs=(check package)` and `platforms=(ubuntu)`, before `ci-os:` labels apply. Compare `git show \"$BASE_SHA:<file>\"` and `git show \"$HEAD_SHA:<file>\"` with the own version values masked (a file added or deleted is not version-only); keep it portable between GNU and BSD `sed`/`awk` and read the file list whole. Update the script's header comment and `docs/ci.md` (CI-2).\n\nNew group `tools/testkit/tests/ci_plan_release_pr.rs` with CI-1's eight cases in temporary git repositories (copy `ci_plan.rs`'s small helpers; `#[cfg_attr(windows, ignore = ...)]` with the reason). Then run the existing `ci_plan` group.",
+          "criterionIds": [
+            "CI-1",
+            "CI-2"
+          ],
+          "designIds": [
+            "d-release-pr-ci",
+            "d-guard-tests"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-ci-plan-release-pr",
+            "check-ci-plan"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": ".github/actions/plan/plan.sh"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "docs/ci.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tools/testkit/tests/ci_plan.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tools/testkit/tests/ci_plan_release_pr.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s4-rayx-declarations",
+      "title": "rayx contract declarations: gpux-fonts assets, gpux-mobile Java directory, workspace Android pins",
+      "dependsOn": [],
+      "memoryScopes": [
+        "platform/mobile",
+        "repository/packaging"
+      ],
+      "checkIds": [
+        "check-rayx-declarations",
+        "check-package-list-fonts",
+        "check-package-list-mobile"
+      ],
+      "tasks": [
+        {
+          "id": "t06-rayx-declarations",
+          "title": "Declare gpux's assets, Java sources and Android pins for rayx",
+          "descriptionMarkdown": "Add the three declarations of d-rayx-declarations: `crates/gpux_fonts/rayx.assets.toml` and the `[package.metadata.rayx.assets]` table in its `Cargo.toml`; `[package.metadata.rayx] android_java_dirs = [\"java\"]` in `crates/gpui_mobile/Cargo.toml`; `[workspace.metadata.rayx]` with the three pins in the root `Cargo.toml` (a short comment: read by rayx from the library-agnostic release (expected 1.4.0), kept equal to lane E's pins by `rayx_declarations.rs`).\n\nNew group `tools/testkit/tests/rayx_declarations.rs`: parse the root manifest's `[workspace.metadata.rayx]` and compare with `gpux_testkit::android::{COMPILE_SDK, BUILD_TOOLS_VERSION, NDK_VERSION}` and `lane-e.yml`'s `ANDROID_PACKAGES`, and that no other key exists; parse gpux-fonts' metadata and `rayx.assets.toml` (every field) and check the root holds `fonts/ibm-plex-sans` and `fonts/lilex`; parse gpux-mobile's `android_java_dirs`, check each directory exists, holds `.java` files and equals `android::JAVA_SOURCES`. Confirm packaging with the two `cargo package --list` checks.",
+          "criterionIds": [
+            "RAYX-1",
+            "RAYX-2",
+            "RAYX-3"
+          ],
+          "designIds": [
+            "d-rayx-declarations",
+            "d-guard-tests"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-rayx-declarations",
+            "check-package-list-fonts",
+            "check-package-list-mobile"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_fonts/Cargo.toml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_fonts/rayx.assets.toml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/Cargo.toml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/java"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tools/testkit/src/android.rs",
+              "symbol": "NDK_VERSION"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": ".github/workflows/lane-e.yml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "Cargo.toml"
+            },
+            {
+              "repositoryId": "rayx-cli",
+              "path": "docs/app-project.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s5-release-docs",
+      "title": "Release and consumption documentation, and the consumer build outside the repository",
+      "dependsOn": [
+        "s1-release-spike",
+        "s2-release-config",
+        "s3-release-pr-ci",
+        "s4-rayx-declarations"
+      ],
+      "memoryScopes": [
+        "repository/packaging"
+      ],
+      "checkIds": [
+        "check-release-docs"
+      ],
+      "tasks": [
+        {
+          "id": "t07-releasing-doc",
+          "title": "docs/releasing.md",
+          "descriptionMarkdown": "Write `docs/releasing.md` per DOC-1, modelled on RayX.CLI's `docs/releasing.md` without its cargo-dist parts, with the Gpux specifics (one workspace version and tag, forks never released, the 1.x policy with Zed imports as `feat` and `Migration:` footers, the checks before merging a release PR including that the version is still 1.x, the shared PAT's repository access, the Gpux by-hand fallback including `crates/gpui_mobile`'s inline requirement, a new crate joins the version group, how the configuration was proven from t01's handoff and how to rehearse a change in a scratch clone with a local bare remote). Link it from the README's Maintenance section.",
+          "criterionIds": [
+            "DOC-1"
+          ],
+          "designIds": [
+            "d-release-tooling",
+            "d-release-workflow",
+            "d-git-tag-distribution"
+          ],
+          "dependsOn": [],
+          "checkIds": [],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "docs/releasing.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "README.md"
+            },
+            {
+              "repositoryId": "rayx-cli",
+              "path": "docs/releasing.md"
+            }
+          ]
+        },
+        {
+          "id": "t08-install-docs",
+          "title": "Git-tag install form, README crate table, consumer build outside the repository",
+          "descriptionMarkdown": "Switch the README `Usage` section, `docs/installation-and-usage.md` (\"Add gpux to a Rust project\": drop the crates.io and sibling-checkout forms) and the skill's `references/installation-and-usage.md` and `references/multithreaded-wasm-apps.md` to the git-tag form per DOC-2, with the note naming the rayx release that contains the library-agnostic contract (expected 1.4.0). Correct the README crate table (add `gpux-apple` and `gpux-bench-metrics`, remove `crates/media`). New group `tools/testkit/tests/release_docs.rs` for DOC-2.\n\nCONS-1: outside the Gpux tree (for example `$TMPDIR/gpux-consumer`), `cargo new`, add the path-dependency lines of CONS-1 and the README example, run `cargo check` there, keep the log under `artifacts-temp/agentx/gpux-releases/consumer/`. A failure is fixed in gpux (a finding) before s6.",
+          "criterionIds": [
+            "DOC-2",
+            "CONS-1"
+          ],
+          "designIds": [
+            "d-git-tag-distribution",
+            "d-rayx-declarations",
+            "d-guard-tests"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-release-docs"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "README.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "docs/installation-and-usage.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": ".claude/skills/gpux/references/installation-and-usage.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": ".claude/skills/gpux/references/multithreaded-wasm-apps.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tools/testkit/tests/release_docs.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": ".cargo/config.toml"
+            }
+          ]
+        },
+        {
+          "id": "t09-contributor-docs",
+          "title": "CLAUDE.md, AGENTS.md and the gpux skill: Consumers and Releases",
+          "descriptionMarkdown": "Per DOC-3: replace the Consumers section of `CLAUDE.md` and `AGENTS.md` (identical new text in both) and add a Releases section; reword \"publish\" to \"stay publishable / released by git tag\" in the Crate Layout bullets without changing a packaging rule. In the gpux skill update `SKILL.md` (overview, the packaging routing line, the crates.io dependency rule wording) and `references/update-from-zed-gpui-closure.md` (Manifest And Packaging Shape: the workspace-dependency example with the workspace version; a new crate joins `release-plz.toml`'s version group; the import commit is `feat(gpux): import Zed GPUI closure <sha>` with a `Migration:` footer under the 1.x policy). Do not touch AGENTS.md's unrelated drift.",
+          "criterionIds": [
+            "DOC-3"
+          ],
+          "designIds": [
+            "d-git-tag-distribution",
+            "d-release-tooling"
+          ],
+          "dependsOn": [],
+          "checkIds": [],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "CLAUDE.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "AGENTS.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": ".claude/skills/gpux/SKILL.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": ".claude/skills/gpux/references/update-from-zed-gpui-closure.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s6-first-release",
+      "title": "First release: verify the owner's secret and tag ruleset and the rayx release, one pre-approved push that releases v1.0.0, a consumer by tag",
+      "dependsOn": [
+        "s1-release-spike",
+        "s2-release-config",
+        "s3-release-pr-ci",
+        "s4-rayx-declarations",
+        "s5-release-docs"
+      ],
+      "memoryScopes": [
+        "repository/packaging"
+      ],
+      "checkIds": [],
+      "tasks": [
+        {
+          "id": "t10-owner-prerequisites",
+          "title": "Verify the prerequisites the owner set up and the rayx release",
+          "descriptionMarkdown": "Verify and record OWN-1's four items with read-only `gh`/`git` calls; create or change nothing (the secret and the \"Release tags\" ruleset exist since 2026-10-18). A failed item is reported to the owner, whose disposition it is; the push waits for it.",
+          "criterionIds": [
+            "OWN-1"
+          ],
+          "designIds": [
+            "d-first-release"
+          ],
+          "dependsOn": [],
+          "checkIds": [],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "docs/releasing.md"
+            }
+          ]
+        },
+        {
+          "id": "t11-first-release",
+          "title": "One push to main; release-plz tags v1.0.0 and creates the GitHub Release",
+          "descriptionMarkdown": "Before pushing: all focused checks current, the final checks' commands (`cargo fmt --check`, the gpux-testkit clippy, `cargo package --workspace`) pass locally, CONS-1 passed, and a `docs(changelog): date the 1.0.0 release` commit sets the 1.0.0 date to today if it differs. Push (pre-approved): `git fetch origin && git rebase origin/main && git push --force-with-lease origin main`. Watch the Release-plz run (`gh run watch`); on a checkout or push failure, report the PAT's missing Gpux access to the owner and re-run only after the fix; then collect FIRST-1's evidence. Use the by-hand fallback of `docs/releasing.md` only if release-plz cannot cut v1.0.0, and record why. Never move or delete a tag.",
+          "criterionIds": [
+            "FIRST-1"
+          ],
+          "designIds": [
+            "d-first-release",
+            "d-release-workflow"
+          ],
+          "dependsOn": [
+            "t10-owner-prerequisites"
+          ],
+          "checkIds": [],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": ".github/workflows/release-plz.yml"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "CHANGELOG.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "docs/releasing.md"
+            }
+          ]
+        },
+        {
+          "id": "t12-tag-consumer",
+          "title": "A consumer outside the repository resolves gpux from the v1.0.0 tag",
+          "descriptionMarkdown": "Repeat CONS-1's project outside the repository with the README's git-tag dependency lines at `tag = \"v1.0.0\"`, run `cargo check`, and compare the `Cargo.lock` source commit with the remote tag per FIRST-2. Keep the log under `artifacts-temp/agentx/gpux-releases/consumer/`.",
+          "criterionIds": [
+            "FIRST-2"
+          ],
+          "designIds": [
+            "d-first-release",
+            "d-git-tag-distribution"
+          ],
+          "dependsOn": [
+            "t11-first-release"
+          ],
+          "checkIds": [],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "README.md"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

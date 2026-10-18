@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 7,
+  "epicId": "gpux-releases",
+  "revision": 7,
+  "planRevision": 7,
+  "specHashes": {
+    "requirements": "90bb28af5d54b9b005a8c55d5dde03db3ef928c4e609a4ad4e5ae36367a39e38",
+    "design": "f45cde24a38c30717420302ec284f0e6f7300292dfd594b34d3df2d694724155",
+    "plan": "adfb6cf4a04d40f261f552e3592abaf14d668f7e91687534a47cb24d23d1a4f2"
+  },
+  "tasks": {
+    "t01-release-plz-spike": {
+      "status": "in_progress",
+      "workerIds": [
+        "d20e6e5f-43b6-4725-9ce6-9fe0c0529c62"
+      ]
+    },
+    "t02-version-1-0-0": {
+      "status": "pending"
+    },
+    "t03-release-plz-config": {
+      "status": "pending"
+    },
+    "t04-changelog": {
+      "status": "pending"
+    },
+    "t05-release-pr-planner": {
+      "status": "pending"
+    },
+    "t06-rayx-declarations": {
+      "status": "pending"
+    },
+    "t07-releasing-doc": {
+      "status": "pending"
+    },
+    "t08-install-docs": {
+      "status": "pending"
+    },
+    "t09-contributor-docs": {
+      "status": "pending"
+    },
+    "t10-owner-prerequisites": {
+      "status": "pending"
+    },
+    "t11-first-release": {
+      "status": "pending"
+    },
+    "t12-tag-consumer": {
+      "status": "pending"
+    }
+  },
+  "validationBatches": {},
+  "checkResults": {},
+  "reviews": {},
+  "checkpoints": {},
+  "findings": [],
+  "handoffMarkdown": "",
+  "protectedPaths": {
+    "gpux": {
+      "vendor/**": "c4081a3160e3bd0770bb61241497fc1577079f9a42fc0113092bff872b9377f1",
+      "crates/gpux_tests_benchmark/**": "4dcdf9de50dca6acfe27c15334890017e3dbbef3c7045aa92e79499dbd5ef210",
+      "crates/gpux_tests_conformance/tests/goldens/**": "ed405532219fd18d275a3d6d46bbdd9f1dd03860f30cde3c6563306539d65dc7",
+      "docs/history/**": "32d6861b2ce36af7ad6fbd6b00f82383cea3d9b905277e91c5499f71300d3ece",
+      ".agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",
+      ".agentx/tasks/frame-effects-navigation-transitions/**": "97cc9f821c990f4d3560b1c4726ede795e7d91f4329839215674e7649efd8747",
+      ".agentx/tasks/frame-family-component-transitions/**": "3987d07e830ea8dadd35abe56c1d8ccc36b8fb2f8feb189a1d6727c14f114ab1",
+      ".agentx/tasks/gpux-a11y-devtools/**": "762d9bf1df2816239c5527ae7b5e34efbb2abfd6b5622ede17f29ffbb88698c7",
+      ".agentx/tasks/gpux-cross-platform-test-lanes/**": "c2f120afd8760d4b62f6eacc957881ee595de63049c1a7a20f9a494e83eea033",
+      ".agentx/tasks/gpux-fast-mode/**": "a5303de6f43e26482d71cc35f3eb45152f5a686d06b011c0d1a5ac67a3a56b6e",
+      ".agentx/tasks/gpux-faster-test-lanes/**": "7f51d88f4757a182ef061fbe67c04e3715d90441e7421a7a16afd87719b4a121",
+      ".agentx/tasks/gpux-fixed-sticky-positioning/**": "0e971f9ad2c8147d6f56981b495a94b8f5cc7cce5eef6f391b7894b3223959b7",
+      ".agentx/tasks/gpux-platform-text-input/**": "816e57f341d4c48f2cf2b1044439928070bbc1de06660cc3ca6f8319d9bf8f8f",
+      ".agentx/tasks/gpux-rich-editable-text/**": "5cfa29ad62eac581ac074428a0696825f02a3fa9c9b9bbccf44c1212b58bcb6f",
+      ".agentx/tasks/gpux-text-rendering-quality-performance/**": "213eb24a25a50d0ccbc7d468e8bedc96a10bdf38f76a4e9130109b9142a0a3e5",
+      ".agentx/tasks/gpux-tools-layout/**": "1f3b772faf12c40336c91f4c6a7384ac9b71b3c82eda9ffe40e3368d597706ee",
+      ".agentx/tasks/gpux-virtual-list/**": "0ba06cd6a00ff5bcb0256bcf5e9854652538c5bc5f339afa58cb67fab2052c79",
+      ".agentx/tasks/gpux-virtual-list-layer-kinds/**": "60aeda19368c37daaba2970b4a069b094121955115175c52acabfae8cce45f2d",
+      ".agentx/tasks/gpux-wgpu-platform-renderers/**": "585529d42deceb4ae2639c37596347714777579ccca3b5b5e74b007eaf7d2f81",
+      ".agentx/tasks/high-quality-wasm-text-rendering/**": "81eee19badcd190b59dae1d9fb52bcdf0f53273ab9f00df9cb617c79213a0061",
+      ".agentx/tasks/html-element-dom-overlay/**": "eb0c49ccecf4bfea51485d81c60e272f47d1cf1e582701f1791f9c5a77ee6be7",
+      ".agentx/tasks/html-island-wasm/**": "8db76e0d9f0706ea6e4b34b9f7741317d47ee734673bd83cb97352d82d6520b8",
+      ".agentx/tasks/keyed-sticky-stacking/**": "7f924a57495dfb6d3a2ca3be75e5fdb04cb012ecfc41554bdb278a84987e82ef",
+      ".agentx/tasks/macos-only-metal-port-and-ci-repair/**": "64ecc143e24a8468c3b4e5d28bbc0f65d4fbbddab867d46a44823b1725ff1e5d",
+      ".agentx/tasks/shader-effects-and-screen-transitions/**": "f3f66695ebf53686a0437e18bf587955317994e21eac47d7908641e0281996ce"
+    }
+  }
+}

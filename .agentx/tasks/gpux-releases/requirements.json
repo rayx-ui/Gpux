@@ -1,0 +1,263 @@
+{
+  "schemaVersion": 7,
+  "epicId": "gpux-releases",
+  "scopeMarkdown": "Make gpux a versioned, released library: **one version and one git tag `vX.Y.Z` per release for the whole workspace**, one root `CHANGELOG.md` and one GitHub Release, cut by release-plz from Conventional Commits. Consumers (RayX first) depend on gpux by GitHub URL at a release tag instead of `../Gpux` paths. The first release is **v1.0.0**. The epic also adds the three inert declarations of the shared rayx contract, so rayx (from the rayx release that contains `rayx-cli-library-agnostic` (expected 1.4.0)) no longer needs to know gpux.\n\n## Versioning policy\n\nStay on 1.x while the owner is the only consumer (amendment 1, 2026-10-18): no `!`, no `BREAKING CHANGE:` footer, breaking work and Zed imports are `feat`; details in the constraints (decision 4).\n\n## In scope\n\n- **s1 spike (high risk):** release-plz git-only with one version group, one tag, one root changelog, forks `release = false`, `version.workspace = true`, proven in a scratch clone with a local bare remote; recorded fallback cargo-release + git-cliff.\n- **s2:** version 1.0.0 for the 31 own packages (forks keep `-gpux.N`), `release-plz.toml`, `.github/workflows/release-plz.yml`, root `CHANGELOG.md`.\n- **s3:** the CI planner runs only `check` (ubuntu) and `package` for a version-only release pull request.\n- **s4:** rayx declarations (gpux-fonts asset package, gpux-mobile Java directory, workspace Android pins).\n- **s5:** `docs/releasing.md`, git-tag install docs and README crate table, `CLAUDE.md`/`AGENTS.md`/gpux skill; a consumer build outside the repository.\n- **s6 (external prerequisites, verify-only):** verify the secret, the tag ruleset and the rayx release; the one push that releases v1.0.0; a consumer by tag.\n\n## Out of scope\n\ncrates.io publishing and cargo-semver-checks; any change under `vendor/`; RayX's switch (`rayx-released-libraries`) and RayX.CLI's change (`rayx-cli-library-agnostic`, expected rayx 1.4.0); a local-override mechanism, Renovate, Dependabot, GitHub Apps; keeping the README's example tag current after later releases; AGENTS.md's existing drift from CLAUDE.md (no accesskit_macos section, no repair-loop paragraph).\n\n## Order and timing (binding)\n\n- Run after the rayx release that contains `rayx-cli-library-agnostic` (expected 1.4.0) exists and right before RayX's switch. s1-s5 are local commits; **nothing is pushed before s6**, which pushes everything at once (the release workflow never reaches `main` before the 1.0.0 version, or it would tag the old version; in git-only mode the first release needs no pull request).\n- Compatibility trap: rayx <= 1.3.0 still adds `gpux-fonts/assets` as an extra web root and fails on duplicate logical paths (\"asset logical path collision\") once gpux-fonts is a package asset. RayX's nightly CI (rayx 1.0.0, Gpux `main`) can fail web builds of auto-mode apps until RayX's switch, which therefore follows the push immediately.\n\n## Assumptions\n\n- All 31 own packages (also `gpux-tests-conformance`, `gpux-testkit`, `gpux-perf`, `gpux-bench-metrics`) share the version group.\n- release-plz `[workspace]` defaults turn tags, releases and changelogs off and only `gpux` turns them on (same result as the brief for listed packages; an unlisted new crate cannot tag `vX.Y.Z`).\n- `release-pr` needs `release`; the workflow pins the release-plz version the spike proved.\n- Gpux keeps no CI on pushes to `main` (amendment B): the nightly covers `main`, and `release-plz.yml` stays the only workflow on pushes here.\n- Implementation commits go straight to `main`, so the nightly run is their CI; a release PR is merged only after a green nightly.\n- `[workspace.metadata.rayx]` holds exactly the old gpux-checkout profile's three pins; no `android-system-image` (lane E's CI emulator is API 34, rayx keeps deriving `android-36;google_apis`).\n- `crates/gpux_tests_benchmark` and `crates/gpui_web/examples/hello_web` are standalone workspaces with versionless path dependencies and need no change.\n\n## Deviations from the shared brief, found in the source\n\n1. `crates/gpui_mobile/Cargo.toml` has an own requirement outside `[workspace.dependencies]` (`gpui = { package = \"gpux\", path = \"../gpui\", version = \"0.3.0\" }`, a rename `workspace = true` cannot express): bumped too, changed by every release PR, so the planner accepts member manifests (lanes E/F start on `crates/gpui_mobile/**` and skip via the plan).\n2. README crate table: lists nonexistent `crates/media`, misses `gpux-apple` and `gpux-bench-metrics`.\n3. release-plz docs: a version group \"is considered only when packages contain changes\"; a release PR \"is opened only when a file of the package is updated\". The spike tests a change in a package gpux does not depend on.\n4. release-plz flags inverted, `release-pr` after `release`, a version pin (unlike RayX.CLI). 5. `AGENTS.md` != `CLAUDE.md` today. 6. The gpux skill also claims crates.io publishing and shows `\"0.3\"`/`../Gpux` forms. 7. `check` is a platform matrix: release PRs also run on ubuntu only; lanes B/E/F skip via the plan. 8. `CHANGELOG.md` joins `repository_layout.rs`'s historical list. 9. `docs/changelog/` holds sprint reports: the 1.0.0 section is new. 10. Gpux's `.cargo/config.toml` does not reach git consumers: a consumer build outside the repository runs before the tag. 11. Local python 3.9 has no `tomllib` and release-plz is not installed: TOML is asserted from Rust tests (`toml` 0.9.8 already locked); the spike installs release-plz.\n\nVerified as the brief says: pins `android-36`/`36.0.0`/`28.0.12674087` (`tools/testkit/src/android.rs`, `lane-e.yml`, `docs/testing.md`); `crates/gpui_mobile/java` exists and is packaged; all own crates inherit `version.workspace`; earlier history marks breaking commits with `!` (`refactor!`, `build!`, `chore(gpux)!`, `feat!`), which the 1.x policy stops; git-only mode reads only commits since the last tag, so that history never counts after v1.0.0; the plan action has tests (`tools/testkit/tests/ci_plan.rs`).\n\n## Prerequisites\n\nDone by the owner on 2026-10-18 (amendment 1): the `RELEASE_PLZ_TOKEN` repository secret (the PAT shared with RayX.CLI; its access must include Gpux), the \"Release tags\" ruleset, the branch ruleset bypass for `dXnSix`, and a blanket go-ahead for the first-release push and release-PR merges. s6 only verifies them (OWN-1). Still external: the rayx release that contains `rayx-cli-library-agnostic` (expected 1.4.0).",
+  "constraintsMarkdown": "## Owner decisions (2026-10-18), binding: do not re-open\n\n1. Git tags, not crates.io. Manifests stay crates.io-ready (Gpux's packaging rules are unchanged), but nothing is published to a registry.\n2. Consumers pin `{ git = \"https://github.com/rayx-ui/Gpux\", tag = \"vX.Y.Z\" }`; `Cargo.lock` records the commit; a `v*` tag ruleset blocks moving and deleting tags.\n3. Gpux: ONE version and ONE tag `vX.Y.Z` for the whole workspace (one root CHANGELOG, one GitHub Release). The vendored fork crates (`gpux-wgpu*`, `gpux-accesskit-macos`) keep their own `-gpux.N` versions and are never released by the tooling.\n4. Start at **1.0.0** and stay on 1.x (amendment 1): `fix`/`perf` -> patch, `feat` -> minor; no `!` and no `BREAKING CHANGE:` footer; breaking work and Zed imports are `feat` with the break in the body and consumer (RayX) notes in a `Migration:` footer, which the changelog renders; `semver_check = false`; a proposed 2.0.0 is never merged (reword the stray commit). The policy ends when a second consumer appears.\n5. One shared fine-grained PAT `RELEASE_PLZ_TOKEN`, already a Gpux repository secret (amendment 1 C); s6 verifies, never creates, the secret and the tag ruleset.\n6. NO local-override mechanism for simultaneous gpux + RayX edits: no documented `[patch]` file, no `rayx dev link`. A change spanning gpux and RayX releases gpux first; RayX then bumps its tag by hand.\n7. NO Renovate, Dependabot changes or GitHub App.\n8. `rayx` stays library-agnostic: gpux declares what it needs through `[package.metadata.rayx]` / `[workspace.metadata.rayx]` (RayX.CLI `docs/app-project.md` owns the contract); gpux never depends on rayx.\n\n## Push / PR / validation policy (owner, 2026-10-18)\n\n- Implement and test LOCALLY with focused checks only: no WGPU lanes, no platform matrices, no Playwright suites, no CI runs to close the epic.\n- Push straight to `main`, never a feature branch or an implementation pull request, and only in sprint s6 (pre-approved by the owner, amendment 1 D). Safe form, always: `git fetch origin && git rebase origin/main && git push --force-with-lease origin main`, so a force push never drops a remote commit (a merged release PR, a commit a release tag points to).\n- Pull requests are used ONLY for releases (release-plz's release PR). The owner pre-approved every release-PR merge (amendment 1 D); before merging, its CI (`check`, `package`) and the latest nightly run on `main` are green, the proposed version is still 1.x, and it changes only `Cargo.toml` files, `Cargo.lock` and `CHANGELOG.md`.\n- Gpux runs no CI on pushes to `main` (amendment 1 B, unchanged): the nightly covers `main`.\n- The release workflow lands in the same push as the `1.0.0` version, never before it (it would tag the old version).\n- Conventional Commits with meaningful scopes; never add Claude co-author lines.\n\n## Repository rules that hold\n\n- Zed's crate boundaries and directory names, `gpux-*` package names with GPUI Rust names, Rust-name workspace keys with `package = \"gpux-...\"`, crates.io-only dependencies (no git dependencies, no `[patch]`), every packaged file inside its crate, Apache-2.0 (`gpux-fonts` OFL-1.1), `cargo package --workspace` after manifest changes.\n- Nothing under `vendor/` changes (forbidden path).\n- Spike and rehearsal runs happen in a scratch clone whose `origin` is a local bare repository; no release-plz, cargo-release or git command of this epic fetches from, pushes to or creates releases on `github.com/rayx-ui/Gpux` outside sprint s6.\n- New repository guards are new, separately selectable groups in `tools/testkit/tests/` (beside `ci_plan.rs` and `repository_layout.rs`); while iterating run only the touched group (`cargo test -p gpux-testkit --test <group>`).\n- Raw logs and spike output go to ignored `artifacts-temp/agentx/gpux-releases/`, never into `.agentx/` or commits.\n- `../RayX` and `../RayX.CLI` are read-only references.",
+  "requirements": [
+    {
+      "id": "SPIKE",
+      "title": "Spike: release-plz gives the workspace one version, one tag and one changelog",
+      "descriptionMarkdown": "The high-risk part is proven before anything lands: release-plz documents neither a git-only version group sharing one tag nor `version.workspace = true` inheritance.",
+      "criteria": [
+        {
+          "id": "SPIKE-1",
+          "verification": "manual",
+          "descriptionMarkdown": "In a scratch clone whose `origin` is a local bare repository (never `github.com/rayx-ui/Gpux`), with the 1.0.0 versions of VER-1, a candidate `release-plz.toml` (d-release-tooling, candidate A, then B) and a recorded release-plz version, these **must-hold** scenarios pass. Each command's output and the `git diff --stat` of each scenario are kept under `artifacts-temp/agentx/gpux-releases/spike/`.\n\n1. **Initial release.** With no `v*` tag, `release-plz release` (`--dry-run`, or a real run against the bare remote with GitHub Releases disabled for the scratch run only) creates exactly one tag, `v1.0.0`, at HEAD and plans a GitHub Release only for `gpux`; no `<package>-v*` tag, no other package acts.\n2. **Fix in a package gpux depends on.** After `v1.0.0` exists, one `fix(gpui_platform): ...` commit touching only `crates/gpui_platform/`: `release-plz update` sets `[workspace.package] version` to `1.0.1`, every own version requirement (the 30 `[workspace.dependencies]` entries and `crates/gpui_mobile`'s inline `gpux` requirement) to `1.0.1` and the own `Cargo.lock` entries to 1.0.1; fork versions, fork requirements and every other lockfile entry are unchanged; root `CHANGELOG.md` gains exactly one `## [1.0.1] - <date>` section containing the commit; no other `CHANGELOG.md` appears; no member manifest loses `version.workspace = true`.\n3. **Fix in a package gpux does not depend on.** The same as 2 for one `fix(gpui_mobile): ...` commit touching only `crates/gpui_mobile/`, and the following `release` creates `v1.0.1`.\n4. **Bump sizes under the 1.x policy.** A `fix(...)` commit gives 1.0.1; a `feat(...)` commit gives 1.1.0; a `feat(gpux): import Zed GPUI closure <sha>` commit whose body states an API break and ends with a `Migration: <note>` footer gives 1.1.0 (minor), with every own requirement rewritten to 1.1.0, and the previewed changelog section shows that commit with a `Migration: <note>` line under it (a commit without the footer gets no such line).\n5. **No release.** Commits of only `docs:`, `test:`, `ci:`, `chore(agentx):`, `refactor:` or `build:` change no version and add no changelog section.\n6. **Merged release PR.** After committing the result of 2 (or 3), `release` creates exactly one tag `v1.0.1` and plans one GitHub Release for gpux whose body is the new changelog section; a second run creates nothing.\n\nAlso observed and recorded (they decide details, not the tool): what a stray `refactor(gpui)!:` commit or a `BREAKING CHANGE:` footer proposes (expected 2.0.0: the signal `docs/releasing.md` tells a merger to reword instead of merging); what `release-plz update` does on the untagged 1.0.0 tree, where history before 1.0.0 holds `!` commits (a change there, such as a 2.0.0 proposal, confirms that `release-pr` must run after `release`); whether a commit touching only the root `Cargo.toml`/`Cargo.lock` or only `vendor/**` releases, and with which bump; whether release-plz compiles the workspace (then the workflow needs ci.yml's Linux packages); how many commits it analyzes for the initial release; the exact set of files a release PR changes (the input of CI-1).\n\nThe candidate that passes 1-6 becomes `release-plz.toml` in t03. If neither A nor B passes, the owner is told and the fallback (cargo-release + git-cliff, d-release-tooling C) replaces release-plz through `amend --specification` before sprint s2, proven against the same scenarios. The durable summary goes to `docs/releasing.md` (DOC-1)."
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/Cargo.toml"
+        },
+        {
+          "repositoryId": "rayx-cli",
+          "path": "release-plz.toml"
+        }
+      ]
+    },
+    {
+      "id": "VER",
+      "title": "Version 1.0.0 for every own crate",
+      "descriptionMarkdown": "A clean start: the whole workspace is 1.0.0, the forks keep their own versions.",
+      "criteria": [
+        {
+          "id": "VER-1",
+          "verification": "automated",
+          "descriptionMarkdown": "Every own package (the 31 workspace members outside `vendor/`) is version `1.0.0`:\n\n- `[workspace.package] version = \"1.0.0\"`; every own manifest keeps `version.workspace = true`;\n- each of the 30 own `[workspace.dependencies]` entries (every own package except `gpux-testkit`, which nothing depends on) has `version = \"1.0.0\"`, and so does `crates/gpui_mobile/Cargo.toml`'s inline `gpui = { package = \"gpux\", path = \"../gpui\", version = ... }`; the path-only cycle-edge dev-dependencies stay versionless;\n- the fork crates keep `30.0.1-gpux.1` and `0.27.1-gpux.1` with their `=`-pinned requirements, and no file under `vendor/` changes;\n- `Cargo.lock` changes only in own packages' `version` lines and in `gpux-testkit`'s dependency list (its new dev-dependencies); no registry package is added, removed or changed.\n\nAs lasting invariants (they hold after every release PR too) the new group `tools/testkit/tests/release_config.rs` asserts: every own version requirement reached by a `path` outside `vendor/` (root `[workspace.dependencies]` and member manifests) equals the workspace version; the workspace version's major is 1 (the 1.x policy; the assertion changes when the policy ends); every fork package's version carries a `-gpux.` suffix and differs from it."
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/Cargo.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.lock"
+        }
+      ]
+    },
+    {
+      "id": "RPZ",
+      "title": "Release automation with release-plz",
+      "descriptionMarkdown": "Conventional Commits drive the version and the changelog; release-plz keeps a release PR open on `main` and, when it is merged, tags `vX.Y.Z` and creates the GitHub Release.",
+      "criteria": [
+        {
+          "id": "RPZ-1",
+          "verification": "automated",
+          "descriptionMarkdown": "`release-plz.toml` at the repository root is the configuration the spike proved (d-release-tooling):\n\n- `[workspace]`: `git_only = true`, `publish = false`, `git_tag_name = \"v{{ version }}\"`, `semver_check = false`, `git_tag_enable`, `git_release_enable` and `changelog_update` false, and `release_commits = \"^(feat|fix|perf)\"` (amendment 1: no breaking alternative; breaking work is typed `feat`);\n- `gpux`: `version_group = \"gpux\"`, tag, GitHub Release and changelog on, `changelog_path = \"CHANGELOG.md\"`, `changelog_include` = exactly the 30 other own packages;\n- every other own package: `version_group = \"gpux\"` and nothing turned on; each of the 8 fork crates: `release = false`; every workspace package has exactly one `[[package]]` entry and no entry names a package outside the workspace;\n- `[changelog]`: a header naming gpux and saying the whole workspace is released as one version, `## [{{ version }}] - {{ timestamp | date(format=\"%Y-%m-%d\") }}` headings, RayX.CLI's Conventional-Commit groups, `chore(agentx)`, `chore(release)`, `chore(deps)` and merge commits skipped, `tag_pattern = \"v[0-9].*\"`, and a commit's `Migration:` footer (git-cliff `commit.footers`, token `Migration`) rendered as a `Migration: <note>` line under the commit, as in the other library repositories (its rendering is proven in SPIKE-1's preview).\n\n`release_config.rs` asserts all of it and asserts the body template iterates `commit.footers` and renders the `Migration` token, and evaluates `release_commits` with the `regex` crate (release-plz's engine): it matches `feat: x`, `fix(gpui): x`, `perf: x`, `feat(gpux): import Zed GPUI closure 0123abc` and does not match `docs: x`, `test: x`, `ci: x`, `chore: x`, `chore(agentx): x`, `refactor(gpui): x`, `build: x`, `style: x`. Where the spike proved a different value, the test asserts the proven value and the design records why."
+        },
+        {
+          "id": "RPZ-2",
+          "verification": "automated",
+          "descriptionMarkdown": "`.github/workflows/release-plz.yml` (d-release-workflow) triggers on `push` to `main` and `workflow_dispatch` only; jobs `release` and `release-pr` are both guarded by `if: github.repository == 'rayx-ui/Gpux'`, both check out with `fetch-depth: 0` and `token: ${{ secrets.RELEASE_PLZ_TOKEN }}`, both run `release-plz/action@v0.5` (`command: release` / `command: release-pr`) with `GITHUB_TOKEN: ${{ secrets.RELEASE_PLZ_TOKEN }}`; `release-pr` has `needs: release`; concurrency groups do not cancel in progress; `RELEASE_PLZ_TOKEN` is the only secret; there is no `cargo test`, `cargo build`, `gpux-testkit` or lane step. The release-plz version is pinned to the spike's when the action takes a version input. It is the only file under `.github/workflows/` with a `push` trigger (`ci.yml` and lanes B, E, F stay pull-request/schedule/dispatch; amendment 1 B keeps Gpux without CI on push).\n\nVerified by `release_config.rs` (line-wise structure, the way `ci_plan.rs` reads `ci.yml`) and AgentX's workflow YAML checker (no syntax error, no duplicate key)."
+        },
+        {
+          "id": "RPZ-3",
+          "verification": "automated",
+          "descriptionMarkdown": "Root `CHANGELOG.md` starts with exactly the `[changelog]` header of `release-plz.toml` and has one hand-written `## [1.0.0] - YYYY-MM-DD` section that says what gpux is at 1.0.0: the Zed GPUI closure at its latest recorded import (`docs/history/zed-imports.tsv`), the platforms including gpui-mobile's Android and iOS, the wgpu renderer through the `gpux-wgpu` fork and the `gpux-accesskit-macos` fork, fast mode, rich editable text, the AccessKit tree and gpux-devtools, the test lanes, consumption by git tag, the rayx declarations, and that building apps with rayx needs the rayx release that contains `rayx-cli-library-agnostic` (expected 1.4.0) or later (the section names the actual version). No fabricated per-commit history.\n\nLasting invariant in `release_config.rs`: the changelog has a `## [<workspace version>] - <YYYY-MM-DD>` section. `CHANGELOG.md` is a historical record for the stale-path guard (`HISTORICAL` in `tools/testkit/tests/repository_layout.rs` and its not-scanned assertions), and that group still passes."
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "release-plz.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/release-plz.yml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "CHANGELOG.md"
+        },
+        {
+          "repositoryId": "rayx-cli",
+          "path": ".github/workflows/release-plz.yml"
+        }
+      ]
+    },
+    {
+      "id": "CI",
+      "title": "Release pull requests run only the cheap CI jobs",
+      "descriptionMarkdown": "A release PR changes only version values and the changelog; its CI is format, compile and packaging, never the test lanes or the platform matrix.",
+      "criteria": [
+        {
+          "id": "CI-1",
+          "verification": "automated",
+          "descriptionMarkdown": "`.github/actions/plan/plan.sh` for `EVENT_NAME=pull_request` (d-release-pr-ci), proven by the new group `tools/testkit/tests/ci_plan_release_pr.rs` in temporary git repositories:\n\n1. no labels; changes = root `Cargo.toml` (`[workspace.package] version` and own path-dependency versions), a member `Cargo.toml` (an inline own path-dependency version), `Cargo.lock` (own `version` lines) and `CHANGELOG.md` -> `jobs=[\"check\",\"package\"]`, `os=[\"ubuntu-24.04\"]`, `skipped` empty, and no `test`, `lane-a`, `lane-b`, `lane-c`, `lane-d`, `lane-e` or `lane-f`;\n2. the same plus a lockfile registry bump (`version` and `checksum` lines) -> every job;\n3. the same plus a non-version manifest change (a feature, a new dependency) -> every job;\n4. a crates.io requirement change (`version` on a line without `path`) -> every job;\n5. a fork requirement change (`path = \"vendor/...\"`) or any file under `vendor/` -> every job;\n6. version-only manifests plus any other file (source, workflow) -> every job;\n7. a release-shaped change with `ci:lane-a` -> `[\"lane-a\"]`; with `ci-os:macos` -> `[\"check\",\"package\"]` on `[\"macos-15\"]`;\n8. `CHANGELOG.md` only -> `[\"check\"]` (documentation-only rule).\n\nThe existing `ci_plan` group passes. The script reads the changed-file list whole (no pipe into `grep -q`) and works with GNU (ubuntu runners) and BSD (macOS) tools; its test is ignored on Windows with the reason, as `ci_plan.rs` does."
+        },
+        {
+          "id": "CI-2",
+          "verification": "manual",
+          "descriptionMarkdown": "`docs/ci.md`'s trigger table has a row for release pull requests (what counts as one, that it runs `check` on ubuntu and `package`, that `ci:` and `ci-os:` labels still override, that lanes B, E and F skip it) and lists `CHANGELOG.md` in the documentation-only row; the header comment of `plan.sh` says the same. Verified by review."
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".github/actions/plan/plan.sh"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/ci.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/ci_plan.rs"
+        }
+      ]
+    },
+    {
+      "id": "RAYX",
+      "title": "rayx contract declarations",
+      "descriptionMarkdown": "gpux declares what the rayx release that contains `rayx-cli-library-agnostic` (expected 1.4.0) needs through RayX.CLI's `[package.metadata.rayx]` / `[workspace.metadata.rayx]` contract, so rayx never names gpux.",
+      "criteria": [
+        {
+          "id": "RAYX-1",
+          "verification": "automated",
+          "descriptionMarkdown": "`crates/gpux_fonts/rayx.assets.toml` is exactly `version = 1`, `[asset_package] id = \"gpux-fonts\"`, `kind = \"fonts\"`, `namespace = \"\"`, `[assets] roots = [\"assets\"]`, and `crates/gpux_fonts/Cargo.toml` has `[package.metadata.rayx.assets] manifest = \"rayx.assets.toml\"`. The asset root holds `fonts/ibm-plex-sans/` and `fonts/lilex/` (the logical `fonts/...` paths gpux's SVG renderer loads through the app's `AssetSource`). `cargo package --list -p gpux-fonts` lists `rayx.assets.toml`. Verified by the new group `tools/testkit/tests/rayx_declarations.rs` and the package-list check."
+        },
+        {
+          "id": "RAYX-2",
+          "verification": "automated",
+          "descriptionMarkdown": "`crates/gpui_mobile/Cargo.toml` has `[package.metadata.rayx] android_java_dirs = [\"java\"]`; every listed directory exists relative to the manifest, holds the `.java` sources (`dev/gpux/mobile/*.java`) and, joined with the crate directory, equals `gpux_testkit::android::JAVA_SOURCES` (the directory lane E compiles). `cargo package --list -p gpux-mobile` lists `java/dev/gpux/mobile/GpuxNativeActivity.java`. Verified by `rayx_declarations.rs` and the package-list check."
+        },
+        {
+          "id": "RAYX-3",
+          "verification": "automated",
+          "descriptionMarkdown": "The root `Cargo.toml` has `[workspace.metadata.rayx]` with exactly `android-platform = \"android-36\"`, `android-build-tools = \"36.0.0\"` and `android-ndk = \"28.0.12674087\"`, and these equal lane E's pins: `format!(\"android-{}\", gpux_testkit::android::COMPILE_SDK)`, `android::BUILD_TOOLS_VERSION`, `android::NDK_VERSION`, and the `ANDROID_PACKAGES` line of `.github/workflows/lane-e.yml` (`ndk;...`, `build-tools;...`, `platforms;...`). No other key is declared (in particular no `android-system-image`). Cargo still reads the manifest (`cargo metadata --no-deps` succeeds). Verified by `rayx_declarations.rs`."
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_fonts/Cargo.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/java"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/src/android.rs"
+        },
+        {
+          "repositoryId": "rayx-cli",
+          "path": "docs/app-project.md"
+        }
+      ]
+    },
+    {
+      "id": "DOC",
+      "title": "Release and consumption documentation",
+      "descriptionMarkdown": "Owners know how a release happens; consumers know the only supported dependency form; contributors know the release and consumer rules.",
+      "criteria": [
+        {
+          "id": "DOC-1",
+          "verification": "manual",
+          "descriptionMarkdown": "`docs/releasing.md` explains:\n\n- how a release happens: Conventional Commits on `main`, release-plz's release PR (version bump of the whole workspace, `Cargo.lock`, the `CHANGELOG.md` section), merging it, then the `v` tag and the GitHub Release; one version and one tag for the whole workspace; the fork crates are never released;\n- the 1.x policy and its commit-type table: `fix`/`perf` patch, `feat` minor; no `!` and no `BREAKING CHANGE:` footer while the owner is the only consumer; breaking work, every Zed import that breaks the API included (`feat(gpux): import Zed GPUI closure <sha>`), is `feat` (or `fix`) with the break stated in the body and consumer (RayX) notes in a `Migration:` footer, which the changelog shows under the commit; `docs`/`test`/`ci`/`chore`/`refactor`/`build` ride along in the next release; the policy ends when a second consumer appears, and then `!` and major bumps return;\n- before merging a release PR: its CI (`check` on ubuntu, `package`) is green, the latest nightly run on `main` is green (the released commits were pushed straight to `main` without pull-request CI), it changes only `Cargo.toml` files, `Cargo.lock` and `CHANGELOG.md`, and the proposed version is still 1.x; a 2.0.0 proposal means a stray `!` or footer: reword that commit (force push allowed) instead of merging;\n- `RELEASE_PLZ_TOKEN`: the repository secret holding the fine-grained PAT shared with RayX.CLI (Contents and Pull requests read/write), that its repository access must include Gpux (otherwise release-plz fails at checkout or push), why the default `GITHUB_TOKEN` does not work, and the silent-expiry failure mode (red Release-plz runs, no release PR, no tag) and rotation;\n- the by-hand fallback for Gpux: set `[workspace.package] version` and every own requirement (`[workspace.dependencies]` and `crates/gpui_mobile`'s inline one), `cargo update --workspace --offline`, add the `## [X.Y.Z] - YYYY-MM-DD` section, push with the push policy, `git tag vX.Y.Z`, push the tag, `gh release create vX.Y.Z` with the section as notes;\n- the \"Release tags\" ruleset (`refs/tags/v*`: `update`, `deletion`, `non_fast_forward`, no bypass; tags never move or disappear, creation stays allowed) and the push policy (`git fetch origin && git rebase origin/main && git push --force-with-lease origin main`; implementation never goes through pull requests);\n- a new workspace crate (a Zed import) joins `release-plz.toml`'s `gpux` version group and gpux's `changelog_include` (`release_config.rs` fails until it does);\n- how the configuration was proven (the spike's scenarios, the release-plz version, the observations such as root-only or `vendor/`-only commits) and how to rehearse a configuration change in a scratch clone with a local bare remote.\n\nThe README links it. Verified by review."
+        },
+        {
+          "id": "DOC-2",
+          "verification": "automated",
+          "descriptionMarkdown": "The README `Usage` section, `docs/installation-and-usage.md` (\"Add gpux to a Rust project\") and the gpux skill's `references/installation-and-usage.md` and `references/multithreaded-wasm-apps.md` show only the git-tag form, e.g.\n\n```toml\ngpux = { git = \"https://github.com/rayx-ui/Gpux\", tag = \"v1.0.0\" }\ngpui_platform = { package = \"gpux-platform\", git = \"https://github.com/rayx-ui/Gpux\", tag = \"v1.0.0\" }\n```\n\nwith the `test-support` dev-dependencies in the same form, features prefixed with the dependency key, and the statements that gpux is consumed only by release tag (take the latest release; `Cargo.lock` records the commit; tags never move) and that building apps with rayx needs the rayx release that contains `rayx-cli-library-agnostic` (expected 1.4.0) or later. No crates.io form (`gpux = \"0.3\"`, `version = \"0.3\"`) and no `../Gpux` path form remains in those files.\n\nThe README crate table lists exactly the workspace's packages, each row's directory, package and Rust name equal to the manifests: it gains `crates/gpui_apple` (`gpux-apple`, `gpui_apple`) and `crates/bench_metrics` (`gpux-bench-metrics`, `bench_metrics`) and loses the nonexistent `crates/media`; the fork row still names all 8 fork packages.\n\nVerified by the new group `tools/testkit/tests/release_docs.rs`."
+        },
+        {
+          "id": "DOC-3",
+          "verification": "manual",
+          "descriptionMarkdown": "`CLAUDE.md` and `AGENTS.md` carry the same new text:\n\n- **Consumers:** RayX depends on gpux by release tag (`{ git = \"https://github.com/rayx-ui/Gpux\", tag = \"vX.Y.Z\" }`), not by relative path; a change to an API RayX uses releases gpux first, then RayX bumps its tag by hand in a paired RayX commit; no local-override mechanism.\n- **Releases:** Conventional Commits drive the version; the 1.x policy: no `!` and no `BREAKING CHANGE:` footer, a breaking change (a Zed import that breaks the API included) is a `feat` whose body states the break, with consumer (RayX) notes in a `Migration:` footer, ending when a second consumer appears; a release is merging release-plz's release PR after checking its CI, the nightly run and that the version is still 1.x; implementation pushes straight to `main` with the safe force-push form; link to `docs/releasing.md`.\n- The crates.io-readiness rules stay, worded as \"stay publishable\" rather than \"publish\".\n\nThe gpux skill follows: `SKILL.md` (overview: packages are released by git tag and stay crates.io-ready; RayX consumes by tag; packaging routing names `release-plz.toml`), `references/update-from-zed-gpui-closure.md` (the workspace-dependency example uses the workspace version; an import commit is `feat(gpux): import Zed GPUI closure <sha>` with the break in its body and RayX notes in a `Migration:` footer, under the 1.x policy; a new crate joins the version group). Verified by review."
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/releasing.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "README.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/installation-and-usage.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "CLAUDE.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "AGENTS.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/SKILL.md"
+        }
+      ]
+    },
+    {
+      "id": "CONS",
+      "title": "gpux builds for a consumer outside the repository",
+      "descriptionMarkdown": "A tag cannot be moved, so the consumer build is proven before the first tag exists.",
+      "criteria": [
+        {
+          "id": "CONS-1",
+          "verification": "manual",
+          "descriptionMarkdown": "Before any tag exists: a Cargo project created outside the Gpux tree (so Gpux's `.cargo/config.toml` is not in effect) with `gpux = { path = \"<checkout>/crates/gpui\" }` and `gpui_platform = { package = \"gpux-platform\", path = \"<checkout>/crates/gpui_platform\" }` and the README example as `src/main.rs` passes `cargo check` on this Mac. The log goes under `artifacts-temp/agentx/gpux-releases/consumer/`. A failure is a finding fixed in gpux before the s6 push."
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "README.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".cargo/config.toml"
+        }
+      ]
+    },
+    {
+      "id": "FIRST",
+      "title": "The first release (external prerequisites verified, push pre-approved)",
+      "descriptionMarkdown": "v1.0.0 is cut by the new flow from one push and resolves for a consumer by tag. The owner's secret and ruleset exist and the push is pre-approved (amendment 1); the rayx release with `rayx-cli-library-agnostic` must exist.",
+      "criteria": [
+        {
+          "id": "OWN-1",
+          "verification": "manual",
+          "descriptionMarkdown": "Verify-only (the owner set these up on 2026-10-18; nothing is created), recorded in the task handoff before the push:\n\n1. `gh secret list --repo rayx-ui/Gpux` lists `RELEASE_PLZ_TOKEN` (its PAT's repository access cannot be read; FIRST-1 handles a missing grant);\n2. the ruleset \"Release tags\" is active: `gh api repos/rayx-ui/Gpux/rulesets` and its detail show target `tag`, include `refs/tags/v*`, rules `update`, `deletion` and `non_fast_forward`, no bypass actors and no `creation` rule;\n3. the rayx release that contains `rayx-cli-library-agnostic` (expected 1.4.0) is released: `gh release view v<version> --repo rayx-ui/RayX.CLI` and its tag contains that epic's commits (its changelog section lists the library-agnostic change);\n4. `git ls-remote --tags origin 'v*'` is empty.\n\nThe push is pre-approved (amendment 1 D); RayX's switch (`rayx-released-libraries`) follows right after it (the compatibility trap). A failed item is reported to the owner, whose disposition it is; the push waits for it."
+        },
+        {
+          "id": "FIRST-1",
+          "verification": "manual",
+          "descriptionMarkdown": "With OWN-1 met: the 1.0.0 changelog date is the push day, and all epic commits reach `main` in one pre-approved push (`git fetch origin && git rebase origin/main && git push --force-with-lease origin main`; the branch ruleset's bypass for the owner's account allows it). The Release-plz run of that push: the `release` job creates exactly one tag, `v1.0.0`, at the pushed head, and the GitHub Release `v1.0.0` (not draft, not prerelease, latest) whose notes are the changelog's 1.0.0 section; the `release-pr` job runs after it and opens no release PR (if it opens one, it is recorded as a finding and closed unmerged); no other workflow runs on the push. If a job fails at checkout or push (the shared PAT's repository access does not include Gpux), the run is inspected and the owner is told to add Gpux to the PAT; nothing is retried blindly, and the run is re-run (`gh run rerun`) once the owner reports the fix.\n\nEvidence: the run URL, `gh release view v1.0.0 --repo rayx-ui/Gpux --json tagName,isDraft,isPrerelease,body`, `gh api repos/rayx-ui/Gpux/releases/latest --jq .tag_name`, `git ls-remote --tags origin`. If release-plz cannot cut v1.0.0, the documented by-hand fallback tags it and the deviation is recorded."
+        },
+        {
+          "id": "FIRST-2",
+          "verification": "manual",
+          "descriptionMarkdown": "After FIRST-1, a Cargo project outside the repository with the README's dependency lines at `tag = \"v1.0.0\"` (`gpux` and `gpui_platform = { package = \"gpux-platform\", ... }`) and the README example passes `cargo check` on this Mac; its `Cargo.lock` lists `gpux` and `gpux-platform` 1.0.0 from `git+https://github.com/rayx-ui/Gpux?tag=v1.0.0#<sha>`, where `<sha>` is the commit `git ls-remote origin 'refs/tags/v1.0.0^{}'` (or the tag itself when lightweight) names. The log goes under `artifacts-temp/agentx/gpux-releases/consumer/`."
+        }
+      ]
+    }
+  ]
+}

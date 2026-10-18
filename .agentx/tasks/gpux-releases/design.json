@@ -1,0 +1,439 @@
+{
+  "schemaVersion": 7,
+  "epicId": "gpux-releases",
+  "decisions": [
+    {
+      "id": "d-release-tooling",
+      "requirementIds": [
+        "SPIKE",
+        "VER",
+        "RPZ"
+      ],
+      "descriptionMarkdown": "release-plz in git-only mode releases the whole workspace as one version. `release-plz.toml`:\n\n- `[workspace]`: `git_only = true`, `publish = false`, `git_tag_name = \"v{{ version }}\"`, `semver_check = false`, `release_commits = \"^(feat|fix|perf)\"` (the 1.x policy: breaking work is typed `feat`), and tags, GitHub Releases and changelog updates **off** by default (`git_tag_enable = false`, `git_release_enable = false`, `changelog_update = false`).\n- `[[package]] name = \"gpux\"`: `version_group = \"gpux\"`, `git_tag_enable = true`, `git_release_enable = true`, `changelog_update = true`, `changelog_path = \"CHANGELOG.md\"` (relative to the root manifest), `changelog_include` = the 30 other own packages.\n- One `[[package]]` per other own package with `version_group = \"gpux\"` (the flags stay off).\n- One `[[package]]` per fork crate (`gpux-wgpu`, `gpux-wgpu-core`, `gpux-wgpu-hal`, the four `gpux-wgpu-core-deps-*`, `gpux-accesskit-macos`) with `release = false`.\n- `[changelog]`: RayX.CLI's template with a header naming gpux, skipping merge commits too, and rendering a commit's `Migration:` footer (git-cliff `commit.footers`) as a `Migration: <note>` line under it (RPZ-1).\n\nEvery own manifest inherits `version.workspace = true`, so a version bump is one edit of `[workspace.package] version` plus every own version requirement (`[workspace.dependencies]` and `crates/gpui_mobile`'s inline `gpux` requirement). The GitHub Release body is gpux's changelog section.\n\n**Spike first.** release-plz documents neither a git-only version group sharing one tag nor `version.workspace` inheritance, and says a version group \"is considered only when packages contain changes\". Sprint s1 proves SPIKE-1's must-hold scenarios in a scratch clone whose `origin` is a local bare repository, trying in order: **(A)** the configuration above; **(B)** the same with every own package tagging under the shared `v{{ version }}` name (only if release-plz treats an existing tag as the package's release and skips it) while only gpux creates the GitHub Release and the changelog. **Fallback (C)** when neither holds: cargo-release (shared version, tag `v{{version}}` from `gpux` only, forks unreleased) + git-cliff with the same template, in the same two jobs (details in the rationale). Switching to C is a specification amendment of this decision, d-release-workflow, RPZ-1, RPZ-2 and t03.",
+      "invariantsMarkdown": "- One tag `vX.Y.Z` and one GitHub Release per release, for the whole workspace; never a `<package>-v...` tag.\n- Every own package has the same version at every commit; fork crates keep `-gpux.N` and are never released, tagged or bumped by the tooling.\n- No registry is published to; manifests stay crates.io-ready.\n- Spike runs never fetch from, push to or create releases on `github.com/rayx-ui/Gpux`.",
+      "rationaleMarkdown": "Owner decisions 3 and 4 (2026-10-18): one version and one tag, a clean 1.0.0 start, release-plz modelled on RayX.CLI. Inverting the `[workspace]` defaults keeps the brief's behaviour for every listed package, and a crate added later by a Zed import and missing from `release-plz.toml` cannot tag `v{{ version }}` by itself; `release_config.rs` reports the omission. Amendment 1 (owner, 2026-10-18): stay on 1.x while the owner is the only consumer. release-plz cannot cap a major bump; it bumps the major for a `!`, a `BREAKING CHANGE:` footer or an API break cargo-semver-checks finds. Hence `semver_check = false` (every Zed import breaks API), no `!` or footer in commits, breaking work typed `feat` with the break in the body, and RayX.CLI's `release_commits = \"^(feat|fix|perf)\"`. The fallback keeps every external contract (tag form, changelog form, two jobs, PAT) so docs and consumers do not change with the tool. Fallback mechanics: cargo-release with `shared-version = true` and `tag-name = \"v{{version}}\"`, tagging only `gpux`, forks `release = false`; git-cliff with the same template for `CHANGELOG.md`; `release-pr`: `git cliff --bumped-version`, `cargo release version <next> --execute`, `git cliff` into `CHANGELOG.md`, open or update the release PR with `gh`; `release`: when the workspace version has no `v` tag, tag it, push the tag and `gh release create` with the changelog section.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "release-plz.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/Cargo.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "CHANGELOG.md"
+        },
+        {
+          "repositoryId": "rayx-cli",
+          "path": "release-plz.toml"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-gpux-wgpu-fork.md"
+        },
+        {
+          "repositoryId": "rayx-cli",
+          "path": ".agentx/memory/decisions/distribution/2026-10-14-distribution-release-plz-tags-dist-releases.md"
+        }
+      ]
+    },
+    {
+      "id": "d-git-tag-distribution",
+      "requirementIds": [
+        "VER",
+        "DOC",
+        "CONS",
+        "FIRST"
+      ],
+      "descriptionMarkdown": "gpux is distributed as git tags of `rayx-ui/Gpux`. A consumer writes `gpux = { git = \"https://github.com/rayx-ui/Gpux\", tag = \"vX.Y.Z\" }` and, for the other packages, the Rust-name key with the package name, e.g. `gpui_platform = { package = \"gpux-platform\", git = \"https://github.com/rayx-ui/Gpux\", tag = \"vX.Y.Z\" }`; `Cargo.lock` records the commit and the `v*` tag ruleset keeps tags from moving. Nothing goes to a registry. Versions start at 1.0.0 and stay on 1.x (amendment 1): `fix`/`perf` -> patch, `feat` -> minor; no commit carries `!` or a `BREAKING CHANGE:` footer; breaking work and every Zed import that breaks the API (`feat(gpux): import Zed GPUI closure <sha>`) are `feat` with the break in the body and consumer (RayX) notes in a `Migration:` footer, which the changelog renders, so an import is a minor release. A release PR proposing 2.0.0 is never merged; the stray commit is reworded. The policy ends when a second consumer appears.\n\nThe crates.io-readiness rules of the superseded packaging decision stay unchanged and are restated here: `gpux`/`gpux-*` package names with the GPUI Rust names in `[lib] name` (the README crate table is the mapping), Rust-name workspace keys with `package = \"gpux-...\"`, workspace metadata and a `description` in every manifest, no `publish = false`, path-only cycle-edge dev-dependencies, crates.io-only dependencies (no git dependencies, no `[patch]`), every packaged file inside its crate (fonts in `gpux_fonts`), Apache-2.0 (`gpux-fonts` OFL-1.1), `cargo package --workspace` after manifest changes and before a release. Publishing to crates.io stays a later option.\n\nRayX consumes gpux only by release tag. A change spanning gpux and RayX releases gpux first; RayX then bumps its tag by hand. There is no local-override mechanism. The browser-app reference (`multithreaded-wasm-apps.md`) changes only its dependency lines; browser apps stay multithreaded by default.",
+      "invariantsMarkdown": "- The documented dependency forms are the git-tag forms only; no crates.io version form and no `../Gpux` path form.\n- Tags `vX.Y.Z` are never moved or deleted.\n- gpux's own proof stays in its lanes; a consumer build (CONS-1, FIRST-2) proves the distribution form, not gpux behaviour.",
+      "rationaleMarkdown": "Supersedes the 2026-10-05 crates.io packaging decision only in the distribution channel: the owner chose git tags over crates.io on 2026-10-18 (decision 1) and 1.x-only versions later that day (amendment 1), and the decision's \"gpux publishes to crates.io\" and \"RayX tooling resolves the gpux checkout\" no longer hold. Its packaging rules protect a later crates.io release and buildability for every consumer of a git dependency, so they stay verbatim. A tag consumer gets no `.cargo/config.toml` from Gpux, hence the outside-the-repository consumer build before the first tag.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "README.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/installation-and-usage.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "CLAUDE.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "AGENTS.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/SKILL.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/references/installation-and-usage.md"
+        }
+      ],
+      "supersedesMemoryDecisions": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-crates-io-packaging.md"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-gpux-owns-runtime-proof.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/web/2026-06-24-platform-web-multithreaded-wasm.md"
+        }
+      ]
+    },
+    {
+      "id": "d-release-workflow",
+      "requirementIds": [
+        "RPZ",
+        "FIRST"
+      ],
+      "descriptionMarkdown": "`.github/workflows/release-plz.yml` follows RayX.CLI's workflow: on `push` to `main` and `workflow_dispatch`; jobs `release` (`release-plz release`) and `release-pr` (`release-plz release-pr`), each `if: github.repository == 'rayx-ui/Gpux'`, `runs-on: ubuntu-24.04`, `actions/checkout` with `fetch-depth: 0` and `token: ${{ secrets.RELEASE_PLZ_TOKEN }}`, the toolchain from `rust-toolchain.toml` (`actions-rust-lang/setup-rust-toolchain@v1`, `cache: false`), `release-plz/action@v0.5` with `GITHUB_TOKEN: ${{ secrets.RELEASE_PLZ_TOKEN }}`, a non-cancelling concurrency group per job, `contents: write` (plus `pull-requests: write` for `release-pr`).\n\nTwo Gpux differences: `release-pr` has `needs: release`, and the action's version input pins the release-plz version the spike proved (if the action has no such input, the workflow uses the action's default and `docs/releasing.md` records the proven version). The workflow installs nothing else unless the spike shows release-plz compiling the workspace, in which case it adds `ci.yml`'s Linux package step.",
+      "invariantsMarkdown": "- `release-plz.yml` is the only workflow triggered by pushes to `main`, and it runs no tests or builds; Gpux's CI stays pull-request/schedule/dispatch (amendment 1 B: unchanged, the nightly covers `main`).\n- `RELEASE_PLZ_TOKEN` is the only secret it references.\n- The workflow reaches `main` in the same push as the 1.0.0 version, never before.",
+      "rationaleMarkdown": "Events made with the default `GITHUB_TOKEN` start no workflows, so with it the release PR would get no CI; the PAT (owner decision 5) avoids that. `needs: release` makes the order deterministic: on the first push `release` tags `v1.0.0` before `release-pr` looks, and on a merged release PR the tag exists before the next release PR is computed, so no PR is opened for a version the same push tags. Pinning the proven version protects a configuration that relies on undocumented behaviour from a silent change of release-plz.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/release-plz.yml"
+        },
+        {
+          "repositoryId": "rayx-cli",
+          "path": ".github/workflows/release-plz.yml"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-test-lanes.md"
+        },
+        {
+          "repositoryId": "rayx-cli",
+          "path": ".agentx/memory/decisions/distribution/2026-10-14-distribution-release-plz-tags-dist-releases.md"
+        }
+      ]
+    },
+    {
+      "id": "d-release-pr-ci",
+      "requirementIds": [
+        "CI"
+      ],
+      "descriptionMarkdown": "The plan action (`.github/actions/plan/plan.sh`) recognizes a release pull request by its content, not by branch or author. On a pull request without `ci:` labels whose changed files are all `CHANGELOG.md`, `Cargo.lock` or `Cargo.toml` files outside `vendor/`, and whose manifests and lockfile equal the base once own version values are masked, the plan selects `jobs = [\"check\", \"package\"]` and `platforms = [\"ubuntu\"]`. Masked are the `\"...\"` of `version = \"...\"` on a line that is only that key (`[workspace.package]`, lockfile `[[package]]` entries) and on a dependency entry with a `path = ` outside `vendor/`. A registry or git bump also changes `checksum`/`source` lockfile lines, a fork version sits on a `vendor/` path line and a crates.io requirement has no `path`, so all of those still run everything. `CHANGELOG.md` joins the documentation-only list (`check` only). `ci:` labels still choose the jobs and `ci-os:` labels the platforms. `ci.yml`'s `package` job keeps its own `macos-15` runner; lanes B, E and F skip through the same plan in their workflows.",
+      "invariantsMarkdown": "- Any change in those files other than own version values runs today's full selection.\n- The script reads the changed-file list whole and runs with the GNU tools of the hosted runners and the BSD tools of macOS hosts.\n- No new workflow trigger; the docs-only, label, dispatch and schedule behaviour of `ci_plan.rs` is unchanged.",
+      "rationaleMarkdown": "Brief: a release PR changes only `Cargo.toml`, `Cargo.lock` and `CHANGELOG.md` and must not start the heavy suites; Gpux's PR CI otherwise runs every job on three platforms plus lanes B (every PR), E and F (path-filtered on `crates/gpui_mobile/**`, which a release PR touches). A content rule cannot be met by accident or by naming a branch `release-plz-*` (any contributor can) or by a label (triagers can add one), and it needs nothing release-plz-specific, so it also covers a by-hand release PR and the fallback tool. The masked comparison is exact for version-only edits and cheap.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".github/actions/plan/plan.sh"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/actions/plan/action.yml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/ci.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/ci_plan.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-test-lanes.md"
+        }
+      ]
+    },
+    {
+      "id": "d-rayx-declarations",
+      "requirementIds": [
+        "RAYX",
+        "DOC"
+      ],
+      "descriptionMarkdown": "Three inert declarations of RayX.CLI's contract (`RayX.CLI/docs/app-project.md`), read by the rayx release that contains `rayx-cli-library-agnostic` (expected 1.4.0) and later and ignored by Cargo:\n\n- `crates/gpux_fonts/rayx.assets.toml`: `version = 1`, `[asset_package] id = \"gpux-fonts\"`, `kind = \"fonts\"`, `namespace = \"\"`, `[assets] roots = [\"assets\"]`; `crates/gpux_fonts/Cargo.toml`: `[package.metadata.rayx.assets] manifest = \"rayx.assets.toml\"`. The root holds `fonts/ibm-plex-sans/...` and `fonts/lilex/...`, the logical paths gpux's SVG renderer loads through the app's `AssetSource` on every platform; rayx's package-assets mechanism then delivers them to every target (`mode = \"auto\"` includes them, `\"explicit\"` needs `\"gpux-fonts\"` in `include`). The file sits in the crate, so it is packaged.\n- `crates/gpui_mobile/Cargo.toml`: `[package.metadata.rayx] android_java_dirs = [\"java\"]` (relative to the manifest; the directory lane E compiles, `gpux_testkit::android::JAVA_SOURCES`). rayx collects such directories from the app's resolved graph and passes them to Gradle.\n- Root `Cargo.toml`: `[workspace.metadata.rayx]` `android-platform = \"android-36\"`, `android-build-tools = \"36.0.0\"`, `android-ndk = \"28.0.12674087\"`: lane E's pins (`tools/testkit/src/android.rs` `COMPILE_SDK`, `BUILD_TOOLS_VERSION`, `NDK_VERSION`; `lane-e.yml` `ANDROID_PACKAGES`), the values rayx's deleted gpux-checkout profile hard-coded. `rayx_declarations.rs` keeps the three sources equal.",
+      "invariantsMarkdown": "- gpux code never reads these declarations, and they bring no dependency on rayx.\n- Building apps on gpux >= 1.0.0 with rayx needs the rayx release that contains `rayx-cli-library-agnostic` (expected 1.4.0) or later: rayx <= 1.3.0 also adds `gpux-fonts/assets` as an extra web root and fails on the duplicate logical paths for auto-mode apps. The install docs and the 1.0.0 changelog section say so, and the push waits for that rayx release.",
+      "rationaleMarkdown": "The shared rayx contract table (2026-10-18) moves three couplings out of rayx: the gpux-fonts lookup in `src/app/wasm.rs`, the gpux-checkout pin profile in `src/project/pins.rs`, and the `../Gpux/crates/gpui_mobile/java` Gradle default in RayX's apps. `android-system-image` stays undeclared for parity with the old profile (rayx derives `android-36;google_apis`), even though lane E's CI emulator image is API 34: changing what `rayx setup` installs in a gpux checkout is a separate decision.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_fonts/Cargo.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_fonts/rayx.assets.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/java"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/src/android.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/lane-e.yml"
+        },
+        {
+          "repositoryId": "rayx-cli",
+          "path": "docs/app-project.md"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/mobile/2026-10-07-platform-mobile-android-lane-e.md"
+        }
+      ]
+    },
+    {
+      "id": "d-guard-tests",
+      "requirementIds": [
+        "VER",
+        "RPZ",
+        "CI",
+        "RAYX",
+        "DOC"
+      ],
+      "descriptionMarkdown": "Repository-level guards live beside the existing ones in `tools/testkit/tests/` as new, separately selectable groups: `release_config.rs` (versions, `release-plz.toml`, `release-plz.yml`, `CHANGELOG.md`), `ci_plan_release_pr.rs` (the planner rule, in temporary git repositories like `ci_plan.rs`), `rayx_declarations.rs`, `release_docs.rs` (README crate table and install forms). They parse TOML with the `toml` crate (a new `[workspace.dependencies] toml = \"0.9\"`, already locked at 0.9.8, as a `gpux-testkit` dev-dependency) and evaluate `release_commits` with `regex` (workspace dependency; release-plz's engine). The workspace's packages come from the root `members` and each member manifest (or `cargo metadata --no-deps --offline`). `repository_layout.rs` lists `CHANGELOG.md` as a historical record.",
+      "invariantsMarkdown": "- Each group passes on its own (`cargo test -p gpux-testkit --test <group>`) and needs no network, GitHub, release-plz or GPU.\n- The lasting invariants (own versions equal with major 1, a changelog section for the workspace version, every own package in the version group, rayx pins equal to lane E's) hold after every release PR and every Zed import.",
+      "rationaleMarkdown": "`tools/testkit/tests/` already hosts the repository guards (`repository_layout.rs`, `ci_plan.rs`); the test-tooling layout decision puts drivers and their tests in `tools/`. The local python has no TOML parser, and a Rust test also runs in the nightly `test` job, so a later hand edit or Zed import that breaks an invariant is caught.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/Cargo.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/repository_layout.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/ci_plan.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-16-repository-validation-test-tooling-layout.md"
+        }
+      ]
+    },
+    {
+      "id": "d-first-release",
+      "requirementIds": [
+        "FIRST",
+        "CONS"
+      ],
+      "descriptionMarkdown": "The first release is one outward-facing push, pre-approved by the owner (amendment 1 D), made once OWN-1's verification holds (the `RELEASE_PLZ_TOKEN` secret and the \"Release tags\" ruleset the owner created, the rayx release that contains `rayx-cli-library-agnostic` (expected 1.4.0) released, no `v*` tag on the remote); RayX's switch follows it. The branch ruleset's bypass for the owner's account `dXnSix` lets the force-with-lease push through. Before it: the focused checks are current, the final checks' commands pass locally, CONS-1 passed, and the 1.0.0 changelog date is set to the push day. The push is `git fetch origin && git rebase origin/main && git push --force-with-lease origin main`. Its release-plz run tags `v1.0.0` at the pushed head and creates the GitHub Release; `release-pr` then finds nothing to release. A consumer outside the repository resolves `gpux` and `gpux-platform` from the tag (FIRST-2). The epic's later AgentX commits (`chore(agentx)`) are pushed the same way and start no release.",
+      "invariantsMarkdown": "- No tag is created by hand unless release-plz fails to cut v1.0.0 for a reason other than the PAT's repository access; then the documented fallback is used and recorded. A checkout or push failure of the shared PAT is reported to the owner, never worked around.\n- Secrets and rulesets are verified, never created or changed.\n- No tag is ever moved or deleted; a defect found after v1.0.0 is fixed by v1.0.1.",
+      "rationaleMarkdown": "The shared brief's order (amended): owner prerequisites (done), then the rayx release with `rayx-cli-library-agnostic` (expected 1.4.0), then this epic right before RayX's switch, because of the compatibility trap. One push keeps the version and the workflow together (otherwise the workflow would tag the old version) and leaves RayX's nightly exposed to the trap for the shortest time.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/releasing.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "CHANGELOG.md"
+        }
+      ]
+    }
+  ],
+  "memoryDecisionsConsidered": [
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/accessibility/2026-10-17-gpui-accessibility-accesskit-one-tree.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-effects/2026-07-06-gpui-frame-effects-frame-effects-elements.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-effects/2026-07-07-gpui-frame-effects-frame-family-naming.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-06-29-gpui-frame-pipeline-unclipped-deferred-overlays.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-07-24-gpui-frame-pipeline-cached-thermal-frame-throttling.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-05-gpui-frame-pipeline-frame-demand-follow-up.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-oracle.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-switches.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-scroll-layers.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-window-composition.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-16-gpui-frame-pipeline-range-listener-lease.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/input/2026-10-05-gpui-input-upstream-input-model.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-30-gpui-layout-style-registry-taffy-0-14.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-conditional-prepaint-style-recompute.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-disable-taffy-content-size.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-frame-bounded-prepaint-style-handoff.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-measured-layout-invalidation.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-request-style-handoff.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-text-measurement-scope.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-fixed-sticky-positioned-scene-order.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-fixed-sticky-positioning.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-nested-scroll-wheel-propagation.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-06-gpui-positioning-scroll-fixed-containing-block.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-opaque-scroll-capture-owner.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-sticky-hierarchy-traversal-order.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-universal-sticky-push-out.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-08-21-gpui-positioning-scroll-immediate-scrollbar-publication.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/text/2026-10-17-gpui-text-editable-state-owns-formatting.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/agentx-memory/2026-10-05-repository-agentx-memory-taxonomy-transplant.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-drop-z-crates.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/upstream-sync/2026-08-07-repository-upstream-sync-self-contained-upstream-provenance.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-gpux-testkit.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-local-gpu-lane-g.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-13-repository-validation-fast-mode-proof-and-timing.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-14-repository-validation-wgpu-desktop-perf-4.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-14-repository-validation-wsl-gpu-lanes-c-d.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/mobile/2026-10-07-platform-mobile-ios-lane-f.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-06-29-platform-web-wasm-svg-asset-loading.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-07-01-platform-web-html-island-url-opt-in.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-07-02-platform-web-html-island-canonical-roots.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-07-03-platform-web-html-element-dom-overlay.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-07-03-platform-web-html-element-fit-styles-wheel.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-08-31-platform-web-explicit-wasm-constructors.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-10-07-platform-web-browser-lane-b.md"
+    }
+  ]
+}
