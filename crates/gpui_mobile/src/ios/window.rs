@@ -345,23 +345,31 @@ fn register_text_input_view_class() -> &'static AnyClass {
 
         // void insertText:(NSString *)text
         unsafe extern "C" fn insert_text(this: *mut AnyObject, _sel: Sel, text: *mut AnyObject) {
+            // SAFETY: the runtime calls this with a live `GPUITextInputView`, which declares
+            // `GPUI_WINDOW_IVAR` as a `*mut c_void`.
             #[allow(deprecated)]
-            let window_ptr: *mut std::ffi::c_void = *(*this).get_ivar(GPUI_WINDOW_IVAR);
+            let window_ptr: *mut std::ffi::c_void = unsafe { *(*this).get_ivar(GPUI_WINDOW_IVAR) };
             if window_ptr.is_null() || text.is_null() {
                 return;
             }
-            let window = &*(window_ptr as *const IosWindow);
+            // SAFETY: the ivar is set to the owning `IosWindow` in `register_with_ffi` and
+            // cleared before that window is dropped, so a non-null pointer is live.
+            let window = unsafe { &*(window_ptr as *const IosWindow) };
             window.handle_text_input(text);
         }
 
         // void deleteBackward
         unsafe extern "C" fn delete_backward(this: *mut AnyObject, _sel: Sel) {
+            // SAFETY: the runtime calls this with a live `GPUITextInputView`, which declares
+            // `GPUI_WINDOW_IVAR` as a `*mut c_void`.
             #[allow(deprecated)]
-            let window_ptr: *mut std::ffi::c_void = *(*this).get_ivar(GPUI_WINDOW_IVAR);
+            let window_ptr: *mut std::ffi::c_void = unsafe { *(*this).get_ivar(GPUI_WINDOW_IVAR) };
             if window_ptr.is_null() {
                 return;
             }
-            let window = &*(window_ptr as *const IosWindow);
+            // SAFETY: the ivar is set to the owning `IosWindow` in `register_with_ffi` and
+            // cleared before that window is dropped, so a non-null pointer is live.
+            let window = unsafe { &*(window_ptr as *const IosWindow) };
             window.handle_delete_backward();
         }
 
@@ -371,25 +379,28 @@ fn register_text_input_view_class() -> &'static AnyClass {
         }
 
         // --- UITextInputTraits property accessors ---
+        //
+        // SAFETY (all accessors): the runtime calls them with a live `GPUITextInputView`, which
+        // declares each trait ivar above as an `isize`.
         #[allow(deprecated)]
         unsafe extern "C" fn get_keyboard_type(this: *mut AnyObject, _sel: Sel) -> isize {
-            *(*this).get_ivar::<isize>("_keyboardType")
+            unsafe { *(*this).get_ivar::<isize>("_keyboardType") }
         }
         #[allow(deprecated)]
         unsafe extern "C" fn set_keyboard_type(this: *mut AnyObject, _sel: Sel, val: isize) {
-            *(*this).get_mut_ivar::<isize>("_keyboardType") = val;
+            unsafe { *(*this).get_mut_ivar::<isize>("_keyboardType") = val };
         }
         #[allow(deprecated)]
         unsafe extern "C" fn get_autocorrection_type(this: *mut AnyObject, _sel: Sel) -> isize {
-            *(*this).get_ivar::<isize>("_autocorrectionType")
+            unsafe { *(*this).get_ivar::<isize>("_autocorrectionType") }
         }
         #[allow(deprecated)]
         unsafe extern "C" fn set_autocorrection_type(this: *mut AnyObject, _sel: Sel, val: isize) {
-            *(*this).get_mut_ivar::<isize>("_autocorrectionType") = val;
+            unsafe { *(*this).get_mut_ivar::<isize>("_autocorrectionType") = val };
         }
         #[allow(deprecated)]
         unsafe extern "C" fn get_autocapitalization_type(this: *mut AnyObject, _sel: Sel) -> isize {
-            *(*this).get_ivar::<isize>("_autocapitalizationType")
+            unsafe { *(*this).get_ivar::<isize>("_autocapitalizationType") }
         }
         #[allow(deprecated)]
         unsafe extern "C" fn set_autocapitalization_type(
@@ -397,7 +408,7 @@ fn register_text_input_view_class() -> &'static AnyClass {
             _sel: Sel,
             val: isize,
         ) {
-            *(*this).get_mut_ivar::<isize>("_autocapitalizationType") = val;
+            unsafe { *(*this).get_mut_ivar::<isize>("_autocapitalizationType") = val };
         }
 
         unsafe {
@@ -461,7 +472,9 @@ fn register_display_link_target_class() -> &'static AnyClass {
 
         #[allow(deprecated)]
         unsafe extern "C" fn tick(this: *mut AnyObject, _sel: Sel, _display_link: *mut AnyObject) {
-            let window_ptr: *mut c_void = *(*this).get_ivar(GPUI_WINDOW_IVAR);
+            // SAFETY: CADisplayLink calls this on the `GPUIDisplayLinkTarget` created in
+            // `start_display_link`, which declares `GPUI_WINDOW_IVAR` as a `*mut c_void`.
+            let window_ptr: *mut c_void = unsafe { *(*this).get_ivar(GPUI_WINDOW_IVAR) };
             super::ffi::gpui_ios_request_frame(window_ptr);
         }
 
@@ -806,16 +819,6 @@ impl IosWindow {
         }
     }
 
-    /// Get the raw pointer to the UIViewController.
-    pub fn view_controller_ptr(&self) -> *mut AnyObject {
-        self.view_controller
-    }
-
-    /// Get the raw pointer to the GPUIMetalView.
-    pub fn metal_view_ptr(&self) -> *mut AnyObject {
-        self.view
-    }
-
     /// Register this window with the FFI layer after it's been stored.
     /// This must be called after the window is placed at a stable address
     /// (e.g., in a Box or Arc).
@@ -863,7 +866,11 @@ impl IosWindow {
                 *(*target).get_mut_ivar::<*mut c_void>(GPUI_WINDOW_IVAR) = window_ptr;
             }
 
-            let display_link: *mut AnyObject = msg_send![class!(CADisplayLink), displayLinkWithTarget: target selector: sel!(tick:)];
+            let display_link: *mut AnyObject = msg_send![
+                class!(CADisplayLink),
+                displayLinkWithTarget: target,
+                selector: sel!(tick:)
+            ];
             if display_link.is_null() {
                 log::error!("GPUI iOS: Failed to create CADisplayLink");
                 return;
@@ -872,7 +879,7 @@ impl IosWindow {
             let _: () = msg_send![display_link, setPreferredFramesPerSecond: 60_isize];
             let run_loop: *mut AnyObject = msg_send![class!(NSRunLoop), mainRunLoop];
             let _: () =
-                msg_send![display_link, addToRunLoop: run_loop forMode: NSRunLoopCommonModes];
+                msg_send![display_link, addToRunLoop: run_loop, forMode: NSRunLoopCommonModes];
 
             self.display_link_target.set(target);
             self.display_link.set(display_link);

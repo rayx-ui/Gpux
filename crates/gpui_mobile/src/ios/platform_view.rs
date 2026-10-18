@@ -200,7 +200,8 @@ impl IosPlatformView {
         // Load URL or HTML if provided
         if let Some(url) = params.creation_params.get("url") {
             if !url.is_empty() {
-                let ns_url_str = Self::make_nsstring(url);
+                // SAFETY: runs on the main thread, inside the autorelease pool UIKit provides.
+                let ns_url_str = unsafe { Self::make_nsstring(url) };
                 let nsurl: *mut AnyObject = msg_send![class!(NSURL), URLWithString: ns_url_str];
                 if !nsurl.is_null() {
                     let request: *mut AnyObject =
@@ -211,7 +212,8 @@ impl IosPlatformView {
             }
         } else if let Some(html) = params.creation_params.get("html") {
             if !html.is_empty() {
-                let ns_html = Self::make_nsstring(html);
+                // SAFETY: runs on the main thread, inside the autorelease pool UIKit provides.
+                let ns_html = unsafe { Self::make_nsstring(html) };
                 let base_url: *mut AnyObject = std::ptr::null_mut();
                 let _: *mut AnyObject =
                     msg_send![webview, loadHTMLString: ns_html, baseURL: base_url];
@@ -250,8 +252,11 @@ impl IosPlatformView {
                         let layer: *mut AnyObject = msg_send![layer, initWithSession: session_ptr];
                         if !layer.is_null() {
                             let _: () = msg_send![layer, setFrame: frame];
-                            let gravity =
-                                Self::make_nsstring("AVLayerVideoGravityResizeAspectFill");
+                            // SAFETY: runs on the main thread, inside the autorelease pool UIKit
+                            // provides.
+                            let gravity = unsafe {
+                                Self::make_nsstring("AVLayerVideoGravityResizeAspectFill")
+                            };
                             let _: () = msg_send![layer, setVideoGravity: gravity];
                             let _: () = msg_send![gravity, release];
                             let view_layer: *mut AnyObject = msg_send![view, layer];
@@ -273,7 +278,8 @@ impl IosPlatformView {
 
     #[cfg(target_os = "ios")]
     unsafe fn make_nsstring(s: &str) -> *mut AnyObject {
-        crate::ios::util::nsstring(s)
+        // SAFETY: the caller upholds `nsstring`'s contract, the same one this function states.
+        unsafe { crate::ios::util::nsstring(s) }
     }
 
     /// Returns the raw pointer to the underlying `UIView`.
