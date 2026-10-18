@@ -6,7 +6,7 @@ version under one `vX.Y.Z` tag. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). It is generated from
 Conventional Commits by release-plz.
 
-## [1.0.0] - 2026-10-19
+## [1.0.0] - 2026-10-18
 
 The first release of gpux under one workspace version: every own crate is 1.0.0 and the whole
 workspace is released under the tag `v1.0.0`. It is written by hand; later sections are generated
