@@ -1,28 +1,37 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-releases",
-  "revision": 7,
-  "planRevision": 7,
+  "revision": 21,
+  "planRevision": 8,
   "specHashes": {
-    "requirements": "90bb28af5d54b9b005a8c55d5dde03db3ef928c4e609a4ad4e5ae36367a39e38",
-    "design": "f45cde24a38c30717420302ec284f0e6f7300292dfd594b34d3df2d694724155",
-    "plan": "adfb6cf4a04d40f261f552e3592abaf14d668f7e91687534a47cb24d23d1a4f2"
+    "requirements": "4b8ccac970134e2240ab6ae0d803ae3f10ef2a37af4130c419ee512b6f05a81c",
+    "design": "84952c8dba041bd8b9ba08e812f0a46fab1b2ad27e77c14b240e420f00dbade0",
+    "plan": "101b97a1d0a39aee89e03d5153db8f4601b92e3f86a3dd32cdf28fa8e75e448e"
   },
   "tasks": {
     "t01-release-plz-spike": {
-      "status": "in_progress",
+      "status": "done",
       "workerIds": [
         "d20e6e5f-43b6-4725-9ce6-9fe0c0529c62"
       ]
     },
     "t02-version-1-0-0": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "d20e6e5f-43b6-4725-9ce6-9fe0c0529c62"
+      ]
     },
     "t03-release-plz-config": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "d20e6e5f-43b6-4725-9ce6-9fe0c0529c62"
+      ]
     },
     "t04-changelog": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "d20e6e5f-43b6-4725-9ce6-9fe0c0529c62"
+      ]
     },
     "t05-release-pr-planner": {
       "status": "pending"
@@ -49,12 +58,264 @@
       "status": "pending"
     }
   },
-  "validationBatches": {},
-  "checkResults": {},
-  "reviews": {},
-  "checkpoints": {},
-  "findings": [],
-  "handoffMarkdown": "",
+  "validationBatches": {
+    "3cb383b50001b5fd1b9fb9154d19cbfb9d1a86b4a4c0b82490aceec9d55ce6e8": {
+      "snapshot": {
+        "specHash": "d0caee52776c20a9705df78b03e61f47ed9e4a2e6dd7e0bae12b1c276db752b6",
+        "repositories": {
+          "gpux": "8a351ff1d5bbba256178c0d38e6e565882fbf626e027f756fe6fdaa7a9e24dad"
+        }
+      },
+      "recordedAt": "2026-10-18T22:19:19Z"
+    },
+    "44433b221ac5fc91e23545723459724d1275f802453a97e9997831c0f7feb7fa": {
+      "snapshot": {
+        "specHash": "9c32a4d8da1cf7a7dea4ac15c66d58c069fe785552ddad9271fe477c25ea9337",
+        "repositories": {
+          "gpux": "8a351ff1d5bbba256178c0d38e6e565882fbf626e027f756fe6fdaa7a9e24dad"
+        }
+      },
+      "recordedAt": "2026-10-18T22:24:19Z"
+    }
+  },
+  "checkResults": {
+    "s2-release-config/check-release-config/final": {
+      "checkId": "check-release-config",
+      "boundaryId": "s2-release-config",
+      "phase": "final",
+      "batchId": "3cb383b50001b5fd1b9fb9154d19cbfb9d1a86b4a4c0b82490aceec9d55ce6e8",
+      "definitionHash": "51a606053157e590cc73a5d84806b4ecd389ea1512c0048bfffd373a5050a126",
+      "basisHash": "6b33f931e9d090d792db853f2ce502cfcde220b3d17f3929137833e0330be72b",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 12,
+      "durationSeconds": 1.0158,
+      "recordedAt": "2026-10-18T22:19:17Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-releases/s2-release-config-final-10597fdd3632.log",
+      "logSha256": "c178ec69d6b1da029ac8de09bc40f11946ec3907d2e8ad252d88e18a78396a43",
+      "inputsHash": "1a35728556ee1f0892fdaf952052a279ba65757753d2e9617a843ecc9a4dbdd4"
+    },
+    "s2-release-config/check-workflow-yaml/final": {
+      "checkId": "check-workflow-yaml",
+      "boundaryId": "s2-release-config",
+      "phase": "final",
+      "batchId": "3cb383b50001b5fd1b9fb9154d19cbfb9d1a86b4a4c0b82490aceec9d55ce6e8",
+      "definitionHash": "9f2eb3a7e702fdf7c360c80853d14735706ceb1a36183f6f163a77e5156c9e1b",
+      "basisHash": "665ed4eb1c98b3832daf14e7007460dde711be6d47dce2dc0ec5bd1b5afb6537",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.0819,
+      "recordedAt": "2026-10-18T22:19:17Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-releases/s2-release-config-final-567b9e90181c.log",
+      "logSha256": "b5ef34948d119b8c9a2a83ea3fa7be28686336c326ed4fa8cbd531bc51a84a27",
+      "inputsHash": "25cb20b2addebff8bc447ea2a7c18693802698cf6011f5c6474b0b5cac4e94a4"
+    },
+    "s2-release-config/check-repository-layout/final": {
+      "checkId": "check-repository-layout",
+      "boundaryId": "s2-release-config",
+      "phase": "final",
+      "batchId": "44433b221ac5fc91e23545723459724d1275f802453a97e9997831c0f7feb7fa",
+      "definitionHash": "51d5e011b5cf4a294a538a789d7470ef538de29538742922d15abf0dc9a08173",
+      "basisHash": "92e089621059d8c6e9cdcc843224ce78877f895bddbda5b0492206703c9c93b4",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 11,
+      "durationSeconds": 0.3649,
+      "recordedAt": "2026-10-18T22:24:19Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-releases/s2-release-config-final-0efb024a400a.log",
+      "logSha256": "a847ccca09da31d7b3accff39433b6c065777686d0ce0f28c80b6b6b9eef2f72"
+    }
+  },
+  "reviews": {
+    "s1-release-spike": {
+      "reviewerId": "auditor-s1-release-spike-7c41e9",
+      "snapshotId": "3ad20b6f57f4a59432869e9f114b6ad980e3d4aa1f98eeb028720b4557ae5e09",
+      "criterionIds": [
+        "SPIKE-1"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "SPIKE-1"
+          ],
+          "sha256": "091c9c3dbf928eeaae844e9fbd8698f13ad135c7f9ebe209451ed8283902f16a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "SPIKE-1"
+          ],
+          "sha256": "c6645834c5d82526c0f24164fd8ebc53fc7fc0c5c39eec09e3cc3db0873b0058"
+        }
+      ],
+      "summaryMarkdown": "SPIKE-1 holds for candidate A (release-plz 0.3.172), verified from the raw evidence in `artifacts-temp/agentx/gpux-releases/spike/out/` and the scratch clone's reflog, not only SUMMARY.md. Isolation: scratch `origin` and the untagged clone's `origin` are the local `remote.git`; rel.sh/upd.sh unset GITHUB_TOKEN/GH_TOKEN and point the forge at the 127.0.0.1 Gitea mock (release-plz's forge client, the only retrying HTTP client, uses that base URL); the real checkout has no `v*` tag, its origin/main was last fetched before the spike and only state.json is modified. (1) s1-release: one POST /tags `v1.0.0` at the 1.0.0 commit (HEAD), one POST /releases; again-run: 31 'Tag v1.0.0 already exists', no POST. (2)/(3) s2/s3 diffs: exactly Cargo.toml (workspace version + 30 requirements), gpui_mobile's inline `gpux` requirement, 31 own lock version lines 1.0.0->1.0.1 and nothing else, fork `-gpux.1` requirements untouched, one `## [1.0.1]` section, no untracked CHANGELOG; scenario commits touch only crates/gpui_platform resp. crates/gpui_mobile; `version.workspace` count unchanged (33). s3-release tags v1.0.1. (4) feat -> 1.1.0; the import commit (API break stated in body, Migration footer) stays 1.1.0 with every requirement 1.1.0 and the nested Migration line; the plain feat has none (the import commit was tested on top of a plain feat, which still proves it is not treated as breaking). (5) six non-release types touching crates/gpui: 'no commit matches release_commits', no diff. (6) s6/final-s6: one tag at the committed release commit, release body = new section, second run no POST, following update no-op. Final config differs from the run of (1)-(3) only in `git_release_name` and the Migration-line template, both re-proven by final-s4/final-s6. Observations are supported by obs-* outputs (2.0.0 for `!`/BREAKING CHANGE with a release commit, no release for root-manifest/lock/vendor/README-only fixes, untagged tree: initial release at 1.0.0 with no diff, so no pre-1.0.0 commit affects it). Residual risk for s6, not a defect: the GitHub forge path (git/tags + git/refs, release lookup) was not exercised; the mock covered Gitea's API.",
+      "findingIds": [],
+      "recordedAt": "2026-10-18T22:14:25Z"
+    },
+    "s2-release-config": {
+      "reviewerId": "review-s2-d20e6e5f-43b6-4725-9ce6-9fe0c0529c62",
+      "snapshotId": "44433b221ac5fc91e23545723459724d1275f802453a97e9997831c0f7feb7fa",
+      "criterionIds": [
+        "VER-1",
+        "RPZ-1",
+        "RPZ-2",
+        "RPZ-3"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "VER-1"
+          ],
+          "sha256": "4e90cb61ae07770e08f4af593c063012a7acc3701b74f743e03e0495c895bb81"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "VER-1"
+          ],
+          "sha256": "ba4a363ff1fcf0b3859202702435f20087398616219bf0b0f5fae7376dce6c93"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.lock",
+          "kind": "source",
+          "criterionIds": [
+            "VER-1"
+          ],
+          "sha256": "a68022b88af18ab8146d27a745ffc86d5a53a6862776c93d6bc3a05868eaa59e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "VER-1"
+          ],
+          "sha256": "a101aa9fbfa549e9f85e0213e0a9db861d96d010d778f3c6cfe314fb21723cde"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "release-plz.toml",
+          "kind": "source",
+          "criterionIds": [
+            "RPZ-1",
+            "RPZ-3"
+          ],
+          "sha256": "01422ab44e1e6c1681594525e7325081710901a4f9e422cfebe3bc56b2fc884f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/release-plz.yml",
+          "kind": "source",
+          "criterionIds": [
+            "RPZ-2"
+          ],
+          "sha256": "c9570a957ec5d39176f15c1599d49b30cfec5755ba90c5c5042fa60f94956252"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "CHANGELOG.md",
+          "kind": "source",
+          "criterionIds": [
+            "RPZ-3"
+          ],
+          "sha256": "945545dc1944e13c80c617fa1437925d81614af6418c1f79c0913a32dbb206c3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/release_config.rs",
+          "kind": "test",
+          "criterionIds": [
+            "VER-1",
+            "RPZ-1",
+            "RPZ-2",
+            "RPZ-3"
+          ],
+          "sha256": "44880cf945fc67967e34cc2d6054427d8377e9e92390686b165c1f31d51a944a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/repository_layout.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RPZ-3"
+          ],
+          "sha256": "1468e27d2a78793776b8a62c4ac280416176b88ac4f3f396ec29c1af84a761fd"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/tasks/gpux-releases/design.json",
+          "kind": "source",
+          "criterionIds": [
+            "RPZ-1"
+          ],
+          "sha256": "0b73ab388aa59d6f07d80aed35a995c89b0819d785b9af8ebfe430b3394cd9a3"
+        }
+      ],
+      "summaryMarkdown": "Source and tests meet VER-1, RPZ-2 and RPZ-3 and RPZ-1's configuration clauses. VER-1: `cargo metadata --no-deps --offline` gives 31 own packages all 1.0.0 and the 8 forks on `30.0.1-gpux.1`/`0.27.1-gpux.1`; the root diff changes exactly the 30 own requirements, `[workspace.package]` and adds `toml = \"0.9\"`; gpui_mobile's inline requirement is 1.0.0; the Cargo.lock diff is 31 own `version` lines plus `regex` and `toml 0.9.8` in gpux-testkit's list (no registry entry changed); nothing under vendor/ changed. RPZ-1: release-plz.toml equals the spike's proven file apart from comments; the tests check [workspace] strictly (exact key count), gpux keys and `changelog_include` against the members, one entry per member with forks `release = false` and others only `version_group`, the release_commits regex on all 12 sample subjects, the skip/group parsers (RayX.CLI's groups plus `^Merge `), header and Migration template. RPZ-2: workflow matches RayX.CLI's except the documented `needs: release` and `version: \"0.3.172\"` (checkout@v7 follows Gpux's ci.yml); tests assert both jobs line-wise, the only secret, no run/cargo/testkit/lane step and that no other workflow has a push trigger (an inline `on:` form fails loudly). RPZ-3: CHANGELOG starts with the configured header; facts verified against zed-imports.tsv (d544470d1d, 2026-10-05; #64718/#64842 on 2026-10-07), README (platform table, fast mode, EditableText, fork notes), docs/testing.md (lanes A-G) and docs/upstream/accesskit-macos-tables-expanded.md; no per-commit history invented. The Distribution paragraph describes s4's declarations and rayx 1.4.0 ahead of s4/s6, which the final review must re-verify. The two spike-proven values (`git_release_name`, nested `  - Migration:` line) are now recorded with reasons in `d-release-tooling-proven` and named in RPZ-1 (finding S2-RPZ1-DESIGN-RECORD resolved; spec-only delta, source unchanged).",
+      "findingIds": [
+        "S2-RPZ1-DESIGN-RECORD"
+      ],
+      "recordedAt": "2026-10-18T22:24:58Z"
+    }
+  },
+  "checkpoints": {
+    "s1-release-spike": {
+      "snapshotId": "3ad20b6f57f4a59432869e9f114b6ad980e3d4aa1f98eeb028720b4557ae5e09",
+      "commits": {
+        "gpux": "9608593b71a9178b509c5845c4048313a868eff3"
+      },
+      "reviewHash": "a72ac279de568bf83defffcfea9c95a0c683d6cd27c458445ae1142adec8c9f9",
+      "recordedAt": "2026-10-18T22:14:47Z"
+    },
+    "s2-release-config": {
+      "snapshotId": "44433b221ac5fc91e23545723459724d1275f802453a97e9997831c0f7feb7fa",
+      "commits": {
+        "gpux": "29dd6dafbcd81953990bb4e8467237803da7a5b1"
+      },
+      "reviewHash": "cafa5ef7e979783d0d8f19614f6a634f9137ef920aa65491cba1ba2c52f9c854",
+      "recordedAt": "2026-10-18T22:25:27Z"
+    }
+  },
+  "findings": [
+    {
+      "id": "S2-RPZ1-DESIGN-RECORD",
+      "criterionIds": [
+        "RPZ-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved: the spike-proven `git_release_name` and nested Migration line are recorded with reasons in the new decision `d-release-tooling-proven` (d-release-tooling is sealed with s1), cited by t03, and RPZ-1 names both values.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/tasks/gpux-releases/design.json"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/release_config.rs"
+        }
+      ],
+      "boundaryId": "s2-release-config"
+    }
+  ],
+  "handoffMarkdown": "Spike passed with candidate A (release-plz 0.3.172 = release-plz/action@v0.5 default; pin version: \"0.3.172\"). Evidence + full notes: artifacts-temp/agentx/gpux-releases/spike/SUMMARY.md, proven config: spike/proven-release-plz.toml, outputs: spike/out/. release needs a forge even for --dry-run, so it ran against a local Gitea-API mock (127.0.0.1) creating tags in the bare remote. Proven config = d-release-tooling A plus gpux git_release_name = \"v{{ version }}\" (default name gpux-vX.Y.Z) and Migration footer rendered as nested '  - Migration: <note>' (Dtcg/SignalR form). Release PR changes exactly Cargo.toml, Cargo.lock, crates/gpui_mobile/Cargo.toml, CHANGELOG.md (t05 input). Untagged 1.0.0 tree: update = initial release at 1.0.0, no diff (old ! history ignored). release-plz compiles nothing (no Linux packages). Observations: refactor(gpui)! alone no release, with fix/feat 2.0.0; BREAKING CHANGE footer or feat! 2.0.0; fix commits touching only root Cargo.toml, only Cargo.lock, only vendor/** or only README release nothing; release_always default tags whenever the version has no tag; JSON output lists all 31 own packages released at tag vX.Y.Z but only gpux creates the tag/release; tag is annotated via forge API.",
   "protectedPaths": {
     "gpux": {
       "vendor/**": "c4081a3160e3bd0770bb61241497fc1577079f9a42fc0113092bff872b9377f1",

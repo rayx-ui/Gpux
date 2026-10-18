@@ -46,6 +46,32 @@
       ]
     },
     {
+      "id": "d-release-tooling-proven",
+      "requirementIds": [
+        "SPIKE",
+        "RPZ"
+      ],
+      "descriptionMarkdown": "Builds on d-release-tooling with what the s1 spike (release-plz 0.3.172) proved. `release-plz.toml` is candidate A plus two values: `[[package]] gpux` sets `git_release_name = \"v{{ version }}\"`, and the `[changelog]` body renders each `Migration:` footer of a commit (git-cliff `commit.footers`, token `Migration`) as a nested `  - Migration: <note>` list line under its entry. The workflow pins `version: \"0.3.172\"` on `release-plz/action@v0.5`.",
+      "invariantsMarkdown": "- The GitHub Release is named `vX.Y.Z`, like its tag.\n- A `Migration:` footer appears as its own nested line under the commit's entry in `CHANGELOG.md` and the Release notes; a commit without the footer gets none.",
+      "rationaleMarkdown": "Spike findings (artifacts of t01, summarized in docs/releasing.md): release-plz's default Release name for a package is `<package>-v<version>`, which would name the workspace's Release `gpux-v1.0.0` beside the tag `v1.0.0`. A plain `  Migration:` continuation line folds into the entry's paragraph in Markdown, so the nested list form of RayX.Dtcg and RayX.SignalR is used. `release` needs a forge client even with `--dry-run`, so the scenarios ran against a local Gitea-API mock; candidate A passed all six must-hold scenarios with these two values. Recorded as a new decision because d-release-tooling is sealed with s1 (review finding S2-RPZ1-DESIGN-RECORD).",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "release-plz.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/release-plz.yml"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "rayx-cli",
+          "path": ".agentx/memory/decisions/distribution/2026-10-14-distribution-release-plz-tags-dist-releases.md"
+        }
+      ]
+    },
+    {
       "id": "d-git-tag-distribution",
       "requirementIds": [
         "VER",
