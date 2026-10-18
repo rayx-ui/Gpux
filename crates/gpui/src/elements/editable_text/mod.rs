@@ -1,3 +1,4 @@
+mod attributes;
 mod buffer;
 mod display_transform;
 mod edit;
@@ -6,6 +7,7 @@ mod error;
 mod event;
 mod geometry;
 mod history;
+mod html;
 mod layout_cache;
 mod layout_map;
 mod line_mode;
@@ -16,6 +18,7 @@ mod snapshot;
 mod state;
 mod style_runs;
 
+pub use attributes::*;
 pub use buffer::*;
 pub use display_transform::*;
 pub use edit::*;
@@ -23,6 +26,7 @@ pub use element::*;
 pub use error::*;
 pub use event::*;
 pub use geometry::*;
+pub use html::*;
 pub use layout_cache::*;
 pub use layout_map::*;
 pub use line_mode::*;

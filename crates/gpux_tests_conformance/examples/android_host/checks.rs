@@ -259,6 +259,24 @@ pub async fn startup(cx: &mut AsyncApp, screens: &Screens) -> ResultLine {
     }
 }
 
+/// `clipboard-android`: GPUI's clipboard writes plain text with HTML beside it to the system
+/// `ClipboardManager`, read back from it directly (never the in-process fallback), the text
+/// exactly, the HTML unchanged.
+async fn clipboard(cx: &mut AsyncApp) -> ResultLine {
+    use gpux_tests_conformance::platform_checks::clipboard_html;
+    const ID: &str = "clipboard-android";
+    let item = clipboard_html::item(std::process::id());
+    cx.update(|cx| cx.write_to_clipboard(item.clone()));
+    let read = match gpui_mobile::android::clipboard::read() {
+        Ok(read) => read,
+        Err(error) => return fail(ID, format!("the system clipboard is unreachable: {error}")),
+    };
+    match clipboard_html::verify(&item, read.as_ref()) {
+        Ok(summary) => pass(ID, summary),
+        Err(error) => fail(ID, error),
+    }
+}
+
 /// A tap through the operating system clicks the element under it.
 async fn touch_tap(cx: &mut AsyncApp) -> ResultLine {
     const ID: &str = "android-touch-tap";
@@ -550,6 +568,9 @@ pub async fn os_checks(cx: &mut AsyncApp, screens: &Screens) -> Vec<ResultLine> 
     }
     if selected("platform-view-android-text") {
         lines.push(crate::platform_views::text_input(cx, screens).await);
+    }
+    if selected("clipboard-android") {
+        lines.push(clipboard(cx).await);
     }
     lines
 }

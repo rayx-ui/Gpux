@@ -674,7 +674,7 @@ pub fn signed_with_another_key(install_output: &str) -> bool {
 }
 
 /// The ids of the Android platform checks the host reports, in order.
-pub const PLATFORM_CHECKS: [&str; 19] = [
+pub const PLATFORM_CHECKS: [&str; 20] = [
     "android-startup",
     "android-touch-tap",
     "android-touch-pan",
@@ -694,6 +694,7 @@ pub const PLATFORM_CHECKS: [&str; 19] = [
     "screen-reader-android-click",
     "screen-reader-android-adjust",
     "devtools-android",
+    "clipboard-android",
 ];
 
 /// Every result `android run` expects for `selection`: the platform checks and the lane-E

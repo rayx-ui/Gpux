@@ -433,6 +433,8 @@ its console. The host runs its platform checks and every lane-F scene:
 - `ios-metal`: wgpu renders through Metal and reads its frames back;
 - `ios-text-metrics`: CoreText measures the bundled IBM Plex Sans as its font file declares
   (ascent, descent and advances at 16 px), and shapes a line to its advances within kerning;
+- `text-run-metrics-ios`: CoreText shapes a line mixing 12 and 28 px runs at each run's own size,
+  with increasing glyph positions and an ascent at least the larger run's;
 - `ios-touch-tap`: a touch injected into the window taps the element under it;
 - `ios-lifecycle`: the testkit brings Settings to the front and, once the host saw its window
   deactivate, launches the host again, which brings the running one back; the window reactivates

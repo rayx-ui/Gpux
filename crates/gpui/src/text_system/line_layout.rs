@@ -1,4 +1,6 @@
-use crate::{FontId, GlyphId, Pixels, PlatformTextSystem, Point, SharedString, Size, point, px};
+use crate::{
+    FontId, GlyphId, Pixels, PlatformTextSystem, Point, RunMetrics, SharedString, Size, point, px,
+};
 use collections::{FxHashMap, FxHasher};
 use parking_lot::{Mutex, RwLock, RwLockUpgradableReadGuard};
 use smallvec::SmallVec;
@@ -71,10 +73,15 @@ pub struct LineLayout {
 }
 
 /// A run of text that has been shaped .
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ShapedRun {
     /// The font id for this run
     pub font_id: FontId,
+    /// The font size this run was shaped at
+    pub font_size: Pixels,
+    /// How far this run's glyphs were raised above the baseline (negative lowers them); their
+    /// positions already include it.
+    pub baseline_shift: Pixels,
     /// The glyphs that make up this run
     pub glyphs: Vec<ShapedGlyph>,
 }
@@ -187,6 +194,8 @@ impl LineLayout {
             if split_pos > 0 {
                 left_runs.push(ShapedRun {
                     font_id: run.font_id,
+                    font_size: run.font_size,
+                    baseline_shift: run.baseline_shift,
                     glyphs: run.glyphs[..split_pos].to_vec(),
                 });
             }
@@ -203,6 +212,8 @@ impl LineLayout {
                     .collect();
                 right_runs.push(ShapedRun {
                     font_id: run.font_id,
+                    font_size: run.font_size,
+                    baseline_shift: run.baseline_shift,
                     glyphs: right_glyphs,
                 });
             }
@@ -231,11 +242,37 @@ impl LineLayout {
         (left, right)
     }
 
+    /// Wrap boundaries for rows whose available width differs between the first row and the
+    /// rest, as paragraphs with a first-line or hanging indent have.
+    pub fn wrap_boundaries_for_widths(
+        &self,
+        text: &str,
+        first_row_width: Pixels,
+        other_row_width: Pixels,
+    ) -> SmallVec<[WrapBoundary; 1]> {
+        self.compute_wrap_boundaries_with(text, None, &|row| {
+            if row == 0 {
+                first_row_width
+            } else {
+                other_row_width
+            }
+        })
+    }
+
     fn compute_wrap_boundaries(
         &self,
         text: &str,
         wrap_width: Pixels,
         max_lines: Option<usize>,
+    ) -> SmallVec<[WrapBoundary; 1]> {
+        self.compute_wrap_boundaries_with(text, max_lines, &|_| wrap_width)
+    }
+
+    fn compute_wrap_boundaries_with(
+        &self,
+        text: &str,
+        max_lines: Option<usize>,
+        wrap_width: &dyn Fn(usize) -> Pixels,
     ) -> SmallVec<[WrapBoundary; 1]> {
         let mut boundaries = SmallVec::new();
         let mut first_non_whitespace_ix = None;
@@ -271,7 +308,11 @@ impl LineLayout {
             // Here is very similar to `LineWrapper::wrap_line` to determine text wrapping,
             // but there are some differences, so we have to duplicate the code here.
             if LineWrapper::is_word_char(ch) {
-                if prev_ch == ' ' && ch != ' ' && first_non_whitespace_ix.is_some() {
+                // gpux: a row may also break after an inline object's character.
+                if (prev_ch == ' ' || prev_ch == '\u{FFFC}')
+                    && ch != ' '
+                    && first_non_whitespace_ix.is_some()
+                {
                     last_candidate_ix = Some(boundary);
                     last_candidate_x = x;
                 }
@@ -289,7 +330,7 @@ impl LineLayout {
             let next_x = glyphs.peek().map_or(self.width, |(_, _, x)| *x);
             let width = next_x - last_boundary_x;
 
-            if width > wrap_width && boundary > last_boundary {
+            if width > wrap_width(boundaries.len()) && boundary > last_boundary {
                 // When used line_clamp, we should limit the number of lines.
                 if let Some(max_lines) = max_lines
                     && boundaries.len() >= max_lines.saturating_sub(1)
@@ -798,7 +839,12 @@ impl LineLayoutCache {
                 .layout_line(&text, font_size, runs);
             crate::fast::fast_stat!(atomic self.fast_lines_shaped, += 1);
 
-            apply_letter_spacing_to_layout(&mut layout, letter_spacing);
+            apply_run_metrics_to_layout(
+                &mut layout,
+                letter_spacing,
+                runs,
+                self.platform_text_system.as_ref(),
+            );
 
             if let Some(force_width) = force_width {
                 apply_force_width_to_layout(&mut layout, force_width);
@@ -962,7 +1008,12 @@ impl LineLayoutCache {
             .layout_line(&text, font_size, runs);
         crate::fast::fast_stat!(atomic self.fast_lines_shaped, += 1);
 
-        apply_letter_spacing_to_layout(&mut layout, letter_spacing);
+        apply_run_metrics_to_layout(
+            &mut layout,
+            letter_spacing,
+            runs,
+            self.platform_text_system.as_ref(),
+        );
 
         if let Some(force_width) = force_width {
             apply_force_width_to_layout(&mut layout, force_width);
@@ -1001,6 +1052,130 @@ impl LineLayoutCache {
         self.cached_font_generation
             .store(font_generation, Ordering::Release);
         font_generation
+    }
+}
+
+/// Applies every run's letter spacing and baseline shift to a shaped line:
+/// the one pass after shaping, shared by every platform. Lines whose runs
+/// space alike and shift nothing take [`apply_letter_spacing_to_layout`]
+/// unchanged.
+fn apply_run_metrics_to_layout(
+    layout: &mut LineLayout,
+    letter_spacing: Pixels,
+    runs: &[FontRun],
+    text_system: &dyn PlatformTextSystem,
+) {
+    let spacing_of = |run: &FontRun| run.metrics.letter_spacing_or(letter_spacing);
+    let uniform_spacing = runs
+        .first()
+        .map_or(letter_spacing, |first| spacing_of(first));
+    if runs.iter().all(|run| spacing_of(run) == uniform_spacing) {
+        apply_letter_spacing_to_layout(layout, uniform_spacing);
+        layout.letter_spacing = letter_spacing;
+    } else {
+        apply_per_run_letter_spacing(layout, letter_spacing, runs);
+    }
+    if runs
+        .iter()
+        .any(|run| run.metrics.baseline_shift != Pixels::ZERO)
+    {
+        apply_baseline_shift(layout, runs, text_system);
+    }
+}
+
+/// The input run covering byte `index`, given each run's end offset.
+fn run_at(run_ends: &[usize], runs: &[FontRun], index: usize) -> Option<FontRun> {
+    let ix = run_ends.partition_point(|end| *end <= index);
+    runs.get(ix.min(runs.len().saturating_sub(1))).copied()
+}
+
+fn run_ends(runs: &[FontRun]) -> SmallVec<[usize; 8]> {
+    let mut end = 0;
+    runs.iter()
+        .map(|run| {
+            end += run.len;
+            end
+        })
+        .collect()
+}
+
+/// Letter spacing that differs between runs: each glyph cluster is followed
+/// by its own run's spacing, so a run's spacing never moves the glyph that
+/// ends the line.
+fn apply_per_run_letter_spacing(layout: &mut LineLayout, letter_spacing: Pixels, runs: &[FontRun]) {
+    let run_ends = run_ends(runs);
+    let mut offset = px(0.);
+    let mut pending = px(0.);
+    let mut base_glyph_count = 0usize;
+    let mut last_base_shaped_x = px(f32::NEG_INFINITY);
+    let mut last_base_actual_x = px(0.);
+
+    for run in layout.runs.iter_mut() {
+        for glyph in run.glyphs.iter_mut() {
+            let shaped_x = glyph.position.x;
+            if shaped_x > last_base_shaped_x + px(0.01) {
+                if base_glyph_count > 0 {
+                    offset += pending;
+                }
+                pending = run_at(&run_ends, runs, glyph.index).map_or(letter_spacing, |run| {
+                    run.metrics.letter_spacing_or(letter_spacing)
+                });
+                glyph.position.x = shaped_x + offset;
+                last_base_shaped_x = shaped_x;
+                last_base_actual_x = glyph.position.x;
+                base_glyph_count += 1;
+            } else {
+                glyph.position.x = last_base_actual_x + (shaped_x - last_base_shaped_x);
+            }
+        }
+    }
+
+    layout.width = (layout.width + offset).max(Pixels::ZERO);
+    layout.letter_spacing = letter_spacing;
+}
+
+/// Raises (or lowers) the glyphs of every shifted run, splits shaped runs where the shift
+/// changes so each records its own [`ShapedRun::baseline_shift`], and widens the line's ascent
+/// and descent to hold the shifted extents.
+fn apply_baseline_shift(
+    layout: &mut LineLayout,
+    runs: &[FontRun],
+    text_system: &dyn PlatformTextSystem,
+) {
+    let run_ends = run_ends(runs);
+    let shaped = std::mem::take(&mut layout.runs);
+    for run in shaped {
+        let mut piece: Option<ShapedRun> = None;
+        for mut glyph in run.glyphs {
+            let shift = run_at(&run_ends, runs, glyph.index)
+                .map_or(Pixels::ZERO, |input| input.metrics.baseline_shift);
+            glyph.position.y -= shift;
+            match piece.as_mut() {
+                Some(piece) if piece.baseline_shift == shift => piece.glyphs.push(glyph),
+                _ => {
+                    layout.runs.extend(piece.take());
+                    piece = Some(ShapedRun {
+                        font_id: run.font_id,
+                        font_size: run.font_size,
+                        baseline_shift: shift,
+                        glyphs: vec![glyph],
+                    });
+                }
+            }
+        }
+        layout.runs.extend(piece);
+    }
+    for run in runs {
+        let shift = run.metrics.baseline_shift;
+        if shift == Pixels::ZERO || run.len == 0 {
+            continue;
+        }
+        let metrics = text_system.font_metrics(run.font_id);
+        let scale = run.metrics.font_size_or(layout.font_size) / metrics.units_per_em as f32;
+        let ascent = scale * metrics.ascent;
+        let descent = scale * -metrics.descent;
+        layout.ascent = layout.ascent.max(ascent + shift);
+        layout.descent = layout.descent.max(descent - shift);
     }
 }
 
@@ -1067,11 +1242,14 @@ fn apply_force_width_to_layout(layout: &mut LineLayout, force_width: Pixels) {
 }
 
 /// A run of text with a single font.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-#[expect(missing_docs)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash)]
 pub struct FontRun {
+    /// The run's length in UTF-8 bytes.
     pub len: usize,
+    /// The run's font.
     pub font_id: FontId,
+    /// The run's own metrics; the default inherits the line's.
+    pub metrics: RunMetrics,
 }
 
 trait AsCacheKeyRef {
@@ -1313,6 +1491,7 @@ mod tests {
             &[FontRun {
                 len: 5,
                 font_id: FontId(1),
+                metrics: Default::default(),
             }],
             None,
             None,
@@ -1330,6 +1509,7 @@ mod tests {
         let runs = [FontRun {
             len: 5,
             font_id: FontId(1),
+            metrics: Default::default(),
         }];
         let first = CacheKeyRef::new("first", px(14.), px(0.), &runs, None, None);
         let second = CacheKeyRef {
@@ -1381,6 +1561,8 @@ mod tests {
             ascent: px(12.),
             descent: px(4.),
             runs: vec![ShapedRun {
+                font_size: px(16.0),
+                baseline_shift: Default::default(),
                 font_id: FontId(0),
                 glyphs,
             }],

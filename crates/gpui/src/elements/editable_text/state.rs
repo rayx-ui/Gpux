@@ -1,4 +1,4 @@
-use std::{ops::Range, time::Duration};
+use std::{ops::Range, sync::Arc, time::Duration};
 
 use crate::{
     Bounds, ClipboardItem, Context, EntityInputHandler, EventEmitter, FocusHandle, Focusable,
@@ -9,10 +9,11 @@ use crate::{
 use super::super::scroll_activity::ScrollActivity;
 
 use super::{
-    EditableSelection, EditableTextEvent, EditableTextGeometry, EditableTextLineMode,
-    EditableTextMode, EditableTextStyleRuns, TextBuffer, TextBufferError, TextBufferSnapshot,
-    TextEdit, TextLayoutEdit, TextLayoutError, TextLayoutMap, TextLayoutStyle, TextLayoutUpdate,
-    editable_text_alignment_offset,
+    AttributeSpan, AttributeState, AttributedText, EditableSelection, EditableTextEvent,
+    EditableTextFormatEvent, EditableTextGeometry, EditableTextLineMode, EditableTextMode,
+    EditableTextStyleRuns, Formatting, ParagraphFormat, TextAttributes, TextAttributesPatch,
+    TextBuffer, TextBufferError, TextBufferSnapshot, TextEdit, TextLayoutEdit, TextLayoutError,
+    TextLayoutMap, TextLayoutStyle, TextLayoutUpdate, editable_text_alignment_offset,
     history::{EditHistory, EditKind, HistoryState},
     movement::{
         grapheme_boundary_at_or_before, logical_line_range_at, next_grapheme_boundary,
@@ -54,6 +55,21 @@ pub struct EditableTextState {
     blink_epoch: u64,
     focus_subscriptions: Vec<Subscription>,
     text_export_enabled: bool,
+    /// Formatting stored with the text; `None` until a field is formatted, so plain fields
+    /// allocate nothing.
+    formatting: Option<Arc<Formatting>>,
+    format_revision: u64,
+    /// Attributes the next insertion takes, until the caret moves or focus changes.
+    typing_attributes: Option<Arc<TextAttributes>>,
+    /// Attributes an IME composition keeps for its whole life.
+    composition_attributes: Option<Arc<TextAttributes>>,
+    /// The height a single-line field last asked layout for.
+    pub(crate) requested_height: Option<Pixels>,
+    /// How far each list level moves a list item's leading indent.
+    list_indent_step: Pixels,
+    list_editing: bool,
+    /// Whether paste inserts the clipboard's HTML formatting.
+    rich_paste: bool,
 }
 
 #[allow(missing_docs)]
@@ -103,6 +119,14 @@ impl EditableTextState {
             blink_epoch: 0,
             focus_subscriptions: Vec::new(),
             text_export_enabled: true,
+            formatting: None,
+            format_revision: 0,
+            typing_attributes: None,
+            composition_attributes: None,
+            requested_height: None,
+            list_indent_step: px(24.),
+            list_editing: true,
+            rich_paste: false,
         }
     }
 
@@ -146,6 +170,17 @@ impl EditableTextState {
 
     pub fn line_mode(&self) -> EditableTextLineMode {
         self.line_mode
+    }
+
+    /// Whether paste inserts the formatting of the clipboard's HTML. Off by default, so plain
+    /// fields stay plain.
+    pub fn rich_paste(&self) -> bool {
+        self.rich_paste
+    }
+
+    /// Accepts or refuses the clipboard's HTML formatting on paste.
+    pub fn set_rich_paste(&mut self, enabled: bool) {
+        self.rich_paste = enabled;
     }
 
     pub fn soft_wrap(&self) -> bool {
@@ -240,6 +275,409 @@ impl EditableTextState {
         Ok(())
     }
 
+    /// Counts formatting-only changes; edits to the text bump [`Self::revision`] instead.
+    pub fn format_revision(&self) -> u64 {
+        self.format_revision
+    }
+
+    /// The stored character formatting, as sorted, non-overlapping spans.
+    pub fn attribute_spans(&self) -> &[AttributeSpan] {
+        self.formatting
+            .as_ref()
+            .map_or(&[], |formatting| formatting.spans.spans())
+    }
+
+    /// The stored attributes of the character at `offset` (none stored reads as default).
+    pub fn attributes_at(&self, offset: usize) -> TextAttributes {
+        self.stored_attributes(offset)
+            .map(|attributes| (*attributes).clone())
+            .unwrap_or_default()
+    }
+
+    /// Whether the characters of `range` all have a field on (`is_on`), none have it, or
+    /// some do. An empty range answers for the attributes the next insertion there takes.
+    pub fn attribute_state(
+        &self,
+        range: Range<usize>,
+        is_on: impl Fn(&TextAttributes) -> bool,
+    ) -> AttributeState {
+        if range.is_empty() {
+            let attributes = self.insertion_attributes(range).unwrap_or_default();
+            return if is_on(&attributes) {
+                AttributeState::On
+            } else {
+                AttributeState::Off
+            };
+        }
+        let range = range.start.min(self.buffer.len())..range.end.min(self.buffer.len());
+        let off = TextAttributes::default();
+        let mut on_len = 0;
+        let mut covered = 0;
+        if let Some(formatting) = &self.formatting {
+            for span in formatting.spans.clipped(range.clone()) {
+                covered += span.range.len();
+                if is_on(&span.attributes) {
+                    on_len += span.range.len();
+                }
+            }
+        }
+        if is_on(&off) {
+            on_len += range.len() - covered;
+        }
+        if on_len == range.len() {
+            AttributeState::On
+        } else if on_len == 0 {
+            AttributeState::Off
+        } else {
+            AttributeState::Mixed
+        }
+    }
+
+    /// Sets or clears attribute fields over `range` as one undo step. An empty range sets the
+    /// typing attributes the next insertion there takes instead.
+    pub fn set_attributes(
+        &mut self,
+        range: Range<usize>,
+        patch: &TextAttributesPatch,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        if !self.mode.permits_mutation() || patch.is_empty() {
+            return false;
+        }
+        if range.is_empty() {
+            let mut attributes = self
+                .insertion_attributes(range)
+                .map(|attributes| (*attributes).clone())
+                .unwrap_or_default();
+            patch.apply(&mut attributes);
+            self.typing_attributes = Some(Arc::new(attributes));
+            cx.notify();
+            return true;
+        }
+        let snapshot = self.snapshot();
+        if snapshot.validate_range(&range).is_err() {
+            return false;
+        }
+        let before = self.history_state();
+        let mut formatting = self.formatting.as_deref().cloned().unwrap_or_default();
+        formatting.spans.patch(range, patch);
+        if self.formatting.as_deref().unwrap_or(&Formatting::default()) == &formatting {
+            return false;
+        }
+        self.formatting = (!formatting.is_empty()).then(|| Arc::new(formatting));
+        let after = self.history_state();
+        self.history.record(before, after, EditKind::Format);
+        self.finish_format_change(cx);
+        true
+    }
+
+    /// The attributes the next insertion takes, when set explicitly.
+    pub fn typing_attributes(&self) -> Option<&TextAttributes> {
+        self.typing_attributes.as_deref()
+    }
+
+    /// Sets the attributes the next insertion takes; they are dropped when the caret moves or
+    /// focus changes.
+    pub fn set_typing_attributes(&mut self, attributes: TextAttributes, cx: &mut Context<Self>) {
+        self.typing_attributes = Some(Arc::new(attributes));
+        cx.notify();
+    }
+
+    /// The format of the paragraph containing `offset`.
+    pub fn paragraph_format(&self, offset: usize) -> ParagraphFormat {
+        let Some(formatting) = &self.formatting else {
+            return ParagraphFormat::default();
+        };
+        let snapshot = self.snapshot();
+        let paragraph = snapshot
+            .byte_to_point(offset.min(snapshot.len()))
+            .map_or(0, |point| point.y);
+        formatting
+            .paragraph(paragraph)
+            .map(|format| (**format).clone())
+            .unwrap_or_default()
+    }
+
+    /// Sets the format of every paragraph `range` touches, as one undo step.
+    pub fn set_paragraph_format(
+        &mut self,
+        range: Range<usize>,
+        format: ParagraphFormat,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        self.update_paragraph_format(range, move |paragraph| *paragraph = format.clone(), cx)
+    }
+
+    /// Resets the format of every paragraph `range` touches, as one undo step.
+    pub fn clear_paragraph_format(&mut self, range: Range<usize>, cx: &mut Context<Self>) -> bool {
+        self.set_paragraph_format(range, ParagraphFormat::default(), cx)
+    }
+
+    /// Changes the format of every paragraph `range` touches with `update`, as one undo step.
+    pub fn update_paragraph_format(
+        &mut self,
+        range: Range<usize>,
+        update: impl Fn(&mut ParagraphFormat),
+        cx: &mut Context<Self>,
+    ) -> bool {
+        if !self.mode.permits_mutation() {
+            return false;
+        }
+        let snapshot = self.snapshot();
+        let (Ok(first), Ok(mut last)) = (
+            snapshot.byte_to_point(range.start.min(snapshot.len())),
+            snapshot.byte_to_point(range.end.min(snapshot.len())),
+        ) else {
+            return false;
+        };
+        // A range ending where a paragraph starts does not reach into it.
+        if range.end > range.start && last.x == 0 && last.y > first.y {
+            last.y -= 1;
+        }
+        let before = self.history_state();
+        let mut formatting = self.formatting.as_deref().cloned().unwrap_or_default();
+        formatting.update_paragraphs(first.y..=last.y, snapshot.line_count(), &update);
+        if self.formatting.as_deref().unwrap_or(&Formatting::default()) == &formatting {
+            return false;
+        }
+        self.formatting = (!formatting.is_empty()).then(|| Arc::new(formatting));
+        let after = self.history_state();
+        self.history.record(before, after, EditKind::Format);
+        self.finish_format_change(cx);
+        true
+    }
+
+    /// How far each list level moves a list item's leading indent (24 px unless set).
+    pub fn list_indent_step(&self) -> Pixels {
+        self.list_indent_step
+    }
+
+    pub fn set_list_indent_step(&mut self, step: Pixels, cx: &mut Context<Self>) {
+        if self.list_indent_step != step {
+            self.list_indent_step = step;
+            self.geometry = None;
+            cx.notify();
+        }
+    }
+
+    /// Whether Enter, Backspace, Tab and Shift-Tab use the list editing defaults in list items
+    /// (on unless switched off).
+    pub fn list_editing(&self) -> bool {
+        self.list_editing
+    }
+
+    pub fn set_list_editing(&mut self, enabled: bool) {
+        self.list_editing = enabled;
+    }
+
+    /// The list item of the paragraph at the caret, if it is one.
+    fn caret_list_item(&self) -> Option<super::TextListItem> {
+        self.paragraph_format(self.selection.head()).list
+    }
+
+    /// Enter in a list item: a non-empty item splits into two items (a new checkbox item starts
+    /// unchecked); an empty item ends the list, losing its list format instead of breaking the
+    /// line. Each is one undo step. Returns false outside a list item.
+    pub fn list_insert_newline(&mut self, cx: &mut Context<Self>) -> bool {
+        if self.line_mode != EditableTextLineMode::MultiLine || !self.mode.permits_mutation() {
+            return false;
+        }
+        let Some(item) = self.caret_list_item() else {
+            return false;
+        };
+        let head = self.selection.head();
+        if self.selection.is_empty() && self.paragraph_is_empty_at(head) {
+            return self.update_paragraph_format(head..head, |format| format.list = None, cx);
+        }
+        let range = self.selection.range();
+        let caret = range.start + 1;
+        // The new item is the empty first half when the split is at the item's start, else the
+        // second half; a new checkbox item starts unchecked.
+        let new_item = if self
+            .buffer
+            .char_before(range.start)
+            .is_none_or(|(_, ch)| ch == '\n')
+        {
+            range.start
+        } else {
+            caret
+        };
+        self.apply_edit_then(
+            range,
+            "\n".to_owned(),
+            EditableSelection::caret(caret),
+            None,
+            EditKind::Other,
+            move |state| {
+                if matches!(item.kind, super::TextListKind::Checkbox { .. }) {
+                    state.set_paragraph_list_in_place(
+                        new_item,
+                        Some(super::TextListItem {
+                            kind: super::TextListKind::Checkbox { checked: false },
+                            level: item.level,
+                        }),
+                    );
+                }
+            },
+            cx,
+        )
+    }
+
+    /// Backspace at the start of a list item removes its list format before any join, as one
+    /// undo step. Returns false elsewhere.
+    pub fn list_delete_backward(&mut self, cx: &mut Context<Self>) -> bool {
+        let head = self.selection.head();
+        let at_start = self.selection.is_empty()
+            && self
+                .buffer
+                .char_before(head)
+                .is_none_or(|(_, ch)| ch == '\n');
+        if !at_start || self.caret_list_item().is_none() {
+            return false;
+        }
+        self.update_paragraph_format(head..head, |format| format.list = None, cx)
+    }
+
+    /// Tab in a list item: every list item the selection touches goes one level deeper, as one
+    /// undo step. Returns false when the caret is not in a list item, so Tab propagates.
+    pub fn indent_list_item(&mut self, cx: &mut Context<Self>) -> bool {
+        if self.caret_list_item().is_none() {
+            return false;
+        }
+        self.update_paragraph_format(
+            self.selection.range(),
+            |format| {
+                if let Some(item) = &mut format.list {
+                    item.level = item.level.saturating_add(1);
+                }
+            },
+            cx,
+        )
+    }
+
+    /// Shift-Tab in a list item: every list item the selection touches goes one level up, and
+    /// one at level 0 loses its list format, as one undo step. Returns false when the caret is
+    /// not in a list item.
+    pub fn outdent_list_item(&mut self, cx: &mut Context<Self>) -> bool {
+        if self.caret_list_item().is_none() {
+            return false;
+        }
+        self.update_paragraph_format(
+            self.selection.range(),
+            |format| match &mut format.list {
+                Some(item) if item.level > 0 => item.level -= 1,
+                _ => format.list = None,
+            },
+            cx,
+        )
+    }
+
+    /// Sets the list item of the paragraph containing `offset` without recording history (the
+    /// caller is inside an undo step).
+    fn set_paragraph_list_in_place(&mut self, offset: usize, list: Option<super::TextListItem>) {
+        let snapshot = self.snapshot();
+        let Ok(point) = snapshot.byte_to_point(offset.min(snapshot.len())) else {
+            return;
+        };
+        let mut formatting = self.formatting.as_deref().cloned().unwrap_or_default();
+        formatting.update_paragraphs(point.y..=point.y, snapshot.line_count(), &|format| {
+            format.list = list.clone();
+        });
+        self.formatting = (!formatting.is_empty()).then(|| Arc::new(formatting));
+    }
+
+    /// Toggles the checkbox of the list item containing `offset`, as one undo step.
+    pub fn toggle_list_checkbox(&mut self, offset: usize, cx: &mut Context<Self>) -> bool {
+        let checked = match self.paragraph_format(offset).list {
+            Some(super::TextListItem {
+                kind: super::TextListKind::Checkbox { checked },
+                ..
+            }) => checked,
+            _ => return false,
+        };
+        self.update_paragraph_format(
+            offset..offset,
+            |format| {
+                if let Some(item) = &mut format.list {
+                    item.kind = super::TextListKind::Checkbox { checked: !checked };
+                }
+            },
+            cx,
+        )
+    }
+
+    /// The text and everything stored with it.
+    pub fn attributed_text(&self) -> AttributedText {
+        AttributedText {
+            text: self.text(),
+            spans: self.attribute_spans().to_vec(),
+            paragraphs: self
+                .formatting
+                .as_ref()
+                .map_or_else(Vec::new, |formatting| {
+                    formatting
+                        .paragraphs
+                        .iter()
+                        .map(|format| (**format).clone())
+                        .collect()
+                }),
+        }
+    }
+
+    /// Replaces the text and everything stored with it, as one undo step.
+    pub fn set_attributed_text(&mut self, text: AttributedText, cx: &mut Context<Self>) -> bool {
+        if !self.mode.permits_mutation() {
+            return false;
+        }
+        // Spans follow their characters through line-break normalization, and land on
+        // character boundaries.
+        let (replacement, offsets) = super::movement::normalize_with_offsets(
+            &text.text,
+            self.line_mode == EditableTextLineMode::SingleLine,
+        );
+        let map = |offset: usize| offsets[offset.min(text.text.len())];
+        let spans = text.spans.into_iter().map(|span| AttributeSpan {
+            range: map(span.range.start)..map(span.range.end),
+            attributes: span.attributes,
+        });
+        let spans = super::AttributeSpans::from_spans(spans, replacement.len());
+        // Paragraph formats follow their paragraphs; breaks a single-line field drops leave
+        // the first paragraph's.
+        let paragraph_count = replacement.matches('\n').count() + 1;
+        let mut paragraphs: Vec<Arc<ParagraphFormat>> = text
+            .paragraphs
+            .into_iter()
+            .take(paragraph_count)
+            .map(Arc::new)
+            .collect();
+        if !paragraphs.is_empty() {
+            paragraphs.resize(paragraph_count, Arc::new(ParagraphFormat::default()));
+        }
+        let before = self.history_state();
+        let edit = TextEdit::new(self.revision(), 0..self.buffer.len(), replacement.clone());
+        if !self.apply_buffer_edit(edit, None) {
+            return false;
+        }
+        let mut formatting = Formatting { spans, paragraphs };
+        formatting.update_paragraphs(0..=0, paragraph_count, &|_| {});
+        self.formatting = (!formatting.is_empty()).then(|| Arc::new(formatting));
+        self.invalidate_style_runs();
+        self.selection = EditableSelection::caret(replacement.len());
+        self.marked_range = None;
+        self.typing_attributes = None;
+        self.composition_attributes = None;
+        self.geometry = None;
+        let after = self.history_state();
+        self.history.record(before, after, EditKind::Other);
+        self.restart_blink(cx);
+        cx.emit(EditableTextEvent::Changed {
+            revision: self.revision(),
+            composition_active: false,
+        });
+        cx.notify();
+        true
+    }
+
     pub fn focus_handle(&self) -> FocusHandle {
         self.focus_handle.clone()
     }
@@ -279,6 +717,10 @@ impl EditableTextState {
         };
         let snapshot = self.snapshot();
         let projection = display_transform.project(&snapshot.text());
+        self.layout_map.set_formatting(self.formatting.clone());
+        self.layout_map.set_list_indent_step(self.list_indent_step);
+        self.layout_map
+            .set_alignment(text_align, Some(bounds.size.width));
         let update_result = match (&projection, self.pending_layout_edit.as_ref()) {
             (None, Some(edit)) => self.layout_map.update_after_layout_edit_with_shaper(
                 &snapshot,
@@ -486,6 +928,7 @@ impl EditableTextState {
         let head = grapheme_boundary_at_or_before(&text, head);
         self.selection = EditableSelection::new(anchor, head);
         self.marked_range = None;
+        self.typing_attributes = None;
         self.caret_reveal_pending = true;
         self.restart_blink(cx);
         cx.notify();
@@ -522,6 +965,7 @@ impl EditableTextState {
         }
         self.selection = EditableSelection::new(0, self.buffer.len());
         self.marked_range = None;
+        self.typing_attributes = None;
         self.caret_reveal_pending = true;
         self.restart_blink(cx);
         cx.notify();
@@ -638,11 +1082,11 @@ impl EditableTextState {
     }
 
     pub fn move_page_up(&mut self, extend: bool, cx: &mut Context<Self>) {
-        self.move_vertical(-self.page_row_count(), extend, cx);
+        self.move_page(-1., extend, cx);
     }
 
     pub fn move_page_down(&mut self, extend: bool, cx: &mut Context<Self>) {
-        self.move_vertical(self.page_row_count(), extend, cx);
+        self.move_page(1., extend, cx);
     }
 
     pub fn insert_newline(&mut self, cx: &mut Context<Self>) -> bool {
@@ -731,8 +1175,11 @@ impl EditableTextState {
         {
             return false;
         }
-        let edit = TextEdit::new(self.revision(), 0..self.buffer.len(), replacement);
-        if !self.apply_buffer_edit(edit) {
+        // Only the part the rewrite changed is replaced, so formatting outside it stays put.
+        let changed = changed_range(&current.text, &replacement);
+        let inserted = self.insertion_attributes(changed.old.clone());
+        let edit = TextEdit::new(self.revision(), changed.old, &replacement[changed.new]);
+        if !self.apply_buffer_edit(edit, inserted) {
             return false;
         }
         self.invalidate_style_runs();
@@ -743,6 +1190,7 @@ impl EditableTextState {
         if !self.history.rewrite_current_after(&current, rewritten) {
             let restore = TextEdit::new(self.revision(), 0..self.buffer.len(), current.text);
             let _ = self.buffer.apply(restore);
+            self.formatting = current.formatting;
             self.invalidate_style_runs();
             self.selection = current.selection;
             self.marked_range = current.marked_range;
@@ -840,6 +1288,7 @@ impl EditableTextState {
     }
 
     pub fn unmark(&mut self, cx: &mut Context<Self>) {
+        self.composition_attributes = None;
         if self.marked_range.take().is_some() {
             cx.notify();
         }
@@ -852,11 +1301,160 @@ impl EditableTextState {
         {
             return false;
         }
-        let Ok(text) = self.snapshot().slice(self.selection.range()) else {
+        // Inline objects copy as their text fallbacks; formatted text adds its HTML, where
+        // objects write their HTML fallbacks.
+        let selected = self.attributed_text_in(self.selection.range());
+        let text = selected.plain_text();
+        let formatted = selected
+            .spans
+            .iter()
+            .any(|span| !span.attributes.is_empty())
+            || selected
+                .paragraphs
+                .iter()
+                .any(|format| !format.is_default());
+        cx.write_to_clipboard(if formatted {
+            ClipboardItem::new_string_with_html(text, super::attributed_text_to_html(&selected))
+        } else {
+            ClipboardItem::new_string(text)
+        });
+        true
+    }
+
+    /// Replaces `range` with `text` and everything stored with it, as one undo step.
+    ///
+    /// The inserted characters take `text`'s attributes only. Its paragraph formats go to the
+    /// paragraphs it starts, and its first one also to the paragraph it lands in when it lands
+    /// at that paragraph's start. A single-line field flattens its paragraphs.
+    pub fn insert_attributed_text(
+        &mut self,
+        range: Range<usize>,
+        text: AttributedText,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        if !self.mode.permits_mutation() {
+            return false;
+        }
+        let single_line = self.line_mode == EditableTextLineMode::SingleLine;
+        let (replacement, offsets) =
+            super::movement::normalize_with_offsets(&text.text, single_line);
+        let map = |offset: usize| offsets[offset.min(text.text.len())];
+        let spans: Vec<AttributeSpan> = text
+            .spans
+            .into_iter()
+            .map(|span| AttributeSpan {
+                range: map(span.range.start)..map(span.range.end),
+                attributes: span.attributes,
+            })
+            .filter(|span| !span.range.is_empty())
+            .collect();
+        let paragraphs = if single_line {
+            Vec::new()
+        } else {
+            text.paragraphs
+        };
+        let snapshot = self.snapshot();
+        let range = range.start.min(snapshot.len())..range.end.min(snapshot.len());
+        let Ok(landing) = snapshot.byte_to_point(range.start) else {
             return false;
         };
-        cx.write_to_clipboard(ClipboardItem::new_string(text));
-        true
+        let start = range.start;
+        let len = replacement.len();
+        self.apply_edit_then(
+            range,
+            replacement,
+            EditableSelection::caret(start + len),
+            None,
+            EditKind::Other,
+            move |state| {
+                let mut formatting = state.formatting.as_deref().cloned().unwrap_or_default();
+                formatting.spans.replace_range(
+                    start..start + len,
+                    super::AttributeSpans::from_spans(spans, len),
+                );
+                let count = state.snapshot().line_count();
+                for (index, format) in paragraphs.into_iter().enumerate() {
+                    let paragraph = landing.y + index;
+                    if (index == 0 && landing.x != 0) || paragraph >= count {
+                        continue;
+                    }
+                    formatting.update_paragraphs(paragraph..=paragraph, count, &|target| {
+                        *target = format.clone();
+                    });
+                }
+                state.formatting = (!formatting.is_empty()).then(|| Arc::new(formatting));
+            },
+            cx,
+        )
+    }
+
+    /// Inserts an inline object over `range` as one [`super::OBJECT_REPLACEMENT_CHARACTER`],
+    /// which keeps the other attributes of the text it replaces, as one undo step.
+    pub fn insert_inline_object(
+        &mut self,
+        range: Range<usize>,
+        object: super::InlineObject,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        let mut attributes = self
+            .insertion_attributes(range.clone())
+            .map(|attributes| (*attributes).clone())
+            .unwrap_or_default();
+        attributes.object = Some(object);
+        let typing = self.typing_attributes.replace(Arc::new(attributes));
+        let replacement = super::OBJECT_REPLACEMENT_CHARACTER.to_string();
+        let inserted = self.replace_byte_range(range, &replacement, EditKind::Other, cx);
+        if !inserted {
+            self.typing_attributes = typing;
+        }
+        inserted
+    }
+
+    /// The inline objects, with the byte offset of each one's character.
+    pub fn inline_objects(&self) -> Vec<(usize, super::InlineObject)> {
+        self.attributed_text()
+            .objects()
+            .map(|(offset, object)| (offset, object.clone()))
+            .collect()
+    }
+
+    /// The text of `range` and everything stored with it, with offsets relative to its start
+    /// and the formats of the paragraphs it touches.
+    pub fn attributed_text_in(&self, range: Range<usize>) -> AttributedText {
+        let snapshot = self.snapshot();
+        let range = range.start.min(snapshot.len())..range.end.min(snapshot.len());
+        let text = snapshot.slice(range.clone()).unwrap_or_default();
+        let Some(formatting) = &self.formatting else {
+            return AttributedText::plain(text);
+        };
+        let spans = formatting
+            .spans
+            .clipped(range.clone())
+            .map(|span| AttributeSpan {
+                range: span.range.start - range.start..span.range.end - range.start,
+                attributes: span.attributes,
+            })
+            .collect();
+        let paragraphs = if formatting.paragraphs.is_empty() {
+            Vec::new()
+        } else {
+            let first = snapshot
+                .byte_to_point(range.start)
+                .map_or(0, |point| point.y);
+            let count = text.matches('\n').count() + 1;
+            formatting
+                .paragraphs
+                .iter()
+                .skip(first)
+                .take(count)
+                .map(|format| (**format).clone())
+                .collect()
+        };
+        AttributedText {
+            text,
+            spans,
+            paragraphs,
+        }
     }
 
     pub fn cut(&mut self, cx: &mut Context<Self>) -> bool {
@@ -873,10 +1471,38 @@ impl EditableTextState {
         if !self.mode.permits_mutation() {
             return false;
         }
-        let Some(text) = cx.read_from_clipboard().and_then(|item| item.text()) else {
+        let Some(item) = cx.read_from_clipboard() else {
             return false;
         };
-        self.replace_byte_range(self.selection.range(), &text, EditKind::Other, cx)
+        self.paste_item(&item, cx)
+    }
+
+    /// Pastes `item` over the selection as its own undo step: its HTML's formatting when rich
+    /// paste is on and the HTML parses to some text, else its plain text.
+    pub fn paste_item(&mut self, item: &ClipboardItem, cx: &mut Context<Self>) -> bool {
+        if !self.mode.permits_mutation() {
+            return false;
+        }
+        let range = self.marked_range.clone().unwrap_or(self.selection.range());
+        if self.rich_paste
+            && let Some(html) = item.html()
+        {
+            let font_size = self.layout_map.font_size();
+            let font_size = if font_size > px(0.) {
+                font_size
+            } else {
+                px(16.)
+            };
+            if let Some(text) = super::attributed_text_from_html(html, font_size)
+                && !text.text.is_empty()
+            {
+                return self.insert_attributed_text(range, text, cx);
+            }
+        }
+        let Some(text) = item.text() else {
+            return false;
+        };
+        self.replace_byte_range(range, &text, EditKind::Other, cx)
     }
 
     pub fn undo(&mut self, cx: &mut Context<Self>) -> bool {
@@ -905,6 +1531,8 @@ impl EditableTextState {
         }
         if self.replace_byte_range(0..self.buffer.len(), "", EditKind::Other, cx) {
             self.history.clear();
+            self.typing_attributes = None;
+            self.composition_attributes = None;
         }
     }
 
@@ -936,6 +1564,23 @@ impl EditableTextState {
     ) {
         if self.mode == EditableTextMode::Disabled {
             return;
+        }
+        // A press on a list item's checkbox toggles it instead of moving the caret.
+        if self.mode.permits_mutation()
+            && let Some(geometry) = &self.geometry
+        {
+            let content = position
+                - geometry.bounds().origin
+                - geometry.scroll_offset()
+                - point(geometry.alignment_offset(), px(0.));
+            if let Some(start) = self
+                .layout_map
+                .list_checkbox_at(content)
+                .map(|marker| marker.paragraph_start)
+            {
+                self.toggle_list_checkbox(start, cx);
+                return;
+            }
         }
         self.is_selecting = true;
         self.drag_position = Some(position);
@@ -986,6 +1631,7 @@ impl EditableTextState {
             EditableSelection::caret(offset)
         };
         self.marked_range = None;
+        self.typing_attributes = None;
         self.preferred_vertical_x = None;
         self.caret_reveal_pending = true;
         self.restart_blink(cx);
@@ -1007,10 +1653,10 @@ impl EditableTextState {
         let preferred_x = self.preferred_vertical_x.unwrap_or(position.x);
         let last_row = self.layout_map.visual_line_count().saturating_sub(1) as isize;
         let target_row = (display.row as isize + row_delta).clamp(0, last_row) as usize;
-        let target_position = point(
-            preferred_x,
-            self.layout_map.line_height() * target_row + self.layout_map.line_height() / 2.0,
-        );
+        let Some(target) = self.layout_map.visual_row(target_row) else {
+            return;
+        };
+        let target_position = point(preferred_x, target.top + target.height / 2.0);
         let Some(offset) = self.layout_map.index_for_position(target_position) else {
             return;
         };
@@ -1018,19 +1664,45 @@ impl EditableTextState {
         self.preferred_vertical_x = Some(preferred_x);
     }
 
-    fn page_row_count(&self) -> isize {
+    /// Moves by the viewport's height (in whole rows of the field's line height), keeping the
+    /// preferred x, whatever the heights of the rows in between.
+    fn move_page(&mut self, direction: f32, extend: bool, cx: &mut Context<Self>) {
+        if self.mode == EditableTextMode::Disabled
+            || self.line_mode != EditableTextLineMode::MultiLine
+        {
+            return;
+        }
         let line_height = self.layout_map.line_height();
         if line_height <= px(0.) {
-            return 1;
+            return;
         }
-        self.geometry
-            .as_ref()
-            .map(|geometry| {
-                (f32::from(geometry.bounds().size.height) / f32::from(line_height))
+        let page = self.geometry.as_ref().map_or(line_height, |geometry| {
+            line_height
+                * (f32::from(geometry.bounds().size.height) / f32::from(line_height))
                     .floor()
-                    .max(1.) as isize
-            })
-            .unwrap_or(1)
+                    .max(1.)
+        });
+        let Some(display) = self.layout_map.buffer_to_display(self.selection.head()) else {
+            return;
+        };
+        let (Some(position), Some(row)) = (
+            self.layout_map.position_for_index(self.selection.head()),
+            self.layout_map.visual_row(display.row),
+        ) else {
+            return;
+        };
+        let preferred_x = self.preferred_vertical_x.unwrap_or(position.x);
+        let height = self.layout_map.size().height;
+        let target_y = (row.top + row.height / 2. + page * direction)
+            .clamp(px(0.), (height - px(0.5)).max(px(0.)));
+        let Some(offset) = self
+            .layout_map
+            .index_for_position(point(preferred_x, target_y))
+        else {
+            return;
+        };
+        self.move_to(offset.min(self.buffer.len()), extend, cx);
+        self.preferred_vertical_x = Some(preferred_x);
     }
 
     fn normalize_input(&self, text: &str) -> String {
@@ -1064,7 +1736,11 @@ impl EditableTextState {
         }
         if self.line_mode == EditableTextLineMode::MultiLine {
             let visible_y = caret.y + self.scroll_offset.y;
-            let line_height = self.layout_map.line_height();
+            let line_height = self
+                .layout_map
+                .buffer_to_display(self.selection.head())
+                .and_then(|display| self.layout_map.visual_row(display.row))
+                .map_or(self.layout_map.line_height(), |row| row.height);
             if visible_y < px(0.) {
                 self.scroll_offset.y = -caret.y;
             } else if visible_y + line_height > bounds.size.height {
@@ -1083,10 +1759,17 @@ impl EditableTextState {
         };
         let bounds = geometry.bounds();
         let line_height = self.layout_map.line_height().max(px(1.));
+        // Scroll by the height of the row coming into view at the edge.
+        let edge_row_height = |y: Pixels| {
+            let row = self.layout_map.visual_row_at_y(y.max(px(0.)));
+            self.layout_map
+                .visual_row(row.min(self.layout_map.visual_line_count().saturating_sub(1)))
+                .map_or(line_height, |row| row.height.max(px(1.)))
+        };
         if position.y < bounds.top() {
-            self.scroll_offset.y += line_height;
+            self.scroll_offset.y += edge_row_height(-self.scroll_offset.y - px(1.));
         } else if position.y > bounds.bottom() {
-            self.scroll_offset.y -= line_height;
+            self.scroll_offset.y -= edge_row_height(bounds.size.height - self.scroll_offset.y);
         }
         if !self.soft_wrap && position.x < bounds.left() {
             self.scroll_offset.x += line_height;
@@ -1212,15 +1895,74 @@ impl EditableTextState {
         kind: EditKind,
         cx: &mut Context<Self>,
     ) -> bool {
+        self.apply_edit_then(
+            range,
+            replacement,
+            selection,
+            marked_range,
+            kind,
+            |_| {},
+            cx,
+        )
+    }
+
+    /// [`Self::apply_edit`], with `then` changing the state after the edit inside the same
+    /// undo step.
+    #[allow(clippy::too_many_arguments)]
+    fn apply_edit_then(
+        &mut self,
+        range: Range<usize>,
+        replacement: String,
+        selection: EditableSelection,
+        marked_range: Option<Range<usize>>,
+        kind: EditKind,
+        then: impl FnOnce(&mut Self),
+        cx: &mut Context<Self>,
+    ) -> bool {
         let before = self.history_state();
+        let composing = self.marked_range.is_some();
+        let inserted = if replacement.is_empty() {
+            None
+        } else if composing {
+            // A composition keeps the attributes it started with, through its commit.
+            self.composition_attributes.clone()
+        } else {
+            self.insertion_attributes(range.clone())
+        };
+        if kind == EditKind::Composition && !composing {
+            self.composition_attributes = inserted.clone();
+        }
+        // What typing into a paragraph this deletion empties takes; never an inline object.
+        let deleted = (replacement.is_empty() && !range.is_empty())
+            .then(|| self.stored_attributes(range.start))
+            .flatten()
+            .map(|attributes| {
+                if attributes.object.is_some() {
+                    Arc::new(attributes.without_exclusive())
+                } else {
+                    attributes
+                }
+            });
         let edit = TextEdit::new(self.revision(), range, replacement);
-        if !self.apply_buffer_edit(edit) {
+        if !self.apply_buffer_edit(edit, inserted) {
             return false;
         }
         self.invalidate_style_runs();
         self.selection = selection;
         self.marked_range = marked_range;
+        if self.marked_range.is_none() {
+            self.composition_attributes = None;
+        }
+        self.typing_attributes = None;
+        // Deleting all of a paragraph leaves its last attributes for the next insertion.
+        if let Some(deleted) = deleted
+            && self.selection.is_empty()
+            && self.paragraph_is_empty_at(self.selection.head())
+        {
+            self.typing_attributes = Some(deleted);
+        }
         self.geometry = None;
+        then(self);
         let after = self.history_state();
         self.history.record(before, after, kind);
         self.restart_blink(cx);
@@ -1233,10 +1975,23 @@ impl EditableTextState {
     }
 
     fn restore_history_state(&mut self, state: HistoryState, cx: &mut Context<Self>) -> bool {
+        if state.text == self.text() {
+            // A formatting-only step: the text and its revision stay.
+            self.formatting = state.formatting;
+            self.selection = state.selection;
+            self.marked_range = state.marked_range;
+            self.typing_attributes = None;
+            self.composition_attributes = None;
+            self.finish_format_change(cx);
+            return true;
+        }
         let edit = TextEdit::new(self.revision(), 0..self.buffer.len(), state.text);
-        if !self.apply_buffer_edit(edit) {
+        if !self.apply_buffer_edit(edit, None) {
             return false;
         }
+        self.formatting = state.formatting;
+        self.typing_attributes = None;
+        self.composition_attributes = None;
         self.invalidate_style_runs();
         self.selection = state.selection;
         self.marked_range = state.marked_range;
@@ -1254,12 +2009,44 @@ impl EditableTextState {
         self.style_runs = EditableTextStyleRuns::empty(self.revision());
     }
 
-    fn apply_buffer_edit(&mut self, edit: TextEdit) -> bool {
+    /// The single path every buffer mutation takes: stored formatting moves with the edit, and
+    /// the inserted text takes `inserted`.
+    fn apply_buffer_edit(&mut self, edit: TextEdit, inserted: Option<Arc<TextAttributes>>) -> bool {
         let pending = TextLayoutEdit::from(&edit);
+        let range = edit.range().clone();
+        let replacement_len = edit.replacement().len();
+        // Where the edit starts among the paragraphs and how many breaks it removes and adds,
+        // for paragraph formats.
+        let paragraph_edit = self
+            .formatting
+            .as_ref()
+            .filter(|formatting| !formatting.paragraphs.is_empty())
+            .and_then(|_| {
+                let snapshot = self.snapshot();
+                let paragraph = snapshot.byte_to_point(range.start).ok()?.y;
+                let deleted = snapshot.slice(range.clone()).ok()?.matches('\n').count();
+                Some((paragraph, deleted, edit.replacement().matches('\n').count()))
+            });
         if self.buffer.apply(edit).is_err() {
             return false;
         }
         self.pending_layout_edit = Some(pending);
+        let inserted = inserted.filter(|attributes| !attributes.is_empty());
+        if self.formatting.is_none() && inserted.is_none() {
+            return true;
+        }
+        let formatting = Arc::make_mut(self.formatting.get_or_insert_with(Default::default));
+        if let Some((paragraph, deleted, added)) = paragraph_edit {
+            formatting.remap_paragraphs(paragraph, deleted, added);
+        }
+        formatting.spans.remap(
+            range,
+            replacement_len,
+            &inserted.unwrap_or_else(|| Arc::new(TextAttributes::default())),
+        );
+        if formatting.is_empty() {
+            self.formatting = None;
+        }
         true
     }
 
@@ -1268,7 +2055,82 @@ impl EditableTextState {
             text: self.text(),
             selection: self.selection,
             marked_range: self.marked_range.clone(),
+            formatting: self.formatting.clone(),
         }
+    }
+
+    /// The stored attributes of the character at `offset`.
+    fn stored_attributes(&self, offset: usize) -> Option<Arc<TextAttributes>> {
+        self.formatting.as_ref()?.spans.at(offset).cloned()
+    }
+
+    fn paragraph_is_empty_at(&self, offset: usize) -> bool {
+        self.buffer
+            .char_before(offset)
+            .is_none_or(|(_, ch)| ch == '\n')
+            && self.buffer.char_at(offset).is_none_or(|ch| ch == '\n')
+    }
+
+    /// The attributes text inserted over `range` takes: explicit typing attributes; else those
+    /// of the first replaced character; else of the character before (within its paragraph);
+    /// at a paragraph start those of the character after; in an empty paragraph those of the
+    /// break before it. Links and tags never extend past their end.
+    fn insertion_attributes(&self, range: Range<usize>) -> Option<Arc<TextAttributes>> {
+        if let Some(typing) = &self.typing_attributes {
+            return Some(typing.clone());
+        }
+        let formatting = self.formatting.as_ref()?;
+        let spans = &formatting.spans;
+        // Text never takes an inline object's attribute.
+        let without_object = |attributes: &Arc<TextAttributes>| {
+            if attributes.object.is_none() {
+                return attributes.clone();
+            }
+            Arc::new(TextAttributes {
+                object: None,
+                ..(**attributes).clone()
+            })
+        };
+        if !range.is_empty() {
+            return spans.at(range.start).map(without_object);
+        }
+        let offset = range.start;
+        let exclusive = |attributes: &Arc<TextAttributes>, next: Option<&Arc<TextAttributes>>| {
+            let attributes = &without_object(attributes);
+            if attributes.link.is_none() && attributes.tag.is_none() {
+                return attributes.clone();
+            }
+            let mut kept = (**attributes).clone();
+            if next.is_none_or(|next| next.link != kept.link) {
+                kept.link = None;
+            }
+            if next.is_none_or(|next| next.tag != kept.tag) {
+                kept.tag = None;
+            }
+            Arc::new(kept)
+        };
+        match self.buffer.char_before(offset) {
+            Some((start, ch)) if ch != '\n' => spans
+                .at(start)
+                .map(|before| exclusive(before, spans.at(offset))),
+            before => match self.buffer.char_at(offset) {
+                Some(ch) if ch != '\n' => spans
+                    .at(offset)
+                    .map(|after| Arc::new(after.without_exclusive())),
+                _ => before
+                    .and_then(|(start, _)| spans.at(start))
+                    .map(|newline| Arc::new(newline.without_exclusive())),
+            },
+        }
+    }
+
+    fn finish_format_change(&mut self, cx: &mut Context<Self>) {
+        self.format_revision = self.format_revision.wrapping_add(1);
+        self.geometry = None;
+        cx.emit(EditableTextFormatEvent::Changed {
+            format_revision: self.format_revision,
+        });
+        cx.notify();
     }
 
     fn strict_range_from_utf16(&self, range: Range<usize>) -> Option<Range<usize>> {
@@ -1296,6 +2158,7 @@ impl EditableTextState {
 
     fn did_blur(&mut self, cx: &mut Context<Self>) {
         self.is_focused = false;
+        self.typing_attributes = None;
         self.is_selecting = false;
         self.drag_position = None;
         self.stop_drag_auto_scroll();
@@ -1338,6 +2201,39 @@ impl EditableTextState {
 }
 
 impl EventEmitter<EditableTextEvent> for EditableTextState {}
+
+impl EventEmitter<EditableTextFormatEvent> for EditableTextState {}
+
+/// The byte ranges in which `old` and `new` differ, trimmed of their common prefix and suffix
+/// at character boundaries.
+struct ChangedRange {
+    old: Range<usize>,
+    new: Range<usize>,
+}
+
+fn changed_range(old: &str, new: &str) -> ChangedRange {
+    let prefix = old
+        .char_indices()
+        .zip(new.chars())
+        .find(|((_, a), b)| a != b)
+        .map_or(old.len().min(new.len()), |((index, _), _)| index);
+    let prefix = (0..=prefix)
+        .rev()
+        .find(|index| old.is_char_boundary(*index) && new.is_char_boundary(*index))
+        .unwrap_or(0);
+    let max_suffix = (old.len() - prefix).min(new.len() - prefix);
+    let mut suffix = 0;
+    for (a, b) in old.chars().rev().zip(new.chars().rev()) {
+        if a != b || suffix + a.len_utf8() > max_suffix {
+            break;
+        }
+        suffix += a.len_utf8();
+    }
+    ChangedRange {
+        old: prefix..old.len() - suffix,
+        new: prefix..new.len() - suffix,
+    }
+}
 
 impl Focusable for EditableTextState {
     fn focus_handle(&self, _: &crate::App) -> FocusHandle {
@@ -1406,6 +2302,10 @@ impl EntityInputHandler for EditableTextState {
         cx: &mut Context<Self>,
     ) {
         self.replace_utf16_range(range, text, cx);
+    }
+
+    fn paste(&mut self, item: ClipboardItem, _window: &mut Window, cx: &mut Context<Self>) {
+        self.paste_item(&item, cx);
     }
 
     fn replace_and_mark_text_in_range(

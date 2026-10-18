@@ -172,6 +172,7 @@ pub fn missing_glyph_notifications() -> Result<(), JsValue> {
     let runs = [FontRun {
         len: text.len(),
         font_id,
+        metrics: Default::default(),
     }];
     let layout = text_system.layout_line(text, px(24.), &runs);
     check(
@@ -208,6 +209,7 @@ pub fn missing_glyph_notifications() -> Result<(), JsValue> {
             &[FontRun {
                 len: text.len(),
                 font_id,
+                metrics: Default::default(),
             }],
         );
         let glyphs: Vec<_> = layout
@@ -256,6 +258,7 @@ pub fn missing_glyph_notifications() -> Result<(), JsValue> {
         &[FontRun {
             len: bundled.len(),
             font_id,
+            metrics: Default::default(),
         }],
     );
     for run in &layout.runs {

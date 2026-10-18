@@ -30,6 +30,7 @@ pub async fn run(id: &str, cx: &mut AsyncApp) -> ResultLine {
         "platform-resize" => resize(cx).await,
         "platform-scale-change" => scale_change(cx).await,
         "platform-clipboard" => clipboard(cx).await,
+        "platform-clipboard-html" => clipboard_html(cx).await,
         "platform-os-input" => os_input(cx).await,
         "platform-close" => close(cx).await,
         "devtools-hello-snapshot" => devtools(cx, false).await,
@@ -341,6 +342,24 @@ async fn clipboard(cx: &mut AsyncApp) -> anyhow::Result<Check> {
         }
     }
     bail!("wrote {text:?} to the clipboard and read back {read:?}")
+}
+
+async fn clipboard_html(cx: &mut AsyncApp) -> anyhow::Result<Check> {
+    use gpux_tests_conformance::platform_checks::clipboard_html;
+    let item = clipboard_html::item(std::process::id());
+    cx.update(|cx| cx.write_to_clipboard(item.clone()));
+    let executor = cx.background_executor().clone();
+    let mut outcome = Err(String::new());
+    for _ in 0..50 {
+        executor.timer(Duration::from_millis(20)).await;
+        let task = cx.update(|cx| cx.read_from_clipboard_async());
+        let read = task.await.ok().flatten();
+        outcome = clipboard_html::verify(&item, read.as_ref());
+        if let Ok(summary) = &outcome {
+            return Ok(Check::Passed(summary.clone()));
+        }
+    }
+    bail!(outcome.unwrap_err())
 }
 
 /// A target that records primary-button presses and a text field.

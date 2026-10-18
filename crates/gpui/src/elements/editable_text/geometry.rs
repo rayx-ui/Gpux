@@ -88,8 +88,10 @@ impl EditableTextGeometry {
             return Bounds::new(origin, size(px(0.), map.line_height()));
         };
         if range.is_empty() {
-            let position = map.position_for_index(range.start).unwrap_or_default();
-            return Bounds::new(origin + position, size(px(0.), map.line_height()));
+            let caret = map
+                .caret_bounds(range.start)
+                .unwrap_or_else(|| Bounds::new(Point::default(), size(px(0.), map.line_height())));
+            return Bounds::new(origin + caret.origin, caret.size);
         }
 
         let mut left = Pixels::MAX;
@@ -115,9 +117,10 @@ impl EditableTextGeometry {
             left = px(0.);
             right = px(0.);
         }
-        Bounds::from_corners(
-            origin + point(left, map.line_height() * start.row),
-            origin + point(right, map.line_height() * (end.row + 1)),
-        )
+        let top = map.visual_row(start.row).map_or(px(0.), |row| row.top);
+        let bottom = map
+            .visual_row(end.row)
+            .map_or(top, |row| row.top + row.height);
+        Bounds::from_corners(origin + point(left, top), origin + point(right, bottom))
     }
 }

@@ -28,6 +28,8 @@ static CLIPBOARD_HASH_FORMAT: LazyLock<u32> =
     LazyLock::new(|| register_clipboard_format(windows::core::w!("GPUI internal text hash")));
 static CLIPBOARD_METADATA_FORMAT: LazyLock<u32> =
     LazyLock::new(|| register_clipboard_format(windows::core::w!("GPUI internal metadata")));
+static CLIPBOARD_HTML_FORMAT: LazyLock<u32> =
+    LazyLock::new(|| register_clipboard_format(windows::core::w!("HTML Format")));
 static CLIPBOARD_SVG_FORMAT: LazyLock<u32> =
     LazyLock::new(|| register_clipboard_format(windows::core::w!("image/svg+xml")));
 static CLIPBOARD_GIF_FORMAT: LazyLock<u32> =
@@ -78,6 +80,11 @@ pub(crate) fn write_to_clipboard(item: ClipboardItem) {
             match entry {
                 ClipboardEntry::String(string) => write_string(string)?,
                 ClipboardEntry::Image(image) => write_image(image)?,
+                ClipboardEntry::Html(html) => {
+                    let mut bytes = encode_cf_html(html).into_bytes();
+                    bytes.push(0);
+                    set_clipboard_bytes(&bytes, *CLIPBOARD_HTML_FORMAT)?;
+                }
                 ClipboardEntry::ExternalPaths(_) => {}
             }
         }
@@ -96,6 +103,7 @@ pub(crate) fn read_from_clipboard() -> Option<ClipboardItem> {
     let mut have_text = false;
     let mut have_image = false;
     let mut have_files = false;
+    let mut have_html = false;
 
     let count = unsafe { CountClipboardFormats() };
     let mut format = 0;
@@ -111,6 +119,13 @@ pub(crate) fn read_from_clipboard() -> Option<ClipboardItem> {
             if let Some(entry) = read_image(format) {
                 entries.push(entry);
                 have_image = true;
+            }
+        } else if !have_html && format == *CLIPBOARD_HTML_FORMAT {
+            if let Some(html) =
+                get_clipboard_data(format).and_then(|locked| decode_cf_html(locked.as_bytes()))
+            {
+                entries.push(ClipboardEntry::Html(html));
+                have_html = true;
             }
         } else if !have_files && format == CF_HDROP.0 as u32 {
             if let Some(entry) = read_files() {
@@ -145,6 +160,55 @@ where
             Err(e) => log::error!("dragged file name is not UTF-16: {}", e),
         }
     }
+}
+
+/// Wraps an HTML fragment in the CF_HTML header Windows applications read: byte offsets of the
+/// HTML and of the fragment inside it.
+fn encode_cf_html(fragment: &str) -> String {
+    const HEADER: &str = "Version:0.9\r\nStartHTML:{start_html}\r\nEndHTML:{end_html}\r\n\
+        StartFragment:{start_fragment}\r\nEndFragment:{end_fragment}\r\n";
+    let digits = |value: usize| format!("{value:010}");
+    let header_len = HEADER
+        .replace("{start_html}", &digits(0))
+        .replace("{end_html}", &digits(0))
+        .replace("{start_fragment}", &digits(0))
+        .replace("{end_fragment}", &digits(0))
+        .len();
+    let prefix = "<html><body>\r\n<!--StartFragment-->";
+    let suffix = "<!--EndFragment-->\r\n</body></html>";
+    let start_html = header_len;
+    let start_fragment = start_html + prefix.len();
+    let end_fragment = start_fragment + fragment.len();
+    let end_html = end_fragment + suffix.len();
+    let header = HEADER
+        .replace("{start_html}", &digits(start_html))
+        .replace("{end_html}", &digits(end_html))
+        .replace("{start_fragment}", &digits(start_fragment))
+        .replace("{end_fragment}", &digits(end_fragment));
+    format!("{header}{prefix}{fragment}{suffix}")
+}
+
+/// The fragment of CF_HTML data, else its whole HTML.
+fn decode_cf_html(bytes: &[u8]) -> Option<String> {
+    let bytes = bytes.split(|byte| *byte == 0).next().unwrap_or(bytes);
+    let text = String::from_utf8_lossy(bytes);
+    let offset = |key: &str| -> Option<usize> {
+        let start = text.find(key)? + key.len();
+        let value = text[start..].lines().next()?;
+        value.trim().parse().ok()
+    };
+    let slice = |start: usize, end: usize| {
+        (start <= end && end <= bytes.len())
+            .then(|| String::from_utf8_lossy(&bytes[start..end]).into_owned())
+    };
+    offset("StartFragment:")
+        .zip(offset("EndFragment:"))
+        .and_then(|(start, end)| slice(start, end))
+        .or_else(|| {
+            offset("StartHTML:")
+                .zip(offset("EndHTML:"))
+                .and_then(|(start, end)| slice(start, end))
+        })
 }
 
 fn set_clipboard_bytes<T>(data: &[T], format: u32) -> Result<()> {
@@ -390,5 +454,38 @@ impl LockedGlobal {
 impl Drop for LockedGlobal {
     fn drop(&mut self) {
         unsafe { GlobalUnlock(self.global).ok() };
+    }
+}
+
+#[cfg(test)]
+mod html_tests {
+    use super::{decode_cf_html, encode_cf_html};
+
+    #[test]
+    fn cf_html_offsets_frame_the_fragment() {
+        let fragment = "<b>bold</b> é";
+        let encoded = encode_cf_html(fragment);
+        let field = |key: &str| -> usize {
+            let start = encoded.find(key).unwrap() + key.len();
+            encoded[start..start + 10].parse().unwrap()
+        };
+        assert_eq!(
+            &encoded[field("StartFragment:")..field("EndFragment:")],
+            fragment
+        );
+        assert!(encoded[field("StartHTML:")..field("EndHTML:")].starts_with("<html>"));
+        assert_eq!(field("EndHTML:"), encoded.len());
+        let mut bytes = encoded.into_bytes();
+        bytes.push(0);
+        assert_eq!(decode_cf_html(&bytes).as_deref(), Some(fragment));
+    }
+
+    #[test]
+    fn cf_html_without_fragment_markers_reads_the_whole_html() {
+        let data = "Version:0.9\r\nStartHTML:0000000055\r\nEndHTML:0000000069\r\n<p>whole</p>\r\n";
+        assert_eq!(
+            decode_cf_html(data.as_bytes()).as_deref(),
+            Some("<p>whole</p>\r\n")
+        );
     }
 }

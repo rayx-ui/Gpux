@@ -63,24 +63,42 @@ use super::{
 };
 use gpui_wgpu::GpuContext;
 
-// ── stub: clipboard ───────────────────────────────────────────────────────────
+// ── clipboard ─────────────────────────────────────────────────────────────────
 
-/// Android clipboard (thin wrapper over `ClipboardManager` via JNI).
-///
-/// A real implementation would call into Java via `jni-rs`; for now we use
-/// an in-process string store so the rest of the platform compiles.
+/// Android clipboard: the system `ClipboardManager` through JNI (`super::clipboard`). Without a
+/// Java VM (a headless host or a unit test) it keeps the item in process instead.
 #[derive(Default)]
 pub struct AndroidClipboard {
-    contents: Option<String>,
+    contents: Option<ClipboardItem>,
 }
 
 impl AndroidClipboard {
+    pub fn read_item(&self) -> Option<ClipboardItem> {
+        match super::clipboard::read() {
+            Ok(item) => item,
+            Err(error) => {
+                log::debug!("system clipboard unavailable: {error}");
+                self.contents.clone()
+            }
+        }
+    }
+
+    pub fn write_item(&mut self, item: ClipboardItem) {
+        match super::clipboard::write(&item) {
+            Ok(()) => self.contents = None,
+            Err(error) => {
+                log::debug!("system clipboard unavailable: {error}");
+                self.contents = Some(item);
+            }
+        }
+    }
+
     pub fn read(&self) -> Option<String> {
-        self.contents.clone()
+        self.read_item().and_then(|item| item.text())
     }
 
     pub fn write(&mut self, text: String) {
-        self.contents = Some(text);
+        self.write_item(ClipboardItem::new_string(text));
     }
 
     pub fn clear(&mut self) {
@@ -1276,18 +1294,11 @@ impl Platform for AndroidPlatform {
     }
 
     fn read_from_clipboard(&self) -> Option<ClipboardItem> {
-        self.state
-            .lock()
-            .clipboard
-            .read()
-            .map(ClipboardItem::new_string)
+        self.state.lock().clipboard.read_item()
     }
 
     fn write_to_clipboard(&self, item: ClipboardItem) {
-        self.state
-            .lock()
-            .clipboard
-            .write(item.text().unwrap_or_default());
+        self.state.lock().clipboard.write_item(item);
     }
 
     fn write_credentials(&self, url: &str, username: &str, password: &[u8]) -> Task<Result<()>> {

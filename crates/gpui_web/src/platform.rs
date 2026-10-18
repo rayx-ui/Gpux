@@ -653,6 +653,14 @@ impl Platform for WebPlatform {
                             Ok(_) => {}
                             Err(error) => log_clipboard_entry_error(&mime_type, &error),
                         }
+                    } else if mime_type == "text/html" {
+                        match read_clipboard_item_text(&item, &mime_type).await {
+                            Ok(html) if !html.is_empty() => {
+                                entries.push(ClipboardEntry::Html(html));
+                            }
+                            Ok(_) => {}
+                            Err(error) => log_clipboard_entry_error(&mime_type, &error),
+                        }
                     } else if let Some(format) = ImageFormat::from_mime_type(&mime_type) {
                         match read_clipboard_item_bytes(&item, &mime_type).await {
                             Ok(bytes) => {
@@ -666,8 +674,16 @@ impl Platform for WebPlatform {
                     }
                 }
             }
-            if !entries.is_empty() {
+            // HTML alone is not something to paste: it travels beside text.
+            let has_content = entries
+                .iter()
+                .any(|entry| !matches!(entry, ClipboardEntry::Html(_)));
+            if has_content {
+                // Keep the HTML after the text it accompanies.
+                entries.sort_by_key(|entry| matches!(entry, ClipboardEntry::Html(_)));
                 Ok(Some(ClipboardItem { entries }))
+            } else if !entries.is_empty() {
+                Err(ClipboardReadError::UnsupportedContent)
             } else if saw_unsupported_type {
                 Err(ClipboardReadError::UnsupportedContent)
             } else {
@@ -682,7 +698,9 @@ impl Platform for WebPlatform {
             log::warn!("gpui_web clipboard currently supports text entries only");
             return;
         };
-        let fallback_succeeded = write_text_with_exec_command(&self.browser_window, &text);
+        let html = item.html().map(str::to_owned);
+        let fallback_succeeded =
+            write_text_with_exec_command(&self.browser_window, &text, html.as_deref());
 
         let navigator: JsValue = self.browser_window.navigator().into();
         let clipboard = match js_sys::Reflect::get(&navigator, &JsValue::from_str("clipboard")) {
@@ -700,6 +718,24 @@ impl Platform for WebPlatform {
                 return;
             }
         };
+        // Text with HTML is written as one ClipboardItem holding both types.
+        if let Some(html) = html {
+            match write_text_and_html(&self.browser_window, &clipboard, &text, &html) {
+                Ok(promise) => {
+                    wasm_bindgen_futures::spawn_local(async move {
+                        if let Err(error) = wasm_bindgen_futures::JsFuture::from(promise).await
+                            && !fallback_succeeded
+                        {
+                            log::error!("failed to write browser clipboard: {error:?}");
+                        }
+                    });
+                    return;
+                }
+                Err(error) => {
+                    log::debug!("browser clipboard write with HTML is unavailable: {error:?}");
+                }
+            }
+        }
         let write_text = match js_sys::Reflect::get(&clipboard, &JsValue::from_str("writeText"))
             .and_then(|value| value.dyn_into::<js_sys::Function>())
         {
@@ -763,7 +799,41 @@ impl Platform for WebPlatform {
     }
 }
 
-fn write_text_with_exec_command(browser_window: &web_sys::Window, text: &str) -> bool {
+/// Starts `navigator.clipboard.write` with one `ClipboardItem` holding `text/plain` and
+/// `text/html` blobs, while the trusted gesture is on the stack.
+fn write_text_and_html(
+    browser_window: &web_sys::Window,
+    clipboard: &JsValue,
+    text: &str,
+    html: &str,
+) -> Result<js_sys::Promise, JsValue> {
+    let global: &JsValue = browser_window.as_ref();
+    let constructor = |name: &str| -> Result<js_sys::Function, JsValue> {
+        js_sys::Reflect::get(global, &JsValue::from_str(name))?.dyn_into::<js_sys::Function>()
+    };
+    let blob = |content: &str, mime_type: &str| -> Result<JsValue, JsValue> {
+        let parts = js_sys::Array::of1(&JsValue::from_str(content));
+        let options = js_sys::Object::new();
+        js_sys::Reflect::set(&options, &"type".into(), &JsValue::from_str(mime_type))?;
+        js_sys::Reflect::construct(&constructor("Blob")?, &js_sys::Array::of2(&parts, &options))
+    };
+    let data = js_sys::Object::new();
+    js_sys::Reflect::set(&data, &"text/plain".into(), &blob(text, "text/plain")?)?;
+    js_sys::Reflect::set(&data, &"text/html".into(), &blob(html, "text/html")?)?;
+    let item =
+        js_sys::Reflect::construct(&constructor("ClipboardItem")?, &js_sys::Array::of1(&data))?;
+    let write = js_sys::Reflect::get(clipboard, &JsValue::from_str("write"))?
+        .dyn_into::<js_sys::Function>()?;
+    write
+        .call1(clipboard, &js_sys::Array::of1(&item))?
+        .dyn_into::<js_sys::Promise>()
+}
+
+fn write_text_with_exec_command(
+    browser_window: &web_sys::Window,
+    text: &str,
+    html: Option<&str>,
+) -> bool {
     let Some(document) = browser_window.document() else {
         return false;
     };
@@ -810,11 +880,15 @@ fn write_text_with_exec_command(browser_window: &web_sys::Window, text: &str) ->
     let override_succeeded = Rc::new(Cell::new(false));
     let override_succeeded_for_event = override_succeeded.clone();
     let copy_text = text.to_owned();
+    let copy_html = html.map(str::to_owned);
     let copy_listener = Closure::<dyn FnMut(web_sys::ClipboardEvent)>::new(
         move |event: web_sys::ClipboardEvent| {
             let Some(clipboard_data) = event.clipboard_data() else {
                 return;
             };
+            if let Some(html) = &copy_html {
+                let _ = clipboard_data.set_data("text/html", html);
+            }
             if clipboard_data.set_data("text/plain", &copy_text).is_ok() {
                 event.prevent_default();
                 override_succeeded_for_event.set(true);

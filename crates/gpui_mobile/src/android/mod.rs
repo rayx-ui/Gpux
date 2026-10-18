@@ -151,6 +151,7 @@ pub fn size<T>(width: T, height: T) -> Size<T> {
 
 #[cfg(feature = "accessibility")]
 mod accessibility;
+pub mod clipboard;
 pub mod dispatcher;
 pub mod display;
 pub mod embedded;

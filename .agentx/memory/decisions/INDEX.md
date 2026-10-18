@@ -42,6 +42,7 @@ Durable architecture choices for gpux. Current source remains the first evidence
   - [Order active sticky hierarchies through element traversal](gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-sticky-hierarchy-traversal-order.md)
   - [Apply one push-out replacement model to every start-edge sticky relation](gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-universal-sticky-push-out.md)
   - [Publish concrete ScrollHandle thumb offsets in the input turn](gpui/positioning-scroll/2026-08-21-gpui-positioning-scroll-immediate-scrollbar-publication.md)
+  - [Editable state owns rich formatting](gpui/text/2026-10-17-gpui-text-editable-state-owns-formatting.md)
   - [Keep pointer ownership per PointerId and refresh capture after reconciliation](gpui/input/2026-07-30-gpui-input-pointer-capture-reconciliation.md) (superseded)
   - [Use Zed GPUI's input model unchanged and delete the gpux pointer layer](gpui/input/2026-10-05-gpui-input-upstream-input-model.md)
   - [Split lightweight frame geometry from shader effects](gpui/frame-effects/2026-07-06-gpui-frame-effects-frame-effects-elements.md)

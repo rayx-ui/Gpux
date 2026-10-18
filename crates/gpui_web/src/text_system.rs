@@ -213,11 +213,12 @@ impl WebTextSystem {
                 let text = text
                     .get(candidate.source.clone())
                     .context("invalid Canvas fallback source range")?;
+                // Canvas measures and rasterizes the glyph at its own run's size.
                 let (font_id, glyph_id, metrics) = self.fallback_glyph(
                     candidate.font_id,
                     text,
                     candidate.color,
-                    layout.font_size,
+                    candidate.font_size.unwrap_or(layout.font_size),
                 )?;
                 Ok(Replacement {
                     glyph_range: glyphs.range,
@@ -403,8 +404,8 @@ impl PlatformTextSystem for WebTextSystem {
                 Cow::Owned(
                     runs.iter()
                         .map(|run| FontRun {
-                            len: run.len,
                             font_id: self.native_font_id(run.font_id),
+                            ..*run
                         })
                         .collect(),
                 )

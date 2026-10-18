@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 7,
+  "epicId": "gpux-platform-text-input",
+  "revision": 0,
+  "planRevision": 1,
+  "specHashes": {
+    "requirements": "5cda9f263ed6c28271d76acc860802fc49e0f3c5e7a5f4b4db5ddae973516f90",
+    "design": "4b03bd6d57ff5858e916ceeba2f97c11a3a22a3f6af06d497126e6bd8cf647c5",
+    "plan": "ceaa445dec195bca4364c945672db01667b2e040d426746cdfd8ac86db11d8b1"
+  },
+  "tasks": {
+    "t01-config": {
+      "status": "pending"
+    },
+    "t02-state-sync": {
+      "status": "pending"
+    },
+    "t03-soft-return": {
+      "status": "pending"
+    },
+    "t04-reveal": {
+      "status": "pending"
+    },
+    "t05-ios-keyboard": {
+      "status": "pending"
+    },
+    "t06-ios-protocol": {
+      "status": "pending"
+    },
+    "t07-ios-keys-inset": {
+      "status": "pending"
+    },
+    "t08-ios-interaction": {
+      "status": "pending"
+    },
+    "t09-android-host-spike": {
+      "status": "pending"
+    },
+    "t10-android-keyboard": {
+      "status": "pending"
+    },
+    "t11-android-connection": {
+      "status": "pending"
+    },
+    "t12-android-keys-inset": {
+      "status": "pending"
+    },
+    "t13-web-mirror": {
+      "status": "pending"
+    },
+    "t14-web-hints": {
+      "status": "pending"
+    },
+    "t15-touch-selection": {
+      "status": "pending"
+    },
+    "t16-edit-toolbar": {
+      "status": "pending"
+    },
+    "t17-android-magnifier": {
+      "status": "pending"
+    },
+    "t18-native-field-core": {
+      "status": "pending"
+    },
+    "t19-native-field-ios": {
+      "status": "pending"
+    },
+    "t20-native-field-android": {
+      "status": "pending"
+    },
+    "t21-native-field-web": {
+      "status": "pending"
+    },
+    "t22-walkthrough": {
+      "status": "pending"
+    }
+  },
+  "validationBatches": {},
+  "checkResults": {},
+  "reviews": {},
+  "checkpoints": {},
+  "findings": [],
+  "handoffMarkdown": "",
+  "protectedPaths": {
+    "gpux": {
+      "gpux:.agentx/tasks/frame-effects-navigation-transitions/**": "97cc9f821c990f4d3560b1c4726ede795e7d91f4329839215674e7649efd8747",
+      "gpux:.agentx/tasks/frame-family-component-transitions/**": "3987d07e830ea8dadd35abe56c1d8ccc36b8fb2f8feb189a1d6727c14f114ab1",
+      "gpux:.agentx/tasks/gpux-cross-platform-test-lanes/**": "c2f120afd8760d4b62f6eacc957881ee595de63049c1a7a20f9a494e83eea033",
+      "gpux:.agentx/tasks/gpux-fast-mode/**": "a5303de6f43e26482d71cc35f3eb45152f5a686d06b011c0d1a5ac67a3a56b6e",
+      "gpux:.agentx/tasks/gpux-faster-test-lanes/**": "7f51d88f4757a182ef061fbe67c04e3715d90441e7421a7a16afd87719b4a121",
+      "gpux:.agentx/tasks/gpux-fixed-sticky-positioning/**": "0e971f9ad2c8147d6f56981b495a94b8f5cc7cce5eef6f391b7894b3223959b7",
+      "gpux:.agentx/tasks/gpux-text-rendering-quality-performance/**": "213eb24a25a50d0ccbc7d468e8bedc96a10bdf38f76a4e9130109b9142a0a3e5",
+      "gpux:.agentx/tasks/gpux-tools-layout/**": "1f3b772faf12c40336c91f4c6a7384ac9b71b3c82eda9ffe40e3368d597706ee",
+      "gpux:.agentx/tasks/gpux-wgpu-platform-renderers/**": "585529d42deceb4ae2639c37596347714777579ccca3b5b5e74b007eaf7d2f81",
+      "gpux:.agentx/tasks/high-quality-wasm-text-rendering/**": "81eee19badcd190b59dae1d9fb52bcdf0f53273ab9f00df9cb617c79213a0061",
+      "gpux:.agentx/tasks/html-element-dom-overlay/**": "eb0c49ccecf4bfea51485d81c60e272f47d1cf1e582701f1791f9c5a77ee6be7",
+      "gpux:.agentx/tasks/html-island-wasm/**": "8db76e0d9f0706ea6e4b34b9f7741317d47ee734673bd83cb97352d82d6520b8",
+      "gpux:.agentx/tasks/keyed-sticky-stacking/**": "7f924a57495dfb6d3a2ca3be75e5fdb04cb012ecfc41554bdb278a84987e82ef",
+      "gpux:.agentx/tasks/macos-only-metal-port-and-ci-repair/**": "64ecc143e24a8468c3b4e5d28bbc0f65d4fbbddab867d46a44823b1725ff1e5d",
+      "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**": "f3f66695ebf53686a0437e18bf587955317994e21eac47d7908641e0281996ce",
+      "gpux:.agentx/tasks/gpux-rich-editable-text/**": "4ced1c0a3b28aa30584bc3cf46a986fc0e0c4f3ced65c0a6f4a5f1c9869fd0f5",
+      "gpux:.agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",
+      "gpux:docs/changelog/2026-09-01-gpux-performance-improvement-sprint.md": "a1c055b3311719c288e3599854229b7c8ea6d1b4f6aec5bd8f09bcc0e50cbd0e",
+      "gpux:docs/changelog/2026-10-16-macos-fast-mode-improvement-loop.md": "ffbcef372c7571efd0468f0712f89f47af8f0b48e10e0b762f4375ffdb3238dd",
+      "gpux:ToFix/**": "e72e6c15df92515c9a96c1ef2a6db675ce345e0eb600212658582f156b1beb64",
+      "gpux:vendor/wgpu/**": "a4c4ab1992f6a0aeeca032fedb82b953741f6d547ac517ef15467c67dffa69e5"
+    }
+  }
+}

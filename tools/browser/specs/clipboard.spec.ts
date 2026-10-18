@@ -27,6 +27,45 @@ test('paste inserts the clipboard text @pr', async ({ gpux, page }) => {
   await gpux.locate('role=textbox name=Name value="pasted text"');
 });
 
+/** A point inside `editable-rich-attributes`' field, right of its text. */
+const RICH_FIELD = { x: 200, y: 30 };
+
+test('clipboard: html copy writes text/html beside the text @pr', async ({ gpux, page }) => {
+  await gpux.open('editable-rich-attributes');
+  await page.mouse.click(RICH_FIELD.x, RICH_FIELD.y);
+  await page.keyboard.press(`${primary}+a`);
+  await page.keyboard.press(`${primary}+c`);
+  await expect
+    .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+    .toBe('HHHHHHHHHHHH');
+  const html = await page.evaluate(() =>
+    navigator.clipboard.read().then(async (items) => {
+      const item = items.find((item) => item.types.includes('text/html'));
+      return item ? (await item.getType('text/html')).text() : null;
+    }),
+  );
+  expect(html).toContain('data-gpux');
+  expect(html).toContain('font-size:28px');
+});
+
+test('clipboard: html paste inserts the formatting of text/html @pr', async ({ gpux, page }) => {
+  await gpux.open('editable-rich-attributes');
+  await gpux.locate('role=status value="bold off italic off"');
+  await page.evaluate(() =>
+    navigator.clipboard.write([
+      new ClipboardItem({
+        'text/plain': new Blob(['HH'], { type: 'text/plain' }),
+        'text/html': new Blob(['<b>HH</b>'], { type: 'text/html' }),
+      }),
+    ]),
+  );
+  await page.mouse.click(RICH_FIELD.x, RICH_FIELD.y);
+  await page.keyboard.press('Home');
+  await page.keyboard.press(`${primary}+v`);
+  // The pasted characters are the first two now, bold from the HTML.
+  await gpux.locate('role=status value="bold on italic off"');
+});
+
 test.describe('without the Clipboard API', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
@@ -45,6 +84,23 @@ test.describe('without the Clipboard API', () => {
     await expect
       .poll(() => page.evaluate(() => (window as unknown as { __clipboard: Clipboard }).__clipboard.readText()))
       .toBe('fallback copy');
+  });
+
+  test('clipboard: html copy through execCommand writes text/html @pr', async ({ gpux, page }) => {
+    await gpux.open('editable-rich-attributes');
+    await page.mouse.click(RICH_FIELD.x, RICH_FIELD.y);
+    await page.keyboard.press(`${primary}+a`);
+    await page.keyboard.press(`${primary}+c`);
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          (window as unknown as { __clipboard: Clipboard }).__clipboard.read().then(async (items) => {
+            const item = items.find((item) => item.types.includes('text/html'));
+            return item ? (await item.getType('text/html')).text() : '';
+          }),
+        ),
+      )
+      .toContain('font-size:28px');
   });
 
   test('paste inserts what the app copied @pr', async ({ gpux, page }) => {

@@ -33,6 +33,21 @@ impl TextBuffer {
         self.rope.len() == 0
     }
 
+    /// The character starting at byte `offset`, if `offset` is a character boundary inside the
+    /// text.
+    pub(crate) fn char_at(&self, offset: usize) -> Option<char> {
+        (offset < self.rope.len()).then(|| self.rope.get_char(offset).ok())?
+    }
+
+    /// The character ending at byte `offset`, and where it starts.
+    pub(crate) fn char_before(&self, offset: usize) -> Option<(usize, char)> {
+        if offset == 0 || offset > self.rope.len() {
+            return None;
+        }
+        let start = self.rope.floor_char_boundary(offset - 1);
+        self.char_at(start).map(|ch| (start, ch))
+    }
+
     /// Returns a stable immutable snapshot of the current text and revision.
     pub fn snapshot(&self) -> TextBufferSnapshot {
         TextBufferSnapshot::new(self.rope.clone(), self.revision)

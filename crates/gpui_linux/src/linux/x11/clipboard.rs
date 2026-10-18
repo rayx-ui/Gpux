@@ -47,7 +47,7 @@ use x11rb::{
     wrapper::ConnectionExt as _,
 };
 
-use gpux::{ClipboardItem, Image, ImageFormat, hash};
+use gpux::{ClipboardEntry, ClipboardItem, Image, ImageFormat, hash};
 use strum::IntoEnumIterator;
 
 type Result<T, E = Error> = std::result::Result<T, E>;
@@ -77,7 +77,7 @@ x11rb::atom_manager! {
         TEXT,
         TEXT_MIME_UNKNOWN: b"text/plain",
 
-        // HTML: b"text/html",
+        HTML: b"text/html",
         // URI_LIST: b"text/uri-list",
 
         PNG__MIME: ImageFormat::mime_type(ImageFormat::Png ).as_bytes(),
@@ -280,6 +280,26 @@ impl Inner {
         }
 
         Ok(())
+    }
+
+    /// Reads `format` only when the clipboard owner lists it among its `TARGETS`, never
+    /// trying a conversion it did not offer.
+    fn read_if_offered(&self, format: Atom, selection: ClipboardKind) -> Option<ClipboardData> {
+        if self.is_owner(selection).ok()? {
+            return self.read(&[format], selection).ok();
+        }
+        let reader = XContext::new(&self.display).ok()?;
+        let targets = self
+            .read_single(&reader, selection, self.atoms.TARGETS)
+            .ok()?;
+        if targets.format != self.atoms.ATOM
+            || !Self::parse_formats(&targets.bytes).contains(&format)
+        {
+            return None;
+        }
+        self.read_single(&reader, selection, format)
+            .ok()
+            .filter(|data| data.format == format)
     }
 
     /// `formats` must be a slice of atoms, where each atom represents a target format.
@@ -994,6 +1014,27 @@ impl Clipboard {
         self.inner.write(data, selection, wait)
     }
 
+    /// Writes text with the same content as HTML beside it, as two targets of one selection.
+    pub(crate) fn set_text_and_html(
+        &self,
+        text: Cow<'_, str>,
+        html: &str,
+        selection: ClipboardKind,
+        wait: WaitConfig,
+    ) -> Result<()> {
+        let data = vec![
+            ClipboardData {
+                bytes: text.into_owned().into_bytes(),
+                format: self.inner.atoms.UTF8_STRING,
+            },
+            ClipboardData {
+                bytes: html.as_bytes().to_owned(),
+                format: self.inner.atoms.HTML,
+            },
+        ];
+        self.inner.write(data, selection, wait)
+    }
+
     fn image_format_atom(&self, format: ImageFormat) -> Atom {
         match format {
             ImageFormat::Png => self.inner.atoms.PNG__MIME,
@@ -1069,7 +1110,15 @@ impl Clipboard {
         } else {
             String::from_utf8(result.bytes).map_err(|_| Error::ConversionFailure)?
         };
-        Ok(ClipboardItem::new_string(text))
+        let mut item = ClipboardItem::new_string(text);
+        // HTML the owner offers beside the text travels with it; an owner that does not list
+        // it is not asked.
+        if let Some(html) = self.inner.read_if_offered(self.inner.atoms.HTML, selection) {
+            item.entries.push(ClipboardEntry::Html(
+                String::from_utf8_lossy(&html.bytes).into_owned(),
+            ));
+        }
+        Ok(item)
     }
 
     pub fn is_owner(&self, selection: ClipboardKind) -> bool {
