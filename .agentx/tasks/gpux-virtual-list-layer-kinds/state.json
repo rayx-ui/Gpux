@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list-layer-kinds",
-  "revision": 122,
+  "revision": 123,
   "planRevision": 19,
   "specHashes": {
     "requirements": "310125450c4c82b8b12a17b7c0bf51dcc4886cb94f09f0862422b5cbbe88533b",
@@ -2554,6 +2554,15 @@
       },
       "reviewHash": "d6b9ee7e8d3cedc1f46d20f1fa8b3cd4f9ff172a79b5a042efe47b4d07bb1683",
       "recordedAt": "2026-10-18T10:09:10Z"
+    },
+    "s08-lane-c-renamed": {
+      "snapshotId": "cd4d3452e36c7df702bf7aaa0fd7c79e451870cfe5cf2158a617add865b14775",
+      "commits": {
+        "gpux": "09b24827c02b6480e28e8c43083de70e5f756e3d",
+        "rayx": "c346720d8928ca23b1ee147603904a0acf815f53"
+      },
+      "reviewHash": "4f287e800af7e9897b9adc1b701a8424b6f1f9667f726201ab903e45920ec2c2",
+      "recordedAt": "2026-10-18T10:22:13Z"
     }
   },
   "findings": [
