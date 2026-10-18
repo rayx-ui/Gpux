@@ -9,7 +9,8 @@ platform. The rules, in order:
 | Manual run (Actions → the workflow → *Run workflow*) | The inputs choose: `jobs`, `platforms`, `grep`; `full` runs lane C's scroll-layer suites frame for frame and `lane-c-jobs` sets its concurrent processes. `all` is everything. |
 | Pull request with a `ci:<job>` label | Only the labelled jobs (several labels add up). `ci:all` runs everything. |
 | Pull request with a `ci-os:<platform>` label | Only on those platforms: `ci-os:ubuntu`, `ci-os:windows`, `ci-os:macos` (several add up). |
-| Pull request without `ci:` labels that changes only `docs/`, `.agentx/`, `.claude/` or the top-level markdown and licence files | Only `check` (format, `cargo check`). |
+| Pull request without `ci:` labels that changes only `docs/`, `.agentx/`, `.claude/` or the top-level markdown and licence files (`CHANGELOG.md` included) | Only `check` (format, `cargo check`). |
+| Release pull request without `ci:` labels: it changes only `CHANGELOG.md`, `Cargo.lock` and `Cargo.toml` files outside `vendor/`, and its manifests and lockfile equal the base once own version values are masked ([releasing.md](releasing.md)) | `check` on ubuntu and `package` (on its own `macos-15` runner). Lanes B, E and F skip it through the same plan; `ci:` labels still choose the jobs and `ci-os:` labels move `check`. |
 | Any other pull request | Everything, as before (lanes B, E and F keep their own path filters), except lane C on WARP (below). |
 | Nightly schedule (03:17 UTC) | Everything, on every platform, with lane C's scroll-layer suites in full mode. |
 
@@ -24,6 +25,15 @@ platform's `--jobs`.
 
 Jobs: `check`, `test`, `lane-a`, `lane-c`, `lane-d`, `package` (workflow *Gpux*), `lane-b`
 (*Gpux lane B*), `lane-e` (*Gpux lane E*), `lane-f` (*Gpux lane F*).
+
+A release pull request is recognized by its content, not by its branch or author, so release-plz's
+pull request and one made by hand are treated alike. Masked are the `version = "..."` that is the
+only key on its line in `[package]`, `[workspace.package]` and lockfile `[[package]]` sections, and
+the `version` of a dependency entry whose `path` does not lead into `vendor/`. Anything else, such as
+a registry bump in `Cargo.lock` (its `checksum` changes), a crates.io requirement, a fork's version,
+a new feature or dependency, an added or deleted manifest, or any other file beside the versions,
+runs everything. The released commits reached `main` without pull-request CI; the nightly run covers
+them, and a release pull request is merged only after a green nightly.
 
 Labels are read when the plan runs, so after changing them use *Re-run all jobs* (or push); a
 label change alone starts nothing. Examples:

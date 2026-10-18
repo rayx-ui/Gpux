@@ -6,8 +6,11 @@
 #   manual run   the inputs choose; `all` is everything
 #   pull request labels choose: `ci:<job>` limits the jobs (several add up), `ci:all` runs
 #                everything, `ci-os:<ubuntu|windows|macos>` limits the platforms;
-#                without a `ci:` label a change that touches nothing but documentation, memory
-#                or licences runs only `check`, and any other change runs every job
+#                without a `ci:` label a change that touches nothing but documentation, memory,
+#                licences or CHANGELOG.md runs only `check`; a release pull request (it changes
+#                nothing but own version values in Cargo.toml files and Cargo.lock, plus
+#                CHANGELOG.md) runs `check` on ubuntu and `package` (on its own macos-15
+#                runner); `ci-os:` labels move `check`; any other change runs every job
 #   schedule     everything, lane C in full mode
 #
 # Lane C (the offscreen pixels, docs/ci.md) is the slow lane: on WARP, Windows' software DirectX
@@ -39,6 +42,43 @@ lines_to_array() { # name, then lines on stdin
 }
 
 csv_to_lines() { tr ',' '\n' <<<"$1" | sed 's/^ *//;s/ *$//' | grep -v '^$' || true; }
+
+# A manifest or lockfile with its own version values replaced by `*`: the `version = "..."` that is
+# the only key on its line in `[package]`, `[workspace.package]` and lockfile `[[package]]`
+# sections, and the `version` of a dependency entry whose `path` does not lead into `vendor/`.
+# A registry or git bump also changes `checksum`/`source` lines, a fork's version sits on a
+# `vendor/` path line and a crates.io requirement has no `path`, so none of them is masked.
+mask_own_versions() {
+  awk '
+    /^[[:space:]]*\[/ { section = $0; gsub(/[[:space:]]/, "", section) }
+    (section == "[package]" || section == "[workspace.package]" || section == "[[package]]") &&
+      /^[[:space:]]*version[[:space:]]*=[[:space:]]*"[^"]*"[[:space:]]*$/ {
+      sub(/"[^"]*"/, "\"*\""); print; next
+    }
+    /path[[:space:]]*=[[:space:]]*"/ && !/path[[:space:]]*=[[:space:]]*"[^"]*vendor\// {
+      gsub(/version[[:space:]]*=[[:space:]]*"[^"]*"/, "version = \"*\""); print; next
+    }
+    { print }
+  '
+}
+
+# Whether the change list ($1, one path per line) is a release pull request's: only
+# `CHANGELOG.md`, `Cargo.lock` and `Cargo.toml` files outside `vendor/`, every manifest and
+# lockfile present on both sides and equal to the base once own version values are masked.
+is_release_change() {
+  local file head=${HEAD_SHA:-HEAD}
+  [ -n "$1" ] || return 1
+  while IFS= read -r file; do
+    case "$file" in
+      vendor/*) return 1 ;;
+      CHANGELOG.md) continue ;;
+      Cargo.lock | Cargo.toml | */Cargo.toml) ;;
+      *) return 1 ;;
+    esac
+    git cat-file -e "$BASE_SHA:$file" 2>/dev/null && git cat-file -e "$head:$file" 2>/dev/null || return 1
+    [ "$(git show "$BASE_SHA:$file" | mask_own_versions)" = "$(git show "$head:$file" | mask_own_versions)" ] || return 1
+  done <<<"$1"
+}
 
 jobs=("${ALL_JOBS[@]}")
 platforms=("${OS_NAMES[@]}")
@@ -78,8 +118,13 @@ case "$EVENT_NAME" in
       # at the first code file, and `pipefail` then reads the pull request as documentation only.
       changed=$(git diff --name-only "$BASE_SHA" "${HEAD_SHA:-HEAD}")
       if [ -z "$changed" ] \
-        || ! grep -qv -E '^(docs/|\.agentx/|\.claude/|README\.md$|CLAUDE\.md$|LINUX-WSL\.md$|LICENSE)' <<<"$changed"; then
+        || ! grep -qv -E '^(docs/|\.agentx/|\.claude/|README\.md$|CLAUDE\.md$|CHANGELOG\.md$|LINUX-WSL\.md$|LICENSE)' <<<"$changed"; then
         jobs=(check)
+      elif is_release_change "$changed"; then
+        # A release pull request (docs/releasing.md) changes only version values and the
+        # changelog: formatting, compilation and packaging prove it; the nightly covers the rest.
+        jobs=(check package)
+        platforms=(ubuntu)
       fi
     fi
     if [ "${#chosen_os[@]}" -gt 0 ]; then
