@@ -79,7 +79,8 @@ Durable architecture choices for gpux. Current source remains the first evidence
 - repository
   - [Keep gpux upstream provenance self-contained in RayX](repository/upstream-sync/2026-08-07-repository-upstream-sync-self-contained-upstream-provenance.md) (written while gpux lived in RayX; the ledgers moved here with it)
   - [Prefer upstream dependency sources over full vendoring](repository/packaging/2026-08-30-repository-packaging-upstream-dependency-sources.md) (superseded)
-  - [gpux publishes to crates.io from its sibling repository as `gpux-*` packages with GPUI Rust names](repository/packaging/2026-10-05-repository-packaging-crates-io-packaging.md)
+  - [gpux is released as one workspace version under one `vX.Y.Z` git tag and consumed by tag](repository/packaging/2026-10-18-repository-packaging-git-tag-releases.md)
+  - [gpux publishes to crates.io from its sibling repository as `gpux-*` packages with GPUI Rust names](repository/packaging/2026-10-05-repository-packaging-crates-io-packaging.md) (superseded)
   - [gpux does not carry `zlog`, `ztracing` or `ztracing_macro`](repository/packaging/2026-10-05-repository-packaging-drop-z-crates.md)
   - [wgpu 30 from crates.io through a minimal published `gpux-wgpu` fork, with the element-image upload owned by gpux](repository/packaging/2026-10-05-repository-packaging-gpux-wgpu-fork.md)
   - [Give Gpux its own AgentX memory with a crate-ownership taxonomy, transplanted from RayX](repository/agentx-memory/2026-10-05-repository-agentx-memory-taxonomy-transplant.md)

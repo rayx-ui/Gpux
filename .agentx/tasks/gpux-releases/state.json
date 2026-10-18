@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-releases",
-  "revision": 46,
+  "revision": 53,
   "planRevision": 8,
   "specHashes": {
     "requirements": "4b8ccac970134e2240ab6ae0d803ae3f10ef2a37af4130c419ee512b6f05a81c",
@@ -64,19 +64,22 @@
       ]
     },
     "t10-owner-prerequisites": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "d20e6e5f-43b6-4725-9ce6-9fe0c0529c62"
       ]
     },
     "t11-first-release": {
-      "status": "in_progress",
+      "status": "done",
       "workerIds": [
         "d20e6e5f-43b6-4725-9ce6-9fe0c0529c62"
       ]
     },
     "t12-tag-consumer": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "d20e6e5f-43b6-4725-9ce6-9fe0c0529c62"
+      ]
     }
   },
   "validationBatches": {
@@ -124,6 +127,15 @@
         }
       },
       "recordedAt": "2026-10-18T22:46:28Z"
+    },
+    "0bf5f76b528185554576588c17b13a117eebc6b6ba59cf055dcbe88c0e2a6bd8": {
+      "snapshot": {
+        "specHash": "9c32a4d8da1cf7a7dea4ac15c66d58c069fe785552ddad9271fe477c25ea9337",
+        "repositories": {
+          "gpux": "0a868ba200f46065ac82b968b73c4c9777a5d07b359361f9fac6d01dee78adfa"
+        }
+      },
+      "recordedAt": "2026-10-18T23:11:45Z"
     }
   },
   "checkResults": {
@@ -278,6 +290,206 @@
       "logPath": "artifacts-temp/agentx/gpux-releases/s5-release-docs-final-fbb2a4f9cb25.log",
       "logSha256": "d10924f68259dd2f9a49fb36d9e298b61f72226c25a0de8706e217b58601bdf0",
       "inputsHash": "5c2af85011680fdf4cd6ee335beb8398d5ebf5dba859302d5175b9ee75131ddd"
+    },
+    "final/check-release-config/final": {
+      "checkId": "check-release-config",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "0bf5f76b528185554576588c17b13a117eebc6b6ba59cf055dcbe88c0e2a6bd8",
+      "definitionHash": "51a606053157e590cc73a5d84806b4ecd389ea1512c0048bfffd373a5050a126",
+      "basisHash": "def3d25b0f52c1c1419a9388a81bccdac79f4a1a224dc573d657aaca62159c7f",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 12,
+      "durationSeconds": 0.4466,
+      "recordedAt": "2026-10-18T23:10:18Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-releases/final-final-085ec9398fad.log",
+      "logSha256": "a55dea6506246404b4e4aab996f2c1de049e9338d0e62bb9c89da19c7f410be2",
+      "inputsHash": "eadee8077286848993d21a57b79cf243d0b4ec3c890c0e3d60379d360f12bb98"
+    },
+    "final/check-workflow-yaml/final": {
+      "checkId": "check-workflow-yaml",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "0bf5f76b528185554576588c17b13a117eebc6b6ba59cf055dcbe88c0e2a6bd8",
+      "definitionHash": "9f2eb3a7e702fdf7c360c80853d14735706ceb1a36183f6f163a77e5156c9e1b",
+      "basisHash": "ea9ae03ba19e4540a50ea7cb824fe8e5df3cb582dafcd104f1e57a24d37a66c4",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.0772,
+      "recordedAt": "2026-10-18T23:10:18Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-releases/final-final-7738c1900d4b.log",
+      "logSha256": "b5ef34948d119b8c9a2a83ea3fa7be28686336c326ed4fa8cbd531bc51a84a27",
+      "inputsHash": "cdb0280db9057980102ee3db2582b474b43a53292c2e48574c07cc607fade758"
+    },
+    "final/check-repository-layout/final": {
+      "checkId": "check-repository-layout",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "0bf5f76b528185554576588c17b13a117eebc6b6ba59cf055dcbe88c0e2a6bd8",
+      "definitionHash": "51d5e011b5cf4a294a538a789d7470ef538de29538742922d15abf0dc9a08173",
+      "basisHash": "09c90f05dcf6dce9d163c96fa1ec1e7191fdab050f879e2bd19b0fa9515659ed",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 11,
+      "durationSeconds": 0.4533,
+      "recordedAt": "2026-10-18T23:10:19Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-releases/final-final-0925c86d4a5f.log",
+      "logSha256": "c8948192bb3afab4c22ef760f9ed6509972dc9084e1976fc4500220b0e585c5e"
+    },
+    "final/check-ci-plan-release-pr/final": {
+      "checkId": "check-ci-plan-release-pr",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "5a67a64ae1349d8ae630879b3f11876785f77e20d1f95c1d9d5c506e5eaa890d",
+      "definitionHash": "7c4fa7f2fe8904dc956c8167bb3d51a3c363465bb15a8e3ce33714af01cc667d",
+      "basisHash": "3ed9393e2555e3963b2082c095971e5df3c0be08ab48395abff8ab7ca5636e8c",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 8,
+      "durationSeconds": 1.3446,
+      "recordedAt": "2026-10-18T22:31:24Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-releases/s3-release-pr-ci-final-57d3a065bcf9.log",
+      "logSha256": "ee1000bc575157152825d7e84ddcb51b1dd69f075472edb1349b9070565ba981",
+      "inputsHash": "050f65f5c7bca05fa2c245a2dd64a7a20158f7ea845b3293bdb6327f93ec17a2"
+    },
+    "final/check-ci-plan/final": {
+      "checkId": "check-ci-plan",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "5a67a64ae1349d8ae630879b3f11876785f77e20d1f95c1d9d5c506e5eaa890d",
+      "definitionHash": "4c91b30ee532f6d11a699248768694cdccb247a24a2e887625368004a5722827",
+      "basisHash": "ce8e9c65502cdf00984cd9c42a32fc72869ff214deb19ba82baec203c9ef9189",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 14,
+      "durationSeconds": 0.867,
+      "recordedAt": "2026-10-18T22:31:25Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-releases/s3-release-pr-ci-final-fe4ea770eedc.log",
+      "logSha256": "c6fedb41e482bc8f6f4d0a5b11d6385a051a7a8edcfc39f42361657082a82fa0",
+      "inputsHash": "90b099c14f27656302442715ace4e27ef681df5b255691945fe8dc088ca0290f"
+    },
+    "final/check-rayx-declarations/final": {
+      "checkId": "check-rayx-declarations",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "f74e185d52081c896b2cf00b3598493d5c05715a5b754e0cfb2cf7536be64477",
+      "definitionHash": "41a09cfe5eafe33312fe187c1c44e7a1cc84011e66269e0d77ca856f02dd9ab5",
+      "basisHash": "cc7a3b0d4d319a1fa6cb91a60956aaf158972717d3f89d4270badd1c02386b2d",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 0.2005,
+      "recordedAt": "2026-10-18T22:35:52Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-releases/s4-rayx-declarations-final-b6a578472ce1.log",
+      "logSha256": "56de84fb56fcf97c4d9594c3edb35f7047f50f014f889e9ab167133e405886f3",
+      "inputsHash": "2e750ad344a82d66a724b68d0a6b889be137e03acc517e9f6708daacfa4acbdb"
+    },
+    "final/check-package-list-fonts/final": {
+      "checkId": "check-package-list-fonts",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "f74e185d52081c896b2cf00b3598493d5c05715a5b754e0cfb2cf7536be64477",
+      "definitionHash": "bab195c14c96268baeb9134c0d8de5be720ea0fab9b8962b34e582bb4c79cc90",
+      "basisHash": "cf25b3dbc5b920f0c21dc4dbaef9ec217aef7fa910e51d6f48821112e9f598d8",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.1452,
+      "recordedAt": "2026-10-18T22:35:53Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-releases/s4-rayx-declarations-final-c602dd98747b.log",
+      "logSha256": "ed00ab06d397b1a1c651da94e5b4bc88f919f7e3fd3005c4ca2d23938c8cd167",
+      "inputsHash": "2ee7de79e5c12ef0aa569b623dd28e02bd3bd47af250ef4cb9006c2d0eb7abf4"
+    },
+    "final/check-package-list-mobile/final": {
+      "checkId": "check-package-list-mobile",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "f74e185d52081c896b2cf00b3598493d5c05715a5b754e0cfb2cf7536be64477",
+      "definitionHash": "616350d13162e9c1ad415ee88df5788472ddce0678e3187f21b8351817edb6e5",
+      "basisHash": "e34340c773fdea2dbd06490232d834fc2cd61b39083dc6fba9ec7bb8cbcdf3a7",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.1433,
+      "recordedAt": "2026-10-18T22:35:53Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-releases/s4-rayx-declarations-final-d7db0fdbd67c.log",
+      "logSha256": "b927f4505e738a23885cbee5d41d7a9c48d9b0f65076095e14d2751776a7a237",
+      "inputsHash": "d5c12f369ac1134686f3551417ffaa30d9436d7d28c5ec9f300020b8456b23b5"
+    },
+    "final/check-release-docs/final": {
+      "checkId": "check-release-docs",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "ac92ef51c4b30ec05dd712a4c1ff12169993ef046545359d5230e54fee6e3019",
+      "definitionHash": "b04471d3b2ae89bc62e81b1e5f9205bfc1364de1c9b798beff6cb8539671e13e",
+      "basisHash": "b1a2c30228f29f07f71435e41a9d0cb9bea1725a3a8f11666b3135d2fbf8d55d",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 0.1871,
+      "recordedAt": "2026-10-18T22:46:27Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-releases/s5-release-docs-final-fbb2a4f9cb25.log",
+      "logSha256": "d10924f68259dd2f9a49fb36d9e298b61f72226c25a0de8706e217b58601bdf0",
+      "inputsHash": "5c2af85011680fdf4cd6ee335beb8398d5ebf5dba859302d5175b9ee75131ddd"
+    },
+    "final/final-fmt/final": {
+      "checkId": "final-fmt",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "0bf5f76b528185554576588c17b13a117eebc6b6ba59cf055dcbe88c0e2a6bd8",
+      "definitionHash": "6b5114276af07bbc16025ee2e49c0b036915101f32f76150b78a441b2b900e68",
+      "basisHash": "f26667b2472714855737e0d307f28857888973655576bbb7ff140412ef0823de",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 2.5545,
+      "recordedAt": "2026-10-18T23:10:21Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-releases/final-final-6e8541d8f677.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "final/final-clippy-testkit/final": {
+      "checkId": "final-clippy-testkit",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "0bf5f76b528185554576588c17b13a117eebc6b6ba59cf055dcbe88c0e2a6bd8",
+      "definitionHash": "ce9e1d2d6722961e2476bada2303b8c548c18717cc8804895ff400be6f25fc2b",
+      "basisHash": "645b56a737556cd8effc222e250c8caadf20344353a4594281a434585776e1fd",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.3462,
+      "recordedAt": "2026-10-18T23:10:21Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-releases/final-final-5b170573397f.log",
+      "logSha256": "f591e097f22f91dd5c31fbbf7e587d80c0a4e0ed594f9c9012a544f38c52d926"
+    },
+    "final/final-package/final": {
+      "checkId": "final-package",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "0bf5f76b528185554576588c17b13a117eebc6b6ba59cf055dcbe88c0e2a6bd8",
+      "definitionHash": "a69475cb9bdcfc7b71c300f3d1dda58f58c5725e5171d43fcbe8ded9985240d9",
+      "basisHash": "1e2aa47a007bb32ce48bd2bb2e94338c768f67e6884f8b4078e34052a4702fd1",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 83.4825,
+      "recordedAt": "2026-10-18T23:11:45Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-releases/final-final-78f95800e1d9.log",
+      "logSha256": "dacfd08eaa221f30c0344594d9be307505e420e137c474ac4b2a1e47ae344e97"
     }
   },
   "reviews": {
@@ -760,6 +972,332 @@
         "s5-f3-by-hand-tag-race"
       ],
       "recordedAt": "2026-10-18T22:47:17Z"
+    },
+    "s6-first-release": {
+      "reviewerId": "independent-reviewer-s6-first-release-2026-10-19",
+      "snapshotId": "0bf5f76b528185554576588c17b13a117eebc6b6ba59cf055dcbe88c0e2a6bd8",
+      "criterionIds": [
+        "OWN-1",
+        "FIRST-1",
+        "FIRST-2"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/releasing.md",
+          "kind": "source",
+          "criterionIds": [
+            "OWN-1",
+            "FIRST-1"
+          ],
+          "sha256": "19d411e7ada061345f1eb04cb275e0128208fe382d81bb435dc0257498fc2d5e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/release-plz.yml",
+          "kind": "source",
+          "criterionIds": [
+            "FIRST-1"
+          ],
+          "sha256": "c9570a957ec5d39176f15c1599d49b30cfec5755ba90c5c5042fa60f94956252"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "CHANGELOG.md",
+          "kind": "source",
+          "criterionIds": [
+            "FIRST-1"
+          ],
+          "sha256": "0235b8388a88a7d6fcd0f2b59a90e486c8465830b7fcc31eccaa4dfb15ead651"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "README.md",
+          "kind": "source",
+          "criterionIds": [
+            "FIRST-2"
+          ],
+          "sha256": "a7caf3535e05fd56d8d13088c8e0bd70bca71bb76274394f0abe6b6359e0880c"
+        }
+      ],
+      "summaryMarkdown": "Independently re-verified read-only on 2026-10-19.\n\n**OWN-1:** `RELEASE_PLZ_TOKEN` is a Gpux secret (now updated 2026-10-18T23:03:15Z, after the owner's PAT fix; OWN-1's 21:07 record predates it). Ruleset 25358676 \"Release tags\" is active, target `tag`, include `refs/tags/v*`, rules `update`/`deletion`/`non_fast_forward`, no bypass actors, no `creation`. RayX.CLI v1.4.0 is published (not draft/prerelease, 22:42:03Z) and its tag contains the `rayx-cli-library-agnostic` commits (5b8a975 library-agnostic rule, 9a171ef, 7355fc1, f342479); its notes list them. The empty-tag state was recorded in the OWN-1 handoff committed in 045ca98, i.e. before the push.\n\n**FIRST-1:** `origin/main` = 045ca98, a fast-forward of e21f83c carrying all 14 epic commits (9608593..045ca98); the only run on that commit is Release-plz 39174990232 (push, attempt 1, success; no CI or other workflow). `release` (23:04:59-23:05:20) released all 31 own packages git-only under one tag `v1.0.0`; `release-pr` (`needs: release`, 23:05:22-23:05:43) reported every package up to date and `release_pr_output: {\"prs\":[]}`; `gh pr list` shows no release PR. `ls-remote` shows exactly one tag, annotated `v1.0.0` (ce6a24a) peeling to 045ca98, the pushed head. Release v1.0.0: name v1.0.0, not draft, not prerelease, the only and latest release; its body is byte-identical to the CHANGELOG `## [1.0.0] - 2026-10-18` section body. The date was moved from 2026-10-19 (local CEST) to 2026-10-18, the UTC push day (run created 23:04:57Z), matching release-plz's UTC dating. Pre-push: final fmt (empty log), clippy=0, package=0 at 00:47 with only CHANGELOG.md and state.json changing afterwards; CONS-1 checkpointed in s5; push form per reflog (`update by push` after a fetch to e21f83c, no-op rebase).\n\n**FIRST-2:** the scratch consumer's Cargo.toml has the README's two lines at `tag = \"v1.0.0\"`, `src/main.rs` is identical to the README example, `cargo check` exit 0 (log consumer/first-2-tag.log), and Cargo.lock lists `gpux` and `gpux-platform` 1.0.0 from `git+https://github.com/rayx-ui/Gpux?tag=v1.0.0#045ca9875db9e73ce777e2dccd7e6a58434a71ec`, equal to `refs/tags/v1.0.0^{}`.\n\nNote (no finding): the epic-wide `handoffMarkdown` now holds only the FIRST-2 record, so FIRST-1's evidence survives only in the ignored first-release.log; the epic's closing record should restate it.",
+      "findingIds": [],
+      "recordedAt": "2026-10-18T23:09:55Z"
+    },
+    "final": {
+      "reviewerId": "final-epic-auditor-gpux-releases-5e81c3a7",
+      "snapshotId": "0bf5f76b528185554576588c17b13a117eebc6b6ba59cf055dcbe88c0e2a6bd8",
+      "criterionIds": [
+        "SPIKE-1",
+        "VER-1",
+        "RPZ-1",
+        "RPZ-2",
+        "RPZ-3",
+        "CI-1",
+        "CI-2",
+        "RAYX-1",
+        "RAYX-2",
+        "RAYX-3",
+        "DOC-1",
+        "DOC-2",
+        "DOC-3",
+        "CONS-1",
+        "OWN-1",
+        "FIRST-1",
+        "FIRST-2"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "release-plz.toml",
+          "kind": "source",
+          "criterionIds": [
+            "SPIKE-1",
+            "RPZ-1",
+            "DOC-1",
+            "FIRST-1"
+          ],
+          "sha256": "01422ab44e1e6c1681594525e7325081710901a4f9e422cfebe3bc56b2fc884f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "VER-1",
+            "RAYX-3",
+            "SPIKE-1"
+          ],
+          "sha256": "1b7c3a23d1e897650c8574823ed984eedd5960524569df81317da43df8098c42"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "VER-1",
+            "RAYX-2"
+          ],
+          "sha256": "e3c8b8c2ebf5fc5ff7a32004e81d810944d5fe14fced12c657c0e470e86dea75"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.lock",
+          "kind": "source",
+          "criterionIds": [
+            "VER-1"
+          ],
+          "sha256": "a68022b88af18ab8146d27a745ffc86d5a53a6862776c93d6bc3a05868eaa59e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/release-plz.yml",
+          "kind": "source",
+          "criterionIds": [
+            "RPZ-2",
+            "FIRST-1"
+          ],
+          "sha256": "c9570a957ec5d39176f15c1599d49b30cfec5755ba90c5c5042fa60f94956252"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "CHANGELOG.md",
+          "kind": "source",
+          "criterionIds": [
+            "RPZ-3",
+            "FIRST-1"
+          ],
+          "sha256": "0235b8388a88a7d6fcd0f2b59a90e486c8465830b7fcc31eccaa4dfb15ead651"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/actions/plan/plan.sh",
+          "kind": "source",
+          "criterionIds": [
+            "CI-1",
+            "CI-2"
+          ],
+          "sha256": "a501bb83d53daff930e1fc63e0100546580b9045f4d0aedc77a2d7166685b154"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/ci.md",
+          "kind": "source",
+          "criterionIds": [
+            "CI-2"
+          ],
+          "sha256": "527f0998a617a4ced7fbeb4801f3a6e2873e96f9a8d92a21e9c942e78ed3fd8c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_fonts/rayx.assets.toml",
+          "kind": "source",
+          "criterionIds": [
+            "RAYX-1"
+          ],
+          "sha256": "d87095d99a845be05002b86d7e2ed4ebf663720ed289e6203a4e45295f92b8d7"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_fonts/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "RAYX-1"
+          ],
+          "sha256": "78fd404238d93ddc9abae95a4a081c72b2b1c73e9826628ef5a7f85ae4f548d2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/releasing.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-1",
+            "SPIKE-1",
+            "OWN-1",
+            "FIRST-1"
+          ],
+          "sha256": "19d411e7ada061345f1eb04cb275e0128208fe382d81bb435dc0257498fc2d5e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "README.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-1",
+            "DOC-2",
+            "CONS-1",
+            "FIRST-2"
+          ],
+          "sha256": "a7caf3535e05fd56d8d13088c8e0bd70bca71bb76274394f0abe6b6359e0880c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/installation-and-usage.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-2"
+          ],
+          "sha256": "2e43b344878ac650197524a4982eaebe5e61b4aa5cd0f8e23858f82fcf2d98bc"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/references/installation-and-usage.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-2"
+          ],
+          "sha256": "594404828abbdb223ada040af13fde61135cdba1708f2474ef6ac831e942a391"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/references/multithreaded-wasm-apps.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-2"
+          ],
+          "sha256": "e2765f90b21dacb4beefff6d6fee702234e9916925e67e8b6956748d62f5960c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "CLAUDE.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-3"
+          ],
+          "sha256": "533b4b9e10eb1a1190dbc18f50d64338efbabc0481a40ea090bdeee0418eb64c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "AGENTS.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-3"
+          ],
+          "sha256": "9bdd6a0597afbd5a17574dd2cac41d50c7687282af6747be46907eb16ea568b9"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/SKILL.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-3"
+          ],
+          "sha256": "0638321211fff102cfa10b5c551cb12e2f8723232757851982626d9eeffc884f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/references/update-from-zed-gpui-closure.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-3"
+          ],
+          "sha256": "1b2fc734323f0cb4d9dc8ba3ed1bc20fa68a3ae70b32fe160039bb0869c407f1"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/release_config.rs",
+          "kind": "test",
+          "criterionIds": [
+            "VER-1",
+            "RPZ-1",
+            "RPZ-2",
+            "RPZ-3"
+          ],
+          "sha256": "44880cf945fc67967e34cc2d6054427d8377e9e92390686b165c1f31d51a944a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/repository_layout.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RPZ-3"
+          ],
+          "sha256": "1468e27d2a78793776b8a62c4ac280416176b88ac4f3f396ec29c1af84a761fd"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/ci_plan_release_pr.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CI-1"
+          ],
+          "sha256": "38987ab8544c5d495589418bc257771c3e9f50d83e530f2d90bbbd277f5c9559"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/ci_plan.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CI-1"
+          ],
+          "sha256": "13df6489216260acda7a0802bb87c69c22ad91b5867c2e62dcc426634cc1179a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/rayx_declarations.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RAYX-1",
+            "RAYX-2",
+            "RAYX-3"
+          ],
+          "sha256": "c7ba7e5b5f835a28315dbe2945e210e91fd9cb2a375eeadf996f43f788408335"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/release_docs.rs",
+          "kind": "test",
+          "criterionIds": [
+            "DOC-2"
+          ],
+          "sha256": "926a2c32d6c1d244a6dd59c7984a630f5ab0a1da41d7ee021537a7ab54c87189"
+        }
+      ],
+      "summaryMarkdown": "Integrated epic verified against current `main` (045ca98 = `v1.0.0^{}` = origin/main). Reran the six focused groups (release_config 12, ci_plan_release_pr 8, ci_plan 14, rayx_declarations 3, release_docs 4, repository_layout 11: all pass) and the workflow YAML checker (ok); `check --epic` is current for this snapshot. Source: `release-plz.toml` is candidate A plus `git_release_name` and the nested `Migration:` body (d-release-tooling, d-release-tooling-proven), 30 `changelog_include` names, 8 forks `release = false`; `release-plz.yml` pins 0.3.172, `release-pr` needs `release`, only `RELEASE_PLZ_TOKEN`, no build/test step; plan.sh masks own version values only (vendor paths, registry checksum/source lines and crates.io requirements still run everything), and its header, docs/ci.md and docs/releasing.md describe the same rule; CLAUDE.md and AGENTS.md carry identical Consumers/Releases text; the skill and install docs use only the tag form. Cross-sprint: docs/releasing.md's spike record matches spike/SUMMARY.md; CHANGELOG's 1.0.0 Distribution paragraph is true (declarations present; RayX.CLI v1.4.0 published 2026-10-18 with the library-agnostic features and Migration footers). GitHub: run 39174990232 (push, head 045ca98) release+release-pr success and the only run on that commit; annotated tag v1.0.0 at the pushed head; Release v1.0.0 not draft/prerelease, latest, notes identical to the CHANGELOG section (modulo trailing newline); no release PR opened; ruleset 'Release tags' active on refs/tags/v* with update/deletion/non_fast_forward and no bypass. No `!` or BREAKING CHANGE commit in e21f83c..HEAD; `git diff e21f83c..HEAD -- vendor` is empty. The 1.0.0 date 2026-10-18 is the push day in UTC (push 23:04Z; local +0200 was the 19th), consistent with the Release timestamp. CONS-1 and FIRST-2 logs exit 0 with the Cargo.lock source commit equal to the remote tag. Memory rules of the touched domains are not contradicted; promotion of d-git-tag-distribution (superseding the crates.io packaging decision) remains the post-epic step.",
+      "findingIds": [],
+      "recordedAt": "2026-10-18T23:15:47Z"
     }
   },
   "checkpoints": {
@@ -802,6 +1340,14 @@
       },
       "reviewHash": "9b0791e7e2fede5bcc59f7f6393a4c7c52f5ac6234fa090e11131177e93b2565",
       "recordedAt": "2026-10-18T22:47:39Z"
+    },
+    "s6-first-release": {
+      "snapshotId": "0bf5f76b528185554576588c17b13a117eebc6b6ba59cf055dcbe88c0e2a6bd8",
+      "commits": {
+        "gpux": "045ca9875db9e73ce777e2dccd7e6a58434a71ec"
+      },
+      "reviewHash": "92661901d189b823065989d77ad76bfc7138fe0d15bae924e33591a9636602ea",
+      "recordedAt": "2026-10-18T23:10:17Z"
     }
   },
   "findings": [
@@ -936,7 +1482,7 @@
       ]
     }
   ],
-  "handoffMarkdown": "OWN-1 verified read-only on 2026-10-18 22:45 UTC (log artifacts-temp/agentx/gpux-releases/own-1.log): (1) gh secret list --repo rayx-ui/Gpux lists RELEASE_PLZ_TOKEN (updated 2026-10-18T21:07:35Z); (2) ruleset 25358676 'Release tags' active, target tag, include refs/tags/v*, rules update/deletion/non_fast_forward, bypass_actors [], no creation rule (branch ruleset DefaultProtection: deletion/non_fast_forward on the default branch, bypass user 226146274 always); (3) rayx-ui/RayX.CLI release v1.4.0 published 2026-10-18T22:42:03Z, not draft/prerelease, its notes list the library-agnostic changes (pins only from [workspace.metadata.rayx], fonts only as package assets, android_java_dirs to Gradle); (4) git ls-remote --tags origin 'v*' is empty. Risk: the sibling libraries' first Release-plz runs (RayX.Dtcg 39171612775, RayX.Reactive 39171622602, RayX.SignalR 39171188847) all failed creating the v1.0.0 tag with HTTP 403 'Resource not accessible by personal access token': the shared PAT's repository access probably does not include Gpux either; none has been re-run green yet.",
+  "handoffMarkdown": "FIRST-2 met: Cargo project outside the repository (scratchpad gpux-tag-consumer) with the README's lines at tag v1.0.0 and the README example passes cargo check on this Mac (exit 0); Cargo.lock lists gpux 1.0.0 and gpux-platform 1.0.0 from git+https://github.com/rayx-ui/Gpux?tag=v1.0.0#045ca9875db9e73ce777e2dccd7e6a58434a71ec, equal to git ls-remote origin 'refs/tags/v1.0.0^{}'. Log artifacts-temp/agentx/gpux-releases/consumer/first-2-tag.log.",
   "protectedPaths": {
     "gpux": {
       "vendor/**": "c4081a3160e3bd0770bb61241497fc1577079f9a42fc0113092bff872b9377f1",

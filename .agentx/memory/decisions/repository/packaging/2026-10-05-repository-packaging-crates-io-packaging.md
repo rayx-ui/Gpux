@@ -2,9 +2,9 @@
 agentx:
   kind: decision
   scope: decisions/repository/packaging
-  status: current
+  status: superseded
   created: 2026-10-05T18:00:00+02:00
-  updated: 2026-10-05T18:00:00+02:00
+  updated: 2026-10-19T01:30:00+02:00
   topics:
     - gpux
     - crates-io
@@ -13,7 +13,8 @@ agentx:
     - sibling-repositories
   supersedes:
     - 2026-08-30-repository-packaging-upstream-dependency-sources.md
-  superseded_by: []
+  superseded_by:
+    - 2026-10-18-repository-packaging-git-tag-releases.md
 ---
 
 ## Decision: gpux publishes to crates.io from its sibling repository as `gpux-*` packages with GPUI Rust names
