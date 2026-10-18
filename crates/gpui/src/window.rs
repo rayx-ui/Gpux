@@ -81,8 +81,8 @@ pub use a11y::{A11yInspection, A11yRelationQueue, A11ySubtreeBuilder, Accessibil
 use self::a11y::A11y;
 use self::a11y::ROOT_NODE_ID;
 use crate::util::{
-    atomic_incr_if_not_zero, ceil_to_device_pixel, floor_to_device_pixel, round_half_toward_zero,
-    round_half_toward_zero_f64, round_stroke_to_device_pixel, round_to_device_pixel,
+    atomic_incr_if_not_zero, ceil_to_device_pixel, floor_to_device_pixel,
+    round_half_toward_zero_f64, round_stroke_to_device_pixel,
 };
 pub use prompts::*;
 
@@ -2010,6 +2010,15 @@ pub struct Window {
     pub(crate) fast_verify: crate::fast::verify::retention::RetentionVerify,
     pub(crate) fast_glyph_bounds: crate::fast::glyphs::GlyphBoundsCache,
     pub(crate) fast_layers: crate::fast::layers::WindowLayers,
+    /// The measured leaves requested this frame under view retention, with
+    /// the view each was requested in and whether its style fixes its size
+    /// in every parent (see `fast::layout::measured_size_is_fixed`).
+    pub(crate) fast_measured_owners: Vec<(LayoutId, EntityId, bool)>,
+    /// The views whose layout last frame held a measured leaf other than text
+    /// whose size came, or could come, from its measurement: built on the
+    /// next frame, not reused, since the leaf keeps no measurement closure
+    /// across frames.
+    pub(crate) fast_measuring_views: FxHashSet<EntityId>,
     #[cfg(any(
         test,
         feature = "test-support",
@@ -3000,6 +3009,8 @@ impl Window {
             fast_verify: Default::default(),
             fast_glyph_bounds: crate::fast::glyphs::GlyphBoundsCache::default(),
             fast_layers: crate::fast::layers::WindowLayers::default(),
+            fast_measured_owners: Vec::new(),
+            fast_measuring_views: FxHashSet::default(),
             #[cfg(any(
                 test,
                 feature = "test-support",
@@ -4264,14 +4275,26 @@ impl Window {
     /// Rounds a logical value to the nearest device pixel.
     #[inline]
     pub fn pixel_snap(&self, value: Pixels) -> Pixels {
-        px(round_to_device_pixel(value.0, self.scale_factor()) / self.scale_factor())
+        px(self.round_edge_to_device_pixel(value.0) / self.scale_factor())
     }
 
     /// f64 variant of [`Self::pixel_snap`].
     #[inline]
     pub fn pixel_snap_f64(&self, value: f64) -> f64 {
         let scale_factor = f64::from(self.scale_factor());
-        round_half_toward_zero_f64(value * scale_factor) / scale_factor
+        let value = value * scale_factor;
+        if self.fast_mode.snapping() {
+            crate::util::round_half_down_f64(value) / scale_factor
+        } else {
+            round_half_toward_zero_f64(value) / scale_factor
+        }
+    }
+
+    /// `logical` in device pixels, rounded as an edge: ties down while scroll
+    /// layers snap, toward zero otherwise (see [`crate::util::round_edge`]).
+    #[inline]
+    fn round_edge_to_device_pixel(&self, logical: f32) -> f32 {
+        crate::util::round_edge(logical * self.scale_factor(), self.fast_mode.snapping())
     }
 
     /// Snaps a bounds' origin and size to the nearest device pixel.
@@ -4293,7 +4316,6 @@ impl Window {
         width: Pixels,
         style: &UnderlineStyle,
     ) -> Bounds<ScaledPixels> {
-        let scale_factor = self.scale_factor();
         let thickness = self.snap_stroke(style.thickness);
         let height = if style.wavy {
             ScaledPixels(thickness.0 * 3.)
@@ -4301,7 +4323,7 @@ impl Window {
             thickness
         };
         Bounds {
-            origin: origin.map(|c| ScaledPixels(round_to_device_pixel(c.0, scale_factor))),
+            origin: origin.map(|c| ScaledPixels(self.round_edge_to_device_pixel(c.0))),
             size: size(self.snap_stroke(width), height),
         }
     }
@@ -4381,11 +4403,10 @@ impl Window {
 
     #[inline]
     fn snap_bounds(&self, bounds: Bounds<Pixels>) -> Bounds<ScaledPixels> {
-        let scale_factor = self.scale_factor();
-        let left = round_to_device_pixel(bounds.left().0, scale_factor);
-        let top = round_to_device_pixel(bounds.top().0, scale_factor);
-        let right = round_to_device_pixel(bounds.right().0, scale_factor).max(left);
-        let bottom = round_to_device_pixel(bounds.bottom().0, scale_factor).max(top);
+        let left = self.round_edge_to_device_pixel(bounds.left().0);
+        let top = self.round_edge_to_device_pixel(bounds.top().0);
+        let right = self.round_edge_to_device_pixel(bounds.right().0).max(left);
+        let bottom = self.round_edge_to_device_pixel(bounds.bottom().0).max(top);
         Bounds::from_corners(
             point(ScaledPixels(left), ScaledPixels(top)),
             point(ScaledPixels(right), ScaledPixels(bottom)),
@@ -4645,6 +4666,20 @@ impl Window {
         }
         self.refresh_for_text_policy();
         self.invalidate_entities();
+        // A view whose layout held a measured leaf other than text whose size
+        // came from its measurement is built, as if notified: kept, the leaf
+        // would have no measurement closure and be sized empty.
+        let mut built_for_measured_leaves = 0;
+        if self.fast_mode.view_retention() {
+            for view in mem::take(&mut self.fast_measuring_views) {
+                if !self.dirty_views.contains(&view) {
+                    self.mark_view_dirty(view);
+                    built_for_measured_leaves += 1;
+                }
+            }
+        } else {
+            self.fast_measuring_views.clear();
+        }
         cx.entities.clear_accessed();
         debug_assert!(self.rendered_entity_stack.is_empty());
         self.invalidator.set_dirty(false);
@@ -4676,6 +4711,12 @@ impl Window {
             feature = "diagnostics"
         ))]
         crate::fast::stats::begin_frame(self);
+        crate::fast::fast_stat!(
+            self.fast_stats.frame,
+            views_built_for_measured_leaves += built_for_measured_leaves
+        );
+        // Counted only where fast-mode counters are compiled.
+        let _ = built_for_measured_leaves;
         crate::fast::layout::begin_frame(self);
         crate::fast::composition::begin_frame(self);
         crate::fast::retained::begin_frame(self, cx);
@@ -4763,6 +4804,21 @@ impl Window {
                 });
         }
 
+        {
+            // The views holding a measured leaf other than text whose size
+            // came from its measurement, or whose style leaves its size to a
+            // parent that may change while the view is kept, are built on the
+            // next frame (see `draw`).
+            let retention = &self.layout_engine.as_ref().unwrap().retention;
+            self.fast_measuring_views = mem::take(&mut self.fast_measured_owners)
+                .into_iter()
+                .filter(|(id, _, fixed)| {
+                    !crate::fast::layout::is_text_leaf(retention, *id)
+                        && (!fixed || retention.measured_leaves.contains(id))
+                })
+                .map(|(_, view, _)| view)
+                .collect();
+        }
         self.layout_engine.as_mut().unwrap().clear();
         #[cfg(any(
             test,
@@ -5335,6 +5391,18 @@ impl Window {
     }
 
     pub(crate) fn reuse_prepaint(&mut self, range: Range<PrepaintStateIndex>) {
+        self.reuse_prepaint_with_rows(range, &[]);
+    }
+
+    /// [`Self::reuse_prepaint`], with the accessibility nodes of each of
+    /// `rows`, in order within `range`, replayed shown or hidden. The rest is
+    /// reused in one piece: a dispatch subtree copied in pieces would lose
+    /// the nodes its pieces nest in.
+    pub(crate) fn reuse_prepaint_with_rows(
+        &mut self,
+        range: Range<PrepaintStateIndex>,
+        rows: &[(Range<PrepaintStateIndex>, bool)],
+    ) {
         crate::fast::composition::reuse_placements(self, &range);
         self.next_frame.hitboxes.extend(
             self.rendered_frame.hitboxes[range.start.hitboxes_index..range.end.hitboxes_index]
@@ -5386,12 +5454,26 @@ impl Window {
 
         // The accessibility tree of the reused content, built again from what building it
         // recorded, under the node it sits in now.
-        let scale_factor = self.scale_factor();
-        self.a11y.replay(
+        // The rows in event order, each before the rows of the lists nested
+        // in it: a row of a nested list is as hidden as the row holding it.
+        let mut events: Vec<(Range<usize>, bool)> = rows
+            .iter()
+            .map(|(row, shown)| {
+                (
+                    row.start.a11y_events_index..row.end.a11y_events_index,
+                    *shown,
+                )
+            })
+            .collect();
+        events.sort_by(|(a, _), (b, _)| a.start.cmp(&b.start).then(b.end.cmp(&a.end)));
+        // Reused inside a row that is hidden, all of it is.
+        let hidden = self.a11y.nodes.hidden;
+        self.replay_a11y_rows(
             range.start.a11y_events_index..range.end.a11y_events_index,
-            self.focus,
-            scale_factor,
+            &events,
+            hidden,
         );
+        self.a11y.nodes.hidden = hidden;
 
         let fast_enclosing = crate::fast::retained::enclosing_retained(self);
         self.next_frame.deferred_draws.extend(
@@ -5415,6 +5497,38 @@ impl Window {
                     fast_enclosing: fast_enclosing.clone(),
                 }),
         );
+    }
+
+    /// Replays the accessibility events `range` of the last frame, the
+    /// events of each of `rows` (sorted by start, outer rows first) hidden
+    /// unless it is shown, and the rest `hidden`.
+    fn replay_a11y_rows(
+        &mut self,
+        range: Range<usize>,
+        rows: &[(Range<usize>, bool)],
+        hidden: bool,
+    ) {
+        let scale_factor = self.scale_factor();
+        let mut at = range.start;
+        let mut index = 0;
+        while index < rows.len() {
+            let (row, shown) = rows[index].clone();
+            let nested = rows[index + 1..]
+                .iter()
+                .take_while(|(inner, _)| inner.start < row.end)
+                .count();
+            self.a11y.nodes.hidden = hidden;
+            self.a11y.replay(at..row.start, self.focus, scale_factor);
+            self.replay_a11y_rows(
+                row.clone(),
+                &rows[index + 1..index + 1 + nested],
+                hidden || !shown,
+            );
+            at = row.end;
+            index += 1 + nested;
+        }
+        self.a11y.nodes.hidden = hidden;
+        self.a11y.replay(at..range.end, self.focus, scale_factor);
     }
 
     pub(crate) fn paint_index(&self) -> PaintIndex {
@@ -7013,10 +7127,9 @@ impl Window {
     ) {
         self.invalidator.debug_assert_paint();
 
-        let scale_factor = self.scale_factor();
         let height = style.thickness;
         let bounds = Bounds {
-            origin: origin.map(|c| ScaledPixels(round_to_device_pixel(c.0, scale_factor))),
+            origin: origin.map(|c| ScaledPixels(self.round_edge_to_device_pixel(c.0))),
             size: size(self.snap_stroke(width), self.snap_stroke(height)),
         };
         let content_mask = self.paint_content_mask();
@@ -7356,7 +7469,9 @@ impl Window {
                 .map(|value| ScaledPixels(value.0 as f32 / SMOOTH_SVG_SCALE_FACTOR)),
         };
         let final_bounds = svg_bounds
-            .map_origin(|value| ScaledPixels(round_half_toward_zero(value.0)))
+            .map_origin(|value| {
+                ScaledPixels(crate::util::round_edge(value.0, self.fast_mode.snapping()))
+            })
             .map_size(|size| size.ceil());
 
         self.next_frame.scene.insert_primitive(MonochromeSprite {
@@ -7608,10 +7723,25 @@ impl Window {
         let rem_size = self.rem_size();
         let scale_factor = self.scale_factor();
         let key = crate::fast::layout_key::layout_key(self);
-        self.layout_engine
+        let id = self
+            .layout_engine
             .as_mut()
             .unwrap()
-            .request_measured_layout_ref(key, &style, rem_size, scale_factor, kind, measure)
+            .request_measured_layout_ref(key, &style, rem_size, scale_factor, kind, measure);
+        self.note_measured_owner(id, &style);
+        id
+    }
+
+    /// Notes the view a measured leaf is requested in, for that view to be
+    /// built on the next frame unless the leaf is text or sized without its
+    /// measurement.
+    fn note_measured_owner(&mut self, id: LayoutId, style: &Style) {
+        if self.fast_mode.view_retention()
+            && let Some(view) = self.rendered_entity_stack.last().copied()
+        {
+            let fixed = crate::fast::layout::measured_size_is_fixed(style);
+            self.fast_measured_owners.push((id, view, fixed));
+        }
     }
 
     #[cfg_attr(feature = "diagnostics", track_caller)]
@@ -7631,10 +7761,13 @@ impl Window {
         let rem_size = self.rem_size();
         let scale_factor = self.scale_factor();
         let key = crate::fast::layout_key::layout_key(self);
-        self.layout_engine
+        let id = self
+            .layout_engine
             .as_mut()
             .unwrap()
-            .request_measured_layout_ref(key, style, rem_size, scale_factor, kind, measure)
+            .request_measured_layout_ref(key, style, rem_size, scale_factor, kind, measure);
+        self.note_measured_owner(id, style);
+        id
     }
 
     /// Compute the layout for the given id within the given available space.
@@ -13106,6 +13239,19 @@ mod tests {
                     scaled.abs() / divisor + i32::from(2 * (scaled.abs() % divisor) > divisor);
                 ScaledPixels((scaled.signum() * rounded) as f32)
             };
+            // Edges round their ties down while scroll layers snap, as they
+            // do by default; widths round them toward zero.
+            let ties_down = window.fast_mode.snapping();
+            let edge = |quarters: i32| {
+                if ties_down {
+                    // The ceiling of (scaled - divisor / 2) / divisor.
+                    let scaled = quarters * numerator;
+                    let divisor = 4 * denominator;
+                    ScaledPixels(-(divisor - 2 * scaled).div_euclid(2 * divisor) as f32)
+                } else {
+                    snap(quarters)
+                }
+            };
             let stroke = |quarters| {
                 if quarters == 0 {
                     ScaledPixels(0.)
@@ -13124,7 +13270,7 @@ mod tests {
                                 wavy,
                             };
                             let bounds = Bounds::new(
-                                point(snap(origin), snap(-origin)),
+                                point(edge(origin), edge(-origin)),
                                 size(
                                     stroke(width),
                                     stroke(thickness) * if wavy { 3. } else { 1. },

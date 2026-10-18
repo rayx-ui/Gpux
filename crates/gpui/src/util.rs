@@ -136,6 +136,35 @@ pub(crate) fn round_half_toward_zero_f64(value: f64) -> f64 {
     (value.abs() - 0.5).ceil().copysign(value)
 }
 
+/// Rounds to the nearest integer with 0.5 ties down: the same rounding at
+/// every position, so a move by whole device pixels keeps what it rounds
+/// to, which rounding ties toward zero does not across zero. It rounds
+/// non-negative values as [`round_half_toward_zero`] does, and as glyph
+/// origins round (`fast::glyphs`).
+#[inline]
+pub(crate) fn round_half_down(value: f32) -> f32 {
+    // Adding zero turns the ceiling of -0.5, negative zero, into zero.
+    (value - 0.5).ceil() + 0.0
+}
+
+#[inline]
+pub(crate) fn round_half_down_f64(value: f64) -> f64 {
+    // Adding zero turns the ceiling of -0.5, negative zero, into zero.
+    (value - 0.5).ceil() + 0.0
+}
+
+/// Rounds an edge in device pixels: ties down while scroll layers snap
+/// (`half_down`), so that an edge a layer moves by whole device pixels lands
+/// where one drawn there afresh does, and ties toward zero otherwise.
+#[inline]
+pub(crate) fn round_edge(value: f32, half_down: bool) -> f32 {
+    if half_down {
+        round_half_down(value)
+    } else {
+        round_half_toward_zero(value)
+    }
+}
+
 #[inline]
 pub(crate) fn round_to_device_pixel(logical: f32, scale_factor: f32) -> f32 {
     round_half_toward_zero(logical * scale_factor)

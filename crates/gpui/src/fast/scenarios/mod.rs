@@ -97,6 +97,12 @@ pub trait Fixture {
     /// `mode` must have done. Bounds are per drawn frame (`stats.frames`), so
     /// they hold however a bench's frames were paced.
     fn expect(&self, mode: Mode, stats: &FastStats) -> Result<(), String>;
+
+    /// How many rows the fixture's row renderers have rendered so far, for a
+    /// scenario whose rows are a virtual list's: what a mode renders less of.
+    fn rows_rendered(&self) -> Option<u64> {
+        None
+    }
 }
 
 /// A named scenario.

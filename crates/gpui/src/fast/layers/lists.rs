@@ -73,9 +73,9 @@
 //! nested views and scroll containers are painted into the layer.
 
 use crate::{
-    AnyElement, App, AvailableSpace, Bounds, ContentMask, ElementId, EntityId, GlobalElementId,
-    Hitbox, HitboxId, PaintColor, PaintIndex, Pixels, Point, PrepaintStateIndex, ScaledPixels,
-    Scene, Size, TextStyle, TileCoord, Window,
+    AnyElement, App, AvailableSpace, Axis, Bounds, ContentMask, ElementId, EntityId,
+    GlobalElementId, Hitbox, HitboxId, PaintColor, PaintIndex, Pixels, Point, PrepaintStateIndex,
+    ScaledPixels, Scene, Size, TextStyle, TileCoord, Window,
     fast::{
         dependencies::{DependencyRecording, RenderDependencies, StateVersion},
         layers::{
@@ -170,6 +170,33 @@ pub(crate) struct LayerRows {
 }
 
 impl LayerRows {
+    /// Keeps `told`, the rows a list painted into a scroll container's layer
+    /// recorded in the frame `frame` (see [`content_row_painted`]), in place
+    /// of those the layer held.
+    pub(crate) fn tell_content_rows(&mut self, told: Vec<ToldRow>, frame: u64) {
+        self.told_frame = (!told.is_empty()).then_some(frame);
+        self.told = told;
+    }
+
+    /// The rows the layer told in the frame before `frame`, which a frame
+    /// compositing the layer carries.
+    pub(crate) fn told_before(&mut self, frame: u64) -> Option<&mut Vec<ToldRow>> {
+        (self.told_frame.is_some_and(|told| told + 1 == frame) && !self.told.is_empty())
+            .then_some(&mut self.told)
+    }
+
+    /// The rows the layer told, as carried into the frame `frame` (see
+    /// [`Self::told_again`]).
+    pub(crate) fn told_in(&mut self, frame: u64) -> Option<&mut Vec<ToldRow>> {
+        (self.told_frame == Some(frame)).then_some(&mut self.told)
+    }
+
+    /// Notes that the rows the layer told are told in `frame` too, once
+    /// their records are carried into it.
+    pub(crate) fn told_again(&mut self, frame: u64) {
+        self.told_frame = Some(frame);
+    }
+
     /// Ends the frame being drawn.
     pub(crate) fn finish_frame(&mut self) {
         self.frame = None;
@@ -438,12 +465,33 @@ impl Row {
     }
 }
 
-/// A uniform list's measured item, and what it was measured with besides
-/// the item itself.
-struct Measured {
+/// A list's measured item, and what it was measured with besides the item
+/// itself.
+pub(crate) struct Measured {
     size: Size<Pixels>,
     rem_size: Pixels,
     text_style: TextStyle,
+    /// The element states measuring the item reached. A frame that keeps
+    /// the size reaches them too, so that they live on as when the item is
+    /// measured.
+    states: Rc<[(GlobalElementId, std::any::TypeId)]>,
+    /// The lines measuring the item shaped, in the frame that measured it or
+    /// last carried them, `frame`: a frame that keeps the size right after
+    /// keeps them shaped.
+    lines: Range<crate::LineLayoutIndex>,
+    pub(crate) frame: u64,
+    /// What measuring the item read, for a list drawn without a layer: the
+    /// size is kept while none of it changed.
+    dependencies: Option<RenderDependencies>,
+    /// The scale factor it was measured at: style sizes round to device
+    /// pixels, so another one measures another size.
+    scale_factor: f32,
+    /// For a list drawn without a layer, the view holding it, watched for
+    /// notifications, and how often it had been notified, and by scrolls,
+    /// when the size was last measured or kept: a notification other than a
+    /// scroll's measures again, as what shapes the item may live outside
+    /// entities.
+    owner: Option<(invalidate::OwnerWatch, u64, u64)>,
 }
 
 /// The rows a list renders into its layer this frame.
@@ -462,6 +510,9 @@ enum Mode {
 
 /// What the frame being drawn does with a list's rows.
 struct RowsFrame {
+    /// The axis the list lays its rows along: a horizontal list's rows are
+    /// columns, and every row field is read along it.
+    axis: Axis,
     mode: Mode,
     /// For a `list`, its state, to tell its hooks from a nested list's.
     list: Option<usize>,
@@ -641,6 +692,19 @@ struct RowPaint {
 /// What a `uniform_list` does with its rows this frame: nothing new, or
 /// render the plan's rows into its layer.
 pub(crate) struct Rows(Option<RowPlan>);
+
+impl Rows {
+    /// The rows of a list that calls no hook to begin them: it renders the
+    /// rows it shows, on today's path.
+    pub(crate) fn unlayered() -> Self {
+        Rows(None)
+    }
+
+    /// Whether the rows are drawn into a list layer this frame.
+    pub(crate) fn layered(&self) -> bool {
+        self.0.is_some()
+    }
+}
 
 /// The rows `visible` and `overscan` rows on each side, of `item_count`.
 fn needed_rows(visible: &Range<usize>, overscan: usize, item_count: usize) -> Range<usize> {
@@ -830,9 +894,12 @@ fn stale_rows(
         .collect()
 }
 
-/// The size of a uniform list's measured item: `measure`d, unless the
-/// frame only scrolls the list's layer, whose content, the measured item
-/// included, is then as it was (spec §8).
+/// The size of the item a uniform list `id` measures its rows by, measured
+/// by `measure` unless kept: by the list's layer while the frame only
+/// scrolls it, and without a layer, under view retention, while nothing
+/// measuring it read changed and the frame only scrolls the list. A kept
+/// size reaches the element states measuring reached and keeps the lines it
+/// shaped, as measuring again would.
 pub(crate) fn measure_item(
     window: &mut Window,
     cx: &mut App,
@@ -842,26 +909,192 @@ pub(crate) fn measure_item(
     if !LIST_LAYERS {
         return measure(window, cx);
     }
-    if !COMPILED || window.fast_layers.layers.is_empty() {
-        return measure(window, cx);
-    }
     let Some(id) = id else {
         return measure(window, cx);
     };
-    if let Some(size) = kept_item_size(window, cx, id) {
+    let layered = COMPILED && !window.fast_layers.layers.is_empty();
+    if layered {
+        // A list measures before it decides what its layer does: take in the
+        // offsets published since the last frame first, so that a wheel on a
+        // tracked handle counts as the scroll it is, as a handle-less list's
+        // does (see `ScrollStates::take_offsets_set`).
+        window.fast_layers.scrolls.take_offsets_set();
+        if let Some(size) = kept_item_size(window, cx, id) {
+            carry_measured_records(window, id);
+            return size;
+        }
+    }
+    if let Some(size) = kept_item_size_without_layer(window, cx, id) {
+        // What measuring read stays among what the view holding the list
+        // read, as measuring again would leave it.
+        if let Some(dependencies) = window
+            .fast_layers
+            .measured_items
+            .get(id)
+            .and_then(|measured| measured.dependencies.clone())
+        {
+            cx.replay_dependencies_as_own(&dependencies);
+        }
+        carry_measured_records(window, id);
         return size;
     }
+    // Measuring is part of building the view holding the list: what it
+    // reads is that view's own, for view retention and splice to decide on.
+    let recording = window
+        .fast_mode
+        .view_retention()
+        .then(|| cx.begin_recording_dependencies());
+    let start = window.prepaint_index();
     let size = measure(window, cx);
-    let rem_size = window.rem_size();
-    let text_style = window.text_style();
+    let end = window.prepaint_index();
+    let dependencies =
+        recording.map(|recording| cx.finish_recording_dependencies_as_own(recording).all);
+    let states: Rc<[(GlobalElementId, std::any::TypeId)]> =
+        window.next_frame.accessed_element_states
+            [start.accessed_element_states_index..end.accessed_element_states_index]
+            .iter()
+            .map(|(id, type_id)| (id.clone(), *type_id))
+            .collect();
+    let (rem_size, text_style, frame, scale_factor) = (
+        window.rem_size(),
+        window.text_style(),
+        window.fast_layers.frame,
+        window.scale_factor(),
+    );
+    let lines = start.line_layout_index..end.line_layout_index;
+    let measured = |dependencies| Measured {
+        size,
+        rem_size,
+        text_style: text_style.clone(),
+        states: states.clone(),
+        lines: lines.clone(),
+        frame,
+        dependencies,
+        scale_factor,
+        owner: None,
+    };
+    let in_layer = measured(None);
+    let owner = invalidate::owner_view(window).map(|view| {
+        let watch = invalidate::OwnerWatch::new(view);
+        let (notifies, scrolls) = (watch.notifies(), watch.scroll_notifies());
+        (watch, notifies, scrolls)
+    });
+    let without_layer = dependencies.map(|dependencies| Measured {
+        frame: window.fast_layers.measured_items_frame,
+        owner,
+        ..measured(Some(dependencies))
+    });
     if let Some(layer) = window.fast_layers.layers.get_mut(id) {
-        layer.rows.measured = Some(Measured {
-            size,
-            rem_size,
-            text_style,
-        });
+        layer.rows.measured = Some(in_layer);
+    }
+    match without_layer {
+        Some(measured) => {
+            window
+                .fast_layers
+                .measured_items
+                .insert(id.clone(), measured);
+        }
+        None => {
+            window.fast_layers.measured_items.remove(id);
+        }
     }
     size
+}
+
+/// The measured item's size as kept for the uniform list `id` drawn without
+/// a layer, if nothing measuring it read changed since the frame before and
+/// the frame only scrolls the list.
+fn kept_item_size_without_layer(
+    window: &Window,
+    cx: &App,
+    id: &GlobalElementId,
+) -> Option<Size<Pixels>> {
+    // A list with a layer keeps its size by the layer alone. Notifications
+    // are counted only where layers are compiled.
+    if !COMPILED
+        || !window.fast_mode.view_retention()
+        || paint::inside_layer(window)
+        || window.fast_layers.layers.contains_key(id)
+    {
+        return None;
+    }
+    let measured = window.fast_layers.measured_items.get(id)?;
+    let dependencies = measured.dependencies.as_ref()?;
+    let (watch, notifies, scrolls) = measured.owner.as_ref()?;
+    let notified_otherwise = watch.notifies().saturating_sub(*notifies)
+        > watch.scroll_notifies().saturating_sub(*scrolls);
+    if invalidate::owner_view(window) != Some(watch.view()) || notified_otherwise {
+        return None;
+    }
+    let source = window.fast_layers.scrolls.source(id);
+    (measured.frame + 1 == window.fast_layers.measured_items_frame
+        && measured.scale_factor == window.scale_factor()
+        && measured.rem_size == window.rem_size()
+        && measured.text_style == window.text_style()
+        && !invalidate::changed(window, cx, dependencies, source.as_ref())
+        && !invalidate::measured_item_changed_without_layer(window, cx, id))
+    .then_some(measured.size)
+}
+
+/// Reaches in the frame being drawn the element states measuring the item
+/// of the list `id` reached, as measuring it again would, and keeps the
+/// lines it shaped when they lie in the last frame.
+fn carry_measured_records(window: &mut Window, id: &GlobalElementId) {
+    // The layer's record when the list has one, by the layers' frames, or
+    // the record kept without a layer, by the frames drawn.
+    let in_layer = window
+        .fast_layers
+        .layers
+        .get(id)
+        .is_some_and(|layer| layer.rows.measured.is_some());
+    let layers = &window.fast_layers;
+    let (frame, measured) = if in_layer {
+        (
+            layers.frame,
+            layers
+                .layers
+                .get(id)
+                .and_then(|layer| layer.rows.measured.as_ref()),
+        )
+    } else {
+        (layers.measured_items_frame, layers.measured_items.get(id))
+    };
+    let Some((states, lines)) = measured.map(|measured| {
+        let lines = (measured.frame + 1 == frame).then(|| measured.lines.clone());
+        (measured.states.clone(), lines)
+    }) else {
+        return;
+    };
+    window
+        .next_frame
+        .pending_element_state_transfers
+        .extend(states.iter().cloned());
+    window
+        .next_frame
+        .accessed_element_states
+        .extend(states.iter().cloned());
+    let start = window.text_system.layout_index();
+    if let Some(lines) = lines {
+        window.text_system.reuse_layouts(lines);
+    }
+    let end = window.text_system.layout_index();
+    let layers = &mut window.fast_layers;
+    let measured = if in_layer {
+        layers
+            .layers
+            .get_mut(id)
+            .and_then(|layer| layer.rows.measured.as_mut())
+    } else {
+        layers.measured_items.get_mut(id)
+    };
+    if let Some(measured) = measured {
+        measured.lines = start..end;
+        measured.frame = frame;
+        if let Some((watch, notifies, scrolls)) = &mut measured.owner {
+            *notifies = watch.notifies();
+            *scrolls = watch.scroll_notifies();
+        }
+    }
 }
 
 /// The measured item's size as the layer of the list `id` keeps it, if the
@@ -949,11 +1182,172 @@ pub(crate) fn begin_uniform_list(
     let Some(id) = id else {
         return Rows(None);
     };
-    if item_height <= Pixels::ZERO || !layered(window, cx, carried) {
+    if item_height <= Pixels::ZERO {
+        return Rows(None);
+    }
+    let content_size = size(padded_bounds.size.width, item_height * item_count);
+    begin_rows(
+        window,
+        cx,
+        id,
+        Axis::Vertical,
+        padded_bounds,
+        content_size,
+        scroll_offset,
+        visible,
+        carried,
+        &|_| false,
+        |viewport| {
+            let overscan = (viewport.size.height * paint::list_overscan_viewports() / item_height)
+                .ceil()
+                .max(1.) as usize;
+            needed_rows(visible, overscan, item_count)
+        },
+        |row| {
+            (
+                padded_bounds.origin.y + scroll_offset.y + item_height * row,
+                item_height,
+            )
+        },
+    )
+}
+
+/// Decides what the virtual list `id` does with its rows this frame, and
+/// sets up rendering and prepainting them, as [`begin_uniform_list`] does
+/// for a uniform list. Row `n` lies `origins[n]` along `axis` from the
+/// start of `padded_bounds` and is `sizes[n]` long, gap included; `extents`
+/// indexes those sizes. The list is scrolled by `scroll_offset` and shows
+/// the rows `visible`, its mounted range; the rows `sticky` tells are drawn
+/// above the layer. The list is `carried` when a layer showing its viewport
+/// shows what it draws: a list scrolled by a sibling's handle only while
+/// what holds it clips it to its bounds.
+///
+/// The layer holds the rows that lie within
+/// [`paint::list_overscan_viewports`] of a viewport above and below the
+/// viewport, found through `extents`, and those the list shows.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn begin_virtual_list(
+    window: &mut Window,
+    cx: &mut App,
+    id: Option<&GlobalElementId>,
+    axis: Axis,
+    padded_bounds: Bounds<Pixels>,
+    scroll_offset: Point<Pixels>,
+    origins: &[Pixels],
+    sizes: &[Pixels],
+    extents: &crate::OrderedExtentIndex,
+    visible: &Range<usize>,
+    sticky: &dyn Fn(usize) -> bool,
+    carried: bool,
+) -> Rows {
+    let Some(id) = id else {
+        return Rows(None);
+    };
+    let item_count = origins.len().min(sizes.len()).min(extents.len());
+    let total = extents.total();
+    if item_count == 0 || total <= Pixels::ZERO {
+        return Rows(None);
+    }
+    // Along the list's axis: a horizontal list's rows are columns.
+    let (content_size, content_start) = match axis {
+        Axis::Vertical => (
+            size(padded_bounds.size.width, total),
+            padded_bounds.origin.y + scroll_offset.y,
+        ),
+        Axis::Horizontal => (
+            size(total, padded_bounds.size.height),
+            padded_bounds.origin.x + scroll_offset.x,
+        ),
+    };
+    begin_rows(
+        window,
+        cx,
+        id,
+        axis,
+        padded_bounds,
+        content_size,
+        scroll_offset,
+        visible,
+        carried,
+        sticky,
+        |viewport| {
+            let (start, end) = along(axis, viewport);
+            let reach = (end - start) * paint::list_overscan_viewports();
+            let (around, _) = extents.visible_range_with_lookahead(
+                start - content_start - reach,
+                end - content_start + reach,
+                item_count,
+                0,
+            );
+            if visible.is_empty() {
+                return around;
+            }
+            if around.is_empty() {
+                return visible.start.min(item_count)..visible.end.min(item_count);
+            }
+            around.start.min(visible.start)..around.end.max(visible.end).min(item_count)
+        },
+        |row| (content_start + origins[row], sizes[row]),
+    )
+}
+
+/// Where `bounds` starts and ends along `axis`.
+fn along(axis: Axis, bounds: Bounds<Pixels>) -> (Pixels, Pixels) {
+    match axis {
+        Axis::Vertical => (bounds.top(), bounds.bottom()),
+        Axis::Horizontal => (bounds.left(), bounds.right()),
+    }
+}
+
+/// Where `bounds`, in device pixels, starts and ends along `axis`.
+fn along_scaled(axis: Axis, bounds: Bounds<ScaledPixels>) -> (f32, f32) {
+    match axis {
+        Axis::Vertical => (bounds.top().0, bounds.bottom().0),
+        Axis::Horizontal => (bounds.left().0, bounds.right().0),
+    }
+}
+
+/// The slot of a row `start` and `extent` along `axis` in `viewport`,
+/// across the whole of the viewport.
+fn row_slot(axis: Axis, viewport: Bounds<Pixels>, start: Pixels, extent: Pixels) -> Bounds<Pixels> {
+    match axis {
+        Axis::Vertical => Bounds {
+            origin: point(viewport.origin.x, start),
+            size: size(viewport.size.width, extent),
+        },
+        Axis::Horizontal => Bounds {
+            origin: point(start, viewport.origin.y),
+            size: size(extent, viewport.size.height),
+        },
+    }
+}
+
+/// What [`begin_uniform_list`] and [`begin_virtual_list`] share: decides
+/// what the list `id` does with its rows this frame and sets up rendering
+/// and prepainting them. `needed` gives the rows the layer is to hold from
+/// the viewport, and `place` each row's start and extent along `axis` in
+/// window space. The rows `outside` tells are neither held nor rendered,
+/// wherever they lie: the list draws them above the layer when it shows
+/// them (a `virtual_list`'s sticky candidates).
+#[allow(clippy::too_many_arguments)]
+fn begin_rows(
+    window: &mut Window,
+    cx: &mut App,
+    id: &GlobalElementId,
+    axis: Axis,
+    padded_bounds: Bounds<Pixels>,
+    content_size: Size<Pixels>,
+    scroll_offset: Point<Pixels>,
+    visible: &Range<usize>,
+    carried: bool,
+    outside: &dyn Fn(usize) -> bool,
+    needed: impl FnOnce(Bounds<Pixels>) -> Range<usize>,
+    place: impl Fn(usize) -> (Pixels, Pixels),
+) -> Rows {
+    if !layered(window, cx, carried) {
         return Rows(None);
     }
     let viewport = window.content_mask().bounds;
-    let content_size = size(padded_bounds.size.width, item_height * item_count);
     let decision = policy::decide(window, cx, id, padded_bounds, content_size, scroll_offset);
     let decision = input::decide(window, id, decision, scroll_offset);
     if decision == Decision::Bypass {
@@ -963,18 +1357,19 @@ pub(crate) fn begin_uniform_list(
         }
         return Rows(None);
     }
-    let overscan = (viewport.size.height * paint::list_overscan_viewports() / item_height)
-        .ceil()
-        .max(1.) as usize;
-    let needed = needed_rows(visible, overscan, item_count);
+    let needed = needed(viewport);
     let layer = paint::layer_mut(window, id);
+    // A row the layer holds that the list now draws above it is dropped
+    // with the rest: the rows are painted afresh.
     let extends = decision == Decision::Composite
         && layer.rows.list
         && !layer.rows.due_for_repaint(&needed)
-        && layer
-            .record
-            .as_ref()
-            .is_some_and(|record| record.scroll_offset.x == scroll_offset.x);
+        && !layer.rows.rows.keys().any(|row| outside(*row))
+        // The rows are moved along the list's axis alone.
+        && layer.record.as_ref().is_some_and(|record| match axis {
+            Axis::Vertical => record.scroll_offset.x == scroll_offset.x,
+            Axis::Horizontal => record.scroll_offset.y == scroll_offset.y,
+        });
     let mode = if extends { Mode::Extend } else { Mode::Repaint };
     let changed = match mode {
         Mode::Extend => changed_rows(window, cx, id),
@@ -982,17 +1377,16 @@ pub(crate) fn begin_uniform_list(
     };
 
     let translation = paint::translation(window, scroll_offset);
-    let slot = |row: usize| Bounds {
-        origin: point(
-            viewport.origin.x,
-            padded_bounds.origin.y + scroll_offset.y + item_height * row,
-        ),
-        size: size(viewport.size.width, item_height),
+    let slot = |row: usize| {
+        let (start, extent) = place(row);
+        row_slot(axis, viewport, start, extent)
     };
     let unheld = hidden_in_view(
-        needed
-            .clone()
-            .map(|row| (row, slot(row).top(), item_height)),
+        axis,
+        needed.clone().map(|row| {
+            let (start, extent) = place(row);
+            (row, start, extent)
+        }),
         visible,
         viewport,
     );
@@ -1019,7 +1413,8 @@ pub(crate) fn begin_uniform_list(
         }
         Mode::Repaint => (needed.clone(), Vec::new()),
     };
-    let plan = plan(&(&unrendered | &spilling), needed.clone());
+    let outside: BTreeSet<usize> = needed.clone().filter(|row| outside(*row)).collect();
+    let plan = plan(&(&(&unrendered | &spilling) | &outside), needed.clone());
     let slots: BTreeMap<usize, Bounds<Pixels>> = plan
         .render
         .iter()
@@ -1034,6 +1429,7 @@ pub(crate) fn begin_uniform_list(
     }
     let order = slots.keys().copied().collect();
     let frame = RowsFrame {
+        axis,
         mode,
         list: None,
         skip_held: false,
@@ -1095,10 +1491,16 @@ pub(crate) fn begin_uniform_list(
 fn rows_region(frame: &RowsFrame) -> Bounds<Pixels> {
     const REACH: Pixels = px(1_000_000.);
     let region = frame.painted_region.union(&frame.viewport);
-    Bounds::from_corners(
-        point(region.left(), region.top() - REACH),
-        point(region.right(), region.bottom() + REACH),
-    )
+    match frame.axis {
+        Axis::Vertical => Bounds::from_corners(
+            point(region.left(), region.top() - REACH),
+            point(region.right(), region.bottom() + REACH),
+        ),
+        Axis::Horizontal => Bounds::from_corners(
+            point(region.left() - REACH, region.top()),
+            point(region.right() + REACH, region.bottom()),
+        ),
+    }
 }
 
 /// Tells the window that what the rows held by the layer of the list `id`
@@ -1149,6 +1551,24 @@ pub(crate) fn render_items<R>(
         return render(window, cx);
     }
     let view = window.rendered_entity_stack.last().copied();
+    let outer = crate::fast::dependencies::rendering_rows_of(cx, view);
+    let rendered = render(window, cx);
+    crate::fast::dependencies::rendering_rows_of(cx, outer);
+    rendered
+}
+
+/// Runs `render` as [`render_items`] does, as part of drawing `view`: for
+/// what a list runs outside its own prepaint, on a frame compositing the
+/// layer it was painted into.
+pub(crate) fn render_items_of<R>(
+    window: &mut Window,
+    cx: &mut App,
+    view: Option<EntityId>,
+    render: impl FnOnce(&mut Window, &mut App) -> R,
+) -> R {
+    if !COMPILED || !LIST_LAYERS || !window.fast_mode.scroll_layers() {
+        return render(window, cx);
+    }
     let outer = crate::fast::dependencies::rendering_rows_of(cx, view);
     let rendered = render(window, cx);
     crate::fast::dependencies::rendering_rows_of(cx, outer);
@@ -1295,6 +1715,7 @@ fn carry_prepaint_rows(window: &mut Window, id: &GlobalElementId) {
             viewport,
             tooltips,
             element_states,
+            &[],
         );
         window.a11y.nodes.row = None;
         window.a11y.nodes.hidden = false;
@@ -1380,6 +1801,8 @@ fn marker(id: &GlobalElementId, frame: &RowsFrame) -> Painting {
         content_bounds: frame.painted_region,
         surface_switches: Vec::new(),
         onto: None,
+        on_composite: None,
+        told: None,
     }
 }
 
@@ -1910,6 +2333,7 @@ pub(crate) fn begin_list(
         Mode::Repaint
     };
     let frame = RowsFrame {
+        axis: Axis::Vertical,
         mode,
         list: Some(version.id()),
         skip_held: mode == Mode::Extend && state.pending_scroll.is_none() && !layer.rows.rerendered,
@@ -2167,13 +2591,15 @@ fn flow(frame: &RowsFrame) -> Range<usize> {
 /// without a layer does not draw them, so its layer neither holds nor
 /// renders them, as it does not a row that draws outside its room.
 fn hidden_in_view(
+    axis: Axis,
     slots: impl Iterator<Item = (usize, Pixels, Pixels)>,
     visible: &Range<usize>,
     viewport: Bounds<Pixels>,
 ) -> BTreeSet<usize> {
+    let (start, end) = along(axis, viewport);
     slots
-        .filter(|(row, top, height)| {
-            !visible.contains(row) && *top < viewport.bottom() && *top + *height > viewport.top()
+        .filter(|(row, row_start, extent)| {
+            !visible.contains(row) && *row_start < end && *row_start + *extent > start
         })
         .map(|(row, ..)| row)
         .collect()
@@ -2371,6 +2797,7 @@ pub(crate) fn end_list(
     let frame = layer.rows.frame.as_ref().unwrap();
     let (mode, changed) = (frame.mode, frame.changed.clone());
     let mut unheld = hidden_in_view(
+        Axis::Vertical,
         tops.iter()
             .map(|(row, (top, height))| (*row, *top, *height)),
         &visible,
@@ -2877,8 +3304,9 @@ fn rows_overflow(window: &Window, frame: &RowsFrame) -> bool {
         };
         hitboxes.iter().zip(&prepaint.masks).any(|(hitbox, mask)| {
             let hit = hitbox.bounds.intersect(&mask.bounds);
-            !hit.is_empty()
-                && (hit.top() < slot.top() - EPSILON || hit.bottom() > slot.bottom() + EPSILON)
+            let (hit_start, hit_end) = along(frame.axis, hit);
+            let (start, end) = along(frame.axis, *slot);
+            !hit.is_empty() && (hit_start < start - EPSILON || hit_end > end + EPSILON)
         })
     })
 }
@@ -3037,6 +3465,121 @@ pub(crate) struct ToldRow {
         allow(dead_code, reason = "read where frames are described")
     )]
     pub(crate) listens: Option<Rc<Cell<bool>>>,
+}
+
+/// Begins prepainting a row of a list painted into a scroll container's
+/// layer for the region the layer paints, `shown` if the list shows it: a
+/// row it does not show adds nothing to the accessibility tree.
+pub(crate) fn begin_content_row(window: &mut Window, shown: bool) -> ContentRow {
+    let hidden_before = window.a11y.nodes.hidden;
+    // A row of a list nested in a row the outer list does not show is as
+    // hidden as that row.
+    window.a11y.nodes.hidden = hidden_before || !shown;
+    ContentRow {
+        start: window.prepaint_index(),
+        hidden_before,
+    }
+}
+
+/// A row [`begin_content_row`] began: where its prepaint starts, and whether
+/// what held it was hidden, which ending it restores.
+pub(crate) struct ContentRow {
+    start: PrepaintStateIndex,
+    hidden_before: bool,
+}
+
+/// Ends prepainting a row begun at `start` (see [`begin_content_row`]),
+/// returning what it added to the frame, whose focus a row the list does not
+/// show takes nothing of.
+pub(crate) fn end_content_row(
+    window: &mut Window,
+    row: ContentRow,
+    shown: bool,
+) -> Range<PrepaintStateIndex> {
+    window.a11y.nodes.hidden = row.hidden_before;
+    let prepaint = row.start..window.prepaint_index();
+    if !shown {
+        hide_focus(&mut window.next_frame, &prepaint);
+    }
+    prepaint
+}
+
+/// Notes, as a row of the layer the content being painted paints into, the
+/// row `row` of a list in that content, prepainted over `prepaint` and
+/// painted over `paint`, `shown` if the list shows it. A row the list does
+/// not show answers nothing: its tab stops and test bounds are taken out,
+/// and its listeners listen only while it is shown (see [`hide_records`],
+/// [`listen_while_shown`]).
+pub(crate) fn content_row_painted(
+    window: &mut Window,
+    row: usize,
+    shown: bool,
+    prepaint: Range<PrepaintStateIndex>,
+    paint: Range<PaintIndex>,
+) {
+    let listens = Rc::new(Cell::new(shown));
+    listen_while_shown(&mut window.next_frame, &paint, &listens);
+    if !shown {
+        hide_records(&mut window.next_frame, &paint);
+    }
+    if let Some(told) = window
+        .fast_layers
+        .painting
+        .as_mut()
+        .and_then(|painting| painting.told.as_mut())
+    {
+        told.push(ToldRow {
+            row,
+            shown,
+            loose: false,
+            prepaint,
+            layout: None,
+            paint: Some(paint),
+            listens: Some(listens),
+        });
+    }
+}
+
+/// How many rows the content being painted into a scroll container's layer
+/// has told so far (see [`content_row_painted`]).
+pub(crate) fn content_rows_told(window: &Window) -> usize {
+    window
+        .fast_layers
+        .painting
+        .as_ref()
+        .and_then(|painting| painting.told.as_ref())
+        .map_or(0, Vec::len)
+}
+
+/// Shows the rows `told` of the layer of the container `id` that `shown`
+/// says the list shows at the offset a frame composites it at, and hides
+/// the others, before the frame carries their records. `told` are where
+/// the list's rows lie among those the layer tells, which the rows of a list
+/// nested in one of them lie between.
+pub(crate) fn show_content_rows(
+    window: &mut Window,
+    id: &GlobalElementId,
+    told: &[usize],
+    shown: impl Fn(usize) -> bool,
+) {
+    let frame = window.fast_layers.frame;
+    let Some(rows) = window
+        .fast_layers
+        .layers
+        .get_mut(id)
+        .and_then(|layer| layer.rows.told_before(frame))
+    else {
+        return;
+    };
+    for &index in told {
+        let Some(row) = rows.get_mut(index) else {
+            continue;
+        };
+        row.shown = shown(row.row);
+        if let Some(listens) = &row.listens {
+            listens.set(row.shown);
+        }
+    }
 }
 
 /// The rows of each list's layer with records in the frame `window` last
@@ -3487,10 +4030,18 @@ pub(crate) fn end_paint_rows(window: &mut Window, cx: &mut App, id: Option<&Glob
         // list shows it (see `RowSort::spilling`). A row's edges are drawn
         // on the device pixels around them.
         let spills = reach.is_some_and(|reach| {
-            reach.top().0 < slot.top().0.floor() || reach.bottom().0 > slot.bottom().0.ceil()
+            let ((reach_start, reach_end), (start, end)) = (
+                along_scaled(frame.axis, reach),
+                along_scaled(frame.axis, slot),
+            );
+            reach_start < start.floor() || reach_end > end.ceil()
         });
         if spills || span.unheld {
-            rows.spilling.insert(span.row, slot.size.height);
+            let extent = match frame.axis {
+                Axis::Vertical => slot.size.height,
+                Axis::Horizontal => slot.size.width,
+            };
+            rows.spilling.insert(span.row, extent);
             if !span.shown.get() {
                 // Moved to the content already.
                 pass.leave_out(&row_operations, Point::default());
@@ -3682,6 +4233,7 @@ pub(crate) fn end_paint_rows(window: &mut Window, cx: &mut App, id: Option<&Glob
         paths: Rc::from([]),
         view_layouts: Rc::default(),
         content_layout: None,
+        on_composite: Rc::from([]),
         content_bounds: painted_region,
         uncompositable: false,
         painted_with: Some(paint.painted_with),

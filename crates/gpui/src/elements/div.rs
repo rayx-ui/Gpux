@@ -4313,6 +4313,7 @@ impl Interactivity {
                         *scroll_offset_state.borrow_mut() = new_scroll_offset;
                         // A handle's publish notes its own scroll.
                         crate::fast::layers::invalidate::note_scrolled(window, &fast_container);
+                        crate::fast::layers::invalidate::note_scroll_notify(current_view);
                         cx.notify(current_view);
                     }
                     cx.stop_propagation();
@@ -5366,6 +5367,13 @@ impl ScrollHandle {
         *state.offset.borrow()
     }
 
+    /// The current scroll offset, read without making what reads it depend on it: for what a
+    /// layer's content records only to answer later from the offset then (see
+    /// `fast::layers::reuse::on_composite`).
+    pub(crate) fn offset_untracked(&self) -> Point<Pixels> {
+        *self.0.borrow().offset.borrow()
+    }
+
     /// Try to get the current scroll offset without panicking if the handle is already borrowed.
     pub fn try_offset(&self) -> Option<Point<Pixels>> {
         self.0.try_borrow().ok().map(|state| {
@@ -5706,6 +5714,34 @@ impl ScrollHandle {
         )
     }
 
+    /// Clamp and publish a wheel turn handled outside the scroll container, in its input turn,
+    /// as the container's own wheel listener publishes one.
+    ///
+    /// For an element that forwards wheel input to a handle it does not paint the container
+    /// of, such as a mask over a table: the owner and the handle's dependent views are notified
+    /// once, the notification counting as the scroll's, and no frame is queued after it.
+    pub fn publish_wheel_offset(
+        &self,
+        candidate: Point<Pixels>,
+        owner: EntityId,
+        cx: &mut App,
+    ) -> bool {
+        let Ok(state) = self.0.try_borrow() else {
+            return false;
+        };
+        let max_offset = state.max_offset;
+        let bounds = state.bounds;
+        drop(state);
+        self.publish_offset(
+            candidate,
+            max_offset,
+            bounds,
+            ScrollMutationSource::Wheel,
+            owner,
+            cx,
+        )
+    }
+
     fn publish_programmatic_offset(
         &self,
         candidate: Point<Pixels>,
@@ -5826,17 +5862,21 @@ impl ScrollHandle {
             // Immediate input publishes outside prepaint. Invalidate its complete tracked view
             // set in the input turn so a concurrent content update cannot overtake the scroll
             // render and no redundant post-prepaint owner frame is needed.
+            crate::fast::layers::invalidate::note_scroll_notify(owner);
             cx.notify(owner);
             for entity_id in dependent_views {
                 if entity_id != owner {
+                    crate::fast::layers::invalidate::note_scroll_notify(entity_id);
                     cx.notify(entity_id);
                 }
             }
         } else if changed {
             cx.defer(move |cx| {
+                crate::fast::layers::invalidate::note_scroll_notify(owner);
                 cx.notify(owner);
                 for entity_id in dependent_views {
                     if entity_id != owner {
+                        crate::fast::layers::invalidate::note_scroll_notify(entity_id);
                         cx.notify(entity_id);
                     }
                 }

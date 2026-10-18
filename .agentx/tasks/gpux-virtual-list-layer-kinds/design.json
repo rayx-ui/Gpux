@@ -1,0 +1,489 @@
+{
+  "schemaVersion": 7,
+  "epicId": "gpux-virtual-list-layer-kinds",
+  "decisions": [
+    {
+      "id": "d-retained-measured-leaves",
+      "requirementIds": [
+        "ML"
+      ],
+      "descriptionMarkdown": "**Recording.** When a view's layout is recorded for retention, gpux records whether its kept subtree holds a measured leaf other than text that has no definite size on an axis its measurement decides (`fast::layout`, `TaffyLayoutEngine`).\n\n**Building.** A view so marked is built rather than kept on a frame that would otherwise keep it, and the build is counted in the new mechanism counter.\n\n**Unchanged.**\n- Text leaves keep their carry and replay paths.\n- Measured leaves of definite size keep today's path: their closure is not needed for their size.\n- No frame-local closure is kept across frames.\n\n**Afterwards.** `VirtualList`'s `ParentViewport` spacer stays, since it keeps that list reusable. Replaying logged measurements for kept non-text leaves, as text does, is a later optimization, taken only if the counter shows the builds matter.",
+      "invariantsMarkdown": "- Frames equal frames drawn from scratch, with every fast-mode switch combination.\n- With layout retention off, output is today's.",
+      "rationaleMarkdown": "**Why build the view.** Building a marked view is correct by construction: its build supplies fresh closures.\n\n**Why not keep the closures.** Keeping them would break the layout-style rule that pooled slots stay empty between frames.\n\n**Why not replay measurements now.** Replaying logged measurements needs every input the leaf will be asked about, and an unlogged input would still need a build in the middle of layout.\n\n**Why the cost is small.** The mark limits the cost to views whose layout really depends on a measurement; most lists are sized by their containers.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layout.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/retained.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/taffy.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-measured-layout-invalidation.md"
+        }
+      ]
+    },
+    {
+      "id": "d-axis-generic-slots",
+      "requirementIds": [
+        "HZ"
+      ],
+      "descriptionMarkdown": "**Axis-generic slots.** `begin_virtual_list` takes the list's axis, and its slots, overscan, visible range, `hidden_in_view` input and extension test become axis-generic:\n- a horizontal list's rows are columns: origin and size along x, the viewport's height across;\n- the extension test requires the cross-axis offset unchanged;\n- `RowsFrame` keeps its fields, read along the list's axis.\n\n**Unchanged.** `uniform_list` and `list` stay vertical and call the vertical case.",
+      "invariantsMarkdown": "- Place a row by the list's own origins along its axis. The same oracle rules apply on both axes.",
+      "rationaleMarkdown": "`gpux-virtual-list`'s `d-list-layer-path` left horizontal lists out because the slots assumed a vertical layout; this generalizes that one function family rather than adding a second path.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/uniform_list.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-scroll-layers.md"
+        }
+      ]
+    },
+    {
+      "id": "d-sticky-over-layer",
+      "requirementIds": [
+        "ST"
+      ],
+      "descriptionMarkdown": "**Rows the layer holds.** A sticky list's layer holds its ordinary rows only: no sticky candidate, wherever it lies in the layer's reach, is held or rendered into the layer, and a layer found holding one is painted afresh.\n\n**Rows drawn above it.** Every sticky candidate row the list shows (the active stack, and incoming candidates in view) is rendered and prepainted every frame as ordinary frame content, after the list's row hooks are done (`end_rows`), and painted after `end_paint_rows`: in the list's clip and scroll context, above the composited layer. Each keeps:\n- the sticky wrapper's positioned hitbox ids;\n- `when_stuck` and `on_sticky_state_changed`;\n- the push-out displacement in its row-local scroll context.\n\n(The plan first said \"through the list layers' `extra` rows\"; in gpux those are rows a `list` renders into its layer, so the sticky rows are drawn as frame content instead, to the same effect: review lk-s02.)\n\n**Ordering.** Their paint and hit-test order follows the sticky rules: deepest first, then incoming replacements; their hitboxes are inserted after the layer's rows, so they are hit first. An incoming candidate that is not stuck yet is drawn the same way, so the layer never holds a row whose position depends on the stack.",
+      "invariantsMarkdown": "- No proxy, placeholder or overlay sibling: the sticky row is the row itself.\n- Ordinary rows paint under sticky rows.\n- Frames equal frames drawn from scratch.",
+      "rationaleMarkdown": "**Why not keep stuck rows in the tiles.** A sticky row moves against the content on every scrolled frame, so tiles cannot hold it.\n\n**Why this is cheap.** Drawing only the candidates in view each frame costs the stack depth plus incoming rows, typically 1-3. That keeps the ordinary rows' tiles, which are the bulk of the work. The `extra` path already exists for a focused row of `list`.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/list.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-universal-sticky-push-out.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-sticky-hierarchy-traversal-order.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-fixed-sticky-positioned-scene-order.md"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/ui/virtualization/2026-07-05-ui-virtualization-virtualized-sticky-policy.md"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/ui/virtualization/2026-07-31-ui-virtualization-structured-sticky-candidates.md"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/ui/virtualization/2026-07-24-ui-virtualization-laid-out-sticky-cross-axis.md"
+        }
+      ]
+    },
+    {
+      "id": "d-synchronized-layer",
+      "requirementIds": [
+        "SO"
+      ],
+      "descriptionMarkdown": "**Layer.** A `SynchronizedOffset` list calls `begin_virtual_list` with the external handle's offset as its scroll offset and its own element id as the layer key. Policy promotion, demotion and input handling apply as for a list's own handle.\n\n**Scroll notifications.** The dependent-view notification the handle sends on a published offset counts as the scroll's (`fast::layers::invalidate`), as it already does for a scroll owner's dependents.",
+      "invariantsMarkdown": "- The driver's own layer and the list's layer are independent. A frame where either cannot composite draws that one as without layers.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/invalidate.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/ui/virtualization/2026-06-26-ui-virtualization-external-scroll-handles.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-08-21-gpui-positioning-scroll-immediate-scrollbar-publication.md"
+        }
+      ]
+    },
+    {
+      "id": "d-parent-viewport-promotion",
+      "requirementIds": [
+        "PV"
+      ],
+      "descriptionMarkdown": "**gpux side.** While its parent `div` paints into a layer, a `ParentViewport` list:\n- renders the rows of the content mask in effect (the painted region);\n- reads no parent offset;\n- records with its handle the geometry its metrics need: its content origin in the parent's content, and the parent viewport's size.\n\nOn a composited frame, the handle answers its metrics from the parent handle's current offset and that geometry. The list's range listener runs from a composite-frame callback the layer reuse path invokes (`fast::layers::reuse`). It is registered by content painted into the layer and receives the scroll since the paint.\n\n**RayX side.** ListViewState and TreeState stop registering as dependent views of a `ParentViewport` parent handle when gpux tracks their reads. They keep the registration where gpux cannot: a cached view with view retention off, or a window with fast mode off. Programmatic scrolling, mutation preservation and follow-tail keep reading the parent handle at the points they need it.",
+      "invariantsMarkdown": "- Frames equal frames drawn from scratch, with every fast-mode switch combination.\n- With layers off, output is today's.\n- RayX's `ParentViewport` tests keep passing with fast mode on and off.",
+      "rationaleMarkdown": "**Why the parent demotes today.** `gpux-virtual-list` measured the parent `div` layer demoted on every frame. ListViewState is a dependent view, so every parent scroll rebuilds it, and a div layer repaints when a view inside its content renders.\n\n**Why the registration can go.** Once gpux tracks the list's offset reads (`note_offset_read`), and the list reads none while a layer paints, the registration only makes the view rebuild for nothing.\n\n**Superseded decision.** This narrows RayX's 2026-07-24 decision \"Track dependent entities on shared external scroll handles\" to the cases gpux cannot see. The narrowed rule is promoted after the epic.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/paint.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/reuse.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/state.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/tree/state.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/ui/virtualization/2026-08-11-ui-virtualization-wheel-input-invalidation.md"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/ui/virtualization/2026-07-03-ui-virtualization-parent-viewport-mutation-scroll-preservation.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-16-gpui-frame-pipeline-range-listener-lease.md"
+        }
+      ],
+      "supersedesMemoryDecisions": [
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/ui/virtualization/2026-07-24-ui-virtualization-external-scroll-dependent-invalidation.md"
+        }
+      ]
+    },
+    {
+      "id": "d-consumer-proof",
+      "requirementIds": [
+        "RXK"
+      ],
+      "descriptionMarkdown": "**Consumer test.** RayX's consumer group drives the real components (ListView, TreeView, DataTable) with their default row content and the sticky policy API. It asserts the layer counters and visible rows, not gpux internals.\n\n**Fixes found there.** A RayX row wrapper that makes rows ineligible is fixed in RayX, with the reason in the commit.\n\n**DataTable (owner's choice (a), 2026-10-17: \"(a) Refactor DataTable's header so the table's render reads no scroll offset, then finish s05.\").** What kept its rows off their layers, fixed in RayX:\n- the header leaf row virtualized its columns from the horizontal offset read as the table rendered; it is now a `ParentViewport` horizontal virtual list in the header's flow, with its own handle state over the shared offset, and the filler rows' cells follow the header through a `SynchronizedOffset` list instead of an offset read at render;\n- the header cells wrote their window-space bounds into the table's state on every prepaint, so every row reading the table changed with every scroll; the bounds live in shared cells, and the table's and the fixed columns' bounds are written only when they move;\n- `ScrollableMask` queued its wheel turn as a programmatic offset and notified the view directly, which drew a second frame after each turn and a notification gpux could not tell from a change; it publishes the turn as a wheel through gpux's new `ScrollHandle::publish_wheel_offset`;\n- each row's list is clipped to its own width, short of the last empty column (s03's rule: a synchronized list has a layer only where what holds it clips it within its bounds).",
+      "sourceRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_datatable/src/state/mod.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/state.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/ui/virtualization/2026-06-26-ui-virtualization-listview-treeview-naming.md"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/ui/virtualization/2026-07-03-ui-virtualization-single-external-scroll-api.md"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": ".agentx/memory/decisions/ui/virtualization/2026-08-03-ui-virtualization-idempotent-external-scroll-attachment.md"
+        }
+      ]
+    },
+    {
+      "id": "d-timings",
+      "requirementIds": [
+        "TM",
+        "DOC"
+      ],
+      "descriptionMarkdown": "**Scenarios.** They are built like `scroll-uniform-list` in `fast/scenarios/scroll.rs`, one per kind, and listed in `fast_mode_attribution`. CI asserts their deterministic counters.\n\n**Timings.** The `fast_mode` bench of `gpux-platform` takes them through `gpux-testkit perf fast-mode`, on macOS with the display awake. The results and their reading go into `docs/fast-mode.md`'s Measurements. No timing threshold enters a test.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/scenarios/scroll.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-13-repository-validation-fast-mode-proof-and-timing.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-local-gpu-lane-g.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-gpux-testkit.md"
+        }
+      ]
+    },
+    {
+      "id": "d-proof",
+      "requirementIds": [
+        "HZ",
+        "ST",
+        "SO",
+        "PV",
+        "RXK"
+      ],
+      "descriptionMarkdown": "**gpux groups.** gpux's proof is new `fast::tests::virtual_list_layers::*` groups beside `gpux-virtual-list`'s: `horizontal`, `horizontal_oracle`, `sticky`, `sticky_oracle`, `synchronized`, `parent_promoted`. Each compares counters and frames against a window with layers off.\n\n**RayX groups.** RayX's groups prove the consumer.\n\n**Left to CI.** The whole `fast::` suite, lane A and lane C.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-oracle.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-switches.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-gpux-owns-runtime-proof.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-test-lanes.md"
+        }
+      ]
+    },
+    {
+      "id": "d-half-pixel-edges",
+      "requirementIds": [
+        "HP"
+      ],
+      "descriptionMarkdown": "**Rounding.** While scroll layers snap (`WindowFastMode::snapping()`, the layered window and the reference that forces snapping alike), the device-pixel rounding of edges (quad and clip bounds, shadow and border edges, sprite origins) rounds halves up, `floor(x + 0.5)`: the same rounding at every position, so a whole-device-pixel move of a layer's content preserves it, as `fast::glyphs` already does for glyph origins. Find each rounding site the oracle exposes and route it through one snapped helper.\n\n**Unchanged.** With snapping off, rounding is today's (`round_half_toward_zero`).",
+      "invariantsMarkdown": "- Frames shown from a layer equal frames drawn from scratch at every offset and scale factor.\n- With scroll layers off and snapping not forced, output is today's.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/util.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/glyphs.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-scroll-layers.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-oracle.md"
+        }
+      ]
+    },
+    {
+      "id": "d-uniform-measured-item",
+      "requirementIds": [
+        "UM"
+      ],
+      "descriptionMarkdown": "**One measurement.** `uniform_list` measures its item through `fast::layers::lists::measure_item` once a frame, in `request_layout`, and prepaint uses that size.\n\n**Kept size.** `measure_item` keeps the measured size, with the element states measuring reached, while nothing the measuring render read changed (its recorded dependencies) and the rem size and text style are the same, whether or not the list has a layer. Any other frame measures again.\n\n**Unchanged.** With fast mode off it measures as today.",
+      "invariantsMarkdown": "- Frames equal frames drawn from scratch.\n- A changed measured row is measured again on the frame it changes.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/uniform_list.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-oracle.md"
+        }
+      ]
+    },
+    {
+      "id": "d-accesskit-merge",
+      "requirementIds": [
+        "MG"
+      ],
+      "descriptionMarkdown": "**Merge.** Merge (not rebase) gpux `main` into `feat/virtual-list` and RayX `master` into RayX `feat/virtual-list`, resolving conflicts in favour of main's AccessKit model: the list layers' row records (hidden rows, focus, tab order, nodes) and `describe_rendered_frame` follow main's a11y recording, and `hidden_hitboxes`, `NodeRow` and the DevKit `devtools_nodes` go where main removed them.\n\n**s04 after it.** s04's record hiding for the rows a `ParentViewport` list renders off screen inside a promoted `div` layer is built on that mechanism (the rows recorded hidden while the layer holds them off screen; the composited layer's a11y replay), from the work kept on the local branch `wip/s04-parent-viewport` (a6d5808).",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/reuse.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-datatable-frames",
+      "requirementIds": [
+        "DF"
+      ],
+      "descriptionMarkdown": "**Fix.** The mask over a DataTable publishes a wheel turn as the scroll container's own wheel listener does: clamped, as a `Wheel`, notifying the owner and the handle's dependents once in the input turn (gpux `ScrollHandle::publish_wheel_offset`). Made in s05 (RayX 5b839689) because the DataTable's rows could not composite without it; this sprint proves it on its own.\n\n**Proof.** The group counts the frames drawn after each turn with drawing on flush, so a frame a turn leaves pending is drawn and counted; it is shown red by restoring the old handler (`request_offset(Programmatic)` plus `cx.notify`) for the run.",
+      "sourceRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/layout/scroll/scrollable_mask.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-conditional-state-writes",
+      "requirementIds": [
+        "PR"
+      ],
+      "descriptionMarkdown": "The owner decided (2026-10-18), relayed by the coordinating session: \"Ok, do this: I'd add one sprint to the follow-up epic, before the timings sprint (s07): 1. Measure a parent re-rendering on every range change, and a parent re-rendering for an unrelated reason: views built, rows rendered and layers composited per frame. 2. Make the state writes conditional, guarded by `row_renderer_changes`. 3. Write the guidance in RayX's docs and convert the Test Suite pages.\" For the row renderer's sameness the owner chose (2026-10-18): \"Yes, A + B together\": (A) the write is skipped when the scroll policy and scrollbar are unchanged and the row renderer is provably the same, of the same type and capture-free (zero-sized); a capturing closure still writes, as before. (B) an opt-in `renderer_key(k)` (Eq) on `list_view(..)` and on TreeBase: an equal key skips the write; without a key, behaviour stays as before.\n\n**Mechanism.** The element compares what it would write with what the state holds: the scroll policy and scrollbar by value, the renderer by its key when it has one, else by its type when it is zero-sized (a capture-free closure of one type behaves the same every time). Only a difference updates the entity. The proof is per frame: the measurement group, red before, and `row_renderer_changes` as the guard against stale rows.",
+      "sourceRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/element.rs"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/tree/element.rs"
+        }
+      ]
+    }
+  ],
+  "memoryDecisionsConsidered": [
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-06-29-gpui-frame-pipeline-unclipped-deferred-overlays.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-07-24-gpui-frame-pipeline-cached-thermal-frame-throttling.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-05-gpui-frame-pipeline-frame-demand-follow-up.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-window-composition.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-fixed-sticky-positioning.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-nested-scroll-wheel-propagation.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-06-gpui-positioning-scroll-fixed-containing-block.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-opaque-scroll-capture-owner.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-14-repository-validation-wgpu-desktop-perf-4.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-14-repository-validation-wsl-gpu-lanes-c-d.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/virtualization/2026-06-24-ui-virtualization-native-rust.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/virtualization/2026-07-03-ui-virtualization-reactive-view-bindings.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/virtualization/2026-07-03-ui-virtualization-unified-list-tree-state-api.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/virtualization/2026-07-05-ui-virtualization-callback-only-item-sizing.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/virtualization/2026-07-24-ui-virtualization-overscanned-mounted-range-publication.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/ui/virtualization/2026-08-21-ui-virtualization-datatable-thumb-rate.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-30-gpui-layout-style-registry-taffy-0-14.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-conditional-prepaint-style-recompute.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-disable-taffy-content-size.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-frame-bounded-prepaint-style-handoff.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-request-style-handoff.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-text-measurement-scope.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/input/2026-10-05-gpui-input-upstream-input-model.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-16-repository-validation-test-tooling-layout.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/examples/lab/2026-07-06-examples-lab-sidebar-taxonomy.md"
+    },
+    {
+      "repositoryId": "rayx",
+      "path": ".agentx/memory/decisions/examples/lab/2026-07-31-examples-lab-general-positioning-tutorials.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/accessibility/2026-10-17-gpui-accessibility-accesskit-one-tree.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-effects/2026-07-06-gpui-frame-effects-frame-effects-elements.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-effects/2026-07-07-gpui-frame-effects-frame-family-naming.md"
+    }
+  ]
+}

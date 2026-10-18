@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 7,
+  "epicId": "gpux-virtual-list",
+  "scopeMarkdown": "Move RayX's variable-size virtual list (`VirtualListBase`, RayX `crates/rayx_components/rayx_components_base/src/virtual_list/mod.rs` and `geometry.rs`) into gpux as the GPUI element `VirtualList`, connect it to fast mode's per-row list layers, fix the defects the planning investigation found, and move RayX onto it. The work spans two execution repositories, gpux (`.`) and RayX (`../RayX`), delivered as two pull requests: gpux `feat/virtual-list` into `main`, then RayX `feat/virtual-list` into `master`. RayX's pull request depends on the gpux one, because RayX depends on `../Gpux` by path.\n\n**Why.** The investigation (2026-10-16, raw evidence in ignored `artifacts-temp/agentx/gpux-virtual-list/planning-investigation/`) measured, per scroll frame, 10,000 rows of 20 px, fast mode on:\n- `uniform_list` and `list` composite from their list layer: 5-6 primitives painted, 0-2 rows rendered;\n- RayX ListView and TreeView get no layer at all: about 21 primitives, 25 rows rendered, the same as fast mode off;\n- `VirtualListBase::prepaint` calls `Interactivity::prepaint` directly, so neither `Div::prepaint`'s layer decision nor the `pub(crate)` `fast::layers::lists` hooks ever run, and no bypass is counted;\n- a `ParentViewport` ListView demotes its parent div's layer on every frame.\n\n**In scope**\n- The element in gpux, its geometry and its tests (gpux owns its runtime proof).\n- A list-layer path for the eligible kind: vertical, own scroll container, no sticky rows. That covers ListView and TreeView defaults.\n- Four defects, each with its own red/green test:\n  - a handle-less `v_virtual_list` redraws forever;\n  - a `ParentViewport` list collapses to zero height under view retention (confirmed in planning: `run-parent-viewport-probe.txt`);\n  - `ParentViewport` metrics and range taken from a layer's painted region instead of the viewport (suspected, not reproduced: the collapse hides it);\n  - ListViewState and TreeStateBase rebuilt on every other scroll frame (1.5 views per frame against 1.0 for the bare list; cause not isolated).\n- RayX's migration onto the gpux element, and a RayX consumer test that its lists now composite.\n- `docs/fast-mode.md`.\n\n**Out of scope**\n- List layers for horizontal lists, sticky rows, `ParentViewport` and `SynchronizedOffset`. They stay on today's path, counted as below.\n- Making a `ParentViewport` list's parent div layer stay promoted. RayX's dependent-view registration (RayX decision 2026-07-24) rebuilds the state view on every parent scroll by design; changing that is a follow-up epic.\n- Timings: lane G, not this epic. Publishing a gpux release.\n- Opening the pull requests: the owner does that after the epic closes.\n\n**Assumptions**\n- RayX starts from `master` `4ee806e9`; the investigation measured RayX `fix/ios-simulator-run` `66875570`, which has no change under `crates/rayx_components`.\n- The worktree folder `/Users/dinko/.worktrees/virtual-list/` holds `Gpux`, `RayX` (both on `feat/virtual-list`), and detached `RayX.Dtcg`, `RayX.Reactive` and `RayX.SignalR`, so RayX's `../Gpux` and `../RayX.*` path dependencies resolve inside it.",
+  "constraintsMarkdown": "- Keep Zed's crate boundaries. The element lives in `crates/gpui` (package `gpux`), with no new crate and no manifest change. If a manifest must change, add `cargo package --workspace` as a final check by amendment.\n- gpux proof never routes through RayX. RayX checks prove the consumer.\n- Fast mode's frames must equal frames drawn from scratch (`describe_rendered_frame`, quads with tiles expanded), and every scroll-layer hook stays inert while the switch is off.\n- RayX gets no compatibility alias layer: call sites switch to the gpux names.\n- No git dependencies or `[patch]` entries. Conventional Commits with meaningful scopes, no co-author lines, one paired commit per repository for an API change RayX uses.",
+  "requirements": [
+    {
+      "id": "VL",
+      "title": "VirtualList is a gpux element",
+      "descriptionMarkdown": "RayX's `VirtualListBase` moves into gpux unchanged in behaviour, under GPUI names, with its tests.",
+      "criteria": [
+        {
+          "id": "VL-1",
+          "verification": "automated",
+          "descriptionMarkdown": "**Exports.** gpux exports from `crates/gpui/src/elements/virtual_list/` (`mod.rs`, `geometry.rs`) what RayX's module exports today, without the `Base` suffix:\n- the functions `virtual_list`, `v_virtual_list` and `h_virtual_list`;\n- the types `VirtualList`, `VirtualListScrollHandle`, `VirtualListExternalScrollBehavior`, `VirtualStickyRow`, `VirtualStickyEdge`, `VirtualStickyItem`, `VirtualStickyItems`, `ActiveVirtualStickyItem`, `VirtualStickyStateChangedListener`, `OrderedExtentIndex`, `RangeLookupWork`, `VirtualListRangeLookupDiagnostics` and `VirtualListFrameState`.\n\n**Behaviour.** It behaves as RayX master `4ee806e9`'s `VirtualListBase` does, except where VL-3, VL-4, VL-5 and LL-* change it. The range-lookup listener (`on_range_lookup`) is behind gpux's `diagnostics` feature in place of `rayx_diagnostics`.\n\n**Tests.**\n- The 26 unit tests of RayX's `virtual_list/mod.rs` and `geometry.rs` pass in gpux under `elements::virtual_list::`.\n- A new group, `crates/gpui/tests/virtual_list.rs`, drives the element through a test window with fast mode off. It covers:\n  - vertical and horizontal axes;\n  - variable sizes with `gap` and padding;\n  - `overscan`;\n  - `fixed_cross_axis_size`;\n  - sticky rows: levels, push-out, `when_stuck`, `on_sticky_state_changed`;\n  - `scroll_to_item` with each `ScrollStrategy`;\n  - `on_rendered_range`;\n  - `ParentViewport` and `SynchronizedOffset`.\n\n**Prohibited.** The gpux element depends on no RayX type, and no gpux test needs a RayX checkout."
+        },
+        {
+          "id": "VL-2",
+          "verification": "automated",
+          "descriptionMarkdown": "**Scene.** A conformance scene `list-virtual` (`crates/gpux_conformance/src/scenes/lists.rs`, `Area::VirtualList`, the lanes the other list scenes name) shows 1,000 rows of varying heights with semantics, and checks that:\n- only the visible rows are built;\n- a wheel turn shows later rows and drops the first ones;\n- a later capture differs from the first.\n\n**Proof.** Lane A runs it (`gpux-testkit lane a --scene list-virtual`), and `lane_a_fast_parity` lists it and finds every frame it shows alike with every fast-mode mechanism on and off."
+        },
+        {
+          "id": "VL-3",
+          "verification": "automated",
+          "descriptionMarkdown": "**Fix.** A `VirtualList` built without `track_scroll` or `track_external_scroll` keeps one scroll handle across renders. Today `virtual_list` creates a fresh handle on every render, and the first `Window::draw` never returns. With fast mode off and on:\n- a window holding such a list settles after its first draw: drawing again with nothing changed renders its view no more;\n- a wheel turn scrolls it;\n- the offset survives the next render of its view.\n\n**Test.** A new group, `crates/gpui/tests/virtual_list_default_handle.rs`, proves this. It bounds its draws so that the old code fails by assertion (message containing `drew again`), never by hanging."
+        },
+        {
+          "id": "VL-4",
+          "verification": "automated",
+          "descriptionMarkdown": "**Fix.** A `ParentViewport` `VirtualList` in a view that is not rebuilt keeps its full virtual extent under view retention.\n\nToday (planning probe), from the second frame on, the list renders `0..0`, the parent `div`'s `ScrollHandle::max_offset` is 0, and the wheel moves nothing. Fast mode off or layout retention alone give 199,600 px.\n\n**Required behaviour.** For a list in a child view that registers no dependent view, inside a scrolling `div`, with each fast-mode switch combination:\n- on every frame, the parent's scroll extent equals the list's content extent;\n- the wheel scrolls the parent;\n- the rows the parent viewport shows are rendered;\n- the frames equal those drawn with fast mode off.\n\n**Test.** A new group, `crates/gpui/tests/virtual_list_parent_viewport.rs`, fails on the old code with a message containing `parent viewport collapsed`."
+        },
+        {
+          "id": "VL-5",
+          "verification": "automated",
+          "descriptionMarkdown": "**Fix.** When the parent `div` of a `ParentViewport` `VirtualList` paints its content into a scroll layer, or composites it, the list answers as it would drawn without layers:\n- its published metrics (`parent_viewport_primary_size`, `parent_viewport_scroll_offset`, `parent_viewport_max_scroll_offset`) and the range its `on_rendered_range` listener receives come from the visible viewport, not the layer's painted region;\n- every frame equals a frame drawn from scratch: no stale or missing rows when the layer composites, and no stale metrics.\n\n**Test.** A new group, `fast::tests::virtual_list_layers::parent_viewport`, compares the metrics, the range and the frame description on every frame of a wheel history, layers on against layers off. It is run against the code before the fix and its outcome is recorded: the defect was suspected, not reproduced, in planning."
+        }
+      ]
+    },
+    {
+      "id": "LL",
+      "title": "VirtualList gets a list layer",
+      "descriptionMarkdown": "The eligible kind of `VirtualList` composites from per-row list layers the way `uniform_list` and `list` do; the other kinds are counted and draw as today.",
+      "criteria": [
+        {
+          "id": "LL-1",
+          "verification": "automated",
+          "descriptionMarkdown": "**Scope.** With scroll layers on: a vertical `VirtualList` that is its own scroll container, has no sticky rows, and lies over an opaque background.\n\n**Per frame, after promotion.** On every scroll-only frame:\n- the list composites from a list layer, counted in `layers_composited`;\n- it renders, counted in `list_rows_rendered`, only:\n  - the rows the scroll brings within reach (half a viewport of rows on either side of those it shows, found through the extent index);\n  - the row under the pointer;\n  - rows whose reads changed;\n- it keeps the others, counted in `list_rows_kept`;\n- the row closure runs only for the rendered rows: no measure-item render on a composited frame;\n- the view holding the list is not counted as changed by rendering its rows (`fast::layers::lists::render_items`).\n\n**Test.** A new group, `fast::tests::virtual_list_layers::rows`, pins this over 60 wheel frames of 15 px on 10,000 variable-height rows. On average, at most 2 rows are rendered per frame, and the primitives painted are within 1 of a `uniform_list` of the same rows."
+        },
+        {
+          "id": "LL-2",
+          "verification": "automated",
+          "descriptionMarkdown": "**Requirement.** Frames shown from a `VirtualList`'s layer equal frames drawn from scratch.\n\n**Tests.** A new group, `fast::tests::virtual_list_layers::oracle`, shows this:\n- the frames' quads, layers expanded, against a window with layers off, at scale factors 1 and 1.25, with variable, fractional-pixel row sizes, `gap` and padding;\n- whole frame descriptions (`describe_rendered_frame`) over random histories of wheel turns, pointer moves and clicks, compared by the existing list-layer oracle method (two applications run one after the other, at scale 1)."
+        },
+        {
+          "id": "LL-3",
+          "verification": "automated",
+          "descriptionMarkdown": "**Requirement.** Changes the layer must survive leave every frame equal to one drawn from scratch:\n- a change of `item_sizes` (count, one size, `gap`) between frames;\n- a notification of the view holding the list;\n- a programmatic `scroll_to_item`.\n\nRows are placed by the list's own origins, never by a running sum, and a row the layer still holds lands where the new layout puts it.\n\n**Test.** A new group, `fast::tests::virtual_list_layers::changes`."
+        },
+        {
+          "id": "LL-4",
+          "verification": "automated",
+          "descriptionMarkdown": "**Requirement.** The `on_rendered_range` listener is called on every frame the list is drawn, composited frames included. It receives the mounted, clamped, overscanned range that the same frame drawn without layers publishes (RayX decision \"Publish mounted overscanned ranges from VirtualList prepaint\"). Active sticky-only rows never widen it.\n\n**Test.** A new group, `fast::tests::virtual_list_layers::range`, compares the ranges per frame over a scroll history, layers on against layers off."
+        },
+        {
+          "id": "LL-5",
+          "verification": "automated",
+          "descriptionMarkdown": "**Counted.** A horizontal `VirtualList` and a `VirtualList` with sticky rows each go without a layer, counted `layer_bypasses.ineligible`.\n\n**No list layer.** A `ParentViewport` list and a `SynchronizedOffset` list are not scroll containers and get no list layer.\n\n**Requirement.** Each kind draws frames equal to those drawn with layers off.\n\n**Test.** A new group, `fast::tests::virtual_list_layers::ineligible`."
+        },
+        {
+          "id": "LL-6",
+          "verification": "manual",
+          "descriptionMarkdown": "`docs/fast-mode.md`'s \"Scroll layers\" and \"Virtual lists\" sections describe `virtual_list` beside `uniform_list` and `list`:\n- which kind gets a layer and how its overscan is found;\n- which kinds are counted `ineligible` or keep their parent's `div` layer;\n- that the range listener runs on composited frames;\n- the `ParentViewport` behaviour inside a div layer.\n\nThe section records the per-frame counts the `rows` group pins, beside the `uniform_list` and `list` figures. A reviewer reads the section against the source."
+        }
+      ]
+    },
+    {
+      "id": "RX",
+      "title": "RayX uses gpux's VirtualList",
+      "descriptionMarkdown": "RayX drops its own virtual list, builds every list on gpux's, and gets the list layers.",
+      "criteria": [
+        {
+          "id": "RX-1",
+          "verification": "automated",
+          "descriptionMarkdown": "**Migration.** `rayx_components_base::virtual_list` is removed. Every RayX user builds on gpux's element under its gpux names:\n- ListView, `TreeStateBase` and `TreeBase`;\n- `collections::list`, the sliver list and tree, `_core/sticky.rs`, DataTable;\n- the Lab stories, the Test Suite pages, and RayX's tests.\n\n`ScrollbarHandleBase` is implemented for `gpux::VirtualListScrollHandle` in RayX.\n\n**Proof.** RayX's existing virtualization consumer tests pass unchanged in what they assert:\n- `rayx_components_core --lib collections::list_view` (33 tests);\n- `collections::sliver` (34);\n- `rayx_components_base --lib tree::` (42);\n- `application_configuration_programmatic_scroll_core`, `application_configuration_programmatic_scroll_parent_viewport` and `scroll_activity_owners` (9).\n\nThese existing tests are selected on purpose: they are the primary proof that the migration preserves behaviour. The RayX workspace compiles with all targets."
+        },
+        {
+          "id": "RX-2",
+          "verification": "automated",
+          "descriptionMarkdown": "**Consumer proof.** A new RayX group, `crates/rayx_components/rayx_components_core/tests/virtual_list_layers.rs`, scrolls an own-scroll ListView and a TreeView of 10,000 rows with fast mode on, with RayX's default row wrappers: movable item, tree item semantics and listeners.\n\n**Required.** After promotion, every scroll frame composites from a list layer, and at most 2 rows are rendered per frame on average. A ListView with a `sticky_policy` is counted `ineligible` and still shows its rows.\n\nThis proves the consumer integration, not gpux."
+        },
+        {
+          "id": "RX-3",
+          "verification": "automated",
+          "descriptionMarkdown": "**Fix.** Scrolling an own-scroll ListView or TreeView with fast mode on rebuilds neither ListViewState nor TreeStateBase on a scroll-only frame. Over 60 wheel frames, the views built per frame equal those of a bare `virtual_list` holder view in the same harness. Planning measured 1.5 against 1.0.\n\n**Cause.** The cause is isolated and named in the test's doc comment. It is fixed where it lives: RayX state or element code, or gpux if the cause is there.\n\n**Test.** A new RayX group, `crates/rayx_components/rayx_components_core/tests/virtual_list_rebuilds.rs`, fails on the code before the fix with a message containing `state view rebuilt on a scroll-only frame`."
+        }
+      ]
+    }
+  ]
+}

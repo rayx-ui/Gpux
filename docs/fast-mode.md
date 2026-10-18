@@ -126,6 +126,17 @@ AccessKit is active, or for a view whose id is drawn twice in a frame; each reas
 A view whose content has a sticky element pinned by a scroll container outside it is built rather
 than laid out from its record, so the container pins it from what this frame registered.
 
+A view holding a measured leaf other than text is built on every frame rather than reused unless
+the leaf's style fixes its size in every parent: a frame takes every measurement closure when it is
+cleared and gives one back only to text, so a kept leaf sized by its measurement would be sized
+empty. A leaf is fixed when its width and height are absolute and so is its minimum size, or its
+overflow is hidden or scrolling on both axes, which makes a flex or grid parent's automatic minimum
+zero. A `uniform_list` with `ListSizingBehavior::Infer`, a custom element on
+`Window::request_measured_layout` without such a size, or one sized as a percentage of its parent
+is not fixed. A fixed leaf whose last layout still measured it to size it builds its view on the
+next frame too. Each such build is counted in `FastStats::views_built_for_measured_leaves`. Fixed
+leaves and text keep their view reusable.
+
 ### Splice
 
 With `splice` on (it needs view retention), a view that is dirty only because views nested in
@@ -186,8 +197,8 @@ With `scroll_layers` on (it needs view retention), a scrolling `div` whose offse
 frames in a row paints its content once into a layer: a scene in content space, cut into tiles
 of 512 device pixels, covering the viewport and two viewports on either side. Frames that only
 scroll it are then drawn from those tiles, moved by the offset, without prepainting or painting
-the content. `uniform_list` and `list` get layers of their own, with a record per row (see
-[Virtual lists](#virtual-lists)).
+the content. `uniform_list`, `list` and a vertical `virtual_list` get layers of their own, with a
+record per row (see [Virtual lists](#virtual-lists)).
 
 A window runs scroll layers only where its renderer rasterizes their tiles
 (`PlatformWindow::rasterizes_layer_tiles`); in any other window the switch normalizes to off.
@@ -283,19 +294,22 @@ differ in its last bits. Pixel equality is the renderers' tests' to show.
 
 ### Virtual lists
 
-A `uniform_list` or a `list` renders only the rows it shows. Its layer holds those and the rows
-around them, each painted once at its place and kept by row with everything it handed the
-frame: its part of the layer's scene, the hashes of the tiles it reaches, its hitboxes, the
-hovers it was painted by, its prepaint and paint records, its layout keys and what it read. The
-layout nodes of the rows the list shows stay claimed; those of the rows it does not show linger
-as the nodes of any row a list no longer lays out do: for up to 240 frames, the most recently
-claimed first, and no more of them than half the nodes the frame's rows claim (at least 256).
-A frame that only scrolls the list renders the rows the layer lacks and no other:
+A `uniform_list`, a `list` or a `virtual_list` renders only the rows it shows. Its layer holds
+those and the rows around them, each painted once at its place and kept by row with everything it
+handed the frame: its part of the layer's scene, the hashes of the tiles it reaches, its hitboxes,
+the hovers it was painted by, its prepaint and paint records, its layout keys and what it read. The
+layout nodes of the rows the list shows stay claimed; those of the rows it does not show linger as
+the nodes of any row a list no longer lays out do: for up to 240 frames, the most recently claimed
+first, and no more of them than half the nodes the frame's rows claim (at least 256). A frame that
+only scrolls the list renders the rows the layer lacks and no other:
 
-- the rows the scroll brings within reach. A `uniform_list` holds `ceil(0.5 · viewport / item)`
-  rows on either side of those it shows. A `list` holds half a viewport of rows on either side
-  when it is first painted, only the rows it shows after a change of its content painted them
-  again, and half a viewport again on the next frame that keeps them. A list's layer is
+- the rows the scroll brings within reach, `LIST_OVERSCAN_VIEWPORTS` of a viewport (0.15) on
+  either side. A `uniform_list` holds `ceil(0.15 · viewport / item)` rows on either side of those
+  it shows. A `virtual_list` holds the rows that lie within 0.15 of a viewport above and below the
+  viewport, found through its `OrderedExtentIndex`, besides the rows it mounts (its visible range
+  and its own `overscan`). A `list` holds 0.15 of a viewport of rows on either side when it is
+  first painted, only the rows it shows after a change of its content painted them again, and
+  0.15 of a viewport again on the next frame that keeps them. A list's layer is
   extended by as many rows a frame whatever it holds, so a wider overscan would only hold more
   memory (`LIST_OVERSCAN_VIEWPORTS`); rows past it are dropped a batch at a time, once they are
   more than a quarter of the rows the layer is to hold;
@@ -365,9 +379,131 @@ Two things keep all that true where rows reach outside the room their list gives
   The frame that finds such a row draws the rows the list shows and no other.
 
 A list goes without a layer, counted `ineligible`, when it has rows that stick to its top
-(`ListState::with_sticky_items`, `UniformList::sticky_items`), is a uniform list drawn bottom up
-(`y_flipped`), has rows holding what no tile can (see the reasons above), or lies over no
-opaque background.
+(`ListState::with_sticky_items`, `UniformList::sticky_items`), is a uniform list drawn bottom up (`y_flipped`), has rows holding what no tile can (see the reasons
+above), or lies over no opaque background. A horizontal `virtual_list` (`h_virtual_list`) has a
+layer as a vertical one does: its rows are columns, placed along x by the list's own origins, with
+the overscan to their left and right (`fast::tests::virtual_list_layers::horizontal`,
+`horizontal_oracle`). A `virtual_list` with sticky rows (`VirtualList::sticky_rows`, on either edge,
+at levels or in keyed runs) composites its ordinary rows from its layer, which never holds a
+sticky candidate: every candidate it shows, the active stack and the incoming rows, is rendered,
+prepainted and painted every frame above the composited layer, in the list's clip, after the rows
+the layer holds, so its hitboxes are hit first and its stuck style, push-out and
+`on_sticky_state_changed` events are those of a frame drawn without a layer
+(`fast::tests::virtual_list_layers::sticky`, `sticky_oracle`).
+
+A `uniform_list` measures the item it sizes its rows by once a frame, as it requests its layout,
+and its prepaint takes that size. The size is kept, with the element states and lines measuring
+reached, while the frame only scrolls the list's layer; and, without a layer, under view
+retention, while nothing measuring it read changed since the frame before, the view holding the
+list changed in nothing its render read (a notification alone does not count), and the scale
+factor, rem size and text style are the same (`lists::measure_item`,
+`fast::tests::uniform_measured_item`). With fast mode off it measures on every frame.
+
+A `virtual_list` knows each item's size up front. Its layer places row `n` at the list's own origin
+for it (`origins[n]`, the gaps before it included), never by a sum from another row, and a row the
+layer holds lands where a new layout puts it after the sizes, their count or the gap change. The
+item it renders to measure its cross-axis size is measured once and kept while the frame only
+scrolls the layer (`lists::measure_item`): the frame takes in the offsets published since the last
+one before it decides, so that a wheel on the list's own handle counts as the scroll it is, and it
+reaches the element states measuring the item reached, as measuring it again would. Its
+`on_rendered_range` listener runs on every frame the list is drawn, composited frames included,
+before any row is rendered, with the mounted, clamped, overscanned range a frame drawn without
+layers publishes; rows stuck to an edge never widen it. The listener is called as part of drawing
+the view holding the list, as its rows are rendered: what it records in that view (RayX's
+`ListViewState` and `TreeStateBase` keep their visible range there) does not build the views that
+read it again, which would otherwise happen on every frame that scrolls the list to another range.
+A view that shows the range takes it from an event the listener emits, as RayX's
+`VisibleRangeChanged` subscribers do, not by reading it as it renders.
+
+A `SynchronizedOffset` `virtual_list` applies the offset of the element driving it, a sibling
+sharing its handle (a table's body and header), and has a list layer of its own, keyed by the
+list: it is remembered as a scroll container whose offset lives in the handle's state
+(`invalidate::painted_synchronized`), so a scroll of the driver is a scroll of the list and the
+notification the handle sends the list's view counts as the scroll's. Having no scroll container
+of its own, the list clips its rows' hitboxes to its bounds and not what they paint; a layer clips
+both to its viewport, so the list has one only on frames where what holds it clips it within its
+bounds, as a table's body is, and is counted `ineligible` otherwise. Output with fast mode off is
+unchanged (`fast::tests::virtual_list_layers::synchronized`). A `ParentViewport` list
+calls none of the list hooks: it lies in its parent's flow, at its whole content
+extent, and is part of its parent `div`'s content and layer. It takes the parent's viewport from
+the content mask as it is without a layer (`paint::unlayered_content_mask`): while the parent's
+layer paints, the mask is the region the layer paints, and the metrics the list publishes
+(`parent_viewport_primary_size`, `parent_viewport_scroll_offset`,
+`parent_viewport_max_scroll_offset`), its range and the rows it renders are those of the region the
+layer paints. It reads no offset of the parent as it renders (`ScrollHandle::offset_untracked`), so
+a scroll of the parent composites the parent's layer and the layer stays promoted, painted again
+only as the scroll reaches the edge of the region it painted. On the frames that composite it, the
+layer runs the list's composite callback (`reuse::on_composite`) before it carries its records:
+the list answers its metrics and calls its range listener from the parent's offset then, and the
+rows the layer holds that the viewport does not show (`lists::show_content_rows`) answer nothing
+— no hitbox, tab stop, focus, listener or accessibility node — as a frame drawn without layers
+renders none of them. The rows' prepaint is carried in one piece, with only their accessibility
+nodes replayed hidden or shown (`Window::reuse_prepaint_with_rows`): a dispatch subtree copied in
+pieces would lose the node the rows nest in. The rows of a promoted list nested in a row of
+another are replayed within it, as hidden as the row holding them when it is. While scroll layers snap, the list places its rows
+on whole device pixels, its origin and each row's offset snapped apart, so a row the layer painted
+at one offset lands where one drawn afresh at another does at a fractional scale factor
+(`fast::tests::virtual_list_layers::parent_promoted`).
+
+A frame that draws the view holding a scrolling `div` from the last one (`views_reused`, as when
+only the view around it renders again) copies the `div`'s layer's records with the view's. The
+layer follows the copy and composites the next scroll when its content read no hover, as a list's
+layer does; content that read hovers is painted again then, as its hovers are told from the last
+frame's hit test, which the scroll leaves behind (`fast::tests::layer_owner_replay`). A view that
+renders again for its own reasons and draws the scrolling `div` itself changes the layer's
+content each time: a `ParentViewport` list stays on its parent's layer when the `div` is drawn
+by a view of its own. A composited `div`'s own accessibility scroll target, the first event its
+layer's records hold, is replayed where the `div` stands, with the offset the frame scrolled to;
+the scroll containers nested in its content move with the content
+(`fast::tests::layer_a11y_scroll_targets`).
+
+Over 60 wheel frames of 15 px on 10,000 rows in a 100 px list (the harness of
+`fast::tests::virtual_list_layers::rows`, the test platform at scale 1, the shipped overscan), a
+frame paints 2.17 primitives on average for a `virtual_list` of rows 16 to 28 px tall and for one
+of 20 px rows, as for a `uniform_list` of the same 20 px rows. It renders 0.80 and 0.87 rows and
+keeps 6.9 and 7.6 (the `uniform_list` 0.87 and 7.8), and its row closure runs for those rows alone
+(the `uniform_list`'s measured the first row again on every frame before it kept its measured
+item, 1.87 rows a frame). The group
+itself runs at the test overscan of half a viewport. The planning measurement (2026-10-16, before
+the list had a layer) found 21 primitives and 25 rows a frame for RayX's lists, against 5 to 6
+primitives and 0 to 2 rows for `uniform_list` and `list`.
+
+Per frame, over the 20 measured frames of each kind's bench scenario (a wheel turn a frame,
+10,000 rows; the deterministic counters of `fast_mode_attribution`, in
+[Virtual lists by kind](#virtual-lists-by-kind)), with every mechanism on:
+
+| Kind | Layers composited | Primitives painted | Rows rendered | Rows kept | Tests |
+|---|---|---|---|---|---|
+| vertical, scrolling itself | 1 | 5.4 | 1.05 | 17.0 | `virtual_list_layers::rows`, `oracle` |
+| horizontal | 1 | 6.2 | 1.75 | 8.3 | `virtual_list_layers::horizontal`, `horizontal_oracle` |
+| sticky rows (every 50th) | 1 | 12.4 | 1.05 | 17.0 | `virtual_list_layers::sticky`, `sticky_oracle` |
+| `SynchronizedOffset`, beside its driver | 2 | 7.6 | 1.05 | 17.0 | `virtual_list_layers::synchronized` |
+| `ParentViewport`, in a scrolling `div` | 1 (the `div`'s) | 5.4 | 0 | (the `div`'s content) | `virtual_list_layers::parent_promoted` |
+
+RayX's collections prove the consumer side: `rayx_components_core`'s `virtual_list_layer_kinds`
+(a ListView with sticky levels, a horizontal ListView, a TreeView with sticky roots),
+`parent_viewport_layers` and `parent_rerender_cost` (what a parent's re-render costs ListView and
+TreeView, in their own scroll and their parent's), and `rayx_components_datatable`'s
+`virtual_list_layer_kinds` and `wheel_frames` (DataTable's synchronized rows).
+
+What stays off its layer, counted `ineligible` (see the reasons above): a `uniform_list` or a
+`list` with sticky items; a uniform list drawn bottom up; content no tile can hold (a backdrop
+blur, a shader effect); a container whose clip is rounded or transformed or does not lie on device pixels; a
+`SynchronizedOffset` list that nothing around it clips within its bounds; and content that lies
+over no opaque background. A `ParentViewport` list is part of its `div`'s layer, which gives way
+when the view drawing the `div` renders again for its own reasons (draw the `div` in a view of its
+own, `layer_owner_replay`) or when its content read hovers the scroll changes.
+
+While scroll layers snap (in a window with them, and in the reference they are held to), the
+device-pixel rounding of edges (layout bounds, quad and underline bounds, sprite origins) takes ties
+down, `ceil(x - 0.5)`: the same rounding wherever the edge lies, so an edge a layer moves by whole
+device pixels lands where one drawn there afresh does, as the glyph origins round. An edge at or
+past the window's origin rounds as it does with snapping off; only a tie at a negative position
+lands a pixel lower. Rounding ties
+toward zero, as gpux does with snapping off, does not survive a move across zero: a row a layer
+held at 0.5 px and moved up by 4 lands at -4 where a frame drawn from scratch puts it at -3. Style
+sizes keep rounding toward zero. `fast::tests::half_pixel_edges` holds every kind of layer to it at
+scale factors 1, 1.25, 1.5 and 2.
 
 `FastStats::list_rows_rendered` and `list_rows_kept` count the rows rendered into list layers
 and the rows kept without rendering. `Window::describe_rendered_frame` describes a frame shown
@@ -378,7 +514,8 @@ finds by its focus, a listener that listens or an input handler is told, and the
 from the one drawn without the layer. At a fractional scale factor the hitboxes carried with a
 row lie a few units in the last place from where laying the row out afresh puts them.
 
-The `fast::tests::list_layers` group checks all of it against a window drawing from scratch:
+The `fast::tests::list_layers` and `fast::tests::virtual_list_layers` groups check all of it
+against a window drawing from scratch:
 what is rendered on each kind of frame, the frames' quads at scale factors 1 and 1.25, and
 whole frame descriptions over random histories of wheel turns, pointer moves and clicks. The
 layers oracle runs its histories over a uniform list and a list (`list_layers::oracle`), and
@@ -909,6 +1046,61 @@ window reported "no frame within 10s", and the rerun with the display held awake
 was stopped before it reached lane D. Lane D is proved in CI (`ci.yml`, three platforms); no lane G
 desktop-window or benchmark result is recorded here. The Windows and WSL runs are in
 [On a wgpu desktop](#on-a-wgpu-desktop).
+
+### Virtual lists by kind
+
+`gpux-testkit perf fast-mode --name virtual-list` ran on this Mac (Metal, arm64, display awake) on
+2026-10-18 at `2c3764e` (the epic's state file uncommitted); 110 ids passed. The report stays in
+git-ignored `artifacts-temp/testkit/perf/virtual-list/`; the sprint's check ran it a second and,
+after TM-2 was amended, a third time at the same commit, and the owner asked for a fourth under
+steadier conditions (on AC power, low-power mode off, no thermal or performance warning recorded,
+no other build running, the display awake), which the report holds now. Each
+`virtual_list` kind against the lists of the same run, cumulative modes as above (medians of the
+first run, the later runs' deltas beside):
+
+| Scenario | `off` | `splice` | `layers` | Δ `layers` / `off` | Δ `layers` / `splice` | Second run: Δ / `off`, Δ / `splice` | Third run: Δ / `off`, Δ / `splice` | Fourth run (steady): Δ / `off`, Δ / `splice` | Primitives a frame (`off` → `layers`) | Rows rendered / kept a frame |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `scroll-uniform-list` | 9.294 ms | 9.339 ms | 9.299 ms | +0.0% | -0.4% | +0.3%, -0.4% | +0.6%, +1.0% | +1.3%, +2.5% | 123.3 → 5.4 | 1.25 / 23.2 |
+| `scroll-list` | 9.152 ms | 9.184 ms | 9.172 ms | +0.2% | -0.1% | -1.4%, -1.1% | +0.6%, +3.5% | +0.7%, +1.4% | 76.8 → 5.3 | 0.80 / 14.2 |
+| `scroll-virtual-list` | 9.296 ms | 9.319 ms | 9.250 ms | -0.5% | -0.7% | -2.7%, -1.0% | +0.2%, +2.1% | +2.0%, +0.5% | 102.6 → 5.4 | 1.05 / 17.0 |
+| `scroll-virtual-list-horizontal` | 9.278 ms | 9.174 ms | 9.286 ms | +0.1% | +1.2% | -0.7%, -1.8% | +2.0%, +0.4% | -0.5%, -0.2% | 16.5 → 6.2 | 1.75 / 8.3 |
+| `scroll-virtual-list-sticky` | 9.335 ms | 9.283 ms | 9.285 ms | -0.5% | +0.0% | +1.5%, -0.3% | +0.4%, +1.4% | +5.4%, +3.6% | 109.6 → 12.4 | 1.05 / 17.0 |
+| `scroll-virtual-list-synchronized` | 9.238 ms | 9.338 ms | 9.169 ms | -0.8% | -1.8% | -1.4%, +0.8% | +2.1%, +4.8% | -0.6%, -1.0% | 103.6 → 7.6 | 1.05 / 17.0 |
+| `scroll-virtual-list-parent-viewport` | 9.196 ms | 9.375 ms | 9.051 ms | -1.6% | -3.5% | -0.0%, -2.0% | -2.4%, -0.4% | -1.2%, -3.7% | 100.9 → 5.4 | none (the `div`'s layer) |
+
+The runs order the kinds differently (the horizontal list +0.1%, -0.7% and +2.0% against `off`,
+the sticky list -0.5%, +1.5% and +0.4%), and the machine drifted between them by more than any
+mechanism moves a scenario (`off` of `scroll-virtual-list` 9.296, 9.331 and 9.428 ms). Every
+difference of the first two runs lies within the confidence intervals. In the third, which ran
+slower in every mode, `layers` of `scroll-virtual-list-synchronized` lies 0.006 ms past the end of
+`off`'s interval (9.748 ms, 9.707–9.791, against 9.551 ms, 9.337–9.701), +2.1%, below the
+report's 3% regression threshold and with fewer instructions (89.82 M against 90.01 M); nothing else does. Against `splice` the third
+run's report flags two regressions (slower beyond both intervals and by more than 3%):
+`scroll-virtual-list-synchronized` +4.8% (`splice` 9.298 ms, 9.217–9.532) and `scroll-list` +3.5%
+(`splice` 9.113 ms, 8.968–9.312, against `layers` 9.434 ms, 9.387–9.511). In both, `layers` does
+no more work than `splice` (instructions 89.82 M against 90.01 M, and 89.12 M against 89.14 M,
+with an order of magnitude fewer primitives and draw orders), and the first two runs put the same
+steps at -1.8% and +0.8% (the synchronized list) and -0.1% and -1.1% (`scroll-list`); in that run `splice` was the fastest mode of five of these seven
+scenarios. They are the run's drift, not a cost of the layers.
+
+The fourth run, the steady one, is the one TM-2 is judged on: in it no `virtual_list` kind, nor
+`scroll-uniform-list` or `scroll-list`, is slower with `layers` than with `off` or `splice`
+beyond the confidence intervals, and the report flags no regression among them. Its widest
+median gap, the sticky list's +5.4% against `off` (9.780 ms, 9.331–9.877, against 9.283 ms,
+9.174–9.592), lies within overlapping intervals, with fewer instructions (89.89 M against
+90.19 M); the sticky rows are the one part of that frame drawn afresh every time (12.4 primitives).
+The `ParentViewport` list is the fastest mode of its scenario (-1.2% against `off`, -3.7% against
+`splice`, -1.2% instructions). A frame of this suite takes about 9 ms
+whatever it draws, and the work layers save (primitives painted, draw orders computed, nodes
+claimed, leaves carried, all down by an order of magnitude) is below what the suite's frames can
+time, as with `scroll-uniform-list` and `scroll-list` in the comparison above. Where one run puts `layers` behind `off` or `splice`, another puts it
+level or ahead. The horizontal list has the least to save, its columns drawing 16.5
+primitives a frame without a layer, and rasterizes tiles more often (2 a frame) as columns are
+wider than rows are tall; the sticky list draws its sticky rows above the layer every frame (12.4
+primitives). The `ParentViewport` list gains in every run against `off` or `splice` (-3.5%, -2.0% and -0.4%
+against `splice`, -1.1% instructions): the `div`'s layer stays promoted and the frame lays nothing out, measures no leaf and
+shapes no line. What layers save shows in a renderer that pays for draws and fragments; see the
+browser and mobile measurements above.
 
 ### On a wgpu desktop
 
