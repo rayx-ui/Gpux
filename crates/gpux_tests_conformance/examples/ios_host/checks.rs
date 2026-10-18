@@ -545,6 +545,9 @@ pub async fn platform_checks(cx: &mut AsyncApp) -> Vec<ResultLine> {
     if selected("platform-view-ios") {
         lines.push(crate::platform_views::platform_view(cx).await);
     }
+    if selected("platform-view-ios-webview") {
+        lines.push(crate::platform_views::webview(cx).await);
+    }
     if selected("screen-reader-ios-tree") {
         lines.push(crate::screen_reader::tree(cx).await);
     }

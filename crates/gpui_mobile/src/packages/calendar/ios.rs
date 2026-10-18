@@ -40,14 +40,17 @@ unsafe fn nsstring_to_string(ns: *mut AnyObject) -> String {
     if utf8.is_null() {
         return String::new();
     }
-    let c_str = std::ffi::CStr::from_ptr(utf8);
+    // SAFETY: `utf8` is non-null and points to the NUL-terminated buffer of `ns`, which the
+    // caller keeps alive; the contents are copied before returning.
+    let c_str = unsafe { std::ffi::CStr::from_ptr(utf8) };
     c_str.to_string_lossy().into_owned()
 }
 
 use crate::ios::util::nsstring;
 
 unsafe fn nsstring_from_str(s: &str) -> *mut AnyObject {
-    nsstring(s)
+    // SAFETY: the caller upholds `nsstring`'s contract, the same one this function states.
+    unsafe { nsstring(s) }
 }
 
 pub fn get_calendars() -> Result<Vec<Calendar>, String> {
@@ -323,7 +326,8 @@ unsafe fn cgcolor_to_argb(cg_color: *mut AnyObject) -> u32 {
         unsafe extern "C" {
             fn CGColorGetNumberOfComponents(color: *const AnyObject) -> usize;
         }
-        CGColorGetNumberOfComponents(cg_color)
+        // SAFETY: `cg_color` is non-null and the caller passes a valid CGColorRef.
+        unsafe { CGColorGetNumberOfComponents(cg_color) }
     };
 
     // Get the component array
@@ -331,7 +335,8 @@ unsafe fn cgcolor_to_argb(cg_color: *mut AnyObject) -> u32 {
         unsafe extern "C" {
             fn CGColorGetComponents(color: *const AnyObject) -> *const f64;
         }
-        CGColorGetComponents(cg_color)
+        // SAFETY: `cg_color` is non-null and the caller passes a valid CGColorRef.
+        unsafe { CGColorGetComponents(cg_color) }
     };
 
     if components.is_null() {
@@ -340,16 +345,26 @@ unsafe fn cgcolor_to_argb(cg_color: *mut AnyObject) -> u32 {
 
     let (r, g, b, a) = if num_components >= 4 {
         // RGBA color space
-        (
-            (*components.add(0) * 255.0) as u32,
-            (*components.add(1) * 255.0) as u32,
-            (*components.add(2) * 255.0) as u32,
-            (*components.add(3) * 255.0) as u32,
-        )
+        // SAFETY: `components` is non-null and CoreGraphics reported `num_components` (>= 4)
+        // entries, valid while `cg_color` is alive.
+        unsafe {
+            (
+                (*components.add(0) * 255.0) as u32,
+                (*components.add(1) * 255.0) as u32,
+                (*components.add(2) * 255.0) as u32,
+                (*components.add(3) * 255.0) as u32,
+            )
+        }
     } else if num_components >= 2 {
         // Grayscale + alpha
-        let gray = (*components.add(0) * 255.0) as u32;
-        let alpha = (*components.add(1) * 255.0) as u32;
+        // SAFETY: `components` is non-null and CoreGraphics reported `num_components` (>= 2)
+        // entries, valid while `cg_color` is alive.
+        let (gray, alpha) = unsafe {
+            (
+                (*components.add(0) * 255.0) as u32,
+                (*components.add(1) * 255.0) as u32,
+            )
+        };
         (gray, gray, gray, alpha)
     } else {
         return 0xFF000000;

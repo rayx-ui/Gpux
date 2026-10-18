@@ -68,8 +68,10 @@ unsafe extern "C" fn did_pick_documents(
         if !abs_string.is_null() {
             let cstr: *const std::ffi::c_char = msg_send![abs_string, UTF8String];
             if !cstr.is_null() {
+                // SAFETY: `cstr` is non-null and points to the NUL-terminated buffer of
+                // `abs_string`, which is alive for this callback; the contents are copied.
                 paths.push(
-                    std::ffi::CStr::from_ptr(cstr)
+                    unsafe { std::ffi::CStr::from_ptr(cstr) }
                         .to_string_lossy()
                         .into_owned(),
                 );
@@ -94,7 +96,9 @@ unsafe fn type_group_to_uttypes(group: &TypeGroup) -> *mut AnyObject {
 
     // Prefer explicit UTIs
     for uti in &group.utis {
-        let ut = uttype_from_identifier(uti);
+        // SAFETY: the caller upholds `nsstring`'s contract (an active autorelease pool), which
+        // `uttype_from_identifier` requires.
+        let ut = unsafe { uttype_from_identifier(uti) };
         if !ut.is_null() {
             types.push(ut);
         }
@@ -103,7 +107,8 @@ unsafe fn type_group_to_uttypes(group: &TypeGroup) -> *mut AnyObject {
     // Fall back to extensions
     if types.is_empty() {
         for ext in &group.extensions {
-            let ut = uttype_from_extension(ext);
+            // SAFETY: as above, the caller upholds the autorelease pool contract.
+            let ut = unsafe { uttype_from_extension(ext) };
             if !ut.is_null() {
                 types.push(ut);
             }
@@ -113,7 +118,8 @@ unsafe fn type_group_to_uttypes(group: &TypeGroup) -> *mut AnyObject {
     // Fall back to MIME types
     if types.is_empty() {
         for mime in &group.mime_types {
-            let ut = uttype_from_mime(mime);
+            // SAFETY: as above, the caller upholds the autorelease pool contract.
+            let ut = unsafe { uttype_from_mime(mime) };
             if !ut.is_null() {
                 types.push(ut);
             }
@@ -122,27 +128,33 @@ unsafe fn type_group_to_uttypes(group: &TypeGroup) -> *mut AnyObject {
 
     if types.is_empty() {
         // Accept all file types
-        let ut = uttype_from_identifier("public.item");
+        // SAFETY: as above, the caller upholds the autorelease pool contract.
+        let ut = unsafe { uttype_from_identifier("public.item") };
         if !ut.is_null() {
             types.push(ut);
         }
     }
 
-    nsarray_from_objects(&types)
+    // SAFETY: every pointer in `types` is a non-null UTType object, as `nsarray_from_objects`
+    // requires.
+    unsafe { nsarray_from_objects(&types) }
 }
 
 unsafe fn uttype_from_identifier(ident: &str) -> *mut AnyObject {
-    let ns_ident = nsstring(ident);
+    // SAFETY: the caller upholds `nsstring`'s contract (an active autorelease pool).
+    let ns_ident = unsafe { nsstring(ident) };
     msg_send![class!(UTType), typeWithIdentifier: ns_ident]
 }
 
 unsafe fn uttype_from_extension(ext: &str) -> *mut AnyObject {
-    let ns_ext = nsstring(ext);
+    // SAFETY: the caller upholds `nsstring`'s contract (an active autorelease pool).
+    let ns_ext = unsafe { nsstring(ext) };
     msg_send![class!(UTType), typeWithFilenameExtension: ns_ext]
 }
 
 unsafe fn uttype_from_mime(mime: &str) -> *mut AnyObject {
-    let ns_mime = nsstring(mime);
+    // SAFETY: the caller upholds `nsstring`'s contract (an active autorelease pool).
+    let ns_mime = unsafe { nsstring(mime) };
     msg_send![class!(UTType), typeWithMIMEType: ns_mime]
 }
 

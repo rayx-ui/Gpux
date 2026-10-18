@@ -58,7 +58,8 @@ unsafe fn fetch_contacts(predicate: *mut AnyObject) -> Result<Vec<Contact>, Stri
     }
 
     // Build the keys to fetch
-    let keys = create_fetch_keys();
+    // SAFETY: `create_fetch_keys` has no preconditions beyond running on an Objective-C thread.
+    let keys = unsafe { create_fetch_keys() };
     if keys.is_null() {
         let _: () = msg_send![store, release];
         return Err("Failed to create fetch keys array".into());
@@ -105,11 +106,14 @@ unsafe fn fetch_contacts(predicate: *mut AnyObject) -> Result<Vec<Contact>, Stri
 
         // Use a simpler approach: fetch contacts matching an empty name predicate
         // Actually CNContact doesn't have such a predicate. Let's use the block-based enumerate.
-        let success: bool = enumerate_contacts(store, request, error_ptr, &mut contacts);
+        // SAFETY: `store` and `request` are live objects created above, and `error_ptr` points
+        // to the local `error` slot, which outlives the call.
+        let success: bool = unsafe { enumerate_contacts(store, request, error_ptr, &mut contacts) };
 
         if !success && !error.is_null() {
             let desc: *mut AnyObject = msg_send![error, localizedDescription];
-            let err_msg = nsstring_to_string(desc);
+            // SAFETY: `desc` is the error's localizedDescription, null or a live NSString.
+            let err_msg = unsafe { nsstring_to_string(desc) };
             let _: () = msg_send![contacts_array, release];
             let _: () = msg_send![request, release];
             let _: () = msg_send![store, release];
@@ -129,7 +133,8 @@ unsafe fn fetch_contacts(predicate: *mut AnyObject) -> Result<Vec<Contact>, Stri
         if results.is_null() {
             let err_msg = if !error.is_null() {
                 let desc: *mut AnyObject = msg_send![error, localizedDescription];
-                nsstring_to_string(desc)
+                // SAFETY: `desc` is the error's localizedDescription, null or a live NSString.
+                unsafe { nsstring_to_string(desc) }
             } else {
                 "Unknown error".to_owned()
             };
@@ -142,7 +147,8 @@ unsafe fn fetch_contacts(predicate: *mut AnyObject) -> Result<Vec<Contact>, Stri
         let count: usize = msg_send![results, count];
         for i in 0..count {
             let cn_contact: *mut AnyObject = msg_send![results, objectAtIndex: i];
-            if let Some(contact) = parse_cn_contact(cn_contact) {
+            // SAFETY: `cn_contact` is an element of `results`, which is alive for the loop.
+            if let Some(contact) = unsafe { parse_cn_contact(cn_contact) } {
                 contacts.push(contact);
             }
         }
@@ -190,13 +196,16 @@ unsafe fn parse_cn_contact(cn_contact: *mut AnyObject) -> Option<Contact> {
     }
 
     let identifier: *mut AnyObject = msg_send![cn_contact, identifier];
-    let id = nsstring_to_string(identifier);
+    // SAFETY: `identifier` is a property of the live `cn_contact`, null or a live NSString.
+    let id = unsafe { nsstring_to_string(identifier) };
 
     let given_name_ns: *mut AnyObject = msg_send![cn_contact, givenName];
-    let given_name = nsstring_to_string(given_name_ns);
+    // SAFETY: `given_name_ns` is a property of the live `cn_contact`, null or a live NSString.
+    let given_name = unsafe { nsstring_to_string(given_name_ns) };
 
     let family_name_ns: *mut AnyObject = msg_send![cn_contact, familyName];
-    let family_name = nsstring_to_string(family_name_ns);
+    // SAFETY: `family_name_ns` is a property of the live `cn_contact`, null or a live NSString.
+    let family_name = unsafe { nsstring_to_string(family_name_ns) };
 
     // Build display name from given + family
     let display_name = if given_name.is_empty() && family_name.is_empty() {
@@ -211,11 +220,13 @@ unsafe fn parse_cn_contact(cn_contact: *mut AnyObject) -> Option<Contact> {
 
     // Phone numbers: NSArray<CNLabeledValue<CNPhoneNumber *> *>
     let phone_numbers: *mut AnyObject = msg_send![cn_contact, phoneNumbers];
-    let phones = parse_phone_numbers(phone_numbers);
+    // SAFETY: `phone_numbers` is a property of the live `cn_contact`, null or a live NSArray.
+    let phones = unsafe { parse_phone_numbers(phone_numbers) };
 
     // Email addresses: NSArray<CNLabeledValue<NSString *> *>
     let email_addresses: *mut AnyObject = msg_send![cn_contact, emailAddresses];
-    let emails = parse_email_addresses(email_addresses);
+    // SAFETY: `email_addresses` is a property of the live `cn_contact`, null or a live NSArray.
+    let emails = unsafe { parse_email_addresses(email_addresses) };
 
     Some(Contact {
         id,
@@ -249,7 +260,9 @@ unsafe fn parse_phone_numbers(array: *mut AnyObject) -> Vec<PhoneNumber> {
         }
 
         let number_ns: *mut AnyObject = msg_send![phone_number_obj, stringValue];
-        let number = nsstring_to_string(number_ns);
+        // SAFETY: `number_ns` is a property of the live phone number object, null or a live
+        // NSString.
+        let number = unsafe { nsstring_to_string(number_ns) };
 
         // Get label
         let label_ns: *mut AnyObject = msg_send![labeled_value, label];
@@ -259,10 +272,11 @@ unsafe fn parse_phone_numbers(array: *mut AnyObject) -> Vec<PhoneNumber> {
             // Localize the label
             let localized: *mut AnyObject =
                 msg_send![class!(CNLabeledValue), localizedStringForLabel: label_ns];
+            // SAFETY: `label_ns` is non-null and `localized`, when non-null, is a live NSString.
             if localized.is_null() {
-                nsstring_to_string(label_ns)
+                unsafe { nsstring_to_string(label_ns) }
             } else {
-                nsstring_to_string(localized)
+                unsafe { nsstring_to_string(localized) }
             }
         };
 
@@ -288,7 +302,8 @@ unsafe fn parse_email_addresses(array: *mut AnyObject) -> Vec<EmailAddress> {
         }
 
         let address_ns: *mut AnyObject = msg_send![labeled_value, value];
-        let address = nsstring_to_string(address_ns);
+        // SAFETY: `address_ns` is the live labeled value's string, null or a live NSString.
+        let address = unsafe { nsstring_to_string(address_ns) };
 
         let label_ns: *mut AnyObject = msg_send![labeled_value, label];
         let label = if label_ns.is_null() {
@@ -296,10 +311,11 @@ unsafe fn parse_email_addresses(array: *mut AnyObject) -> Vec<EmailAddress> {
         } else {
             let localized: *mut AnyObject =
                 msg_send![class!(CNLabeledValue), localizedStringForLabel: label_ns];
+            // SAFETY: `label_ns` is non-null and `localized`, when non-null, is a live NSString.
             if localized.is_null() {
-                nsstring_to_string(label_ns)
+                unsafe { nsstring_to_string(label_ns) }
             } else {
-                nsstring_to_string(localized)
+                unsafe { nsstring_to_string(localized) }
             }
         };
 
@@ -313,11 +329,16 @@ unsafe fn parse_email_addresses(array: *mut AnyObject) -> Vec<EmailAddress> {
 unsafe fn create_fetch_keys() -> *mut AnyObject {
     // We need CNContactIdentifierKey, CNContactGivenNameKey, CNContactFamilyNameKey,
     // CNContactPhoneNumbersKey, CNContactEmailAddressesKey
-    let key_identifier = new_nsstring("identifier");
-    let key_given_name = new_nsstring("givenName");
-    let key_family_name = new_nsstring("familyName");
-    let key_phone_numbers = new_nsstring("phoneNumbers");
-    let key_email_addresses = new_nsstring("emailAddresses");
+    // SAFETY: `new_nsstring` only needs an Objective-C thread; these strings are +1 owned.
+    let key_identifier = unsafe { new_nsstring("identifier") };
+    // SAFETY: as above.
+    let key_given_name = unsafe { new_nsstring("givenName") };
+    // SAFETY: as above.
+    let key_family_name = unsafe { new_nsstring("familyName") };
+    // SAFETY: as above.
+    let key_phone_numbers = unsafe { new_nsstring("phoneNumbers") };
+    // SAFETY: as above.
+    let key_email_addresses = unsafe { new_nsstring("emailAddresses") };
 
     let objects = [
         key_identifier,
@@ -355,7 +376,9 @@ unsafe fn nsstring_to_string(ns: *mut AnyObject) -> String {
     if utf8.is_null() {
         return String::new();
     }
-    let c_str = std::ffi::CStr::from_ptr(utf8);
+    // SAFETY: `utf8` is non-null and points to the NUL-terminated buffer of `ns`, which the
+    // caller keeps alive; the contents are copied before returning.
+    let c_str = unsafe { std::ffi::CStr::from_ptr(utf8) };
     match c_str.to_str() {
         Ok(s) => s.to_owned(),
         Err(_) => c_str.to_string_lossy().into_owned(),

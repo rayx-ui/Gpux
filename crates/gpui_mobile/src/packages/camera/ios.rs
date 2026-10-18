@@ -247,16 +247,20 @@ fn resolution_to_preset(resolution: ResolutionPreset) -> &'static str {
 unsafe fn find_device_by_name(name: &str) -> *mut AnyObject {
     // Use AVCaptureDeviceDiscoverySession to find all cameras
     let device_types: *mut AnyObject = {
-        let wide = nsstring("AVCaptureDeviceTypeBuiltInWideAngleCamera");
-        let ultra = nsstring("AVCaptureDeviceTypeBuiltInUltraWideCamera");
-        let tele = nsstring("AVCaptureDeviceTypeBuiltInTelephotoCamera");
+        // SAFETY: the caller upholds `nsstring`'s contract (an active autorelease pool).
+        let wide = unsafe { nsstring("AVCaptureDeviceTypeBuiltInWideAngleCamera") };
+        // SAFETY: as above.
+        let ultra = unsafe { nsstring("AVCaptureDeviceTypeBuiltInUltraWideCamera") };
+        // SAFETY: as above.
+        let tele = unsafe { nsstring("AVCaptureDeviceTypeBuiltInTelephotoCamera") };
         msg_send![class!(NSArray),
             arrayWithObjects: [wide, ultra, tele].as_ptr(),
             count: 3usize
         ]
     };
 
-    let media_type = nsstring("vide"); // AVMediaTypeVideo
+    // SAFETY: the caller upholds `nsstring`'s contract (an active autorelease pool).
+    let media_type = unsafe { nsstring("vide") }; // AVMediaTypeVideo
     let position: i64 = 0; // AVCaptureDevicePositionUnspecified
 
     let discovery: *mut AnyObject = msg_send![class!(AVCaptureDeviceDiscoverySession),
@@ -277,7 +281,10 @@ unsafe fn find_device_by_name(name: &str) -> *mut AnyObject {
         let unique_id: *mut AnyObject = msg_send![device, uniqueID];
         let cstr: *const std::ffi::c_char = msg_send![unique_id, UTF8String];
         if !cstr.is_null() {
-            let id = std::ffi::CStr::from_ptr(cstr).to_string_lossy();
+            // SAFETY: `cstr` is non-null and points to the NUL-terminated UTF-8 buffer of
+            // `unique_id`, which stays alive for this iteration; it is copied before the
+            // next autorelease pool drain.
+            let id = unsafe { std::ffi::CStr::from_ptr(cstr) }.to_string_lossy();
             if id == name {
                 return device;
             }

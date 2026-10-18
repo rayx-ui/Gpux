@@ -35,7 +35,8 @@ pub fn get_package_info() -> Result<PackageInfo, String> {
 }
 
 unsafe fn nsdict_string(dict: *mut AnyObject, key: &str) -> Option<String> {
-    let key_nsstring = nsstring(key);
+    // SAFETY: the caller upholds `nsstring`'s contract (an active autorelease pool).
+    let key_nsstring = unsafe { nsstring(key) };
     let value: *mut AnyObject = msg_send![dict, objectForKey: key_nsstring];
     if value.is_null() {
         return None;
@@ -44,7 +45,13 @@ unsafe fn nsdict_string(dict: *mut AnyObject, key: &str) -> Option<String> {
     if utf8.is_null() {
         return None;
     }
-    Some(CStr::from_ptr(utf8).to_string_lossy().into_owned())
+    // SAFETY: `utf8` is non-null and points to the NUL-terminated buffer of `value`, which the
+    // dictionary keeps alive; the contents are copied before returning.
+    Some(
+        unsafe { CStr::from_ptr(utf8) }
+            .to_string_lossy()
+            .into_owned(),
+    )
 }
 
 use crate::ios::util::nsstring;

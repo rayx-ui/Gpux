@@ -451,6 +451,9 @@ pub extern "C" fn gpui_ios_handle_open_url(url_ptr: *mut c_void) {
     };
 
     log::info!("GPUI iOS: Received deep link: {}", url_string);
+
+    #[cfg(feature = "deeplink")]
+    crate::packages::deeplink::ios::handle_open_url(url_string);
 }
 
 // ── App callback storage ─────────────────────────────────────────────────────

@@ -255,3 +255,22 @@ fn lane_f_explains_that_it_needs_macos_and_lists_anywhere() {
     assert_eq!(code, 0, "{text}");
     assert!(text.contains("  ios-metal"), "{text}");
 }
+
+#[test]
+fn only_the_webview_check_alone_runs_under_zombies() {
+    let selection = |scene: Option<&str>| Selection {
+        scene: scene.map(str::to_string),
+        grep: None,
+    };
+    assert_eq!(
+        ios::launch_environment(&selection(Some("platform-view-ios-webview"))),
+        vec![(
+            "SIMCTL_CHILD_NSZombieEnabled".to_string(),
+            "YES".to_string()
+        )]
+    );
+    for other in [None, Some("platform-view-ios"), Some("layout-flex")] {
+        assert!(ios::launch_environment(&selection(other)).is_empty());
+    }
+    assert!(ios::PLATFORM_CHECKS.contains(&ios::ZOMBIE_CHECK));
+}
