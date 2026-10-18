@@ -33,8 +33,9 @@ const OLD_FOLDERS: [&str; 4] = [
 
 /// Tracked files that keep the paths they were written with: historical records, recorded tool
 /// output, the vendored fork, the lock file and this guard.
-const HISTORICAL: [&str; 9] = [
+const HISTORICAL: [&str; 10] = [
     ".agentx/tasks/",
+    "CHANGELOG.md",
     ".agentx/experiments/",
     "docs/changelog/",
     "docs/history/",
@@ -269,6 +270,7 @@ fn historical_records_and_fixtures_are_not_scanned() {
         "tools/testkit/tests/fixtures/libtest_lane_a.txt",
         "vendor/wgpu/wgpu/Cargo.toml",
         "Cargo.lock",
+        "CHANGELOG.md",
     ] {
         assert!(!is_scanned(path), "{path}");
     }
