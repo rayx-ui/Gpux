@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list-layer-kinds",
-  "revision": 131,
+  "revision": 133,
   "planRevision": 22,
   "specHashes": {
     "requirements": "310125450c4c82b8b12a17b7c0bf51dcc4886cb94f09f0862422b5cbbe88533b",
@@ -154,7 +154,7 @@
       ]
     },
     "t16-attribution-all": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "virtual-list"
       ]
@@ -2563,6 +2563,24 @@
       "summaryMarkdown": "Passed, with no findings. **Disposition acknowledged in text** (the runtime lists no effective disposition in this boundary, since it belongs to s00b, so it is not in `acknowledgedDispositions`): `check:c-lane-c-layers-full` is withdrawn (revision 117), matching the owner's recorded decision ('Withdraw c-lane-c-layers-full (its package no longer exists) and replace it with a corrective task running the same lane C groups on gpux-tests-conformance'). Its successor really covers it. `c-lane-c-layers-renamed` is the withdrawn definition with only the package (`gpux-tests-conformance`) and the conformance input path (`crates/gpux_tests_conformance/**`) changed. It keeps the same `lane_c_scroll_layers` and `lane_c_layer_scales` targets, `GPUX_LANE_C_FULL=1` (read by `scroll_layers_support::FULL_VARIABLE`), and the same expectations, and it passed at revision 121 with 30 tests on the current tree. t15 changes no source. HP-1's runtime proof is therefore current under the renamed package.",
       "findingIds": [],
       "recordedAt": "2026-10-18T10:21:53Z"
+    },
+    "s08b-attribution-all": {
+      "reviewerId": "reviewer-lk-s08b",
+      "snapshotId": "4993bb2e16701ee213ba1987bffc1e5f345af37bb439e00d42f92197da210da1",
+      "criterionIds": [],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/fast_mode_attribution.rs",
+          "kind": "test",
+          "criterionIds": [],
+          "sha256": "ff7eb41a1b72ea2c7a99e0ee69cfa5031c8acc51b1c917ebada88cf867be159d"
+        }
+      ],
+      "summaryMarkdown": "Passed, with no findings.\n\n**What t16 does.** It carries out the owner's 'Yes' to fixing `c-attribution`, with no source changes. It adds the final check `c-attribution-all`: the whole `fast_mode_attribution` group, with no filter, `minimumTests` 25, TM-1. That covers what the sealed `c-attribution`'s `scroll_virtual_list` filter left out, `virtual_lists_render_fewer_rows_on_their_layers` and `every_scenario_is_attributed`. The local run passes 25 of 25 (`attribution-all.log`).\n\n**Why both checks stay.** The runtime refuses to withdraw the sealed `c-attribution` because TM-1 would lose its last sprint check (a final check does not count), so the amendment at revision 126 keeping both is the only consistent shape. With no criterion of its own, the boundary has nothing else to prove.\n\n**Note for closure, not a finding:** (the earlier description note is fixed at revision 131, which now says the sealed check stays beside it) the check declares no `inputs`, unlike its sibling, so its freshness is not tied to `crates/gpui/**`. As a final check run at closure that does no harm.",
+      "findingIds": [],
+      "recordedAt": "2026-10-18T10:34:20Z"
     }
   },
   "checkpoints": {
