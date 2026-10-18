@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list-layer-kinds",
-  "revision": 134,
+  "revision": 136,
   "planRevision": 22,
   "specHashes": {
     "requirements": "310125450c4c82b8b12a17b7c0bf51dcc4886cb94f09f0862422b5cbbe88533b",
@@ -330,6 +330,16 @@
         }
       },
       "recordedAt": "2026-10-18T10:30:29Z"
+    },
+    "4993bb2e16701ee213ba1987bffc1e5f345af37bb439e00d42f92197da210da1": {
+      "snapshot": {
+        "specHash": "3ccb7438022179cf6ea074b2d5d237e8da1d592712a5d66f354bd7f09fdf05d9",
+        "repositories": {
+          "gpux": "844f4869f4710705cd03995e1aee147fa5c10347bef9096a5d86a6899e273c6e",
+          "rayx": "2a22aea97220e64cf84e4d7f9f583ce764a84f6de02332f3ea87ccc35cce79d1"
+        }
+      },
+      "recordedAt": "2026-10-18T10:42:15Z"
     }
   },
   "checkResults": {
@@ -1085,17 +1095,17 @@
       "checkId": "c-perf",
       "boundaryId": "final",
       "phase": "final",
-      "batchId": "cd4d3452e36c7df702bf7aaa0fd7c79e451870cfe5cf2158a617add865b14775",
+      "batchId": "4993bb2e16701ee213ba1987bffc1e5f345af37bb439e00d42f92197da210da1",
       "definitionHash": "3dabbd5f9aa1a6d4fbf1d3dbdf2f50b94605c0ee9009336ce956d93e9cd65659",
       "basisHash": "ff5776b5200ea8bfece74502d1add13c9c145bbdc8634c24c349479f85292b4a",
       "status": "passed",
       "exitCode": 0,
       "testCount": 110,
-      "durationSeconds": 405.7057,
-      "recordedAt": "2026-10-18T10:29:05Z",
+      "durationSeconds": 384.685,
+      "recordedAt": "2026-10-18T10:42:06Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-30f73dc72ea1.log",
-      "logSha256": "80e23715a1feb1b9b552ef5a85ba64afa2b4860db2e949908f74eb52707cb05a",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-679478541711.log",
+      "logSha256": "749966cf100a953bc567975019cb868c599240cd697f936bb6a1e320c58e664b",
       "inputsHash": "aa85d58adc659d7c90e52b0f82a143b7870a27ac0ce49465bd7ecd649e315836"
     },
     "final/c-half-pixel/final": {
@@ -1391,97 +1401,97 @@
       "checkId": "final-fmt",
       "boundaryId": "final",
       "phase": "final",
-      "batchId": "cd4d3452e36c7df702bf7aaa0fd7c79e451870cfe5cf2158a617add865b14775",
+      "batchId": "4993bb2e16701ee213ba1987bffc1e5f345af37bb439e00d42f92197da210da1",
       "definitionHash": "19da1ae80da8cc245b20a99fab71ec288a5b44477b5250120a9792f7c71479ea",
-      "basisHash": "2d2434390d32caf92a9ca4938504a5060429a6103090116a5bd4270b80012b6b",
+      "basisHash": "0721205fe548a5d62db454fef049e47848db08f800b06127a95676e232a2c537",
       "status": "passed",
       "exitCode": 0,
       "testCount": 0,
-      "durationSeconds": 2.5658,
-      "recordedAt": "2026-10-18T10:29:07Z",
+      "durationSeconds": 2.4902,
+      "recordedAt": "2026-10-18T10:42:09Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-4c262c148324.log",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-2b2fcc993bcc.log",
       "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     "final/final-clippy/final": {
       "checkId": "final-clippy",
       "boundaryId": "final",
       "phase": "final",
-      "batchId": "cd4d3452e36c7df702bf7aaa0fd7c79e451870cfe5cf2158a617add865b14775",
+      "batchId": "4993bb2e16701ee213ba1987bffc1e5f345af37bb439e00d42f92197da210da1",
       "definitionHash": "7d28e3a46b7bd94963a5e8d17df8d05ec4d5515b03040e1588036bebb0473102",
-      "basisHash": "5193cc7e2a756473c4d9226651580a035ba2ad21a41bb7d03fde0f9ce7760b29",
+      "basisHash": "59bf26bb41133a47313d43fefc6e13461f531f910a005ef451553b5bb0aa1009",
       "status": "passed",
       "exitCode": 0,
       "testCount": 0,
-      "durationSeconds": 23.2359,
-      "recordedAt": "2026-10-18T10:29:31Z",
+      "durationSeconds": 0.4903,
+      "recordedAt": "2026-10-18T10:42:09Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-696b776500e1.log",
-      "logSha256": "bbb527f0fcea6ba98e945251cebff74c2ec3ef644bb3eb079f325d44df895570"
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-b28180931985.log",
+      "logSha256": "1f5852af1ed7025b5728e842e3c3c2f5d2f720d25557d84c38f1ffda99719c59"
     },
     "final/final-wasm/final": {
       "checkId": "final-wasm",
       "boundaryId": "final",
       "phase": "final",
-      "batchId": "cd4d3452e36c7df702bf7aaa0fd7c79e451870cfe5cf2158a617add865b14775",
+      "batchId": "4993bb2e16701ee213ba1987bffc1e5f345af37bb439e00d42f92197da210da1",
       "definitionHash": "ba2deecc40eecec7fc7d1637be7f55220770b6ea8e9b1dcce98e9760f199df5a",
-      "basisHash": "01ee974cad7da9ea2e152247d90fd281cbd11aa0392a9e4dbedac89eeb6deb9f",
+      "basisHash": "8fa94b0e195a2670f462a52eea7ad20b3050768a2c7d416e9d18ced016ad1ebb",
       "status": "passed",
       "exitCode": 0,
       "testCount": 0,
-      "durationSeconds": 27.3486,
-      "recordedAt": "2026-10-18T10:29:58Z",
+      "durationSeconds": 0.2598,
+      "recordedAt": "2026-10-18T10:42:10Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-85aebec9d321.log",
-      "logSha256": "c22e7856abdf63eab8212186dab137a6ba13bf83aaf2ea6136b977d5b82e9d69"
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-fc701c6737ca.log",
+      "logSha256": "f4403412cb20dc7d8a0a94c08c9c8853e4bac9b3e8489158834f30512311ed97"
     },
     "final/final-rx-fmt/final": {
       "checkId": "final-rx-fmt",
       "boundaryId": "final",
       "phase": "final",
-      "batchId": "cd4d3452e36c7df702bf7aaa0fd7c79e451870cfe5cf2158a617add865b14775",
+      "batchId": "4993bb2e16701ee213ba1987bffc1e5f345af37bb439e00d42f92197da210da1",
       "definitionHash": "4392a0fd362482719c153b20b54d0b767507963632184ae93b45433065dce10e",
-      "basisHash": "c777788b15644b8b29d2faa9b0756c9228f52ec0ef33760b491b4ba1562261fc",
+      "basisHash": "8c556b6a3239eb068cb004c576b1bf4d89027fe1095c2d262d4cfdb961537a69",
       "status": "passed",
       "exitCode": 0,
       "testCount": 0,
-      "durationSeconds": 3.6357,
-      "recordedAt": "2026-10-18T10:30:02Z",
+      "durationSeconds": 3.4928,
+      "recordedAt": "2026-10-18T10:42:13Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-2800bd9ec4ad.log",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-59857711564b.log",
       "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     "final/final-rx-clippy/final": {
       "checkId": "final-rx-clippy",
       "boundaryId": "final",
       "phase": "final",
-      "batchId": "cd4d3452e36c7df702bf7aaa0fd7c79e451870cfe5cf2158a617add865b14775",
+      "batchId": "4993bb2e16701ee213ba1987bffc1e5f345af37bb439e00d42f92197da210da1",
       "definitionHash": "075e5f139577c4121a22e18b2710e1dad393f9801722f4f847a6f8270ab389a0",
-      "basisHash": "389d4c36b49d3290859356db9120172f35fa7ace66447ff210be2f7a8e6d8388",
+      "basisHash": "7251fc725295b12e703928a1285ea3b72254e650ae4895d6044e593db1fdc40b",
       "status": "passed",
       "exitCode": 0,
       "testCount": 0,
-      "durationSeconds": 9.9525,
-      "recordedAt": "2026-10-18T10:30:12Z",
+      "durationSeconds": 0.4203,
+      "recordedAt": "2026-10-18T10:42:14Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-f950aa6d4715.log",
-      "logSha256": "1b26d1edbf89e97dc1d255da3468310876b62e991e7508e92592f811685f76f3"
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-54d4615158be.log",
+      "logSha256": "9d892c5778d0c975f64a671e66ea5a753502353da3addd1dfdf3825225e406a2"
     },
     "final/final-rx-check/final": {
       "checkId": "final-rx-check",
       "boundaryId": "final",
       "phase": "final",
-      "batchId": "cd4d3452e36c7df702bf7aaa0fd7c79e451870cfe5cf2158a617add865b14775",
+      "batchId": "4993bb2e16701ee213ba1987bffc1e5f345af37bb439e00d42f92197da210da1",
       "definitionHash": "71d204915dbf884953bea62a5974b2612a96f38b9cd375e1733a3c23f0d01aea",
-      "basisHash": "7883d5d87184e84cfd71cd35ade1213b67bd4282766d9e7da19d1dbf01052a9c",
+      "basisHash": "f2c7d550ab6ac21adae0598a8961d5426a0730b20cd5f981c54c0222a1266f2c",
       "status": "passed",
       "exitCode": 0,
       "testCount": 0,
-      "durationSeconds": 17.2196,
-      "recordedAt": "2026-10-18T10:30:29Z",
+      "durationSeconds": 1.0531,
+      "recordedAt": "2026-10-18T10:42:15Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-b2f9057ab78d.log",
-      "logSha256": "70e91f199bccaa04fca6f739d36e01f0a4da115dcb177f8d9123456f73b03fe0"
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-9e9edc20aa50.log",
+      "logSha256": "d45006197a58d3591511e8220a2f4a8bd039e9a092cd6a66dbadf79d6dc77af2"
     }
   },
   "reviews": {
@@ -2581,6 +2591,483 @@
       "summaryMarkdown": "Passed, with no findings.\n\n**What t16 does.** It carries out the owner's 'Yes' to fixing `c-attribution`, with no source changes. It adds the final check `c-attribution-all`: the whole `fast_mode_attribution` group, with no filter, `minimumTests` 25, TM-1. That covers what the sealed `c-attribution`'s `scroll_virtual_list` filter left out, `virtual_lists_render_fewer_rows_on_their_layers` and `every_scenario_is_attributed`. The local run passes 25 of 25 (`attribution-all.log`).\n\n**Why both checks stay.** The runtime refuses to withdraw the sealed `c-attribution` because TM-1 would lose its last sprint check (a final check does not count), so the amendment at revision 126 keeping both is the only consistent shape. With no criterion of its own, the boundary has nothing else to prove.\n\n**Note for closure, not a finding:** (the earlier description note is fixed at revision 131, which now says the sealed check stays beside it) the check declares no `inputs`, unlike its sibling, so its freshness is not tied to `crates/gpui/**`. As a final check run at closure that does no harm.",
       "findingIds": [],
       "recordedAt": "2026-10-18T10:34:20Z"
+    },
+    "final": {
+      "reviewerId": "reviewer-lk-final",
+      "snapshotId": "4993bb2e16701ee213ba1987bffc1e5f345af37bb439e00d42f92197da210da1",
+      "criterionIds": [
+        "ML-1",
+        "ML-2",
+        "HP-1",
+        "UM-1",
+        "HZ-1",
+        "HZ-2",
+        "ST-1",
+        "ST-2",
+        "SO-1",
+        "PV-1",
+        "PV-2",
+        "PV-3",
+        "RXK-1",
+        "TM-1",
+        "TM-2",
+        "TM-3",
+        "DOC-1",
+        "MG-1",
+        "DF-1",
+        "PR-1",
+        "PR-2",
+        "PR-3",
+        "PR-4",
+        "PR-5"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layout.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ML-1",
+            "ML-2"
+          ],
+          "sha256": "d08be09f719fa7e35d0d9124baf3aec0099ca417f404741275f946363da4d621"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ML-1",
+            "ML-2",
+            "PV-1"
+          ],
+          "sha256": "61de2857ceb5ec8ac0e1e49065b9c49db4995ba9bac02806870d4178d5f4798d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/taffy.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ML-1",
+            "HP-1"
+          ],
+          "sha256": "463dfe322c6b1cff2c119730d9bc0fb2aba4b37d1c5a981c9172f2ce058e8c3b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/retained_measured_leaves.rs",
+          "kind": "test",
+          "criterionIds": [
+            "ML-1"
+          ],
+          "sha256": "eb0aa391516f5f2f219da5d3fff503d10eb389936f4635f10f600f7ed233bec5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/oracle_measured_leaves.rs",
+          "kind": "test",
+          "criterionIds": [
+            "ML-2"
+          ],
+          "sha256": "b35e262097f0fa972f1e05139cc0a251b661437440aff2597c7c0194c8649847"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/util.rs",
+          "kind": "source",
+          "criterionIds": [
+            "HP-1"
+          ],
+          "sha256": "07160911e7863e78d32f55e756b6312db33612221c735eac4c6d11f91f22698e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/half_pixel_edges.rs",
+          "kind": "test",
+          "criterionIds": [
+            "HP-1"
+          ],
+          "sha256": "0c7534bf2290c0185309f041c9ed5edccfe450c473e8c2deeb7fd01a08179f33"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/lane_c_scroll_layers.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "HP-1"
+          ],
+          "sha256": "36e8b75022b655375e3a17fdb43fb97cb25675068dd5984579fc4e65bd18de52"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/uniform_list.rs",
+          "kind": "source",
+          "criterionIds": [
+            "UM-1",
+            "DOC-1"
+          ],
+          "sha256": "97bc976d2f0595e0222b065cb7929b96861220624156ba9a1aa40220bd07c71c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/uniform_measured_item.rs",
+          "kind": "test",
+          "criterionIds": [
+            "UM-1"
+          ],
+          "sha256": "02e1827aa1e1fed89a30f6ad933e6abf24a705b51ab63e7887b3dede38b3c659"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "UM-1",
+            "HZ-1",
+            "HZ-2",
+            "ST-1",
+            "ST-2",
+            "PV-1",
+            "DOC-1"
+          ],
+          "sha256": "76edecfee124ed429d72ef6b1b054e7315c3e612a8f19478e06159d9572057b5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/virtual_list/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "HZ-1",
+            "ST-1",
+            "ST-2",
+            "SO-1",
+            "PV-1",
+            "DOC-1"
+          ],
+          "sha256": "3e2caccd3c7482276c8d808f3b2300890396fb790a1d4da59e0b2effde0b788f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/horizontal.rs",
+          "kind": "test",
+          "criterionIds": [
+            "HZ-1"
+          ],
+          "sha256": "0a1d3ba5a7ce3f3d11e2be1cee2a992aaf2e378b73e05132d633c4cd8ce2dc71"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/horizontal_oracle.rs",
+          "kind": "test",
+          "criterionIds": [
+            "HZ-2"
+          ],
+          "sha256": "1fd3c0f757bebc81375a8ac16f2bf62d51f18b9b3405ea505e281d8655f8cb95"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/sticky.rs",
+          "kind": "test",
+          "criterionIds": [
+            "ST-1"
+          ],
+          "sha256": "3bed9a6346151572d21609bbaab25b35ee50f5400ed9874b3b89b500d3740bbc"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/sticky_oracle.rs",
+          "kind": "test",
+          "criterionIds": [
+            "ST-2"
+          ],
+          "sha256": "aa054bf8aec78b09d5f9596fca29ac17db2b277b9f3c55eeb4a45da5bbd374c1"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/invalidate.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SO-1",
+            "UM-1"
+          ],
+          "sha256": "8b876aa4ad49fbfd7586d9bdd435b3ae1642403544acd474b7fbc6ea2ba6a9d8"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/synchronized.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SO-1"
+          ],
+          "sha256": "42b16794d067c62d4fcb52854e675b618b0f9c28be91360984c70e09e699ef1a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/reuse.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PV-1",
+            "PR-4",
+            "PR-5"
+          ],
+          "sha256": "e884fbbd30298b144cc7fab8070322ff1242bea0b695799ee48de1ec7a3b878f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/parent_promoted.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PV-1"
+          ],
+          "sha256": "e704a5a749e680c4469876c44bcc1f82110ac26bdf6d561d4f1de780a23d157e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/scenarios/scroll.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TM-1",
+            "TM-2",
+            "TM-3"
+          ],
+          "sha256": "39b71d219d76cc8cbb4f258755d31eae3d635d4a8cb76269a3bf2f9a727f5c63"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/fast_mode_attribution.rs",
+          "kind": "test",
+          "criterionIds": [
+            "TM-1",
+            "TM-3"
+          ],
+          "sha256": "ff7eb41a1b72ea2c7a99e0ee69cfa5031c8acc51b1c917ebada88cf867be159d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md",
+          "kind": "source",
+          "criterionIds": [
+            "TM-2",
+            "DOC-1"
+          ],
+          "sha256": "55156c6603334250637d702981ffbfb520b841093f70cf922defa7ce429395ca"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/stats.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ML-2",
+            "MG-1"
+          ],
+          "sha256": "61f692dac50ed157a81eb6c9436b096fe1e7cdce6836744b7d5b0f0419fc62e5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/mod.rs",
+          "kind": "test",
+          "criterionIds": [
+            "MG-1"
+          ],
+          "sha256": "24d664139e9a1212d2189310f55fbbcf73135eb38f7b90ea4747b49b96644f31"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/scenes/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "MG-1"
+          ],
+          "sha256": "ad43606c883766a2f3d4520215b49887f56210cbb95cd364999627ef703b6954"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DF-1",
+            "RXK-1"
+          ],
+          "sha256": "ebf1c62b0f21c5c28ffbb3d5163e0a6d8f6d051700dbba6a96dfc4aea4b1698e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window/a11y.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PR-5"
+          ],
+          "sha256": "e642e867cce39f3c7aea2633f00a40674ceda5d5428334fd7acff3976746f58a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/layer_owner_replay.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PR-4"
+          ],
+          "sha256": "fdcdf9c544d787515077f805ee40923d54ea5afee24befabe8b6314e187e77ff"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/layer_a11y_scroll_targets.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PR-5"
+          ],
+          "sha256": "5d403861c3278300a75949b84969fb7f3a76f376514fb6b4d1522234704b64f2"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/state.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PV-2",
+            "PR-2",
+            "PV-3"
+          ],
+          "sha256": "2dff42a05c87b8761be8e51368368cf33c754255f6606881d2dffd064c66a6f3"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/parent_viewport_layers.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PV-2"
+          ],
+          "sha256": "e6b6b54cff4852716f4678de7f387ad8f9fe897a0fb4b8c1d623a69e823db04f"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/row_renderer_changes.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PV-3",
+            "PR-2"
+          ],
+          "sha256": "2040d07d3d53855bef62f618f6c690a6be3f8783ddc5b690fd5862846c495b32"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/virtual_list_layer_kinds.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RXK-1",
+            "MG-1"
+          ],
+          "sha256": "ffa14dffaafccfb03fe90c9ba8779b77b3cd22ab44baae09a1fb7b266d0f2604"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_datatable/src/state/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RXK-1"
+          ],
+          "sha256": "f871ec89f975fe1efc572850033134711f94557a3aab241b1c73fb905fa6cb59"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_datatable/tests/virtual_list_layer_kinds.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RXK-1"
+          ],
+          "sha256": "4b8e10e60e1fdbca50bd03755336f4eb4c52d200499b9ecb46dfac166917c769"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/layout/scroll/scrollable_mask.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DF-1"
+          ],
+          "sha256": "f96f4a79b115881c5745db38dbd0b7aa24f16bd08968bbd2d90cd851ea19789d"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_datatable/tests/wheel_frames.rs",
+          "kind": "test",
+          "criterionIds": [
+            "DF-1"
+          ],
+          "sha256": "d7757841ff1fc5e55c7a136ab19f15bffe51c98a5d2c8328625965e51cc62aad"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/renderer_identity.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PR-2"
+          ],
+          "sha256": "fd07fe991f709cc30793ad7abf829f6e79779c06d80b5a51687c239173384a0b"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/element.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PR-1",
+            "PR-2",
+            "PV-3"
+          ],
+          "sha256": "36499f1420aeafc32f967c119a150597ce735c9593cc40e261dd4ab5d2c650bc"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/tree/element.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PR-1",
+            "PR-2",
+            "PV-3"
+          ],
+          "sha256": "146c68b8c3a9b463664b0f64b865d208499e1353344628e0a110554efa96d22d"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/parent_rerender_cost.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PR-1"
+          ],
+          "sha256": "05f44c9064d3904d3b99fe0cc5ff61069d2bfcb605f638463d18e6a164596528"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "docs/src/virtualized-collections.md",
+          "kind": "source",
+          "criterionIds": [
+            "PR-3"
+          ],
+          "sha256": "69e9cef7745ff984478e33c103b7f2902ce273433a3ca8a501cc18156b8b40c7"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "apps/test_suite/src/pages/range_recorder.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PR-3"
+          ],
+          "sha256": "6cf2596f2afb2ceb1af485d1fc585e2efbe8b07f1456c5a0abd9530ae92a4727"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "apps/test_suite/src/pages/virtualization.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "PR-3"
+          ],
+          "sha256": "1d7f45f2faac58c9d847abf8f5519c8c0879b5a6e3faf625d81a5a325397a665"
+        }
+      ],
+      "acknowledgedDispositions": [
+        "check:c-lane-c-layers-full"
+      ],
+      "summaryMarkdown": "Passed: the final review of the integrated epic. I reviewed every sprint independently (s00, s00b, s01, s02, s03, s04, s04c, s05, s06, s06b, s06c, s07, s08 and s08b). Every finding raised (lk-s00-F1..F4, lk-s00b-F1..F3, lk-s02-F1/F2, lk-s03-F1, lk-s04-F1/F2, lk-s04c-F1, lk-s05-F1, lk-s07-F1) is resolved with a regression test or an owner decision.\n\n**Cross-sprint interactions checked on the integrated tree:**\n- s00's measured-leaf rebuild and s04's promoted `ParentViewport` list: the promoted list keeps the spacer path, not a measured leaf, so its view stays reusable, while an `Infer` list's view is rebuilt as a notify, spliced through `dirty_views`.\n- s00b's ties-down edge rounding and s04's row-origin snapping: both run under `snapping()` and round consistently, so whole-pixel layer moves preserve edges.\n- s01's axis-generic slots under s02's sticky exclusion predicate and s03's `SynchronizedOffset` clip gate: all three feed `begin_rows`, and the s06b AccessKit row model sits under all of them.\n- s04c's hover-free `div`-layer follow and s04's told rows: told rows follow through `follow_told_prepaint`/`follow_told_paint`, and PR-5 replays the container's own scroll target in place.\n- s05/s06c's `publish_wheel_offset`: one frame per wheel turn with fast mode on and off.\n\n**Output with fast mode off is unchanged**, except where the owner decided otherwise: s03's clip was removed in favour of an eligibility gate, and DataTable's row clipping and the mask's wheel publishing are recorded in d-consumer-proof and DF-1.\n\n**Disposition and owner decisions acknowledged:**\n- `check:c-lane-c-layers-full` is withdrawn by the owner's quoted decision; `c-lane-c-layers-renamed` runs the same groups and environment on `gpux-tests-conformance`.\n- PR / d-conditional-state-writes: 'Yes, A + B together', implemented as type identity for zero-sized renderers plus `renderer_key`.\n- PR-3 / t07b: (B) and the TreeView fix were withdrawn, `row_renderer_changes` stays as regression coverage, and the subscribing-parent limit is with the owner.\n- TM-2: amended to 'not slower than off beyond the interval, with the work saved shown by the deterministic counters'; it is met on the steady fourth lane G run.\n\n`c-attribution` and `c-attribution-all` both stay, as the runtime requires. `check --epic` passed at revision 135 with no proof errors (34 checks). `c-attribution-all`, the whole `fast::` suite, lane A and lane C are left to CI, as d-proof records.",
+      "findingIds": [],
+      "recordedAt": "2026-10-18T10:43:13Z"
     }
   },
   "checkpoints": {
