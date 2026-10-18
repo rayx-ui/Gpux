@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list-layer-kinds",
-  "revision": 19,
+  "revision": 22,
   "title": "Measured leaves kept under view retention, and every VirtualList kind on scroll layers: horizontal, sticky, SynchronizedOffset and ParentViewport lists composite, RayX's parent-viewport invalidation narrowed, timings measured",
   "validationMode": "sprint",
   "repositories": [
@@ -1159,6 +1159,29 @@
         "crates/gpui_macos/**",
         "crates/gpui_platform/**"
       ]
+    },
+    {
+      "id": "c-attribution-all",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "TM-1"
+      ],
+      "descriptionMarkdown": "The whole `fast_mode_attribution` group: every `scroll-virtual-list*` scenario's attribution test, `virtual_lists_render_fewer_rows_on_their_layers` and `every_scenario_is_attributed`. Beside the sealed `c-attribution`, whose `scroll_virtual_list` filter selects the scenario tests alone and which stays, as a final check left to CI cannot hold TM-1 on its own.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support,bench-support",
+        "--test",
+        "fast_mode_attribution"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 25
+      }
     }
   ],
   "finalCheckIds": [
@@ -1170,7 +1193,8 @@
     "final-rx-check",
     "final-fast-suite",
     "final-lane-a",
-    "final-lane-c"
+    "final-lane-c",
+    "c-attribution-all"
   ],
   "sprints": [
     {
@@ -1958,6 +1982,37 @@
             {
               "repositoryId": "gpux",
               "path": "crates/gpux_tests_conformance/Cargo.toml"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s08b-attribution-all",
+      "title": "Every virtual-list scenario's attribution, selected whole",
+      "dependsOn": [
+        "s08-lane-c-renamed"
+      ],
+      "memoryScopes": [
+        "gpux:repository/validation"
+      ],
+      "checkIds": [],
+      "tasks": [
+        {
+          "id": "t16-attribution-all",
+          "title": "Select the whole attribution group for TM-1",
+          "descriptionMarkdown": "The owner decided (2026-10-18), relayed by the coordinating session, answering \"Withdraw and replace `c-lane-c-layers-full` that way, and fix `c-attribution` too?\": \"Yes\". Replace the sealed `c-attribution`, whose filter left out the row-count and listing tests, by a check running the whole group; no source changes. The runtime takes a replacement for a criterion of sealed s06 as a final check only: `c-attribution-all` is one, and this task replaces the sealed check without a check of its own.",
+          "criterionIds": [],
+          "supportingCriterionIds": [],
+          "designIds": [
+            "d-timings"
+          ],
+          "dependsOn": [],
+          "checkIds": [],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/tests/fast_mode_attribution.rs"
             }
           ]
         }
