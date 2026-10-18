@@ -82,6 +82,15 @@ pub(crate) struct Painting {
     pub(crate) surface_switches: Vec<(usize, CompositionSurfaceId)>,
     /// Where the content paints, while it paints into the layer's scene.
     pub(crate) onto: Option<PaintingOnto>,
+    /// What the content asked to run on every frame that composites it (see
+    /// [`crate::fast::layers::reuse::on_composite`]); `None` for a list's
+    /// rows, which take no such callback.
+    pub(crate) on_composite: Option<Vec<crate::fast::layers::reuse::CompositeCallback>>,
+    /// The rows of lists in the content, painted for the region the layer
+    /// paints, with whether each list shows them (see
+    /// [`crate::fast::layers::lists::content_row_painted`]); `None` for a
+    /// list's rows.
+    pub(crate) told: Option<Vec<crate::fast::layers::lists::ToldRow>>,
 }
 
 /// What the frame's scene and surface starts tell of where content paints,
@@ -310,6 +319,9 @@ fn begin_scrolling_children(
                 viewport,
                 scroll_offset,
             });
+            // What the content asked to run tells which of its lists' rows
+            // are shown at this offset, which the carry hides the others of.
+            crate::fast::layers::reuse::run_on_composite(window, cx, id, scroll_offset);
             crate::fast::layers::reuse::carry_prepaint(window, id, viewport, scroll_offset);
         }
         Decision::Repaint => {
@@ -356,6 +368,8 @@ fn begin_scrolling_children(
                 content_layout: window.fast_layers.pending_content.remove(id),
                 surface_switches: Vec::new(),
                 onto: None,
+                on_composite: Some(Vec::new()),
+                told: Some(Vec::new()),
             });
             // Culling works in the painted region, not in the viewport and
             // whatever clips it; the composite clips to those.
@@ -376,6 +390,16 @@ fn begin_scrolling_children(
 /// for later (a fixed element's containing block, a deferred draw's clip)
 /// takes the viewport's.
 #[inline]
+/// Whether content being prepainted paints into a scrolling `div`'s layer,
+/// which takes composite callbacks (see [`crate::fast::layers::reuse::on_composite`]).
+pub(crate) fn painting_container_layer(window: &Window) -> bool {
+    window
+        .fast_layers
+        .painting
+        .as_ref()
+        .is_some_and(|painting| painting.on_composite.is_some())
+}
+
 pub(crate) fn unlayered_content_mask(window: &Window) -> ContentMask<Pixels> {
     let mask = window.content_mask();
     match window.fast_layers.painting.as_ref() {
@@ -1306,6 +1330,7 @@ fn repaint(
     }
 
     let views = crate::fast::layers::invalidate::content_views(window, &painting.prepaint_range);
+    let told_frame = window.fast_layers.frame;
     let layer = layer_mut(window, &painting.id);
     let generation = layer.next_generation();
     let dirty = match &layer.record {
@@ -1334,7 +1359,11 @@ fn repaint(
         paths,
         view_layouts: Rc::new(mem::take(&mut painting.view_layouts)),
         content_layout: painting.content_layout.take(),
+        on_composite: painting.on_composite.take().unwrap_or_default().into(),
     });
+    layer
+        .rows
+        .tell_content_rows(painting.told.take().unwrap_or_default(), told_frame);
     let dirtied = layer
         .record
         .as_ref()

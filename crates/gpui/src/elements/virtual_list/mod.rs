@@ -1038,6 +1038,11 @@ pub struct VirtualListFrameState {
     /// from `sticky_start`, drawn above the rows (and above a list layer).
     items: Vec<AnyElement>,
     sticky_start: usize,
+    /// For a `ParentViewport` list painted into its parent's layer, each row's index, whether
+    /// the viewport shows it, and what prepainting it added to the frame, with where the rows
+    /// lie among those the layer tells (see `fast::layers::lists::content_row_painted`).
+    content_rows: Vec<(usize, bool, Range<crate::PrepaintStateIndex>)>,
+    content_told: Option<Rc<RefCell<Vec<usize>>>>,
     size_layout: ItemSizeLayout,
     scroll_context: Option<ScrollContainerContext>,
 }
@@ -1272,6 +1277,8 @@ impl Element for VirtualList {
             VirtualListFrameState {
                 items: Vec::new(),
                 sticky_start: 0,
+                content_rows: Vec::new(),
+                content_told: None,
                 size_layout,
                 scroll_context: None,
             },
@@ -1289,15 +1296,30 @@ impl Element for VirtualList {
     ) -> Self::PrepaintState {
         layout.items.clear();
         layout.sticky_start = 0;
+        layout.content_rows.clear();
+        layout.content_told = None;
         layout.scroll_context = None;
         layout.size_layout.last_layout_bounds = bounds;
         let parent_viewport_scroll = self.uses_parent_viewport_scroll();
         // A list in its parent's flow takes the parent's viewport from the content mask. While
         // the parent's scroll layer paints its content the mask is the region the layer paints,
         // the viewport and its overscan; the viewport is what the list's metrics and range
-        // describe, and the rows it shows, as without a layer.
+        // describe.
         let parent_viewport_bounds =
             crate::fast::layers::paint::unlayered_content_mask(window).bounds;
+        // Painted into its parent's layer, a list without sticky rows renders the rows of the
+        // region the layer paints and reads no parent offset: the layer composites it at other
+        // offsets, where its metrics and range are answered from the parent's offset then (see
+        // `parent_viewport_on_composite`). Sticky rows move with the viewport: such a list reads
+        // the offset, and the layer paints it again as the parent scrolls.
+        let promoted = parent_viewport_scroll
+            && self.sticky_items.items().is_empty()
+            && crate::fast::layers::paint::painting_container_layer(window);
+        let rows_viewport_bounds = if promoted {
+            window.content_mask().bounds
+        } else {
+            parent_viewport_bounds
+        };
 
         let style = self
             .base
@@ -1342,7 +1364,11 @@ impl Element for VirtualList {
         let deferred_scroll_to_item = scroll_state.deferred_scroll_to_item.take();
         drop(scroll_state);
 
-        let mut scroll_offset = self.scroll_handle.offset();
+        let mut scroll_offset = if promoted {
+            self.scroll_handle.base_handle().offset_untracked()
+        } else {
+            self.scroll_handle.offset()
+        };
         let deferred_parent_viewport_scroll_offset = if parent_viewport_scroll {
             self.scroll_handle.update_parent_viewport_metrics(
                 axis,
@@ -1464,7 +1490,7 @@ impl Element for VirtualList {
                         Axis::Horizontal => {
                             if parent_viewport_scroll {
                                 let viewport_bounds =
-                                    parent_viewport_bounds.intersect(&content_bounds);
+                                    rows_viewport_bounds.intersect(&content_bounds);
                                 extent_index.visible_range(
                                     viewport_bounds.left() - content_bounds.left(),
                                     viewport_bounds.right() - content_bounds.left(),
@@ -1481,7 +1507,7 @@ impl Element for VirtualList {
                         Axis::Vertical => {
                             if parent_viewport_scroll {
                                 let viewport_bounds =
-                                    parent_viewport_bounds.intersect(&content_bounds);
+                                    rows_viewport_bounds.intersect(&content_bounds);
                                 extent_index.visible_range(
                                     viewport_bounds.top() - content_bounds.top(),
                                     viewport_bounds.bottom() - content_bounds.top(),
@@ -1569,7 +1595,37 @@ impl Element for VirtualList {
                         }
                     }
 
-                    if let Some(listener) = &self.rendered_range_listener {
+                    let mut shown_range = None;
+                    if promoted {
+                        // The range of the viewport, as without a layer, on this frame and on
+                        // each frame that composites the parent's layer.
+                        let geometry = ParentViewportGeometry {
+                            axis: self.axis,
+                            viewport: parent_viewport_bounds,
+                            content: content_bounds,
+                            content_size: layout.size_layout.content_size,
+                            extents: extent_index.clone(),
+                            items_count: self.items_count,
+                            overscan: self.overscan,
+                        };
+                        shown_range = Some(geometry.range(content_bounds));
+                        let told = Rc::new(RefCell::new(Vec::new()));
+                        layout.content_told = Some(told.clone());
+                        let layer = window
+                            .fast_layers
+                            .painting
+                            .as_ref()
+                            .map(|painting| painting.id.clone());
+                        let on_composite = parent_viewport_on_composite(
+                            self.scroll_handle.clone(),
+                            self.rendered_range_listener.clone(),
+                            geometry,
+                            window.rendered_entity_stack.last().copied(),
+                            layer.map(|layer| (layer, told)),
+                        );
+                        on_composite(point(px(0.), px(0.)), window, cx);
+                        crate::fast::layers::reuse::on_composite(window, on_composite);
+                    } else if let Some(listener) = &self.rendered_range_listener {
                         publish_rendered_range(listener, rendered_range.clone(), window, cx);
                     }
 
@@ -1759,6 +1815,31 @@ impl Element for VirtualList {
                                         }
                                     }
                                 };
+                                // A list in its parent's flow places its rows on whole device
+                                // pixels while scroll layers snap, as a list scrolling itself
+                                // does: a row the parent's layer painted at one offset and shows
+                                // at another lands where one drawn there afresh does. The list's
+                                // origin and the row's offset snap apart, so that the last bits
+                                // of their sum at a fractional scale factor cannot tip a row
+                                // half a device pixel off one way at one offset and the other
+                                // way at another.
+                                let item_origin =
+                                    if parent_viewport_scroll && window.fast_mode.snapping() {
+                                        match self.axis {
+                                            Axis::Horizontal => point(
+                                                window.pixel_snap(content_bounds.origin.x)
+                                                    + window.pixel_snap(item_origins[ix]),
+                                                item_origin.y,
+                                            ),
+                                            Axis::Vertical => point(
+                                                item_origin.x,
+                                                window.pixel_snap(content_bounds.origin.y)
+                                                    + window.pixel_snap(item_origins[ix]),
+                                            ),
+                                        }
+                                    } else {
+                                        item_origin
+                                    };
 
                                 let active_offset = active_sticky_items
                                     .iter()
@@ -1798,6 +1879,18 @@ impl Element for VirtualList {
                                     item
                                 };
 
+                                // A row painted for the region the parent's layer paints that the
+                                // viewport does not show answers nothing (see
+                                // `fast::layers::lists::begin_content_row`).
+                                let content_row = shown_range.as_ref().map(|shown| {
+                                    let shown = shown.contains(&ix);
+                                    (
+                                        shown,
+                                        crate::fast::layers::lists::begin_content_row(
+                                            window, shown,
+                                        ),
+                                    )
+                                });
                                 if own_scroll {
                                     crate::fast::layout_key::layout_as_list_item(
                                         &mut item,
@@ -1818,6 +1911,12 @@ impl Element for VirtualList {
                                     );
                                 } else {
                                     item.prepaint_at(item_origin, window, cx);
+                                }
+                                if let Some((shown, start)) = content_row {
+                                    let prepaint = crate::fast::layers::lists::end_content_row(
+                                        window, start, shown,
+                                    );
+                                    layout.content_rows.push((ix, shown, prepaint));
                                 }
                                 layout.items.push(item);
                             }
@@ -1855,9 +1954,30 @@ impl Element for VirtualList {
                     != Some(VirtualListExternalScrollBehavior::ParentViewport);
                 let mut paint_items = |window: &mut Window, cx: &mut App| {
                     if !own_scroll {
-                        for item in &mut layout.items {
+                        let Some(told) = layout.content_told.as_ref() else {
+                            for item in &mut layout.items {
+                                item.paint(window, cx);
+                            }
+                            return;
+                        };
+                        let mut told_rows = Vec::with_capacity(layout.content_rows.len());
+                        for (item, (ix, shown, prepaint)) in
+                            layout.items.iter_mut().zip(&layout.content_rows)
+                        {
+                            let start = window.paint_index();
                             item.paint(window, cx);
+                            let paint = start..window.paint_index();
+                            // Told after the rows of any list nested in it.
+                            told_rows.push(crate::fast::layers::lists::content_rows_told(window));
+                            crate::fast::layers::lists::content_row_painted(
+                                window,
+                                *ix,
+                                *shown,
+                                prepaint.clone(),
+                                paint,
+                            );
                         }
+                        *told.borrow_mut() = told_rows;
                         return;
                     }
                     let (rows, sticky) = layout.items.split_at_mut(layout.sticky_start);
@@ -1899,6 +2019,85 @@ fn publish_rendered_range(
     cx: &mut App,
 ) {
     crate::fast::layers::lists::render_items(window, cx, |window, cx| listener(range, window, cx));
+}
+
+/// What a `ParentViewport` list painted into its parent's layer recorded to answer its metrics
+/// and range on the frames compositing the layer: where its content lay, in window space, when
+/// it was painted, the parent's viewport, and its items' extents.
+#[derive(Clone)]
+struct ParentViewportGeometry {
+    axis: Axis,
+    viewport: Bounds<Pixels>,
+    content: Bounds<Pixels>,
+    content_size: Size<Pixels>,
+    extents: OrderedExtentIndex,
+    items_count: usize,
+    overscan: usize,
+}
+
+impl ParentViewportGeometry {
+    /// The mounted, clamped, overscanned range the parent's viewport shows with the content at
+    /// `content`, as a frame without layers publishes it.
+    fn range(&self, content: Bounds<Pixels>) -> Range<usize> {
+        let shown = self.viewport.intersect(&content);
+        let visible = match self.axis {
+            Axis::Horizontal => self.extents.visible_range(
+                shown.left() - content.left(),
+                shown.right() - content.left(),
+                self.items_count,
+            ),
+            Axis::Vertical => self.extents.visible_range(
+                shown.top() - content.top(),
+                shown.bottom() - content.top(),
+                self.items_count,
+            ),
+        }
+        .0;
+        overscanned_item_range(visible, self.overscan, self.items_count)
+    }
+}
+
+/// What a `ParentViewport` list painted into its parent's layer runs on each frame compositing
+/// the layer, the content moved by the scroll since: it records the parent's metrics with its
+/// handle from the parent's offset then, as prepainting it would, and calls its range listener
+/// with the range the viewport shows, as part of drawing `view`, the view holding the list.
+fn parent_viewport_on_composite(
+    handle: VirtualListScrollHandle,
+    listener: Option<RenderedRangeListener>,
+    geometry: ParentViewportGeometry,
+    view: Option<crate::EntityId>,
+    rows: Option<(GlobalElementId, Rc<RefCell<Vec<usize>>>)>,
+) -> crate::fast::layers::reuse::CompositeCallback {
+    Rc::new(move |moved, window, cx| {
+        let content = Bounds {
+            origin: geometry.content.origin + moved,
+            size: geometry.content.size,
+        };
+        handle.update_parent_viewport_metrics(
+            geometry.axis,
+            geometry.viewport,
+            content,
+            geometry.content_size,
+            handle.base_handle().offset_untracked(),
+        );
+        let range = if geometry.items_count == 0 {
+            0..0
+        } else {
+            geometry.range(content)
+        };
+        // The rows the layer holds that the viewport shows now answer as without a layer; the
+        // others answer nothing.
+        if let Some((layer, told)) = &rows {
+            crate::fast::layers::lists::show_content_rows(window, layer, &told.borrow(), |row| {
+                range.contains(&row)
+            });
+        }
+        if let Some(listener) = &listener {
+            crate::fast::layers::lists::render_items_of(window, cx, view, |window, cx| {
+                listener(range, window, cx)
+            });
+        }
+    })
 }
 
 fn overscanned_item_range(

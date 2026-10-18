@@ -32,6 +32,57 @@ use crate::{
     },
 };
 
+/// What content painted into a layer runs on every frame that composites
+/// the layer instead of painting it: the content is neither prepainted nor
+/// painted then, and the callback gets how far it moved, in window space,
+/// since it was painted. A `ParentViewport` `virtual_list` answers its
+/// metrics and calls its range listener so.
+pub(crate) type CompositeCallback = Rc<dyn Fn(Point<Pixels>, &mut Window, &mut App)>;
+
+/// Registers `callback` with the layer the content being prepainted paints
+/// into, returning whether there is one that takes it: a scrolling `div`'s,
+/// not a list's.
+pub(crate) fn on_composite(window: &mut Window, callback: CompositeCallback) -> bool {
+    match window
+        .fast_layers
+        .painting
+        .as_mut()
+        .and_then(|painting| painting.on_composite.as_mut())
+    {
+        Some(callbacks) => {
+            callbacks.push(callback);
+            true
+        }
+        None => false,
+    }
+}
+
+/// Runs what the content of the layer of the container `id` asked to run
+/// on a frame compositing it at `scroll_offset`.
+pub(crate) fn run_on_composite(
+    window: &mut Window,
+    cx: &mut App,
+    id: &GlobalElementId,
+    scroll_offset: Point<Pixels>,
+) {
+    let Some(record) = window
+        .fast_layers
+        .layers
+        .get(id)
+        .and_then(|layer| layer.record.as_ref())
+    else {
+        return;
+    };
+    if record.on_composite.is_empty() {
+        return;
+    }
+    let callbacks = record.on_composite.clone();
+    let moved = scroll_offset - record.scroll_offset;
+    for callback in callbacks.iter() {
+        callback(moved, window, cx);
+    }
+}
+
 /// Carries the prepaint records of the content of the layer of the
 /// container `id`, composited at `scroll_offset` in `viewport`, into the
 /// frame being drawn, where prepainting the content would add them.
@@ -41,9 +92,21 @@ pub(crate) fn carry_prepaint(
     viewport: Bounds<Pixels>,
     scroll_offset: Point<Pixels>,
 ) {
+    let frame = window.fast_layers.frame;
     let Some(layer) = window.fast_layers.layers.get_mut(id) else {
         return;
     };
+    // The rows of lists in the content, carried each shown or hidden as its
+    // list shows it at this offset (see `lists::show_content_rows`).
+    let told: Vec<(Range<PrepaintStateIndex>, bool)> = layer
+        .rows
+        .told_before(frame)
+        .map(|rows| {
+            rows.iter()
+                .map(|row| (row.prepaint.clone(), row.shown))
+                .collect()
+        })
+        .unwrap_or_default();
     let Some(record) = layer.record.as_mut() else {
         return;
     };
@@ -61,13 +124,36 @@ pub(crate) fn carry_prepaint(
     // The hitboxes are the layer's, lent to the carry while it runs.
     let hitboxes = std::mem::take(&mut input.hitboxes);
     let carried = carry_prepaint_records(
-        window, &range, &hitboxes, delta, step, viewport, !moved, true,
+        window, &range, &hitboxes, delta, step, viewport, !moved, true, &told,
     );
-    if let Some(layer) = window.fast_layers.layers.get_mut(id) {
-        layer.input.hitboxes = hitboxes;
-        if let Some(record) = layer.record.as_mut() {
-            record.prepaint_range = carried;
+    let Some(layer) = window.fast_layers.layers.get_mut(id) else {
+        return;
+    };
+    layer.input.hitboxes = hitboxes;
+    if let Some(record) = layer.record.as_mut() {
+        record.prepaint_range = carried.clone();
+    }
+    if told.is_empty() {
+        return;
+    }
+    // The told rows lie where the carry put the records, and those hidden
+    // take nothing of the focus the copy gave back.
+    let shift = |prepaint: &Range<PrepaintStateIndex>| {
+        prepaint.start.shifted(&range.start, &carried.start)
+            ..prepaint.end.shifted(&range.start, &carried.start)
+    };
+    let mut hidden = Vec::new();
+    if let Some(rows) = layer.rows.told_before(frame) {
+        for row in rows.iter_mut() {
+            row.prepaint = shift(&row.prepaint);
+            if !row.shown {
+                hidden.push(row.prepaint.clone());
+            }
         }
+    }
+    layer.rows.told_again(frame);
+    for prepaint in hidden {
+        crate::fast::layers::lists::hide_focus(&mut window.next_frame, &prepaint);
     }
 }
 
@@ -94,6 +180,7 @@ pub(crate) fn carry_prepaint_records(
     viewport: Bounds<Pixels>,
     tooltips: bool,
     element_states: bool,
+    rows: &[(Range<PrepaintStateIndex>, bool)],
 ) -> Range<PrepaintStateIndex> {
     // Content that deferred draws is never composited.
     debug_assert_eq!(
@@ -103,7 +190,8 @@ pub(crate) fn carry_prepaint_records(
     let start = window.prepaint_index();
     // The accessibility nodes the records carry lie where the last frame showed them.
     window.a11y.replay_offset = step;
-    window.reuse_prepaint(range.clone());
+    // Each of `rows`, in order within `range`, replayed shown or hidden.
+    window.reuse_prepaint_with_rows(range.clone(), rows);
     window.a11y.replay_offset = Point::default();
     let next = &mut window.next_frame;
     // The hitboxes copied are where the content was painted; the layer's
@@ -144,6 +232,35 @@ pub(crate) fn carry_paint(window: &mut Window, id: &GlobalElementId) {
     let step = layer.input.step;
     let viewport = layer.input.viewport;
     let mut carried = carry_paint_records(window, &range, step, viewport, true);
+    // The told rows' paint records lie where the carry put them, and those
+    // hidden answer nothing: the copy gave their tab stops back.
+    let from = PaintIndex {
+        scene_index: 0,
+        ..range.start.clone()
+    };
+    let to = PaintIndex {
+        scene_index: 0,
+        ..carried.start.clone()
+    };
+    let mut hidden = Vec::new();
+    if let Some(rows) = window
+        .fast_layers
+        .layers
+        .get_mut(id)
+        .and_then(|layer| layer.rows.told_in(frame))
+    {
+        for row in rows.iter_mut() {
+            if let Some(paint) = row.paint.as_mut() {
+                *paint = paint.start.shifted(&from, &to)..paint.end.shifted(&from, &to);
+                if !row.shown {
+                    hidden.push(paint.clone());
+                }
+            }
+        }
+    }
+    for paint in hidden {
+        crate::fast::layers::lists::hide_records(&mut window.next_frame, &paint);
+    }
     let Some(layer) = window.fast_layers.layers.get_mut(id) else {
         return;
     };

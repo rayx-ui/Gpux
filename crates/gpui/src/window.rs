@@ -5391,6 +5391,18 @@ impl Window {
     }
 
     pub(crate) fn reuse_prepaint(&mut self, range: Range<PrepaintStateIndex>) {
+        self.reuse_prepaint_with_rows(range, &[]);
+    }
+
+    /// [`Self::reuse_prepaint`], with the accessibility nodes of each of
+    /// `rows`, in order within `range`, replayed shown or hidden. The rest is
+    /// reused in one piece: a dispatch subtree copied in pieces would lose
+    /// the nodes its pieces nest in.
+    pub(crate) fn reuse_prepaint_with_rows(
+        &mut self,
+        range: Range<PrepaintStateIndex>,
+        rows: &[(Range<PrepaintStateIndex>, bool)],
+    ) {
         crate::fast::composition::reuse_placements(self, &range);
         self.next_frame.hitboxes.extend(
             self.rendered_frame.hitboxes[range.start.hitboxes_index..range.end.hitboxes_index]
@@ -5442,12 +5454,26 @@ impl Window {
 
         // The accessibility tree of the reused content, built again from what building it
         // recorded, under the node it sits in now.
-        let scale_factor = self.scale_factor();
-        self.a11y.replay(
+        // The rows in event order, each before the rows of the lists nested
+        // in it: a row of a nested list is as hidden as the row holding it.
+        let mut events: Vec<(Range<usize>, bool)> = rows
+            .iter()
+            .map(|(row, shown)| {
+                (
+                    row.start.a11y_events_index..row.end.a11y_events_index,
+                    *shown,
+                )
+            })
+            .collect();
+        events.sort_by(|(a, _), (b, _)| a.start.cmp(&b.start).then(b.end.cmp(&a.end)));
+        // Reused inside a row that is hidden, all of it is.
+        let hidden = self.a11y.nodes.hidden;
+        self.replay_a11y_rows(
             range.start.a11y_events_index..range.end.a11y_events_index,
-            self.focus,
-            scale_factor,
+            &events,
+            hidden,
         );
+        self.a11y.nodes.hidden = hidden;
 
         let fast_enclosing = crate::fast::retained::enclosing_retained(self);
         self.next_frame.deferred_draws.extend(
@@ -5471,6 +5497,38 @@ impl Window {
                     fast_enclosing: fast_enclosing.clone(),
                 }),
         );
+    }
+
+    /// Replays the accessibility events `range` of the last frame, the
+    /// events of each of `rows` (sorted by start, outer rows first) hidden
+    /// unless it is shown, and the rest `hidden`.
+    fn replay_a11y_rows(
+        &mut self,
+        range: Range<usize>,
+        rows: &[(Range<usize>, bool)],
+        hidden: bool,
+    ) {
+        let scale_factor = self.scale_factor();
+        let mut at = range.start;
+        let mut index = 0;
+        while index < rows.len() {
+            let (row, shown) = rows[index].clone();
+            let nested = rows[index + 1..]
+                .iter()
+                .take_while(|(inner, _)| inner.start < row.end)
+                .count();
+            self.a11y.nodes.hidden = hidden;
+            self.a11y.replay(at..row.start, self.focus, scale_factor);
+            self.replay_a11y_rows(
+                row.clone(),
+                &rows[index + 1..index + 1 + nested],
+                hidden || !shown,
+            );
+            at = row.end;
+            index += 1 + nested;
+        }
+        self.a11y.nodes.hidden = hidden;
+        self.a11y.replay(at..range.end, self.focus, scale_factor);
     }
 
     pub(crate) fn paint_index(&self) -> PaintIndex {

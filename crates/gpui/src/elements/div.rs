@@ -5367,6 +5367,13 @@ impl ScrollHandle {
         *state.offset.borrow()
     }
 
+    /// The current scroll offset, read without making what reads it depend on it: for what a
+    /// layer's content records only to answer later from the offset then (see
+    /// `fast::layers::reuse::on_composite`).
+    pub(crate) fn offset_untracked(&self) -> Point<Pixels> {
+        *self.0.borrow().offset.borrow()
+    }
+
     /// Try to get the current scroll offset without panicking if the handle is already borrowed.
     pub fn try_offset(&self) -> Option<Point<Pixels>> {
         self.0.try_borrow().ok().map(|state| {

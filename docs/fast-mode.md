@@ -429,10 +429,21 @@ extent, and is part of its parent `div`'s content and layer. It takes the parent
 the content mask as it is without a layer (`paint::unlayered_content_mask`): while the parent's
 layer paints, the mask is the region the layer paints, and the metrics the list publishes
 (`parent_viewport_primary_size`, `parent_viewport_scroll_offset`,
-`parent_viewport_max_scroll_offset`), its range and the rows it renders are the viewport's. The
-list reads the parent's offset, so the parent's layer is painted again on every frame the parent
-scrolls, until it is demoted, and composites only at the offset it was painted at; keeping that
-layer promoted is a follow-up.
+`parent_viewport_max_scroll_offset`), its range and the rows it renders are those of the region the
+layer paints. It reads no offset of the parent as it renders (`ScrollHandle::offset_untracked`), so
+a scroll of the parent composites the parent's layer and the layer stays promoted, painted again
+only as the scroll reaches the edge of the region it painted. On the frames that composite it, the
+layer runs the list's composite callback (`reuse::on_composite`) before it carries its records:
+the list answers its metrics and calls its range listener from the parent's offset then, and the
+rows the layer holds that the viewport does not show (`lists::show_content_rows`) answer nothing
+— no hitbox, tab stop, focus, listener or accessibility node — as a frame drawn without layers
+renders none of them. The rows' prepaint is carried in one piece, with only their accessibility
+nodes replayed hidden or shown (`Window::reuse_prepaint_with_rows`): a dispatch subtree copied in
+pieces would lose the node the rows nest in. The rows of a promoted list nested in a row of
+another are replayed within it, as hidden as the row holding them when it is. While scroll layers snap, the list places its rows
+on whole device pixels, its origin and each row's offset snapped apart, so a row the layer painted
+at one offset lands where one drawn afresh at another does at a fractional scale factor
+(`fast::tests::virtual_list_layers::parent_promoted`).
 
 Over 60 wheel frames of 15 px on 10,000 rows in a 100 px list (the harness of
 `fast::tests::virtual_list_layers::rows`, the test platform at scale 1, the shipped overscan), a

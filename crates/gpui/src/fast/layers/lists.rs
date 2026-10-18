@@ -170,6 +170,33 @@ pub(crate) struct LayerRows {
 }
 
 impl LayerRows {
+    /// Keeps `told`, the rows a list painted into a scroll container's layer
+    /// recorded in the frame `frame` (see [`content_row_painted`]), in place
+    /// of those the layer held.
+    pub(crate) fn tell_content_rows(&mut self, told: Vec<ToldRow>, frame: u64) {
+        self.told_frame = (!told.is_empty()).then_some(frame);
+        self.told = told;
+    }
+
+    /// The rows the layer told in the frame before `frame`, which a frame
+    /// compositing the layer carries.
+    pub(crate) fn told_before(&mut self, frame: u64) -> Option<&mut Vec<ToldRow>> {
+        (self.told_frame.is_some_and(|told| told + 1 == frame) && !self.told.is_empty())
+            .then_some(&mut self.told)
+    }
+
+    /// The rows the layer told, as carried into the frame `frame` (see
+    /// [`Self::told_again`]).
+    pub(crate) fn told_in(&mut self, frame: u64) -> Option<&mut Vec<ToldRow>> {
+        (self.told_frame == Some(frame)).then_some(&mut self.told)
+    }
+
+    /// Notes that the rows the layer told are told in `frame` too, once
+    /// their records are carried into it.
+    pub(crate) fn told_again(&mut self, frame: u64) {
+        self.told_frame = Some(frame);
+    }
+
     /// Ends the frame being drawn.
     pub(crate) fn finish_frame(&mut self) {
         self.frame = None;
@@ -1530,6 +1557,24 @@ pub(crate) fn render_items<R>(
     rendered
 }
 
+/// Runs `render` as [`render_items`] does, as part of drawing `view`: for
+/// what a list runs outside its own prepaint, on a frame compositing the
+/// layer it was painted into.
+pub(crate) fn render_items_of<R>(
+    window: &mut Window,
+    cx: &mut App,
+    view: Option<EntityId>,
+    render: impl FnOnce(&mut Window, &mut App) -> R,
+) -> R {
+    if !COMPILED || !LIST_LAYERS || !window.fast_mode.scroll_layers() {
+        return render(window, cx);
+    }
+    let outer = crate::fast::dependencies::rendering_rows_of(cx, view);
+    let rendered = render(window, cx);
+    crate::fast::dependencies::rendering_rows_of(cx, outer);
+    rendered
+}
+
 /// A `list`'s row renderer `render_item`, noting where what rendering each
 /// row reads starts: a list lays a row out right after rendering it, and
 /// what rendering it read is the row's, as what laying it out read is (see
@@ -1670,6 +1715,7 @@ fn carry_prepaint_rows(window: &mut Window, id: &GlobalElementId) {
             viewport,
             tooltips,
             element_states,
+            &[],
         );
         window.a11y.nodes.row = None;
         window.a11y.nodes.hidden = false;
@@ -1755,6 +1801,8 @@ fn marker(id: &GlobalElementId, frame: &RowsFrame) -> Painting {
         content_bounds: frame.painted_region,
         surface_switches: Vec::new(),
         onto: None,
+        on_composite: None,
+        told: None,
     }
 }
 
@@ -3419,6 +3467,121 @@ pub(crate) struct ToldRow {
     pub(crate) listens: Option<Rc<Cell<bool>>>,
 }
 
+/// Begins prepainting a row of a list painted into a scroll container's
+/// layer for the region the layer paints, `shown` if the list shows it: a
+/// row it does not show adds nothing to the accessibility tree.
+pub(crate) fn begin_content_row(window: &mut Window, shown: bool) -> ContentRow {
+    let hidden_before = window.a11y.nodes.hidden;
+    // A row of a list nested in a row the outer list does not show is as
+    // hidden as that row.
+    window.a11y.nodes.hidden = hidden_before || !shown;
+    ContentRow {
+        start: window.prepaint_index(),
+        hidden_before,
+    }
+}
+
+/// A row [`begin_content_row`] began: where its prepaint starts, and whether
+/// what held it was hidden, which ending it restores.
+pub(crate) struct ContentRow {
+    start: PrepaintStateIndex,
+    hidden_before: bool,
+}
+
+/// Ends prepainting a row begun at `start` (see [`begin_content_row`]),
+/// returning what it added to the frame, whose focus a row the list does not
+/// show takes nothing of.
+pub(crate) fn end_content_row(
+    window: &mut Window,
+    row: ContentRow,
+    shown: bool,
+) -> Range<PrepaintStateIndex> {
+    window.a11y.nodes.hidden = row.hidden_before;
+    let prepaint = row.start..window.prepaint_index();
+    if !shown {
+        hide_focus(&mut window.next_frame, &prepaint);
+    }
+    prepaint
+}
+
+/// Notes, as a row of the layer the content being painted paints into, the
+/// row `row` of a list in that content, prepainted over `prepaint` and
+/// painted over `paint`, `shown` if the list shows it. A row the list does
+/// not show answers nothing: its tab stops and test bounds are taken out,
+/// and its listeners listen only while it is shown (see [`hide_records`],
+/// [`listen_while_shown`]).
+pub(crate) fn content_row_painted(
+    window: &mut Window,
+    row: usize,
+    shown: bool,
+    prepaint: Range<PrepaintStateIndex>,
+    paint: Range<PaintIndex>,
+) {
+    let listens = Rc::new(Cell::new(shown));
+    listen_while_shown(&mut window.next_frame, &paint, &listens);
+    if !shown {
+        hide_records(&mut window.next_frame, &paint);
+    }
+    if let Some(told) = window
+        .fast_layers
+        .painting
+        .as_mut()
+        .and_then(|painting| painting.told.as_mut())
+    {
+        told.push(ToldRow {
+            row,
+            shown,
+            loose: false,
+            prepaint,
+            layout: None,
+            paint: Some(paint),
+            listens: Some(listens),
+        });
+    }
+}
+
+/// How many rows the content being painted into a scroll container's layer
+/// has told so far (see [`content_row_painted`]).
+pub(crate) fn content_rows_told(window: &Window) -> usize {
+    window
+        .fast_layers
+        .painting
+        .as_ref()
+        .and_then(|painting| painting.told.as_ref())
+        .map_or(0, Vec::len)
+}
+
+/// Shows the rows `told` of the layer of the container `id` that `shown`
+/// says the list shows at the offset a frame composites it at, and hides
+/// the others, before the frame carries their records. `told` are where
+/// the list's rows lie among those the layer tells, which the rows of a list
+/// nested in one of them lie between.
+pub(crate) fn show_content_rows(
+    window: &mut Window,
+    id: &GlobalElementId,
+    told: &[usize],
+    shown: impl Fn(usize) -> bool,
+) {
+    let frame = window.fast_layers.frame;
+    let Some(rows) = window
+        .fast_layers
+        .layers
+        .get_mut(id)
+        .and_then(|layer| layer.rows.told_before(frame))
+    else {
+        return;
+    };
+    for &index in told {
+        let Some(row) = rows.get_mut(index) else {
+            continue;
+        };
+        row.shown = shown(row.row);
+        if let Some(listens) = &row.listens {
+            listens.set(row.shown);
+        }
+    }
+}
+
 /// The rows of each list's layer with records in the frame `window` last
 /// drew, by layer.
 #[cfg(any(test, feature = "test-support", feature = "diagnostics"))]
@@ -4070,6 +4233,7 @@ pub(crate) fn end_paint_rows(window: &mut Window, cx: &mut App, id: Option<&Glob
         paths: Rc::from([]),
         view_layouts: Rc::default(),
         content_layout: None,
+        on_composite: Rc::from([]),
         content_bounds: painted_region,
         uncompositable: false,
         painted_with: Some(paint.painted_with),

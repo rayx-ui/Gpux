@@ -11,6 +11,7 @@ mod horizontal;
 mod horizontal_oracle;
 mod ineligible;
 mod oracle;
+mod parent_promoted;
 mod parent_viewport;
 mod range;
 mod rows;
@@ -89,6 +90,9 @@ pub(super) struct Page {
     /// Whether each row has an id and a click listener that records it in
     /// [`Log::clicked`], and nothing else.
     pub(super) clicks: bool,
+    /// Whether each row is a list item named after its index, for the
+    /// accessibility tree to tell of, and nothing else.
+    pub(super) labelled: bool,
     pub(super) handle: VirtualListScrollHandle,
     pub(super) parent: ScrollHandle,
     /// The list's handle over `parent`, for a list scrolled by it.
@@ -156,6 +160,7 @@ impl Page {
             interactive: false,
             tint: false,
             clicks: false,
+            labelled: false,
             handle: VirtualListScrollHandle::new(),
             parent,
             log: SharedLog::default(),
@@ -231,6 +236,7 @@ impl Render for Page {
         let horizontal = matches!(self.kind, Kind::Horizontal | Kind::SynchronizedHorizontal);
         let interactive = self.interactive;
         let clicks = self.clicks;
+        let labelled = self.labelled;
         let log = self.log.clone();
         let page = cx.entity().downgrade();
         let rows = move |range: Range<usize>| {
@@ -243,6 +249,13 @@ impl Render for Page {
                         div().w_full().h(px(extents[row]))
                     };
                     let block = block.flex_none().bg(row_color(row, tint));
+                    if labelled {
+                        return block
+                            .id(("row", row))
+                            .role(crate::Role::ListItem)
+                            .aria_label(format!("row {row}"))
+                            .into_any_element();
+                    }
                     if clicks {
                         let log = log.clone();
                         return block
