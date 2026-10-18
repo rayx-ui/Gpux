@@ -1,12 +1,12 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list-layer-kinds",
-  "revision": 103,
-  "planRevision": 16,
+  "revision": 114,
+  "planRevision": 17,
   "specHashes": {
-    "requirements": "597163c035f515652c1475e2ab2017fe0c2680427117543c5a4ecedb85ea9fde",
+    "requirements": "310125450c4c82b8b12a17b7c0bf51dcc4886cb94f09f0862422b5cbbe88533b",
     "design": "8301bc62492265e58cf464608e502afd3c8c87ce8838113d6cdf9b2f07da0118",
-    "plan": "75ad494037117c163a92803b19d14c616d7f194d4e9b8e36608dd9bef7338a47"
+    "plan": "330166a13a02f61c5fae3959cce2f6f0ea3c9b9f8cfcd67b2639296b52dd13c5"
   },
   "tasks": {
     "t01-axis-slots": {
@@ -64,10 +64,16 @@
       ]
     },
     "t10-timings": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
     },
     "t11-docs": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
     },
     "t00-measured-leaves": {
       "status": "done",
@@ -282,6 +288,16 @@
         }
       },
       "recordedAt": "2026-10-18T02:37:23Z"
+    },
+    "4b152c4321da4f2853c11b255e580eef532368980620dcd2a2ddd7c0b4e46097": {
+      "snapshot": {
+        "specHash": "899a7e03a86f0fd398c1f941c1ec0c20c73dbbea34a9be705935f1206fd77f8f",
+        "repositories": {
+          "gpux": "9dbd9416a40274963e560183a5aec6d1ca86186dc6593121567150b3f8af5759",
+          "rayx": "2a22aea97220e64cf84e4d7f9f583ce764a84f6de02332f3ea87ccc35cce79d1"
+        }
+      },
+      "recordedAt": "2026-10-18T10:07:52Z"
     }
   },
   "checkResults": {
@@ -811,6 +827,23 @@
       "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04c-parent-rerender-final-ded9e27a2dbf.log",
       "logSha256": "c86e7392b12e18d760dcce8f290667f8cb8f0234db113f603ab4789f9e45c62e",
       "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "s07-timings-docs/c-perf/final": {
+      "checkId": "c-perf",
+      "boundaryId": "s07-timings-docs",
+      "phase": "final",
+      "batchId": "4b152c4321da4f2853c11b255e580eef532368980620dcd2a2ddd7c0b4e46097",
+      "definitionHash": "3dabbd5f9aa1a6d4fbf1d3dbdf2f50b94605c0ee9009336ce956d93e9cd65659",
+      "basisHash": "f51302d90b861f41979c7f8291cbc61981294400ff89a94ecd807cc885d2119d",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 110,
+      "durationSeconds": 405.5005,
+      "recordedAt": "2026-10-18T10:07:52Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s07-timings-docs-final-a8569a3a4192.log",
+      "logSha256": "aa9bca95405d43dd91b1ea0602a22deae00ae6acd5653081a2b41519c2d67483",
+      "inputsHash": "aa85d58adc659d7c90e52b0f82a143b7870a27ac0ce49465bd7ecd649e315836"
     }
   },
   "reviews": {
@@ -1772,6 +1805,77 @@
         "lk-s04c-F1"
       ],
       "recordedAt": "2026-10-18T02:38:07Z"
+    },
+    "s07-timings-docs": {
+      "reviewerId": "reviewer-lk-s07",
+      "snapshotId": "e4bc1e594f592ac038b5e7432539b517265d56d5d55098f38303d8cd18cbfd28",
+      "criterionIds": [
+        "TM-2",
+        "DOC-1"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md",
+          "kind": "source",
+          "criterionIds": [
+            "TM-2",
+            "DOC-1"
+          ],
+          "sha256": "55156c6603334250637d702981ffbfb520b841093f70cf922defa7ce429395ca"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/benches/fast_mode.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TM-2"
+          ],
+          "sha256": "577ba5dc97c916056b9bb399df04613c729791b66573b196c5b610dc9e327a7c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/scenarios/scroll.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TM-2"
+          ],
+          "sha256": "39b71d219d76cc8cbb4f258755d31eae3d635d4a8cb76269a3bf2f9a727f5c63"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/virtual_list/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-1"
+          ],
+          "sha256": "3e2caccd3c7482276c8d808f3b2300890396fb790a1d4da59e0b2effde0b788f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-1"
+          ],
+          "sha256": "76edecfee124ed429d72ef6b1b054e7315c3e612a8f19478e06159d9572057b5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/uniform_list.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-1"
+          ],
+          "sha256": "97bc976d2f0595e0222b065cb7929b96861220624156ba9a1aa40220bd07c71c"
+        }
+      ],
+      "summaryMarkdown": "Passed.\n\n**TM-2 (as amended):** judged on the fourth, steady run recorded in `docs/fast-mode.md`. No virtual-list kind, nor `scroll-uniform-list` or `scroll-list`, is slower with `layers` than with `off` or `splice` beyond the confidence intervals, and the report's regression list is empty. The work saved is shown by the deterministic counters, and runs 1 to 3 stay recorded, run 3's out-of-interval cases named.\n\n**DOC-1 (met as before):** the 'Virtual lists' section matches the source.\n\n**Nit, no finding:** the closing sentence on the `ParentViewport` list's gains against `splice` lists runs 1–3 (-3.5%, -2.0%, -0.4%) but not run 4's -3.7%.\n\nThe checks are fresh at revision 112.",
+      "findingIds": [
+        "lk-s07-F1"
+      ],
+      "recordedAt": "2026-10-18T10:08:54Z"
     }
   },
   "checkpoints": {
@@ -1873,6 +1977,15 @@
       },
       "reviewHash": "1f10483c54d8341956053011471e354b407cff9870d571582fdeb74f0e83acbd",
       "recordedAt": "2026-10-18T02:40:09Z"
+    },
+    "s07-timings-docs": {
+      "snapshotId": "e4bc1e594f592ac038b5e7432539b517265d56d5d55098f38303d8cd18cbfd28",
+      "commits": {
+        "gpux": "f685eccbc214c17a06ac0e7f6e759ea0c79a6223",
+        "rayx": "c346720d8928ca23b1ee147603904a0acf815f53"
+      },
+      "reviewHash": "d6b9ee7e8d3cedc1f46d20f1fa8b3cd4f9ff172a79b5a042efe47b4d07bb1683",
+      "recordedAt": "2026-10-18T10:09:10Z"
     }
   },
   "findings": [
@@ -2100,9 +2213,25 @@
         }
       ],
       "boundaryId": "s04c-parent-rerender"
+    },
+    {
+      "id": "lk-s07-F1",
+      "criterionIds": [
+        "TM-2"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved by the owner's choice, a rerun under steadier conditions: the fourth run, revision 112, on AC power, low-power mode off, no thermal warning, nothing else building. The doc names it as the run TM-2 is judged on. I checked the raw report scenario by scenario. For `scroll-uniform-list`, `scroll-list` and all five `virtual_list` kinds, the `layers` interval overlaps both `off`'s and `splice`'s, and the report flags no regression. The widest gap is the sticky list: `layers` 9.780 ms [9.331–9.877] against `off` 9.283 ms [9.174–9.592] (+5.4%) and `splice` [9.151–9.586] (+3.6%), overlapping intervals, fewer instructions (89.89 M against 90.19 M). The deterministic counters in the doc's per-kind table show the work saved. Run 3's synchronized case and its two `splice` regressions (synchronized +4.8%, `scroll-list` +3.5%) are now named and explained as that run's drift. The amended first clause is met, and so are the second and third.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md"
+        }
+      ],
+      "boundaryId": "s07-timings-docs"
     }
   ],
-  "handoffMarkdown": "A11yState::begin_container_replay keeps a composited div's own scroll target standing with the offset moved; fast::tests::layer_a11y_scroll_targets red without it; layer_owner_replay compares describe_rendered_frame with a11y on and clicks.",
+  "handoffMarkdown": "docs/fast-mode.md Virtual lists: per-kind counts table, RayX consumer groups, ineligible summary; Measurements: Virtual lists by kind.",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",

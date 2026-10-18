@@ -138,7 +138,7 @@
         {
           "id": "TM-2",
           "verification": "manual",
-          "descriptionMarkdown": "**Run.** `gpux-testkit perf fast-mode --name virtual-list` on the owner's Mac (Metal, display awake). For every new scenario and each cumulative mode it records the median and interval.\n\n**Acceptance.** In `docs/fast-mode.md`'s Measurements:\n- `layers` is faster than `off` for each scenario;\n- any scenario where `layers` is not faster than `splice`, beyond the interval, is explained;\n- the results sit beside `scroll-uniform-list` and `scroll-list`.\n\nThe raw report stays in ignored `artifacts-temp/testkit/perf/virtual-list/`. Owner-attended (sprint s07)."
+          "descriptionMarkdown": "**Run.** `gpux-testkit perf fast-mode --name virtual-list` on the owner's Mac (Metal, display awake). For every new scenario and each cumulative mode it records the median and interval.\n\n**Acceptance.** In `docs/fast-mode.md`'s Measurements:\n- `layers` is not slower than `off` beyond the interval for each scenario, with the work it saves shown by the deterministic counters;\n- any scenario where `layers` is not faster than `splice`, beyond the interval, is explained;\n- the results sit beside `scroll-uniform-list` and `scroll-list`.\n\nThe raw report stays in ignored `artifacts-temp/testkit/perf/virtual-list/`. Owner-attended (sprint s07).\n\nThe owner decided (2026-10-18), after both lane G runs put every virtual-list kind within the intervals of a suite paced at about 9 ms a frame: \"Amend TM-2 to: not slower than off beyond the interval, with the work saved shown by the deterministic counters.\""
         },
         {
           "id": "TM-3",
