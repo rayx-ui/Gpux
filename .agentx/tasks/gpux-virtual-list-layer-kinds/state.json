@@ -1,12 +1,12 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list-layer-kinds",
-  "revision": 114,
-  "planRevision": 17,
+  "revision": 122,
+  "planRevision": 19,
   "specHashes": {
     "requirements": "310125450c4c82b8b12a17b7c0bf51dcc4886cb94f09f0862422b5cbbe88533b",
-    "design": "8301bc62492265e58cf464608e502afd3c8c87ce8838113d6cdf9b2f07da0118",
-    "plan": "330166a13a02f61c5fae3959cce2f6f0ea3c9b9f8cfcd67b2639296b52dd13c5"
+    "design": "4753a94dd130c6cac229da3d02133574edd96817c1c6df099e1af21a939b67dc",
+    "plan": "1f0356b752303ef2dd863040f0f07486fbca5de8354228ab0f8549e0d237c19c"
   },
   "tasks": {
     "t01-axis-slots": {
@@ -142,6 +142,12 @@
       ]
     },
     "t13c-a11y-scroll-target": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t15-lane-c-renamed": {
       "status": "done",
       "workerIds": [
         "virtual-list"
@@ -298,6 +304,26 @@
         }
       },
       "recordedAt": "2026-10-18T10:07:52Z"
+    },
+    "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e": {
+      "snapshot": {
+        "specHash": "949da250b75a5a6cbd5b73232ab36abb986569b6abe6f4bb074768aa9e7c0483",
+        "repositories": {
+          "gpux": "844f4869f4710705cd03995e1aee147fa5c10347bef9096a5d86a6899e273c6e",
+          "rayx": "2a22aea97220e64cf84e4d7f9f583ce764a84f6de02332f3ea87ccc35cce79d1"
+        }
+      },
+      "recordedAt": "2026-10-18T10:18:36Z"
+    },
+    "cd4d3452e36c7df702bf7aaa0fd7c79e451870cfe5cf2158a617add865b14775": {
+      "snapshot": {
+        "specHash": "f39110603bdf9e0c12d5f9b1d748b7b627f17008de61e2f5e16e7fd2d65492b4",
+        "repositories": {
+          "gpux": "844f4869f4710705cd03995e1aee147fa5c10347bef9096a5d86a6899e273c6e",
+          "rayx": "2a22aea97220e64cf84e4d7f9f583ce764a84f6de02332f3ea87ccc35cce79d1"
+        }
+      },
+      "recordedAt": "2026-10-18T10:20:58Z"
     }
   },
   "checkResults": {
@@ -844,6 +870,499 @@
       "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s07-timings-docs-final-a8569a3a4192.log",
       "logSha256": "aa9bca95405d43dd91b1ea0602a22deae00ae6acd5653081a2b41519c2d67483",
       "inputsHash": "aa85d58adc659d7c90e52b0f82a143b7870a27ac0ce49465bd7ecd649e315836"
+    },
+    "final/c-measured-leaves/final": {
+      "checkId": "c-measured-leaves",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "7510d152ee146dbc911a60022d55aa00860f40569464c4c0dab83d4157c1fb42",
+      "basisHash": "ee45310cbae316bdd4b08c8ae2c8924108785c38a4559e9d8cc3f3349212f53f",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 9,
+      "durationSeconds": 21.0645,
+      "recordedAt": "2026-10-18T10:10:01Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-0aa4d9a10c15.log",
+      "logSha256": "b305612bb38f7f7ec59eb44c5b344cb2616228a90fbd58cbd4f7590fb79805c5",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-measured-oracle/final": {
+      "checkId": "c-measured-oracle",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "a64b814d4d616b9c17ad690960cdd1e8bca1c501a446e39219b77b44a0360332",
+      "basisHash": "1a0a1e1d753f05bd8e263e0a3c16e73b2ebd18b52b1e9e9d7c29162b4defe660",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 38.3366,
+      "recordedAt": "2026-10-18T10:10:39Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-dfaeae6151ba.log",
+      "logSha256": "c5ea9afb8d6371790eea15b46268a5fa27b5f2f4643c0fd9acf215e4ae8715ff",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-horizontal/final": {
+      "checkId": "c-horizontal",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "9195fe6b91df7c697ae922735921d2492c87bbde5425094d0d7f8ae824ea03c7",
+      "basisHash": "3a0ca64db6e8af5feda0da0eb79ce2a4ee80cd3bbe5a30b81e5cdd6906727dbb",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 0.6571,
+      "recordedAt": "2026-10-18T10:10:40Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-9d30fda52bd2.log",
+      "logSha256": "d9440469c2d9401acca1eb0b50c3cf9b747bec0d0d3966416a836c80308e017d",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-horizontal-oracle/final": {
+      "checkId": "c-horizontal-oracle",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "fcb4ff15f73b8db9405b1e7730dfc187c215e897c87939b266a6a475db450575",
+      "basisHash": "d59eee2d9cfd12d438761da091f08ec8f9149f9c3c538fb200c741517b20d254",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 0.3078,
+      "recordedAt": "2026-10-18T10:10:40Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-c5a3f718c3fe.log",
+      "logSha256": "490cb558f48b87a9dc9bed2072546752471a3f35efcaf8c96b8e3f77de396d49",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-sticky/final": {
+      "checkId": "c-sticky",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "1175dae38325d7d081b585597d112f9c6467143a30b177b3d6990fcde2383496",
+      "basisHash": "4bc7e489e83dae75a24573c21dd9f70aaa7f46472aa5ca824d58ea17857cc90e",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 7,
+      "durationSeconds": 0.4243,
+      "recordedAt": "2026-10-18T10:10:41Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-ada6a537595a.log",
+      "logSha256": "b795d53f746af583fb8e276cbee7cf4139194a447b5b81a9668de3a9b628865b",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-sticky-oracle/final": {
+      "checkId": "c-sticky-oracle",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "bcb2dd4290f385562c33bb519c8977ba4dd6b38eea28c70a35e09af7883f29cf",
+      "basisHash": "b6defc5de1e57e8c0148f28aa21b8dc4999f73658e8b381d72615eec033f76ea",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 0.3212,
+      "recordedAt": "2026-10-18T10:10:41Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-a619eb7cbfb2.log",
+      "logSha256": "362708657780c8bf77016becab2157bfe641c04fa0fe73b2b6d918260715b859",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-synchronized/final": {
+      "checkId": "c-synchronized",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "11e6ca6c48a0124c0e1781386c93abf649d7129e86fc39886c677b7b5423dea1",
+      "basisHash": "f615d0ed1643f763cffc496fb9eddfb505bb21cc7ccc22fc1f32da262348a307",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 6,
+      "durationSeconds": 0.2632,
+      "recordedAt": "2026-10-18T10:10:41Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-bc3343ccb4e3.log",
+      "logSha256": "7699d9d88a61a714df3cc85d2434e6cc0d271f9117e54e56680d525607051c30",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-parent-promoted/final": {
+      "checkId": "c-parent-promoted",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "4062a176ce6a76d792e1fa0bba63e725c8b0b2944bbd4b336326c940f76473e3",
+      "basisHash": "7acdbeb7c566ad28f873737ba6ce00c40fb35b2aa12668f61580684d4ce4ab87",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 6,
+      "durationSeconds": 0.2608,
+      "recordedAt": "2026-10-18T10:10:42Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-8fe7baa65354.log",
+      "logSha256": "df9ef89d6033172adf43dcc74245635a29d467bec52dd668c1a9b1881a359248",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-rx-parent-layers/final": {
+      "checkId": "c-rx-parent-layers",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "709b9ce21e36556c1f2647aa9e244119fc14f8df24c3abf486857de01fe5320f",
+      "basisHash": "75a0788a859cef0c7764026824608c7f08ec26c384addd798323529360de8e71",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 15.2694,
+      "recordedAt": "2026-10-18T10:10:57Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-9887f351588b.log",
+      "logSha256": "e812fb576870f07a150cd95d4b8b0e27bb9dbbf5ea6ab00e58f2066970420051",
+      "inputsHash": "2a971f5459e8b54bbfed7f9c2b9b368d78d1423773b0ee8460eaa9210c522352"
+    },
+    "final/c-rx-parent-existing/final": {
+      "checkId": "c-rx-parent-existing",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "edd3970c2573407343594d3f91bf49677056d4770f070c27a232bb74035af221",
+      "basisHash": "6068d0b7c5f26255e15b2149fd5e88550a70533006325b231d5f6260cbba796f",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 7,
+      "durationSeconds": 1.6888,
+      "recordedAt": "2026-10-18T10:10:59Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-c1150ccb2a01.log",
+      "logSha256": "a94ddb3c471a33c06bf3ac42439bf352c9d5fa4e716e8637a12e6bec0f1b0a84",
+      "inputsHash": "2a971f5459e8b54bbfed7f9c2b9b368d78d1423773b0ee8460eaa9210c522352"
+    },
+    "final/c-rx-kinds/final": {
+      "checkId": "c-rx-kinds",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "873a38e3fa37d3eafabbf6cd1a2068aa63923cca7bd060e91a0ef36d0a36b7e6",
+      "basisHash": "f95cc65dd346e849907c365e085ae386e11a99a3b0a1956effb699259b32ae6a",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 1.6654,
+      "recordedAt": "2026-10-18T10:11:00Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-9e7225726ac4.log",
+      "logSha256": "877ae4d95e2ac44b75194e96414dcbd5eee554108f859c90fc32e07b97b23117",
+      "inputsHash": "2a971f5459e8b54bbfed7f9c2b9b368d78d1423773b0ee8460eaa9210c522352"
+    },
+    "final/c-attribution/final": {
+      "checkId": "c-attribution",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "7f4a6170881106d2d60ff5ed13f35868d3f3fb10e6a61645d7b9de9ad6b273dd",
+      "basisHash": "d0daf13690941962586e974afae57a3f12d0b22a57c695a9204bd12ec9dc26f1",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 20.0108,
+      "recordedAt": "2026-10-18T10:11:20Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-d53d8e976f92.log",
+      "logSha256": "9bf7b911cbfb6e49064cbb9c86a5e5f237224434c4b863ec62dc75a82ac59e05",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-perf/final": {
+      "checkId": "c-perf",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "3dabbd5f9aa1a6d4fbf1d3dbdf2f50b94605c0ee9009336ce956d93e9cd65659",
+      "basisHash": "ff5776b5200ea8bfece74502d1add13c9c145bbdc8634c24c349479f85292b4a",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 110,
+      "durationSeconds": 412.9258,
+      "recordedAt": "2026-10-18T10:18:14Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-647b39d180b9.log",
+      "logSha256": "b8969852289f9fc3f1982f340f768342f25ae352208c897474df42020c14cdb9",
+      "inputsHash": "aa85d58adc659d7c90e52b0f82a143b7870a27ac0ce49465bd7ecd649e315836"
+    },
+    "final/c-half-pixel/final": {
+      "checkId": "c-half-pixel",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "1501330c546db8d3b7151c75d1ec126d9ddbe62a0e380fb0b58cf1861c9f8f7f",
+      "basisHash": "8bcb8379cf2137e9cf8c0203f6a56c26a13a3f70ff365373e0f0838f8abc64d6",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 0.6054,
+      "recordedAt": "2026-10-18T10:18:14Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-1746fb1fb9bf.log",
+      "logSha256": "58800edef5156fce450e611278600254f6354a8750f8762fc9ae59d49fc8794a",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-uniform-measure/final": {
+      "checkId": "c-uniform-measure",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "c62b74d2115482c064784bc68f26a040ce89cb0d4d363f7ef27db53a82b74349",
+      "basisHash": "259a6000c879a92d0dfdc318a43a4c1ae67d9eeeab9ee02932a5d4379ff49cd1",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 8,
+      "durationSeconds": 0.2626,
+      "recordedAt": "2026-10-18T10:18:15Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-b4131507eccf.log",
+      "logSha256": "8232aaf1ae79c891665785d8ff63f3219aea0ce2c5ed9618efbb393d819b14c1",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-lane-c-layers-full/final": {
+      "checkId": "c-lane-c-layers-full",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "96758c1d3bd42fc28d4d84c2e017c0cc6cb4902105873a32f602bd03307590a8",
+      "basisHash": "4a7d21bb57d48611f0cf70b19f533d649679585727421ca553b6cca5d21c2d8c",
+      "status": "failed",
+      "exitCode": 101,
+      "testCount": 0,
+      "durationSeconds": 0.2032,
+      "recordedAt": "2026-10-18T10:18:15Z",
+      "messageMarkdown": "Unexpected exit code: 101",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-d21e429e73f3.log",
+      "logSha256": "1fba843638683f61b8945de32812e2ca1970ea48c71a1bdce9449d1a024c21f1",
+      "inputsHash": "1df4a4e70ac6bbc3777ee897e8e4c8370f18ac4b27cca4f4a3b94728900e6558"
+    },
+    "final/c-attribution-parent/final": {
+      "checkId": "c-attribution-parent",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "7176687bd78a5fe6681d8c502e17f6a621b2293063e5c6511a4e03819ef8da96",
+      "basisHash": "cc8a30eccf16e199324a715900ab2f491050dce6c7be33400555a65c9bcb193c",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 0.2602,
+      "recordedAt": "2026-10-18T10:18:15Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-b23b6e0c1c5d.log",
+      "logSha256": "6772e7b16e9ff596a97e48b5ff2beb6662c051fdcddd5117eb6fea8bc4fab86a",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-merge-gpux-groups/final": {
+      "checkId": "c-merge-gpux-groups",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "dd2273f5f7321fea4684119b2bb9884dabf592d125f467f4279580fe75ef8ee7",
+      "basisHash": "6e3e54e020bfdda26453d11b389df4f85eab6af6c43fc2321f5179aecfc6e32b",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 129,
+      "durationSeconds": 5.5038,
+      "recordedAt": "2026-10-18T10:18:21Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-818fa112b39e.log",
+      "logSha256": "eac0cb1c78f7d526e1e00396c151fe50eaeb5b1fd40c7965f278235967c25dc4",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-merge-gpux-integration/final": {
+      "checkId": "c-merge-gpux-integration",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "c6366658e95ec8b92cef9f1cb3efb42b9892d62ef37a3f3d2a37cb3b7e60efcc",
+      "basisHash": "83ab7e71ae5be0279ba92398096c987539dfcd2b6cfe7432685f38d11691f14a",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 56,
+      "durationSeconds": 5.7382,
+      "recordedAt": "2026-10-18T10:18:26Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-3da62b0394c3.log",
+      "logSha256": "8c25d79870173b28be445007f3e15f8b6b597df4f420c60662428f260933c70b",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-merge-rayx-groups/final": {
+      "checkId": "c-merge-rayx-groups",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "d67531a7f56b8950c2495a09a81b62721489d99918c6ad82fd9abfcce78946f2",
+      "basisHash": "a0b4fa82acbe9a48c67c433ee6dea1359580a4ff60a7b5e2795dc837a1915cf8",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 12,
+      "durationSeconds": 3.0823,
+      "recordedAt": "2026-10-18T10:18:29Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-dc2cf816d2f1.log",
+      "logSha256": "e0a95e4c9464fd7c15a354df89281f8a47d6b9161a028080248e149ab43a8254",
+      "inputsHash": "7d6767403eb91f8c6f2c6af13ffc0b871141a947e4e3d82f6cbfa73845aaaab2"
+    },
+    "final/c-rx-kinds-table/final": {
+      "checkId": "c-rx-kinds-table",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "2785b9c741dee74e77c93610eb84b62fd1d7b80a2188c104ecb2460dd2ca53fb",
+      "basisHash": "89227aebc5b122860b5e127c32007cf0c1cbbffd02d2414ebb95176266b96527",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 2.0174,
+      "recordedAt": "2026-10-18T10:18:31Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-2df972f2fd08.log",
+      "logSha256": "f7121038a0f92d0ca56782347b51857b0430cdbae943dc60d8d1d250e2620d9b",
+      "inputsHash": "2a971f5459e8b54bbfed7f9c2b9b368d78d1423773b0ee8460eaa9210c522352"
+    },
+    "final/c-dt-frames/final": {
+      "checkId": "c-dt-frames",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "e299f27243a19f5a93a883fd06678d131659c94a39d9c6945d593d67bbb29dc1",
+      "basisHash": "435c57a2d1a69f70bb9f9722c8bef734da8fb9df9a855dae01e7d64c3b889e30",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 1.7739,
+      "recordedAt": "2026-10-18T10:18:33Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-87046dd95a3d.log",
+      "logSha256": "2db47842c2600ea2f973d37b1465142507ee0a0cc355eaa449d20a3a5d35c532",
+      "inputsHash": "2a971f5459e8b54bbfed7f9c2b9b368d78d1423773b0ee8460eaa9210c522352"
+    },
+    "final/c-rx-renderer-changes/final": {
+      "checkId": "c-rx-renderer-changes",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "d3846429e515886792de354beb7afa7f9f6a56ef926409558828228addb6071f",
+      "basisHash": "69c625ead92bc42c9cff2d62db82b01a919ffa5fe6ae0f60904cfdcce0db019b",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 8,
+      "durationSeconds": 1.8271,
+      "recordedAt": "2026-10-18T10:18:35Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-d6d94d6d699e.log",
+      "logSha256": "7057477a4e408a682b1d19efdf62a6cb2d773def40f50e5393baf42fd0d63dd8",
+      "inputsHash": "2a971f5459e8b54bbfed7f9c2b9b368d78d1423773b0ee8460eaa9210c522352"
+    },
+    "final/c-rx-rerender-cost/final": {
+      "checkId": "c-rx-rerender-cost",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "97611d2ff44091cd9d905cae9911622d6d9400aed0d549a7001ea7dc20566fd2",
+      "definitionHash": "5b6533caa6d731a0c4199760da4049f33b18b1fc09d76fcc0b8abd3c3aa34182",
+      "basisHash": "f8b66611db256b9bf269eb9476920ed1b7be770604023d56af90191f72fb8234",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 12,
+      "durationSeconds": 0.8738,
+      "recordedAt": "2026-10-18T02:37:10Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04c-parent-rerender-final-26b0369be60e.log",
+      "logSha256": "23aa8d3b7d903624ebdac20758b8b7bdb323f1a0d7f377ce61bac5184c6e04d1",
+      "inputsHash": "2a971f5459e8b54bbfed7f9c2b9b368d78d1423773b0ee8460eaa9210c522352"
+    },
+    "final/c-rx-renderer-sameness/final": {
+      "checkId": "c-rx-renderer-sameness",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "97611d2ff44091cd9d905cae9911622d6d9400aed0d549a7001ea7dc20566fd2",
+      "definitionHash": "1ad224bd37a9725cf96d10a4d9e1af1c92005aa4497edba24609ed8e0708095d",
+      "basisHash": "69c625ead92bc42c9cff2d62db82b01a919ffa5fe6ae0f60904cfdcce0db019b",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 8,
+      "durationSeconds": 0.58,
+      "recordedAt": "2026-10-18T02:37:11Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04c-parent-rerender-final-0a99ecbad3d2.log",
+      "logSha256": "0a15fd00e8a2e609d0d299b254f1418f999cb5a4e67e6782f898b9f1f6a3c01a",
+      "inputsHash": "2a971f5459e8b54bbfed7f9c2b9b368d78d1423773b0ee8460eaa9210c522352"
+    },
+    "final/c-rx-test-suite-build/final": {
+      "checkId": "c-rx-test-suite-build",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "97611d2ff44091cd9d905cae9911622d6d9400aed0d549a7001ea7dc20566fd2",
+      "definitionHash": "1c9ef54c5585b86a0c12621bbcb652aa4654496aea664a1f4cf54c39c7126bf0",
+      "basisHash": "aeddf7f581d92d5583b7c14a00831bce0a2eb6685be0c02d72142673ce875525",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 11.3122,
+      "recordedAt": "2026-10-18T02:37:22Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04c-parent-rerender-final-02eacd8af308.log",
+      "logSha256": "dbe4b5b3d4be5592ab573299a70fae33b6b5d45cc3e01d55cf7e3fd6804faa09",
+      "inputsHash": "b9c1682818921efbf0b2275be29637233d9c7324827cd48918d78b3396a13eb5"
+    },
+    "final/c-layer-owner-replay/final": {
+      "checkId": "c-layer-owner-replay",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "97611d2ff44091cd9d905cae9911622d6d9400aed0d549a7001ea7dc20566fd2",
+      "definitionHash": "d83e402146483e5648944f5a74b9eb731f87a246235ad0d52ee64e331a634699",
+      "basisHash": "af0aa08e6af0f06319dcf4f55429fda077df2993bf401dd25b62d4bddc9e49f5",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 0.5419,
+      "recordedAt": "2026-10-18T02:37:23Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04c-parent-rerender-final-e8e832445270.log",
+      "logSha256": "0b6dcf57f3fc1fcb5cbd29701b98ddb439dfe8762af79fecc1793dd79ac0384f",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-layer-a11y-scroll/final": {
+      "checkId": "c-layer-a11y-scroll",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "97611d2ff44091cd9d905cae9911622d6d9400aed0d549a7001ea7dc20566fd2",
+      "definitionHash": "15ce2ef9d70fb3111e7d49b7e02380e0d4581456ba679723ee1039726f28d18d",
+      "basisHash": "31fb8f9b39b38e9315fbff7a5364e76f58106f4ca8882dd986e3010effb366de",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 0.3118,
+      "recordedAt": "2026-10-18T02:37:23Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04c-parent-rerender-final-ded9e27a2dbf.log",
+      "logSha256": "c86e7392b12e18d760dcce8f290667f8cb8f0234db113f603ab4789f9e45c62e",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "s08-lane-c-renamed/c-lane-c-layers-renamed/final": {
+      "checkId": "c-lane-c-layers-renamed",
+      "boundaryId": "s08-lane-c-renamed",
+      "phase": "final",
+      "batchId": "cd4d3452e36c7df702bf7aaa0fd7c79e451870cfe5cf2158a617add865b14775",
+      "definitionHash": "c070e807454f7812cb7cdd02a082b2c72ffd3a70bfab14866d5e3456e6d55686",
+      "basisHash": "3bebffec5433700c8bab974c10d86c00fc2d18719055d8160506e023d671009d",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 30,
+      "durationSeconds": 33.7904,
+      "recordedAt": "2026-10-18T10:20:58Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s08-lane-c-renamed-final-d5ab5be611e2.log",
+      "logSha256": "b25f194548663040252e892482cd6626cf6074325cbbd1a71f11dfd42258fb37",
+      "inputsHash": "223bcb970b140209e1fea790f011b411d1621d88e5963dff7da6388bb45591a6"
     }
   },
   "reviews": {
@@ -1876,6 +2395,55 @@
         "lk-s07-F1"
       ],
       "recordedAt": "2026-10-18T10:08:54Z"
+    },
+    "s08-lane-c-renamed": {
+      "reviewerId": "reviewer-lk-s08",
+      "snapshotId": "cd4d3452e36c7df702bf7aaa0fd7c79e451870cfe5cf2158a617add865b14775",
+      "criterionIds": [
+        "HP-1"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/util.rs",
+          "kind": "source",
+          "criterionIds": [
+            "HP-1"
+          ],
+          "sha256": "07160911e7863e78d32f55e756b6312db33612221c735eac4c6d11f91f22698e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/lane_c_scroll_layers.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "HP-1"
+          ],
+          "sha256": "36e8b75022b655375e3a17fdb43fb97cb25675068dd5984579fc4e65bd18de52"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/lane_c_layer_scales.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "HP-1"
+          ],
+          "sha256": "c654f05bcf0c00e745cea08b68fa77bc3a5dcd346e00838e2d99ce849d7a0aa6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/scroll_layers_support/mod.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "HP-1"
+          ],
+          "sha256": "d364a1dbfb8b1022ac3b20f00851445e58d03f33143480cb3fe1b242f216fb78"
+        }
+      ],
+      "summaryMarkdown": "Passed, with no findings. **Disposition acknowledged in text** (the runtime lists no effective disposition in this boundary, since it belongs to s00b, so it is not in `acknowledgedDispositions`): `check:c-lane-c-layers-full` is withdrawn (revision 117), matching the owner's recorded decision ('Withdraw c-lane-c-layers-full (its package no longer exists) and replace it with a corrective task running the same lane C groups on gpux-tests-conformance'). Its successor really covers it. `c-lane-c-layers-renamed` is the withdrawn definition with only the package (`gpux-tests-conformance`) and the conformance input path (`crates/gpux_tests_conformance/**`) changed. It keeps the same `lane_c_scroll_layers` and `lane_c_layer_scales` targets, `GPUX_LANE_C_FULL=1` (read by `scroll_layers_support::FULL_VARIABLE`), and the same expectations, and it passed at revision 121 with 30 tests on the current tree. t15 changes no source. HP-1's runtime proof is therefore current under the renamed package.",
+      "findingIds": [],
+      "recordedAt": "2026-10-18T10:21:53Z"
     }
   },
   "checkpoints": {
@@ -2231,7 +2799,7 @@
       "boundaryId": "s07-timings-docs"
     }
   ],
-  "handoffMarkdown": "docs/fast-mode.md Virtual lists: per-kind counts table, RayX consumer groups, ineligible summary; Measurements: Virtual lists by kind.",
+  "handoffMarkdown": "No source change: c-lane-c-layers-renamed runs lane_c_scroll_layers and lane_c_layer_scales on gpux-tests-conformance in full mode.",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",
@@ -2262,5 +2830,15 @@
       "rayx:.agentx/experiments/**": "0154d9e7bb0e5b7b8d1e3616c2ffda3c26c22704ca47bda74fb368f3f13ede9b",
       "rayx:vendor/**": "9fe6c6fe2fe5ffe4ea906930d334e93c60569f98645d453a7e0aef364add6dc5"
     }
-  }
+  },
+  "dispositions": [
+    {
+      "type": "check",
+      "id": "c-lane-c-layers-full",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "The owner decided (2026-10-18): \"Withdraw c-lane-c-layers-full (its package no longer exists) and replace it with a corrective task running the same lane C groups on gpux-tests-conformance.\" main renamed `gpux-conformance` to `gpux-tests-conformance` (merged in s06b), so the sealed check's selector matches no package; its replacement is t15-lane-c-renamed's `c-lane-c-layers-renamed`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-18T10:20:04Z"
+    }
+  ]
 }

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list-layer-kinds",
-  "revision": 17,
+  "revision": 19,
   "title": "Measured leaves kept under view retention, and every VirtualList kind on scroll layers: horizontal, sticky, SynchronizedOffset and ParentViewport lists composite, RayX's parent-viewport invalidation narrowed, timings measured",
   "validationMode": "sprint",
   "repositories": [
@@ -485,7 +485,7 @@
         "-p",
         "gpux",
         "-p",
-        "gpux-conformance",
+        "gpux-tests-conformance",
         "-p",
         "gpux-platform",
         "--all-targets",
@@ -1121,6 +1121,43 @@
         "crates/gpui_macros/**",
         "Cargo.toml",
         "Cargo.lock"
+      ]
+    },
+    {
+      "id": "c-lane-c-layers-renamed",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "HP-1"
+      ],
+      "descriptionMarkdown": "Lane C's scroll-layer suites in full mode, narrowed to those groups (the validation rules: a change to snapping runs --full before it is called proved). Replaces the withdrawn `c-lane-c-layers-full`, under the package's new name.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-tests-conformance",
+        "--test",
+        "lane_c_scroll_layers",
+        "--test",
+        "lane_c_layer_scales"
+      ],
+      "environment": {
+        "GPUX_LANE_C_FULL": "1"
+      },
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 10
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpux_tests_conformance/**",
+        "crates/gpui_wgpu/**",
+        "crates/gpui_apple/**",
+        "crates/gpui_macos/**",
+        "crates/gpui_platform/**"
       ]
     }
   ],
@@ -1886,6 +1923,43 @@
             "t10-timings"
           ],
           "checkIds": []
+        }
+      ]
+    },
+    {
+      "id": "s08-lane-c-renamed",
+      "title": "Lane C's scroll-layer groups under the renamed package",
+      "dependsOn": [
+        "s07-timings-docs"
+      ],
+      "memoryScopes": [
+        "gpux:repository/validation"
+      ],
+      "checkIds": [
+        "c-lane-c-layers-renamed"
+      ],
+      "tasks": [
+        {
+          "id": "t15-lane-c-renamed",
+          "title": "Run lane C's scroll-layer groups on gpux-tests-conformance",
+          "descriptionMarkdown": "The owner decided (2026-10-18): \"Withdraw c-lane-c-layers-full (its package no longer exists) and replace it with a corrective task running the same lane C groups on gpux-tests-conformance.\" Run `lane_c_scroll_layers` and `lane_c_layer_scales` in full mode on the renamed package; no source changes.",
+          "criterionIds": [],
+          "supportingCriterionIds": [
+            "HP-1"
+          ],
+          "designIds": [
+            "d-half-pixel-edges"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "c-lane-c-layers-renamed"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_tests_conformance/Cargo.toml"
+            }
+          ]
         }
       ]
     }

@@ -472,6 +472,18 @@
     {
       "repositoryId": "rayx",
       "path": ".agentx/memory/decisions/examples/lab/2026-07-31-examples-lab-general-positioning-tutorials.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/accessibility/2026-10-17-gpui-accessibility-accesskit-one-tree.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-effects/2026-07-06-gpui-frame-effects-frame-effects-elements.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-effects/2026-07-07-gpui-frame-effects-frame-family-naming.md"
     }
   ]
 }
