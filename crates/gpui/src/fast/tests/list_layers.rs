@@ -669,15 +669,23 @@ mod uniform {
                 .count()
         };
         measured(&log);
-        // Layout and prepaint each measure row 0.
+        // Layout measures row 0 at most once, and prepaint takes its size;
+        // a scroll-only frame keeps it under view retention.
         wheel(cx, window, -ROW_HEIGHT);
-        assert_eq!(measured(&log), 2);
+        assert!(
+            measured(&log) <= 1,
+            "row 0 is measured at most once a frame"
+        );
         promote_from_second_frame(cx, window);
         measured(&log);
 
         wheel(cx, window, -ROW_HEIGHT);
         assert_eq!(decision(cx, window), Some(Decision::Composite));
-        assert_eq!(measured(&log), 1, "only layout measures row 0");
+        assert_eq!(
+            measured(&log),
+            0,
+            "a composited frame keeps the measured size"
+        );
 
         let frame = with_window(cx, window, |window, _| window.fast_layers.frame);
         handle
@@ -690,7 +698,11 @@ mod uniform {
             draw(cx, window);
         }
         assert_eq!(decision(cx, window), Some(Decision::Repaint));
-        assert_eq!(measured(&log), 2, "a frame that changed measures again");
+        assert_eq!(
+            measured(&log),
+            1,
+            "a frame that changed measures again, once"
+        );
     }
 
     /// The second scrolled frame, which promotes the list.

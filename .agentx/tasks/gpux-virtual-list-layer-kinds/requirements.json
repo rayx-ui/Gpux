@@ -1,0 +1,219 @@
+{
+  "schemaVersion": 7,
+  "epicId": "gpux-virtual-list-layer-kinds",
+  "scopeMarkdown": "Follow-up to the epic `gpux-virtual-list`, which must be closed before this one starts. That epic moves RayX's virtual list into gpux as `VirtualList`. It gives list layers only to vertical lists that are their own scroll container and have no sticky rows, and fixes the handle-less redraw loop, the `ParentViewport` collapse under view retention, `ParentViewport` metrics inside a div layer, and RayX's state-view rebuilds.\n\nThe owner asked (2026-10-16) for everything that epic left out:\n- list layers for horizontal lists, lists with sticky rows, `SynchronizedOffset` lists and `ParentViewport` lists;\n- a `ParentViewport` list's parent `div` layer that stays promoted, which means changing RayX's dependent-view invalidation;\n- timings.\n\n**Where the work lands.** It continues on the same branches in the same worktree folder (`/Users/dinko/.worktrees/virtual-list/`): gpux and RayX `feat/virtual-list`. The two pull requests (gpux into `main`, then RayX into `master`) therefore carry both epics. If the owner merges `gpux-virtual-list` first, move this epic's work to new branches by amending `repositories`.\n\n**In scope**\n- **Measured leaves under view retention (owner, 2026-10-16):** the general form of the `ParentViewport` collapse. Under layout retention, a kept view that is not built gives back measurement closures only to text leaves, so any other measured leaf whose size depends on its measurement is sized empty. A `uniform_list` with `ListSizingBehavior::Infer` and an auto height in a retained child view gives its parent a scroll extent of 0 with fast mode on, against 19,800 px with it off (recorded in `gpui/layout-style/state.md` by `gpux-virtual-list` s02). `gpux-virtual-list` fixed only `VirtualList`'s case, with a spacer.\n- **Horizontal lists:** axis-generic row slots in the list layers, for `VirtualList`'s horizontal axis.\n- **Sticky rows:** `VirtualList`'s sticky rows (top and left edges, levels, stack ids, push-out, `when_stuck`, `on_sticky_state_changed`) drawn above a composited layer every frame, while the layer holds the ordinary rows.\n- **`SynchronizedOffset`:** a list layer driven by another container's handle.\n- **`ParentViewport`:** a list inside a scrolling `div` whose layer stays promoted. The list renders rows for the layer's painted region, reads no offset there, and answers its metrics and range on composited frames. RayX stops rebuilding ListViewState and TreeState on every parent scroll.\n- **RayX consumer proof** for each kind: ListView with a sticky policy, a horizontal ListView, ListView and TreeView in `ParentViewport` mode, and DataTable's synchronized rows.\n- **Fast-mode bench scenarios** for every kind, with deterministic attribution counters in CI.\n- **Lane G timings** on this Mac, recorded in `docs/fast-mode.md`.\n\n**Out of scope**\n- `uniform_list` and `list` with sticky items. They stay `ineligible`; the sticky overlay mechanism is built for `VirtualList`, and extending it to them is a later change.\n- Timings on other platforms: lane G is macOS-only by repository decision.\n- Opening the pull requests.\n\n**Owner-attended.** The last sprint (s07) runs lane G timings on the owner's Mac with the display awake. The owner signs up for it by keeping the machine available. If it cannot run, the owner decides the timing criterion's disposition.",
+  "constraintsMarkdown": "- Keep everything `gpux-virtual-list`'s constraints say: Zed's crate boundaries, no new crate, gpux proof in gpux, frames equal to frames drawn from scratch, hooks inert with the switch off, Conventional Commits without co-author lines, paired gpux and RayX commits.\n- Timings belong to lane G only. CI asserts deterministic counters, never times.\n- A sticky row must keep its hitbox, listeners, semantics and DevKit identity: no proxy rows or overlay siblings detached from the row (RayX's virtualization rules).",
+  "requirements": [
+    {
+      "id": "ML",
+      "title": "Measured leaves keep their size under view retention",
+      "descriptionMarkdown": "A view kept without building never lays out a measured leaf as empty.",
+      "criteria": [
+        {
+          "id": "ML-1",
+          "verification": "automated",
+          "descriptionMarkdown": "**Requirement.** With view retention on, a measured leaf other than text, whose size on an axis depends on its measurement (no definite style size there), has the size its measurement gives on every frame its view is kept.\n\n**Cases.**\n- A `uniform_list` with `ListSizingBehavior::Infer` and an auto height in a retained child view, inside a scrolling `div`: the parent's scroll extent equals the fast-mode-off value on every frame, and the wheel scrolls it.\n- An element built on the public `Window::request_measured_layout`, the path external custom elements use, in a retained view, as a flex child and as a scroll container's content: it keeps its measured size.\n- A change of the available space while the view is kept, such as a parent resize, measures the leaf afresh.\n\n**Equality.** Each case, for each fast-mode switch combination, shows frames equal to those of a window with fast mode off.\n\n**Test.** A new group, `crates/gpui/tests/retained_measured_leaves.rs`. It fails on the code before the fix with a message containing `measured leaf collapsed`."
+        },
+        {
+          "id": "ML-2",
+          "verification": "automated",
+          "descriptionMarkdown": "**Cost.** The fix costs only what correctness needs:\n- a retained view whose measured leaves all have definite sizes is still reused without building (`views_reused` counts it);\n- text leaves keep their carry and replay paths;\n- every view built because of an indefinite measured leaf is counted in a new `FastStats` mechanism counter, reported with the others.\n\n**Coverage.** The randomized fast-mode oracle generates such leaves (a measured custom element and an inferred-height `uniform_list`) inside retained views. Its histories of notifications elsewhere and resizes show frames equal to frames drawn from scratch.\n\n**Tests.** A new group, `fast::tests::oracle_measured_leaves`, plus the counter assertions in ML-1's group."
+        }
+      ]
+    },
+    {
+      "id": "HP",
+      "title": "Half-pixel edges land alike with and without layers",
+      "descriptionMarkdown": "The owner asked (2026-10-16), relayed by the coordinating session: \"yes, add it and fix them\" — the two gaps gpux-virtual-list documented. An edge on exactly half a device pixel rounds one pixel apart in a frame shown from a scroll layer and one drawn from scratch once the layer moves it across the window's origin.",
+      "criteria": [
+        {
+          "id": "HP-1",
+          "verification": "automated",
+          "descriptionMarkdown": "**Requirement.** Frames shown from any scroll layer (a `div`'s layer, `uniform_list`, `list`, `VirtualList`) equal frames drawn from scratch, including edges that fall exactly on half a device pixel and that a layer moves across the window's origin.\n\n**Cases.** Scale factors 1, 1.25, 1.5 and 2, with paddings, row sizes and offsets that produce exact ties.\n\n**Existing tests.** The `virtual_list_layers` groups that avoided exact ties (`changes`' whole-pixel size change, `oracle`'s scale and padding) stop avoiding them.\n\n**Test.** A new group, `fast::tests::half_pixel_edges`, which fails on the code before the fix with a message containing `half-pixel edge`.\n\n**Runtime proof.** Lane C's scroll-layer suites (`lane_c_scroll_layers`, `lane_c_layer_scales`) pass in full mode (`GPUX_LANE_C_FULL=1`), narrowed to those groups."
+        }
+      ]
+    },
+    {
+      "id": "UM",
+      "title": "uniform_list keeps its measured item",
+      "descriptionMarkdown": "The owner asked (2026-10-16), relayed by the coordinating session: \"yes, add it and fix them\" — the two gaps gpux-virtual-list documented. `uniform_list` renders its first row to measure it in `request_layout` on every frame, outside `lists::measure_item`: its row closure runs once more a frame than the rows its layer renders (1.87 against 0.87 rows a frame; planning measured 1.75 against 0.75).",
+      "criteria": [
+        {
+          "id": "UM-1",
+          "verification": "automated",
+          "descriptionMarkdown": "**Requirement.** `uniform_list` keeps its measured item size while nothing the measured row read has changed.\n\n**Scroll-only frames.** With scroll layers on, and also with view retention alone, the item closure runs only for the rows the frame renders: with layers, row closures equal `list_rows_rendered`; without layers, the rows the list shows. No frame renders the measured item again.\n\n**Changes.** When the measured row's content or size changes, it is measured again, and frames still equal frames drawn from scratch.\n\n**Test.** A new group, `fast::tests::uniform_measured_item`, which fails on the code before the fix with a message containing `measured again`."
+        }
+      ]
+    },
+    {
+      "id": "HZ",
+      "title": "Horizontal virtual lists composite",
+      "descriptionMarkdown": "`VirtualList` with `Axis::Horizontal` gets a list layer.",
+      "criteria": [
+        {
+          "id": "HZ-1",
+          "verification": "automated",
+          "descriptionMarkdown": "**Scope.** With scroll layers on: a horizontal `VirtualList` that is its own scroll container and has no sticky rows.\n\n**Per frame, after promotion.** On 60 horizontal wheel frames of 15 px over 10,000 variable-width columns, every scroll-only frame:\n- composites (`layers_composited`);\n- renders at most 2 columns on average;\n- keeps the others (`list_rows_kept`).\n\n**Placement.** The overscan runs along the x axis, and columns are placed by the list's own origins.\n\n**Test.** A new group, `fast::tests::virtual_list_layers::horizontal`. It also replaces the horizontal case of `gpux-virtual-list`'s `ineligible` group, so a horizontal list is no longer counted `ineligible`."
+        },
+        {
+          "id": "HZ-2",
+          "verification": "automated",
+          "descriptionMarkdown": "**Requirement.** Frames shown from a horizontal list's layer equal frames drawn from scratch:\n- quads with layers expanded, at scale factors 1 and 1.25, with fractional widths, `gap` and padding;\n- whole frame descriptions over random histories of horizontal wheel turns, pointer moves, clicks and size changes.\n\n**Test.** A new group, `fast::tests::virtual_list_layers::horizontal_oracle`."
+        }
+      ]
+    },
+    {
+      "id": "ST",
+      "title": "Sticky virtual lists composite",
+      "descriptionMarkdown": "A `VirtualList` with sticky rows keeps its ordinary rows in the layer and draws its sticky rows over it every frame.",
+      "criteria": [
+        {
+          "id": "ST-1",
+          "verification": "automated",
+          "descriptionMarkdown": "**Scope.** With scroll layers on: a `VirtualList` with sticky rows, vertical (top edge) or horizontal (left edge), using `StickyStacking::Level` or `StackId`, push-out, `inset`, `when_stuck` and `on_sticky_state_changed`.\n\n**Per frame, after promotion.** On every scroll-only frame:\n- the list composites its ordinary rows from the layer;\n- it renders and paints every sticky candidate row it shows (the active stack, and incoming candidates in view) above the composited layer, in the list's clip;\n- painting order follows the virtualization rules: ordinary rows under sticky rows, deeper levels under shallower ones, incoming rows over outgoing rows of the same level;\n- those rows' hitboxes are hit before the layer's rows;\n- the layer never holds a sticky candidate row.\n\n**Counts.** Rows rendered per frame are the sticky rows drawn plus at most 2 rows brought into reach on average. The epic `gpux-virtual-list`'s `ineligible` sticky case is replaced.\n\n**Test.** A new group, `fast::tests::virtual_list_layers::sticky`."
+        },
+        {
+          "id": "ST-2",
+          "verification": "automated",
+          "descriptionMarkdown": "**Requirement.** Frames of a sticky list on its layer equal frames drawn from scratch at every offset of a scroll history:\n- stuck styling;\n- push-out displacement;\n- active-stack replacement.\n\nThe `on_sticky_state_changed` events fire in the same order and number as without layers.\n\n**Tests.** A new group, `fast::tests::virtual_list_layers::sticky_oracle`: quads at scale factors 1 and 1.25, and random histories with nested levels and keyed runs."
+        }
+      ]
+    },
+    {
+      "id": "SO",
+      "title": "SynchronizedOffset virtual lists composite",
+      "descriptionMarkdown": "A list that applies another container's offset itself gets a list layer of its own.",
+      "criteria": [
+        {
+          "id": "SO-1",
+          "verification": "automated",
+          "descriptionMarkdown": "**Scope.** A vertical or horizontal `VirtualList` in `SynchronizedOffset` mode, driven by a scrolling container beside it (the DataTable header and body pattern).\n\n**Required.** On scroll-only frames of the driver, the list:\n- composites from its own list layer, keyed by the list;\n- renders at most 2 rows on average;\n- shows frames equal to frames drawn from scratch.\n\nThe notification the shared handle sends its dependent views counts as the scroll's, as for a list's own handle.\n\n**Test.** A new group, `fast::tests::virtual_list_layers::synchronized`, with counters and a random-history oracle."
+        }
+      ]
+    },
+    {
+      "id": "PV",
+      "title": "A ParentViewport list keeps its parent's layer",
+      "descriptionMarkdown": "A `ParentViewport` list inside a scrolling `div` no longer forces the div off its layer.",
+      "criteria": [
+        {
+          "id": "PV-1",
+          "verification": "automated",
+          "descriptionMarkdown": "**Scope.** A `ParentViewport` `VirtualList` inside a scrolling `div` with scroll layers on.\n\n**While the layer paints.** The list:\n- renders the rows of the layer's painted region;\n- reads no parent offset;\n- records the geometry its metrics need.\n\n**On composited frames.** The `div`'s layer stays promoted: over 60 wheel frames it composites, with no `demoted` count. It repaints only when the scroll reaches the edge of the painted region. On those frames:\n- `parent_viewport_primary_size`, `parent_viewport_scroll_offset` and `parent_viewport_max_scroll_offset` equal those of a frame drawn without layers;\n- the range listener runs with the range a frame without layers publishes;\n- every frame equals a frame drawn from scratch.\n\n**Test.** A new group, `fast::tests::virtual_list_layers::parent_promoted`. It also extends `gpux-virtual-list`'s VL-5 metrics comparison to composited frames."
+        },
+        {
+          "id": "PV-2",
+          "verification": "automated",
+          "descriptionMarkdown": "**Required.** RayX ListView and TreeView in `ParentViewport` mode, in a scrolling `div` with fast mode on:\n- keep the div's layer compositing over 60 wheel frames;\n- do not rebuild their state view on scroll-only frames.\n\nRayX's dependent-view registration on a shared external handle stays only where gpux cannot see the read itself (for example a cached view with view retention off). RayX's existing `ParentViewport` behaviour holds with fast mode on and off: programmatic `scroll_to_item`, mutation scroll preservation, follow-tail and `VisibleRangeChanged`.\n\n**Tests.**\n- A new RayX group, `crates/rayx_components/rayx_components_core/tests/parent_viewport_layers.rs`.\n- RayX's existing `application_configuration_programmatic_scroll_parent_viewport` tests, selected on purpose as the preservation proof."
+        },
+        {
+          "id": "PV-3",
+          "verification": "automated",
+          "descriptionMarkdown": "**Required.** With fast mode on, a RayX ListView or TreeView whose row renderer really changes shows the new rows: when the view holding it renders again for a change of its own (a new row closure, a changed scroll policy), the collection renders its visible rows with the new renderer, as with fast mode off, in `ParentViewport` mode inside a scrolling `div` and scrolling itself.\n\nThe owner decided (2026-10-18), relayed by the coordinating session, first: \"take (B), and fix the TreeView bug in the same sprint\": (B) was a gpux rule under which writes an owner makes while it renders only because a scroll notified it count as repeats; the TreeView bug was TreeBase's `set_render_item` write taken to be never stamped. Implementing them showed both rest on a misdiagnosis. ListView demoted the parent's layer because the test's own `VisibleRangeChanged` subscriber lived on the view holding the `div`, which every range event updated, a real change of that view; with the subscriber on an entity of its own and ListViewState's dependent registration narrowed, ListView keeps the layer with or without (B), as composited frames keep the div's content and never lay out its children. TreeBase's write is stamped: it never showed because those frames skip the layout that runs it, so the TreeView bug does not exist. The owner then decided: \"revert (B), keep the new regression tests, and record your decision and this outcome in the epic\". (B) and the TreeView fix are withdrawn; `row_renderer_changes` stays as regression coverage. A parent that subscribes to the list's events is still a real change on every range change, so the list's state view is built again then; that limit is with the owner.\n\n**Test.** A new RayX group, `crates/rayx_components/rayx_components_core/tests/row_renderer_changes.rs`."
+        }
+      ]
+    },
+    {
+      "id": "RXK",
+      "title": "RayX's lists composite in every kind",
+      "descriptionMarkdown": "The consumer proof for the new kinds.",
+      "criteria": [
+        {
+          "id": "RXK-1",
+          "verification": "automated",
+          "descriptionMarkdown": "**Consumer proof.** A new RayX group, `crates/rayx_components/rayx_components_core/tests/virtual_list_layer_kinds.rs`, scrolls each of these with fast mode on:\n- a ListView with a `sticky_policy` (nested levels);\n- a horizontal ListView;\n- a TreeView with sticky ancestors;\n- a DataTable whose rows follow its header through `SynchronizedOffset`.\n\n**Required.** Each composites on scroll-only frames after promotion and shows its rows, and the sticky rows keep their listeners: a click on a stuck header reaches it. This proves the consumer, not gpux.\n\n**Where the DataTable case lives.** `rayx_components_core` cannot depend on `rayx_components_datatable`, which depends on it: the DataTable case is the datatable crate's group of the same name, `crates/rayx_components/rayx_components_datatable/tests/virtual_list_layer_kinds.rs` (finding of t08, 2026-10-17)."
+        }
+      ]
+    },
+    {
+      "id": "TM",
+      "title": "Timings",
+      "descriptionMarkdown": "Every kind is measured the way the repository measures fast mode.",
+      "criteria": [
+        {
+          "id": "TM-1",
+          "verification": "automated",
+          "descriptionMarkdown": "**Scenarios.** Fast-mode bench scenarios in `crates/gpui/src/fast/scenarios/scroll.rs`:\n- `scroll-virtual-list`, `scroll-virtual-list-horizontal`, `scroll-virtual-list-sticky`, `scroll-virtual-list-synchronized` (`scroll-virtual-list-parent-viewport` moved with PV into s04: TM-3);\n- each a wheel step over 10,000 variable-size rows built like the existing `scroll-uniform-list` scenario.\n\n**CI counters.** Each is listed in `fast_mode_attribution`. Its deterministic counters show that `layers` composites (`tiles_composited > 0`) and renders fewer rows than `splice`, and `every_scenario_is_attributed` passes."
+        },
+        {
+          "id": "TM-2",
+          "verification": "manual",
+          "descriptionMarkdown": "**Run.** `gpux-testkit perf fast-mode --name virtual-list` on the owner's Mac (Metal, display awake). For every new scenario and each cumulative mode it records the median and interval.\n\n**Acceptance.** In `docs/fast-mode.md`'s Measurements:\n- `layers` is not slower than `off` beyond the interval for each scenario, with the work it saves shown by the deterministic counters;\n- any scenario where `layers` is not faster than `splice`, beyond the interval, is explained;\n- the results sit beside `scroll-uniform-list` and `scroll-list`.\n\nThe raw report stays in ignored `artifacts-temp/testkit/perf/virtual-list/`. Owner-attended (sprint s07).\n\nThe owner decided (2026-10-18), after both lane G runs put every virtual-list kind within the intervals of a suite paced at about 9 ms a frame: \"Amend TM-2 to: not slower than off beyond the interval, with the work saved shown by the deterministic counters.\""
+        },
+        {
+          "id": "TM-3",
+          "verification": "automated",
+          "descriptionMarkdown": "The owner decided (2026-10-17), relayed by the coordinating session: \"Lets skip s04 until acceskit is merged in and skip to s05 and everything that can be done until the merge\". The `ParentViewport` scenario moves with PV.\n\n**Scenario.** `scroll-virtual-list-parent-viewport` in `crates/gpui/src/fast/scenarios/scroll.rs`, built as TM-1's scenarios are: a `ParentViewport` `VirtualList` of 10,000 variable-size rows in a scrolling `div`.\n\n**CI counters.** It is listed in `fast_mode_attribution`; its deterministic counters show that `layers` composites (`tiles_composited > 0`) and renders fewer rows than `splice`, and `every_scenario_is_attributed` passes."
+        }
+      ]
+    },
+    {
+      "id": "DOC",
+      "title": "Documentation",
+      "descriptionMarkdown": "The fast-mode guide describes every kind.",
+      "criteria": [
+        {
+          "id": "DOC-1",
+          "verification": "manual",
+          "descriptionMarkdown": "`docs/fast-mode.md`'s \"Virtual lists\" section describes how each `VirtualList` kind uses layers:\n- horizontal lists;\n- sticky rows drawn over the layer;\n- `SynchronizedOffset`;\n- `ParentViewport` inside a promoted `div` layer.\n\nIt also gives:\n- the per-frame counts of each new test group;\n- what remains `ineligible`: `uniform_list` and `list` with sticky items, content no tile can hold, rounded or transformed clips.\n\nA reviewer reads it against the source."
+        }
+      ]
+    },
+    {
+      "id": "MG",
+      "title": "The branches carry main's AccessKit model",
+      "descriptionMarkdown": "The owner decided (2026-10-17), relayed by the coordinating session: \"Lets skip s04 until acceskit is merged in and skip to s05 and everything that can be done until the merge\". The coordinating session's plan, which the owner agreed: hold s04 until the AccessKit epic (gpux-a11y-devtools) merges into `main`; then merge `main` into `feat/virtual-list`, so that the DevKit hooks move to AccessKit there, and build s04's record hiding on the AccessKit mechanism.",
+      "criteria": [
+        {
+          "id": "MG-1",
+          "verification": "automated",
+          "descriptionMarkdown": "**Merge.** gpux `main`, with the AccessKit epic, is merged into gpux `feat/virtual-list`, and RayX `master`, with its a11y side, into RayX `feat/virtual-list`.\n\n**Model.** `VirtualList`'s and the list layers' uses of DevKit nodes and the fast-mode scenes' `DevtoolsSemantics` move onto the AccessKit model main carries (content a layer holds off screen recorded under the window's a11y nodes; a composited layer replaying its a11y events). Main's DevKit-based record hiding is not ported.\n\n**Proof.** This epic's and `gpux-virtual-list`'s test groups pass afterwards, in gpux and in RayX.\n\n**Start.** Only once the owner says the AccessKit epic is merged."
+        }
+      ]
+    },
+    {
+      "id": "DF",
+      "title": "A wheel turn over a DataTable draws the frames a scroll needs",
+      "descriptionMarkdown": "The owner decided (2026-10-17), relayed by the coordinating session: \"Fix it\" (DataTable's second frame after each wheel turn, with fast mode off too). Found by t08: a DataTable drew a second frame after every wheel turn, with fast mode off and on.",
+      "criteria": [
+        {
+          "id": "DF-1",
+          "verification": "automated",
+          "descriptionMarkdown": "**Requirement.** One wheel turn over a DataTable, across or down, draws exactly one frame, with fast mode off and with every switch on; no frame follows it once it is drawn.\n\n**Cause.** `ScrollableMask` handled the table's wheel by queueing a programmatic offset (`request_offset`), which the header's scroll container took in at its next prepaint and published with a deferred notification, and by notifying the view itself: the deferred notification drew a second frame. It now publishes the turn as a wheel in its input turn (`ScrollHandle::publish_wheel_offset`, RayX 5b839689, gpux a4131c8).\n\n**Test.** A new RayX group, `crates/rayx_components/rayx_components_datatable/tests/wheel_frames.rs`, naming the cause in its doc comment; it fails with the mask's old handler."
+        }
+      ]
+    },
+    {
+      "id": "PR",
+      "title": "A parent's re-render leaves the list it holds as it was",
+      "descriptionMarkdown": "The owner decided (2026-10-18), relayed by the coordinating session: \"Ok, do this: I'd add one sprint to the follow-up epic, before the timings sprint (s07): 1. Measure a parent re-rendering on every range change, and a parent re-rendering for an unrelated reason: views built, rows rendered and layers composited per frame. 2. Make the state writes conditional, guarded by `row_renderer_changes`. 3. Write the guidance in RayX's docs and convert the Test Suite pages.\"\n\nListView's element (`list_view/element.rs`) and TreeBase's write the row renderer, scroll policy and scrollbar into their state on every render of the view holding them, so any re-render of that view rebuilds the collection's state view, renders its visible rows again and, in `ParentViewport` mode, paints the parent div's layer again. A view that subscribes to `VisibleRangeChanged` and notifies itself, or that re-renders for state of its own, pays that on every frame.",
+      "criteria": [
+        {
+          "id": "PR-1",
+          "verification": "automated",
+          "descriptionMarkdown": "**Measurement.** A new RayX group records, per frame, the views built, the rows rendered and the layers composited for ListView and TreeView, scrolling themselves and in `ParentViewport` mode, under two parents: one that keeps the reported range and notifies itself on every change, and one that re-renders for a counter of its own between wheel turns. Its red baseline is the cost before the fix (recorded under `artifacts-temp`). After the fix, a parent that re-renders with the same settings leaves the state view unbuilt, the wheel frames composite, and only the rows a scroll uncovers render.\n\n**Finding (t13).** In `ParentViewport` mode the wheel frames composite when the scrolling `div` is drawn by a view of its own beside the parent (the group's `ParentViewportInPane` surface, 4 cases): a parent that draws the `div` itself changes what the `div`'s layer holds with every re-render, and the layer gives way; the group bounds that case by the scroll and the repaints instead (its state view is built only for the scroll, and a tick renders rows only where the layer is painted again).\n\n**Test.** `crates/rayx_components/rayx_components_core/tests/parent_rerender_cost.rs` (12 cases)."
+        },
+        {
+          "id": "PR-2",
+          "verification": "automated",
+          "descriptionMarkdown": "**Conditional writes.** ListView's and TreeBase's elements write their state only when the scroll policy or scrollbar settings differ or the row renderer may have changed. For the row renderer's sameness the owner chose (2026-10-18): \"Yes, A + B together\": (A) the write is skipped when the scroll policy and scrollbar are unchanged and the row renderer is provably the same, of the same type and capture-free (zero-sized); a capturing closure still writes, as before. (B) an opt-in `renderer_key(k)` (Eq) on `list_view(..)` and on TreeBase: an equal key skips the write; without a key, behaviour stays as before.\n\n**Guard.** `row_renderer_changes` keeps passing, the capturing `generation` case included, and gains cases for a capture-free renderer under a re-rendering parent (no write, rows still updated through entity reads) and for an equal key against a changed key."
+        },
+        {
+          "id": "PR-3",
+          "verification": "automated",
+          "descriptionMarkdown": "**Guidance.** RayX's docs say to keep row renderers capture-free and read parent data through entities, or to give a capturing renderer a key, and to subscribe to a collection's events from a small dedicated view or model, not from the view that holds the collection or owns its scroll container. The virtualization rules in RayX memory say the same at the epic's closure. The Test Suite pages `virtualization`, `sliver_list_tree`, `sliver_virtualization_scaling` and `keyed_sticky_stacking` are converted to that pattern, keeping what their Playwright specs assert (run by CI)."
+        },
+        {
+          "id": "PR-4",
+          "verification": "automated",
+          "descriptionMarkdown": "**Finding (t13).** On the frames where the view holding a scrolling `div` is drawn from the last frame (`views_reused`, as when the view around it renders again), gpux copied the records of a list's layer along with the view but painted a `div`'s layer again the next frame, so a pane beside a re-rendering parent never composited. A `div`'s layer whose content read no hover now follows the copy as a list's does (`fast::layers::reuse::follow_prepaint`); one whose content read hovers is still painted again, its hovers judged afresh. Every frame describes itself as a frame drawn without layers does (`describe_rendered_frame`: primitives, hitboxes, listeners, tab stops, dispatch and accessibility trees, accessibility on), and clicks on a copied frame and on the composited turn after it reach the rows they reach without layers (review finding lk-s04c-F1).\n\n**Test.** A new gpux group, `fast::tests::layer_owner_replay`, red with the old list-only rule."
+        },
+        {
+          "id": "PR-5",
+          "verification": "automated",
+          "descriptionMarkdown": "**Finding (lk-s04c-F1 repair).** On a frame that composites a scrolling `div`'s layer, the accessibility scroll target of the `div` itself (the first event its layer's records hold) was replayed moved like content: its scrollport shifted by the scroll and its offset stayed the one the layer was painted at, so `ScrollIntoView` and the targets assistive technology reads were wrong on every composited frame. The carry of a `div`'s layer now replays that target standing, with the offset moved by the scroll, while the containers nested in the content move with it (`A11yState::begin_container_replay`).\n\n**Test.** A new gpux group, `fast::tests::layer_a11y_scroll_targets`, red without the fix."
+        }
+      ]
+    }
+  ]
+}

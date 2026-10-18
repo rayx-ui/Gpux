@@ -182,6 +182,11 @@ pub struct FastStats {
     pub list_rows_rendered: u64,
     /// List rows kept in a list's layer without rendering.
     pub list_rows_kept: u64,
+    /// Views built, not kept, because they hold a measured leaf other than
+    /// text whose style does not fix its size, or that their last layout
+    /// measured to size it: kept without building, the leaf would have no
+    /// measurement closure and be sized empty.
+    pub views_built_for_measured_leaves: u64,
 }
 
 impl FastStats {
@@ -201,7 +206,7 @@ impl FastStats {
 
     /// The names of the mechanism counters, zero with fast mode off. Layer
     /// bypasses are reported per reason as `layer_bypasses.<reason>`.
-    pub const MECHANISM: [&'static str; 21] = [
+    pub const MECHANISM: [&'static str; 22] = [
         "nodes_claimed",
         "nodes_released",
         "nodes_lingering",
@@ -223,6 +228,7 @@ impl FastStats {
         "list_rows_rendered",
         "list_rows_kept",
         "layer_bypasses",
+        "views_built_for_measured_leaves",
     ];
 
     /// Every counter as `(name, value)`, `frames` first, then the work
@@ -281,6 +287,10 @@ impl FastStats {
                 self.layer_bypasses[*reason as usize],
             )
         }));
+        counters.push((
+            "views_built_for_measured_leaves".into(),
+            self.views_built_for_measured_leaves,
+        ));
         counters
     }
 
@@ -305,7 +315,10 @@ impl FastStats {
     /// The sum of view retention's counters: zero on frames drawn with it
     /// off.
     pub fn view_retention_total(&self) -> u64 {
-        self.views_built_at_retained_layout + self.views_reused + self.views_bypassed()
+        self.views_built_at_retained_layout
+            + self.views_reused
+            + self.views_bypassed()
+            + self.views_built_for_measured_leaves
     }
 
     /// The sum of splice's counters: zero on frames drawn with it off.
@@ -365,6 +378,7 @@ impl FastStats {
             + self.tiles_composited
             + self.list_rows_rendered
             + self.list_rows_kept
+            + self.views_built_for_measured_leaves
             + bypasses
     }
 
@@ -413,6 +427,7 @@ impl FastStats {
         self.tiles_composited += other.tiles_composited;
         self.list_rows_rendered += other.list_rows_rendered;
         self.list_rows_kept += other.list_rows_kept;
+        self.views_built_for_measured_leaves += other.views_built_for_measured_leaves;
     }
 
     /// One `gpux-fast-stats:` line for the bench `id`, as the testkit report

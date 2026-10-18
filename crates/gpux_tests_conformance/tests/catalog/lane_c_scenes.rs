@@ -19,6 +19,7 @@ macro_rules! lane_c_scenes {
             editable_ime => "editable-ime",
             list_uniform => "list-uniform",
             list_variable => "list-variable",
+            list_virtual => "list-virtual",
             scroll_wheel => "scroll-wheel",
             scroll_nested => "scroll-nested",
             scroll_scrollbar => "scroll-scrollbar",

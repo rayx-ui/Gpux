@@ -1,0 +1,3486 @@
+{
+  "schemaVersion": 7,
+  "epicId": "gpux-virtual-list-layer-kinds",
+  "revision": 136,
+  "planRevision": 22,
+  "specHashes": {
+    "requirements": "310125450c4c82b8b12a17b7c0bf51dcc4886cb94f09f0862422b5cbbe88533b",
+    "design": "4753a94dd130c6cac229da3d02133574edd96817c1c6df099e1af21a939b67dc",
+    "plan": "9fadd3b9859d502bb1b54800516dc0533a2bb46aa6adf1e871685e138d6b1df8"
+  },
+  "tasks": {
+    "t01-axis-slots": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t02-horizontal-oracle": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t03-sticky-extra-rows": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t04-sticky-oracle": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t05-synchronized-layer": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t06-parent-promoted": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t07-rayx-dependent-registration": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t08-rayx-kinds": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t09-scenarios": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t10-timings": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t11-docs": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t00-measured-leaves": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t00b-half-pixel": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t00c-uniform-measure": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t-merge-main": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t09b-parent-scenario": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t-dt-frames": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t07b-renderer-regression": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t12-rerender-measure": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t13-conditional-writes": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t14-subscriber-guidance": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t13b-owner-replay-layer": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t13c-a11y-scroll-target": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t15-lane-c-renamed": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t16-attribution-all": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    }
+  },
+  "validationBatches": {
+    "45eecf6aa229f8a2890655f7519b5ae557f095e3f1222a1cfb0a56471e93e6ca": {
+      "snapshot": {
+        "specHash": "2345dc8bf866d403f69a60cac6f9c0462f63bca01a509a232107d7fe11d67c38",
+        "repositories": {
+          "gpux": "a73976b5f39ccf520a59ac527ff710d8da05ccf7ac9b20d5296c1d3e2706d09d",
+          "rayx": "6760fd3c6087a69623a43744e89e30e142b974ccc4b14b30ccb46f50b02077d1"
+        }
+      },
+      "recordedAt": "2026-10-16T20:48:37Z"
+    },
+    "dd1439f1a1e744024a14618168bd66a161edf82baad2fef122496d27bb09a2ca": {
+      "snapshot": {
+        "specHash": "ebe43eb4df55aabd31f8b7a8811f28366756aa345fa5c31c99786ebb92c5d743",
+        "repositories": {
+          "gpux": "f27262f64aff8c2f637f1b0550eb13a240e9c954fc2e5b0ad9afa1865770a558",
+          "rayx": "6760fd3c6087a69623a43744e89e30e142b974ccc4b14b30ccb46f50b02077d1"
+        }
+      },
+      "recordedAt": "2026-10-16T21:27:57Z"
+    },
+    "c768cd7cd2f12380423bc8e7b389585f7b2989975c2fd9ced0b0bb0de9a3c87a": {
+      "snapshot": {
+        "specHash": "ebe43eb4df55aabd31f8b7a8811f28366756aa345fa5c31c99786ebb92c5d743",
+        "repositories": {
+          "gpux": "24e6d17198b3a0af6aee7bf5814103025f1afd09ac5f605066fab3b882a620aa",
+          "rayx": "6760fd3c6087a69623a43744e89e30e142b974ccc4b14b30ccb46f50b02077d1"
+        }
+      },
+      "recordedAt": "2026-10-16T21:37:43Z"
+    },
+    "508d5e554ec9dc72b26c34a5909ed5d711ad9db1d19d7a0bb68c2066b49de8c6": {
+      "snapshot": {
+        "specHash": "ebe43eb4df55aabd31f8b7a8811f28366756aa345fa5c31c99786ebb92c5d743",
+        "repositories": {
+          "gpux": "672a13a659151c2215e7303b6b7f00d772ed61e53b3cc113a10bd07010523be3",
+          "rayx": "6760fd3c6087a69623a43744e89e30e142b974ccc4b14b30ccb46f50b02077d1"
+        }
+      },
+      "recordedAt": "2026-10-16T22:58:17Z"
+    },
+    "5c82811f91b5bebc045783369462c34ad8e3860abc2b1006ef7a4410ece6fa1b": {
+      "snapshot": {
+        "specHash": "ebe43eb4df55aabd31f8b7a8811f28366756aa345fa5c31c99786ebb92c5d743",
+        "repositories": {
+          "gpux": "0f8b079aa694310d6b742d45ca98067d693a9da33770838074b8c7018777a635",
+          "rayx": "6760fd3c6087a69623a43744e89e30e142b974ccc4b14b30ccb46f50b02077d1"
+        }
+      },
+      "recordedAt": "2026-10-16T23:07:26Z"
+    },
+    "12a0f9283e754bf1d41fe46a8e53ab92dfd0a80780e8203db549a47c283c83e6": {
+      "snapshot": {
+        "specHash": "28a51104afbdb1d6f3ab6ae37dc87cb3b7bdfbe6da710a052430a1a0303cf3b4",
+        "repositories": {
+          "gpux": "a6d5417a5c6f1582b351e15b9a01d460ab87cdc67504186d92367c3029eeb862",
+          "rayx": "2259122bb457510a8253c47d59a730b4864bddde1a4562ac19edad6c655041b0"
+        }
+      },
+      "recordedAt": "2026-10-16T23:47:50Z"
+    },
+    "e30c8a1ac02a7eedf88637f3beca839ed89ea5057dcce3369d87ee8fdb6908d5": {
+      "snapshot": {
+        "specHash": "28a51104afbdb1d6f3ab6ae37dc87cb3b7bdfbe6da710a052430a1a0303cf3b4",
+        "repositories": {
+          "gpux": "ac2a2b17fefffe6b833767266fc7e1665ce0a3d1d8ef19b8fdb11f8b6b633c9f",
+          "rayx": "2259122bb457510a8253c47d59a730b4864bddde1a4562ac19edad6c655041b0"
+        }
+      },
+      "recordedAt": "2026-10-17T00:20:35Z"
+    },
+    "28095b66a012cfeeea2115869f0aba75ab2a5edcca2d10a8dd3dd346bfa03475": {
+      "snapshot": {
+        "specHash": "49abea1e5ee67ea44fca0ffdc7d17c9e15e05efb0685585ab37e93756b662ec2",
+        "repositories": {
+          "gpux": "ba518918cf6bab25bcb873ce1596396862422e67cc3ba06e2da48ecc6a9a6bff",
+          "rayx": "11ee0a5f7e615e9ab523f6d8e282dfe5042eb777de4faa16858cd97ea0bcdc30"
+        }
+      },
+      "recordedAt": "2026-10-17T01:43:19Z"
+    },
+    "4c50ab708e91de9f26d22a98ca60fe8c2fdde2fd0d21b3c02bd65e850c18f343": {
+      "snapshot": {
+        "specHash": "49abea1e5ee67ea44fca0ffdc7d17c9e15e05efb0685585ab37e93756b662ec2",
+        "repositories": {
+          "gpux": "43663bfb97efa17cdb7bc6f4a27883dfa8b0de3e4dcf016a9437ae77428e09db",
+          "rayx": "11ee0a5f7e615e9ab523f6d8e282dfe5042eb777de4faa16858cd97ea0bcdc30"
+        }
+      },
+      "recordedAt": "2026-10-17T01:47:19Z"
+    },
+    "928ffd84212b6a2416377f4c110c451a45cfb3ae1edc407677f0d470d12169d4": {
+      "snapshot": {
+        "specHash": "597b7d46dcfe129c2ed232fdaa7c468a88af9b1db1bda9dc2d8b628b8da910f6",
+        "repositories": {
+          "gpux": "43663bfb97efa17cdb7bc6f4a27883dfa8b0de3e4dcf016a9437ae77428e09db",
+          "rayx": "f5ad2fafde193145a5fd3c009d58e4fe2f6cdc9b071b96c349500644c55980d7"
+        }
+      },
+      "recordedAt": "2026-10-17T08:00:02Z"
+    },
+    "465b2aba284dda10b044d73882240d70c384b3e40967c22c29d8345adc295331": {
+      "snapshot": {
+        "specHash": "a2f4a5600f5216d5f4a70979791d9e727b1cf94edeec4c22cdc046788abbba3e",
+        "repositories": {
+          "gpux": "b93f9d5e4abc17f4631d904522f565815fb88205c0bdbb0c4deb027f48bc0f35",
+          "rayx": "f2108d911b63f969800968f0893d74846754c461dfa22383bfddc55f9eefb390"
+        }
+      },
+      "recordedAt": "2026-10-17T23:25:21Z"
+    },
+    "f439ad5ae98ad5031b0962629c7f9faa63f50b08d14c2f02adcc6d9b6bf2be94": {
+      "snapshot": {
+        "specHash": "c7fee145fdbd3877d5b58f1e54dcee7efa56759321e324ce2412339e26fa258f",
+        "repositories": {
+          "gpux": "2d09608adfb3332702c171fe3e1e69bb727352619d9bd2c2f29bad4a5162a3e1",
+          "rayx": "2bd5c7a9769daed3e06aac78948e88d6876c5ca47a3aef0a8c36099aea9e089c"
+        }
+      },
+      "recordedAt": "2026-10-18T01:52:48Z"
+    },
+    "1623475f04a25fa3c1cce0bca0a34630a3af7c1b06c9183ac7747a5c91063b49": {
+      "snapshot": {
+        "specHash": "38d9a32e64d847b7a29e403e2fb8c5d504e6577307751dea0ff25bcde8c2dc9b",
+        "repositories": {
+          "gpux": "2d09608adfb3332702c171fe3e1e69bb727352619d9bd2c2f29bad4a5162a3e1",
+          "rayx": "61f102ef2266ebad725b8b77d1af324eca5d131652dc3f02d3ff5d930da46a9d"
+        }
+      },
+      "recordedAt": "2026-10-18T01:55:28Z"
+    },
+    "97611d2ff44091cd9d905cae9911622d6d9400aed0d549a7001ea7dc20566fd2": {
+      "snapshot": {
+        "specHash": "fd1fc0bd043e0f2844e4a276a7006204ce35d5a8eba50a633121fb88b932dd92",
+        "repositories": {
+          "gpux": "07f0ed8581d8d0958c2876c4a367c93a2f448809a6e1d2f7a3dad6fd7dd32adb",
+          "rayx": "2a22aea97220e64cf84e4d7f9f583ce764a84f6de02332f3ea87ccc35cce79d1"
+        }
+      },
+      "recordedAt": "2026-10-18T02:37:23Z"
+    },
+    "4b152c4321da4f2853c11b255e580eef532368980620dcd2a2ddd7c0b4e46097": {
+      "snapshot": {
+        "specHash": "899a7e03a86f0fd398c1f941c1ec0c20c73dbbea34a9be705935f1206fd77f8f",
+        "repositories": {
+          "gpux": "9dbd9416a40274963e560183a5aec6d1ca86186dc6593121567150b3f8af5759",
+          "rayx": "2a22aea97220e64cf84e4d7f9f583ce764a84f6de02332f3ea87ccc35cce79d1"
+        }
+      },
+      "recordedAt": "2026-10-18T10:07:52Z"
+    },
+    "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e": {
+      "snapshot": {
+        "specHash": "949da250b75a5a6cbd5b73232ab36abb986569b6abe6f4bb074768aa9e7c0483",
+        "repositories": {
+          "gpux": "844f4869f4710705cd03995e1aee147fa5c10347bef9096a5d86a6899e273c6e",
+          "rayx": "2a22aea97220e64cf84e4d7f9f583ce764a84f6de02332f3ea87ccc35cce79d1"
+        }
+      },
+      "recordedAt": "2026-10-18T10:18:36Z"
+    },
+    "cd4d3452e36c7df702bf7aaa0fd7c79e451870cfe5cf2158a617add865b14775": {
+      "snapshot": {
+        "specHash": "f39110603bdf9e0c12d5f9b1d748b7b627f17008de61e2f5e16e7fd2d65492b4",
+        "repositories": {
+          "gpux": "844f4869f4710705cd03995e1aee147fa5c10347bef9096a5d86a6899e273c6e",
+          "rayx": "2a22aea97220e64cf84e4d7f9f583ce764a84f6de02332f3ea87ccc35cce79d1"
+        }
+      },
+      "recordedAt": "2026-10-18T10:30:29Z"
+    },
+    "4993bb2e16701ee213ba1987bffc1e5f345af37bb439e00d42f92197da210da1": {
+      "snapshot": {
+        "specHash": "3ccb7438022179cf6ea074b2d5d237e8da1d592712a5d66f354bd7f09fdf05d9",
+        "repositories": {
+          "gpux": "844f4869f4710705cd03995e1aee147fa5c10347bef9096a5d86a6899e273c6e",
+          "rayx": "2a22aea97220e64cf84e4d7f9f583ce764a84f6de02332f3ea87ccc35cce79d1"
+        }
+      },
+      "recordedAt": "2026-10-18T10:42:15Z"
+    }
+  },
+  "checkResults": {
+    "s00-measured-leaves/c-measured-leaves/baseline": {
+      "checkId": "c-measured-leaves",
+      "boundaryId": "s00-measured-leaves",
+      "phase": "baseline",
+      "batchId": "45eecf6aa229f8a2890655f7519b5ae557f095e3f1222a1cfb0a56471e93e6ca",
+      "definitionHash": "5f45c7fb4cf56e6b40236853d6dc29cda27b11aadf875291006dc1fd70de53c6",
+      "basisHash": "90d64b46e1c5de65f1335cde8bb4dbfd24983d1f5e611925843596ea09182fd6",
+      "status": "passed",
+      "exitCode": 101,
+      "testCount": 4,
+      "durationSeconds": 0.6721,
+      "recordedAt": "2026-10-16T20:48:36Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s00-measured-leaves-baseline-7d8b5dee0cb8.log",
+      "logSha256": "d90022ab3cc1ba9a54db28ac92f2209bd5bdf727ba4ee7076a62e796939553d0",
+      "inputsHash": "e3418c751846cbd2c62de21fc9f86a67d9c1c49d60a91abaab77968bbc11ee81"
+    },
+    "s00-measured-leaves/c-measured-leaves/final": {
+      "checkId": "c-measured-leaves",
+      "boundaryId": "s00-measured-leaves",
+      "phase": "final",
+      "batchId": "dd1439f1a1e744024a14618168bd66a161edf82baad2fef122496d27bb09a2ca",
+      "definitionHash": "7510d152ee146dbc911a60022d55aa00860f40569464c4c0dab83d4157c1fb42",
+      "basisHash": "cd7a2f7d3f86146c3c0e95bae15092bc5a440001d66ff86d91eb2a3104bead43",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 9,
+      "durationSeconds": 1.8021,
+      "recordedAt": "2026-10-16T21:27:56Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s00-measured-leaves-final-6540eec97100.log",
+      "logSha256": "57adbf34192c3890b46fc3a603fe8e8118e4c4cda0160ecb08f9929d36662bcc",
+      "inputsHash": "c1bec714566663335940292a3ecd56007233fb42f96fc75397b5e38aa44c2d10"
+    },
+    "s00-measured-leaves/c-measured-oracle/final": {
+      "checkId": "c-measured-oracle",
+      "boundaryId": "s00-measured-leaves",
+      "phase": "final",
+      "batchId": "dd1439f1a1e744024a14618168bd66a161edf82baad2fef122496d27bb09a2ca",
+      "definitionHash": "a64b814d4d616b9c17ad690960cdd1e8bca1c501a446e39219b77b44a0360332",
+      "basisHash": "437f92b47bd8501a84979c702a76f70fff4fd4e566548476e8fd83302d22a39c",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 0.7772,
+      "recordedAt": "2026-10-16T21:27:57Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s00-measured-leaves-final-b0fe39001542.log",
+      "logSha256": "3d61ff8a3219c664b4fcc1eb83591b52fa06cf3baffb8f941e58f88208483942",
+      "inputsHash": "c1bec714566663335940292a3ecd56007233fb42f96fc75397b5e38aa44c2d10"
+    },
+    "s00b-layer-gaps/c-half-pixel/baseline": {
+      "checkId": "c-half-pixel",
+      "boundaryId": "s00b-layer-gaps",
+      "phase": "baseline",
+      "batchId": "c768cd7cd2f12380423bc8e7b389585f7b2989975c2fd9ced0b0bb0de9a3c87a",
+      "definitionHash": "b2a29a4f4d0c952533a496545d561ba640c8239973e4aad61a6266390698c067",
+      "basisHash": "8edf9e11043262834ca142180092907ddfaaf4de126b7e58f8d7f60a289d2f70",
+      "status": "passed",
+      "exitCode": 101,
+      "testCount": 4,
+      "durationSeconds": 0.8388,
+      "recordedAt": "2026-10-16T21:37:43Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s00b-layer-gaps-baseline-c78a918d581d.log",
+      "logSha256": "c9f28cd7576c4c25791953e22a49315fddc6d791bf3d7da93b31358b088a55da",
+      "inputsHash": "7035b3e9c7060b229dcc05de5a0384aeb482235a689d46619eb3fc1843de8d92"
+    },
+    "s00b-layer-gaps/c-uniform-measure/baseline": {
+      "checkId": "c-uniform-measure",
+      "boundaryId": "s00b-layer-gaps",
+      "phase": "baseline",
+      "batchId": "c768cd7cd2f12380423bc8e7b389585f7b2989975c2fd9ced0b0bb0de9a3c87a",
+      "definitionHash": "c9b2c5e8f2491475b5bf2f88d93ec85d66a93283eb127f828aebcd9c2b8e0bf6",
+      "basisHash": "af7e2b164159e3456b672cc6b5517fb0fa1fb708b47a6c5672f7a0efbfbb3552",
+      "status": "passed",
+      "exitCode": 101,
+      "testCount": 3,
+      "durationSeconds": 0.2388,
+      "recordedAt": "2026-10-16T21:37:43Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s00b-layer-gaps-baseline-f8ed4c8872ca.log",
+      "logSha256": "28d2c805d991abc87961ed49a0572d4f984f95fd5cc13eb1f9bc63fd6a705418",
+      "inputsHash": "7035b3e9c7060b229dcc05de5a0384aeb482235a689d46619eb3fc1843de8d92"
+    },
+    "s00b-layer-gaps/c-half-pixel/final": {
+      "checkId": "c-half-pixel",
+      "boundaryId": "s00b-layer-gaps",
+      "phase": "final",
+      "batchId": "508d5e554ec9dc72b26c34a5909ed5d711ad9db1d19d7a0bb68c2066b49de8c6",
+      "definitionHash": "1501330c546db8d3b7151c75d1ec126d9ddbe62a0e380fb0b58cf1861c9f8f7f",
+      "basisHash": "0adad0b63065d262270239ee5c83ce21ff7ff94c6d6610f9b8a3a759aacb6f61",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 0.9883,
+      "recordedAt": "2026-10-16T22:57:17Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s00b-layer-gaps-final-880a4e9a53ff.log",
+      "logSha256": "41c99560612d6589e8e9554367e7129eb0573c24d4a1e2b45765be1a418784b4",
+      "inputsHash": "c4073209863721fe2d494a93b5941d1d7bf14a5e66852a9ec20949209241a1bd"
+    },
+    "s00b-layer-gaps/c-uniform-measure/final": {
+      "checkId": "c-uniform-measure",
+      "boundaryId": "s00b-layer-gaps",
+      "phase": "final",
+      "batchId": "508d5e554ec9dc72b26c34a5909ed5d711ad9db1d19d7a0bb68c2066b49de8c6",
+      "definitionHash": "c62b74d2115482c064784bc68f26a040ce89cb0d4d363f7ef27db53a82b74349",
+      "basisHash": "ee671e16291ffd25aa656dcd553b957efda046ba529fe472738f73073feb841e",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 8,
+      "durationSeconds": 0.338,
+      "recordedAt": "2026-10-16T22:57:18Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s00b-layer-gaps-final-3db010938a02.log",
+      "logSha256": "837e9c3d54c77470a6d656dc3a3717c5c53c4d987ab514be169bf3e7036267ce",
+      "inputsHash": "c4073209863721fe2d494a93b5941d1d7bf14a5e66852a9ec20949209241a1bd"
+    },
+    "s00b-layer-gaps/c-lane-c-layers-full/final": {
+      "checkId": "c-lane-c-layers-full",
+      "boundaryId": "s00b-layer-gaps",
+      "phase": "final",
+      "batchId": "508d5e554ec9dc72b26c34a5909ed5d711ad9db1d19d7a0bb68c2066b49de8c6",
+      "definitionHash": "96758c1d3bd42fc28d4d84c2e017c0cc6cb4902105873a32f602bd03307590a8",
+      "basisHash": "47e2a776e33856c61053851354dc95b792f66c7e0ebd722d259beabbd3866c63",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 30,
+      "durationSeconds": 58.4708,
+      "recordedAt": "2026-10-16T22:58:16Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s00b-layer-gaps-final-ff138bdbbc72.log",
+      "logSha256": "7f73d7ac03e4a23b2583b24010dc7b22639db9fa617bd80b6eca866599ef8df2",
+      "inputsHash": "b62c4acd86815fe286595a103b1b42d4c10dcdfdb2d6784cee10d5d260a478b6"
+    },
+    "s01-horizontal/c-horizontal/final": {
+      "checkId": "c-horizontal",
+      "boundaryId": "s01-horizontal",
+      "phase": "final",
+      "batchId": "5c82811f91b5bebc045783369462c34ad8e3860abc2b1006ef7a4410ece6fa1b",
+      "definitionHash": "9195fe6b91df7c697ae922735921d2492c87bbde5425094d0d7f8ae824ea03c7",
+      "basisHash": "8e4dd9405a96adda459a552ee09465a00e5ffd47ff54e9654d03cbb49f67b6ed",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 0.3433,
+      "recordedAt": "2026-10-16T23:07:25Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s01-horizontal-final-ba32d1c670c4.log",
+      "logSha256": "3688432d68e19c289ae382771fb4ca3a87f4be63837de11b0cb88a232c6528e1",
+      "inputsHash": "9d461bb141a25b08cd698c93f831187b117ddeaa1a1d8b6b2d450eb39475ccea"
+    },
+    "s01-horizontal/c-horizontal-oracle/final": {
+      "checkId": "c-horizontal-oracle",
+      "boundaryId": "s01-horizontal",
+      "phase": "final",
+      "batchId": "5c82811f91b5bebc045783369462c34ad8e3860abc2b1006ef7a4410ece6fa1b",
+      "definitionHash": "fcb4ff15f73b8db9405b1e7730dfc187c215e897c87939b266a6a475db450575",
+      "basisHash": "12843f9307c8e8860d6ae8a51fa6e99ba4a7d58a8011b91f254fe85064874dc4",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 0.393,
+      "recordedAt": "2026-10-16T23:07:26Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s01-horizontal-final-1b3af7e52dcd.log",
+      "logSha256": "46fce0be0eaec874142ed3807d190a43b4bf97a5e81ee3288bcedd8daf951477",
+      "inputsHash": "9d461bb141a25b08cd698c93f831187b117ddeaa1a1d8b6b2d450eb39475ccea"
+    },
+    "s02-sticky/c-sticky/final": {
+      "checkId": "c-sticky",
+      "boundaryId": "s02-sticky",
+      "phase": "final",
+      "batchId": "12a0f9283e754bf1d41fe46a8e53ab92dfd0a80780e8203db549a47c283c83e6",
+      "definitionHash": "1175dae38325d7d081b585597d112f9c6467143a30b177b3d6990fcde2383496",
+      "basisHash": "3e239012bd7442174305fe74370415efd84d15ae27a8a736754f123d55e71292",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 7,
+      "durationSeconds": 294.4761,
+      "recordedAt": "2026-10-16T23:47:48Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s02-sticky-final-7ea5123787e0.log",
+      "logSha256": "c5d7c1b3b9ee470292bd6156f0bc6083f4797097a79600ca5b658299ba758378",
+      "inputsHash": "9a6a792217ac72e48c0f61b0fa1b5572fa69798d7b33f9fd9b11a72c00f66091"
+    },
+    "s02-sticky/c-sticky-oracle/final": {
+      "checkId": "c-sticky-oracle",
+      "boundaryId": "s02-sticky",
+      "phase": "final",
+      "batchId": "12a0f9283e754bf1d41fe46a8e53ab92dfd0a80780e8203db549a47c283c83e6",
+      "definitionHash": "bcb2dd4290f385562c33bb519c8977ba4dd6b38eea28c70a35e09af7883f29cf",
+      "basisHash": "e77b951b8cf3c78e56814e013919923d387e31d3d22cde0df39187316ee1846a",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 0.9334,
+      "recordedAt": "2026-10-16T23:47:49Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s02-sticky-final-65adfbd7f6e8.log",
+      "logSha256": "d095f4fec98164d318010868e00fe1b052a13568a994d2cdf0aee93663a0c430",
+      "inputsHash": "9a6a792217ac72e48c0f61b0fa1b5572fa69798d7b33f9fd9b11a72c00f66091"
+    },
+    "s03-synchronized/c-synchronized/final": {
+      "checkId": "c-synchronized",
+      "boundaryId": "s03-synchronized",
+      "phase": "final",
+      "batchId": "e30c8a1ac02a7eedf88637f3beca839ed89ea5057dcce3369d87ee8fdb6908d5",
+      "definitionHash": "11e6ca6c48a0124c0e1781386c93abf649d7129e86fc39886c677b7b5423dea1",
+      "basisHash": "6a6e215e9edc9418bdb847a59ac2d75d6d41989f198d5259b019b5d71df517a2",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 0.8128,
+      "recordedAt": "2026-10-17T00:20:34Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s03-synchronized-final-31e1e58798c0.log",
+      "logSha256": "e168ed177bdf7a1b03a796e237558ab42eac290de93f70109ea0c4c0dfd5fdd4",
+      "inputsHash": "cb9e06965e674be93acd7152bf70b3ec976afdc77b8c5e5581eff6c7f060d6e6"
+    },
+    "s05-rayx-kinds/c-rx-kinds/final": {
+      "checkId": "c-rx-kinds",
+      "boundaryId": "s05-rayx-kinds",
+      "phase": "final",
+      "batchId": "28095b66a012cfeeea2115869f0aba75ab2a5edcca2d10a8dd3dd346bfa03475",
+      "definitionHash": "873a38e3fa37d3eafabbf6cd1a2068aa63923cca7bd060e91a0ef36d0a36b7e6",
+      "basisHash": "065f590581db25cf1031eb15832af9eb060a3635cab1179af8736e949690687b",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 47.4045,
+      "recordedAt": "2026-10-17T01:43:15Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s05-rayx-kinds-final-6be34a4b6d14.log",
+      "logSha256": "db15cbdfd2f69cc7465adbc0b26a8ccd7a5ecac732da1affea6f8e806074ed2a",
+      "inputsHash": "6cf27ff1e58b1bdafa75f98d07445dd0e269cdd6607457ac666e1b5014b9a4a5"
+    },
+    "s05-rayx-kinds/c-rx-kinds-table/final": {
+      "checkId": "c-rx-kinds-table",
+      "boundaryId": "s05-rayx-kinds",
+      "phase": "final",
+      "batchId": "28095b66a012cfeeea2115869f0aba75ab2a5edcca2d10a8dd3dd346bfa03475",
+      "definitionHash": "2785b9c741dee74e77c93610eb84b62fd1d7b80a2188c104ecb2460dd2ca53fb",
+      "basisHash": "51cd706ce4bd5e48bcd552c7e6c94498b778c3bb5158da14613b6b1df8512da8",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 2.9853,
+      "recordedAt": "2026-10-17T01:43:18Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s05-rayx-kinds-final-e3dc8f7b6ec6.log",
+      "logSha256": "d0166e68f1dc29290e67a0395715d3afb1854a20391ca01fb222c1d75e1a1421",
+      "inputsHash": "6cf27ff1e58b1bdafa75f98d07445dd0e269cdd6607457ac666e1b5014b9a4a5"
+    },
+    "s06-bench-scenarios/c-attribution/final": {
+      "checkId": "c-attribution",
+      "boundaryId": "s06-bench-scenarios",
+      "phase": "final",
+      "batchId": "4c50ab708e91de9f26d22a98ca60fe8c2fdde2fd0d21b3c02bd65e850c18f343",
+      "definitionHash": "7f4a6170881106d2d60ff5ed13f35868d3f3fb10e6a61645d7b9de9ad6b273dd",
+      "basisHash": "053b0d70dc523d002823640b8cfb39f41541eb636fd9d327fa659387cd295053",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 0.5906,
+      "recordedAt": "2026-10-17T01:47:19Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s06-bench-scenarios-final-2030f141651f.log",
+      "logSha256": "bed46ae2b80bb73bfb71466a749d353961cee636d46b9ace5b0bfc68f440b43e",
+      "inputsHash": "10d777370e978181066a07ebc39432fd305d42e5b557d4ee049a0ba8c75c404a"
+    },
+    "s06c-datatable-frames/c-dt-frames/final": {
+      "checkId": "c-dt-frames",
+      "boundaryId": "s06c-datatable-frames",
+      "phase": "final",
+      "batchId": "928ffd84212b6a2416377f4c110c451a45cfb3ae1edc407677f0d470d12169d4",
+      "definitionHash": "e299f27243a19f5a93a883fd06678d131659c94a39d9c6945d593d67bbb29dc1",
+      "basisHash": "462a54f212b0bb1715f56bf4cb5097817bfea2029e58eb2d9180ffdc1c4a517d",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 15.1475,
+      "recordedAt": "2026-10-17T08:00:01Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s06c-datatable-frames-final-9bc336920903.log",
+      "logSha256": "128cf3828c9a394e0f19f8215388236ae26dc022bc5ddc78c351083ea34f56ca",
+      "inputsHash": "187560c29cd877f3791638aa90f0d680ea387cfddff78db55b76a43e169ab871"
+    },
+    "s06b-accesskit-merge/c-merge-gpux-groups/final": {
+      "checkId": "c-merge-gpux-groups",
+      "boundaryId": "s06b-accesskit-merge",
+      "phase": "final",
+      "batchId": "465b2aba284dda10b044d73882240d70c384b3e40967c22c29d8345adc295331",
+      "definitionHash": "dd2273f5f7321fea4684119b2bb9884dabf592d125f467f4279580fe75ef8ee7",
+      "basisHash": "b05aa844884afc004c9c2016a2f6bd21414e2f6ac771c11a9761673b7446c51e",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 123,
+      "durationSeconds": 66.0695,
+      "recordedAt": "2026-10-17T23:25:16Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s06b-accesskit-merge-final-360ed40a32b7.log",
+      "logSha256": "44987505301d7171d2f5cd110ec3d6d9abc571b18965a6b1075b3d1c85a2170e",
+      "inputsHash": "99e0b20c5feda44d44ab770e84589ffba4cf1f0a5ea3dd091f5773b7c8363473"
+    },
+    "s06b-accesskit-merge/c-merge-gpux-integration/final": {
+      "checkId": "c-merge-gpux-integration",
+      "boundaryId": "s06b-accesskit-merge",
+      "phase": "final",
+      "batchId": "465b2aba284dda10b044d73882240d70c384b3e40967c22c29d8345adc295331",
+      "definitionHash": "c6366658e95ec8b92cef9f1cb3efb42b9892d62ef37a3f3d2a37cb3b7e60efcc",
+      "basisHash": "fdf9bcd6e071b00b357daae5959331760b14c7661574bbba0f63911a886c4c78",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 55,
+      "durationSeconds": 3.4809,
+      "recordedAt": "2026-10-17T23:25:19Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s06b-accesskit-merge-final-094c4048ce97.log",
+      "logSha256": "c44690b97cc3557a13489cba07c889587ec4f782b5853ebe2bdb136fc6036db6",
+      "inputsHash": "99e0b20c5feda44d44ab770e84589ffba4cf1f0a5ea3dd091f5773b7c8363473"
+    },
+    "s06b-accesskit-merge/c-merge-rayx-groups/final": {
+      "checkId": "c-merge-rayx-groups",
+      "boundaryId": "s06b-accesskit-merge",
+      "phase": "final",
+      "batchId": "465b2aba284dda10b044d73882240d70c384b3e40967c22c29d8345adc295331",
+      "definitionHash": "d67531a7f56b8950c2495a09a81b62721489d99918c6ad82fd9abfcce78946f2",
+      "basisHash": "9484d6e1686bd9531d1146a045b5f57bb1631859a754ea9329a5e95dead7948c",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 12,
+      "durationSeconds": 1.584,
+      "recordedAt": "2026-10-17T23:25:21Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s06b-accesskit-merge-final-1e26a7e595b7.log",
+      "logSha256": "0177535ceebc4852342a1af8d0e322736fab625e1036fc8584eaba719f985f91",
+      "inputsHash": "c74d8919a8f27b755fd967a7d42c82f4eb76bdfe81b0aa2df1340ebde32f6324"
+    },
+    "s04-parent-viewport/c-parent-promoted/final": {
+      "checkId": "c-parent-promoted",
+      "boundaryId": "s04-parent-viewport",
+      "phase": "final",
+      "batchId": "f439ad5ae98ad5031b0962629c7f9faa63f50b08d14c2f02adcc6d9b6bf2be94",
+      "definitionHash": "4062a176ce6a76d792e1fa0bba63e725c8b0b2944bbd4b336326c940f76473e3",
+      "basisHash": "a71d6f55642b4e6157edc4c360f315d09a485369fec13f5eae06b8bf604534b6",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 6,
+      "durationSeconds": 0.2932,
+      "recordedAt": "2026-10-18T01:52:09Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04-parent-viewport-final-78f21c712be4.log",
+      "logSha256": "b2e2903ca87135da3f06126bda528b0745209ba01c808bb9d34deae787e03560",
+      "inputsHash": "af4a660cf3cbfda6ed434ddc938a16d18a45298dcb28d4d609a05fb90ca739eb"
+    },
+    "s04-parent-viewport/c-rx-parent-layers/final": {
+      "checkId": "c-rx-parent-layers",
+      "boundaryId": "s04-parent-viewport",
+      "phase": "final",
+      "batchId": "f439ad5ae98ad5031b0962629c7f9faa63f50b08d14c2f02adcc6d9b6bf2be94",
+      "definitionHash": "709b9ce21e36556c1f2647aa9e244119fc14f8df24c3abf486857de01fe5320f",
+      "basisHash": "18a3061b4dd4c404e9544b4438b7b6bc790b0e0a204a2a819e6b3f3c667b5e37",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 15.4703,
+      "recordedAt": "2026-10-18T01:52:24Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04-parent-viewport-final-a6e66f878e07.log",
+      "logSha256": "96d9e0cdf45bbfa4bb54fa4d5bd8f2b0ae31dcd59673603f2aefc0572c137913",
+      "inputsHash": "f7b8dffa9b752fa9c723448c7d3fcedf5b988a2be42087b1f2933c6cd8c6d372"
+    },
+    "s04-parent-viewport/c-rx-parent-existing/final": {
+      "checkId": "c-rx-parent-existing",
+      "boundaryId": "s04-parent-viewport",
+      "phase": "final",
+      "batchId": "f439ad5ae98ad5031b0962629c7f9faa63f50b08d14c2f02adcc6d9b6bf2be94",
+      "definitionHash": "edd3970c2573407343594d3f91bf49677056d4770f070c27a232bb74035af221",
+      "basisHash": "f5ca84d3cbee5de6994a249ce73d98bfbcde7b87c24a916c7f9b22d227b28ce4",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 7,
+      "durationSeconds": 1.6892,
+      "recordedAt": "2026-10-18T01:52:26Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04-parent-viewport-final-c020d3f38b96.log",
+      "logSha256": "1cad4e6b1b3117e7589890887c3b8b74af447677c0274a05a05f6887c5a4a950",
+      "inputsHash": "f7b8dffa9b752fa9c723448c7d3fcedf5b988a2be42087b1f2933c6cd8c6d372"
+    },
+    "s04-parent-viewport/c-attribution-parent/final": {
+      "checkId": "c-attribution-parent",
+      "boundaryId": "s04-parent-viewport",
+      "phase": "final",
+      "batchId": "f439ad5ae98ad5031b0962629c7f9faa63f50b08d14c2f02adcc6d9b6bf2be94",
+      "definitionHash": "7176687bd78a5fe6681d8c502e17f6a621b2293063e5c6511a4e03819ef8da96",
+      "basisHash": "c102200f98d3a486dc4aaae6eb92ee81f74a14cc831905baff19a6f242dec6f0",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 20.2846,
+      "recordedAt": "2026-10-18T01:52:46Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04-parent-viewport-final-7662aee14574.log",
+      "logSha256": "4e7bb78d36e650f54f671b1f2a420e4fb3139e61fc4c43cca695f0f2adee9c9f",
+      "inputsHash": "af4a660cf3cbfda6ed434ddc938a16d18a45298dcb28d4d609a05fb90ca739eb"
+    },
+    "s04-parent-viewport/c-rx-renderer-changes/final": {
+      "checkId": "c-rx-renderer-changes",
+      "boundaryId": "s04-parent-viewport",
+      "phase": "final",
+      "batchId": "f439ad5ae98ad5031b0962629c7f9faa63f50b08d14c2f02adcc6d9b6bf2be94",
+      "definitionHash": "d3846429e515886792de354beb7afa7f9f6a56ef926409558828228addb6071f",
+      "basisHash": "706424d43611e7658d40af8a0a7701b7640aabade6074d35cff325fdea6af816",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 1.6986,
+      "recordedAt": "2026-10-18T01:52:48Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04-parent-viewport-final-2c24868846dc.log",
+      "logSha256": "ee4698274d9427967654db93dbf0358adf09ef2829ab5b9ebbeece29992e2a4e",
+      "inputsHash": "f7b8dffa9b752fa9c723448c7d3fcedf5b988a2be42087b1f2933c6cd8c6d372"
+    },
+    "s04c-parent-rerender/c-rx-rerender-cost/baseline": {
+      "checkId": "c-rx-rerender-cost",
+      "boundaryId": "s04c-parent-rerender",
+      "phase": "baseline",
+      "batchId": "1623475f04a25fa3c1cce0bca0a34630a3af7c1b06c9183ac7747a5c91063b49",
+      "definitionHash": "9a00a4ab6ff86e9f1c3d3de14ce7ca02b75d6e9fd5593ac67ecedb6ce291ac0d",
+      "basisHash": "3f6f8bada740bde97de91ba574fad8c391bb22228c388c3a4ac22712847a8efd",
+      "status": "passed",
+      "exitCode": 101,
+      "testCount": 8,
+      "durationSeconds": 1.7995,
+      "recordedAt": "2026-10-18T01:55:28Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04c-parent-rerender-baseline-40ef82d69c9c.log",
+      "logSha256": "0d49fe240b8bd458541fef2f5db623b91f8d3cabf66471d35ce9aff7dfeb7426",
+      "inputsHash": "852cd9b04d0a960577b2047e5b9fd4ec69dd6224ba7db9be2c4d05c6a105b1f7"
+    },
+    "s04c-parent-rerender/c-rx-rerender-cost/final": {
+      "checkId": "c-rx-rerender-cost",
+      "boundaryId": "s04c-parent-rerender",
+      "phase": "final",
+      "batchId": "97611d2ff44091cd9d905cae9911622d6d9400aed0d549a7001ea7dc20566fd2",
+      "definitionHash": "5b6533caa6d731a0c4199760da4049f33b18b1fc09d76fcc0b8abd3c3aa34182",
+      "basisHash": "f8b66611db256b9bf269eb9476920ed1b7be770604023d56af90191f72fb8234",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 12,
+      "durationSeconds": 0.8738,
+      "recordedAt": "2026-10-18T02:37:10Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04c-parent-rerender-final-26b0369be60e.log",
+      "logSha256": "23aa8d3b7d903624ebdac20758b8b7bdb323f1a0d7f377ce61bac5184c6e04d1",
+      "inputsHash": "2a971f5459e8b54bbfed7f9c2b9b368d78d1423773b0ee8460eaa9210c522352"
+    },
+    "s04c-parent-rerender/c-rx-renderer-sameness/final": {
+      "checkId": "c-rx-renderer-sameness",
+      "boundaryId": "s04c-parent-rerender",
+      "phase": "final",
+      "batchId": "97611d2ff44091cd9d905cae9911622d6d9400aed0d549a7001ea7dc20566fd2",
+      "definitionHash": "1ad224bd37a9725cf96d10a4d9e1af1c92005aa4497edba24609ed8e0708095d",
+      "basisHash": "69c625ead92bc42c9cff2d62db82b01a919ffa5fe6ae0f60904cfdcce0db019b",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 8,
+      "durationSeconds": 0.58,
+      "recordedAt": "2026-10-18T02:37:11Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04c-parent-rerender-final-0a99ecbad3d2.log",
+      "logSha256": "0a15fd00e8a2e609d0d299b254f1418f999cb5a4e67e6782f898b9f1f6a3c01a",
+      "inputsHash": "2a971f5459e8b54bbfed7f9c2b9b368d78d1423773b0ee8460eaa9210c522352"
+    },
+    "s04c-parent-rerender/c-rx-test-suite-build/final": {
+      "checkId": "c-rx-test-suite-build",
+      "boundaryId": "s04c-parent-rerender",
+      "phase": "final",
+      "batchId": "97611d2ff44091cd9d905cae9911622d6d9400aed0d549a7001ea7dc20566fd2",
+      "definitionHash": "1c9ef54c5585b86a0c12621bbcb652aa4654496aea664a1f4cf54c39c7126bf0",
+      "basisHash": "aeddf7f581d92d5583b7c14a00831bce0a2eb6685be0c02d72142673ce875525",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 11.3122,
+      "recordedAt": "2026-10-18T02:37:22Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04c-parent-rerender-final-02eacd8af308.log",
+      "logSha256": "dbe4b5b3d4be5592ab573299a70fae33b6b5d45cc3e01d55cf7e3fd6804faa09",
+      "inputsHash": "b9c1682818921efbf0b2275be29637233d9c7324827cd48918d78b3396a13eb5"
+    },
+    "s04c-parent-rerender/c-layer-owner-replay/final": {
+      "checkId": "c-layer-owner-replay",
+      "boundaryId": "s04c-parent-rerender",
+      "phase": "final",
+      "batchId": "97611d2ff44091cd9d905cae9911622d6d9400aed0d549a7001ea7dc20566fd2",
+      "definitionHash": "d83e402146483e5648944f5a74b9eb731f87a246235ad0d52ee64e331a634699",
+      "basisHash": "af0aa08e6af0f06319dcf4f55429fda077df2993bf401dd25b62d4bddc9e49f5",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 0.5419,
+      "recordedAt": "2026-10-18T02:37:23Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04c-parent-rerender-final-e8e832445270.log",
+      "logSha256": "0b6dcf57f3fc1fcb5cbd29701b98ddb439dfe8762af79fecc1793dd79ac0384f",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "s04c-parent-rerender/c-layer-a11y-scroll/final": {
+      "checkId": "c-layer-a11y-scroll",
+      "boundaryId": "s04c-parent-rerender",
+      "phase": "final",
+      "batchId": "97611d2ff44091cd9d905cae9911622d6d9400aed0d549a7001ea7dc20566fd2",
+      "definitionHash": "15ce2ef9d70fb3111e7d49b7e02380e0d4581456ba679723ee1039726f28d18d",
+      "basisHash": "31fb8f9b39b38e9315fbff7a5364e76f58106f4ca8882dd986e3010effb366de",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 0.3118,
+      "recordedAt": "2026-10-18T02:37:23Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04c-parent-rerender-final-ded9e27a2dbf.log",
+      "logSha256": "c86e7392b12e18d760dcce8f290667f8cb8f0234db113f603ab4789f9e45c62e",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "s07-timings-docs/c-perf/final": {
+      "checkId": "c-perf",
+      "boundaryId": "s07-timings-docs",
+      "phase": "final",
+      "batchId": "4b152c4321da4f2853c11b255e580eef532368980620dcd2a2ddd7c0b4e46097",
+      "definitionHash": "3dabbd5f9aa1a6d4fbf1d3dbdf2f50b94605c0ee9009336ce956d93e9cd65659",
+      "basisHash": "f51302d90b861f41979c7f8291cbc61981294400ff89a94ecd807cc885d2119d",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 110,
+      "durationSeconds": 405.5005,
+      "recordedAt": "2026-10-18T10:07:52Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s07-timings-docs-final-a8569a3a4192.log",
+      "logSha256": "aa9bca95405d43dd91b1ea0602a22deae00ae6acd5653081a2b41519c2d67483",
+      "inputsHash": "aa85d58adc659d7c90e52b0f82a143b7870a27ac0ce49465bd7ecd649e315836"
+    },
+    "final/c-measured-leaves/final": {
+      "checkId": "c-measured-leaves",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "7510d152ee146dbc911a60022d55aa00860f40569464c4c0dab83d4157c1fb42",
+      "basisHash": "ee45310cbae316bdd4b08c8ae2c8924108785c38a4559e9d8cc3f3349212f53f",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 9,
+      "durationSeconds": 21.0645,
+      "recordedAt": "2026-10-18T10:10:01Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-0aa4d9a10c15.log",
+      "logSha256": "b305612bb38f7f7ec59eb44c5b344cb2616228a90fbd58cbd4f7590fb79805c5",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-measured-oracle/final": {
+      "checkId": "c-measured-oracle",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "a64b814d4d616b9c17ad690960cdd1e8bca1c501a446e39219b77b44a0360332",
+      "basisHash": "1a0a1e1d753f05bd8e263e0a3c16e73b2ebd18b52b1e9e9d7c29162b4defe660",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 38.3366,
+      "recordedAt": "2026-10-18T10:10:39Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-dfaeae6151ba.log",
+      "logSha256": "c5ea9afb8d6371790eea15b46268a5fa27b5f2f4643c0fd9acf215e4ae8715ff",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-horizontal/final": {
+      "checkId": "c-horizontal",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "9195fe6b91df7c697ae922735921d2492c87bbde5425094d0d7f8ae824ea03c7",
+      "basisHash": "3a0ca64db6e8af5feda0da0eb79ce2a4ee80cd3bbe5a30b81e5cdd6906727dbb",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 0.6571,
+      "recordedAt": "2026-10-18T10:10:40Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-9d30fda52bd2.log",
+      "logSha256": "d9440469c2d9401acca1eb0b50c3cf9b747bec0d0d3966416a836c80308e017d",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-horizontal-oracle/final": {
+      "checkId": "c-horizontal-oracle",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "fcb4ff15f73b8db9405b1e7730dfc187c215e897c87939b266a6a475db450575",
+      "basisHash": "d59eee2d9cfd12d438761da091f08ec8f9149f9c3c538fb200c741517b20d254",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 0.3078,
+      "recordedAt": "2026-10-18T10:10:40Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-c5a3f718c3fe.log",
+      "logSha256": "490cb558f48b87a9dc9bed2072546752471a3f35efcaf8c96b8e3f77de396d49",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-sticky/final": {
+      "checkId": "c-sticky",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "1175dae38325d7d081b585597d112f9c6467143a30b177b3d6990fcde2383496",
+      "basisHash": "4bc7e489e83dae75a24573c21dd9f70aaa7f46472aa5ca824d58ea17857cc90e",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 7,
+      "durationSeconds": 0.4243,
+      "recordedAt": "2026-10-18T10:10:41Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-ada6a537595a.log",
+      "logSha256": "b795d53f746af583fb8e276cbee7cf4139194a447b5b81a9668de3a9b628865b",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-sticky-oracle/final": {
+      "checkId": "c-sticky-oracle",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "bcb2dd4290f385562c33bb519c8977ba4dd6b38eea28c70a35e09af7883f29cf",
+      "basisHash": "b6defc5de1e57e8c0148f28aa21b8dc4999f73658e8b381d72615eec033f76ea",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 0.3212,
+      "recordedAt": "2026-10-18T10:10:41Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-a619eb7cbfb2.log",
+      "logSha256": "362708657780c8bf77016becab2157bfe641c04fa0fe73b2b6d918260715b859",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-synchronized/final": {
+      "checkId": "c-synchronized",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "11e6ca6c48a0124c0e1781386c93abf649d7129e86fc39886c677b7b5423dea1",
+      "basisHash": "f615d0ed1643f763cffc496fb9eddfb505bb21cc7ccc22fc1f32da262348a307",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 6,
+      "durationSeconds": 0.2632,
+      "recordedAt": "2026-10-18T10:10:41Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-bc3343ccb4e3.log",
+      "logSha256": "7699d9d88a61a714df3cc85d2434e6cc0d271f9117e54e56680d525607051c30",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-parent-promoted/final": {
+      "checkId": "c-parent-promoted",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "4062a176ce6a76d792e1fa0bba63e725c8b0b2944bbd4b336326c940f76473e3",
+      "basisHash": "7acdbeb7c566ad28f873737ba6ce00c40fb35b2aa12668f61580684d4ce4ab87",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 6,
+      "durationSeconds": 0.2608,
+      "recordedAt": "2026-10-18T10:10:42Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-8fe7baa65354.log",
+      "logSha256": "df9ef89d6033172adf43dcc74245635a29d467bec52dd668c1a9b1881a359248",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-rx-parent-layers/final": {
+      "checkId": "c-rx-parent-layers",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "709b9ce21e36556c1f2647aa9e244119fc14f8df24c3abf486857de01fe5320f",
+      "basisHash": "75a0788a859cef0c7764026824608c7f08ec26c384addd798323529360de8e71",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 15.2694,
+      "recordedAt": "2026-10-18T10:10:57Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-9887f351588b.log",
+      "logSha256": "e812fb576870f07a150cd95d4b8b0e27bb9dbbf5ea6ab00e58f2066970420051",
+      "inputsHash": "2a971f5459e8b54bbfed7f9c2b9b368d78d1423773b0ee8460eaa9210c522352"
+    },
+    "final/c-rx-parent-existing/final": {
+      "checkId": "c-rx-parent-existing",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "edd3970c2573407343594d3f91bf49677056d4770f070c27a232bb74035af221",
+      "basisHash": "6068d0b7c5f26255e15b2149fd5e88550a70533006325b231d5f6260cbba796f",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 7,
+      "durationSeconds": 1.6888,
+      "recordedAt": "2026-10-18T10:10:59Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-c1150ccb2a01.log",
+      "logSha256": "a94ddb3c471a33c06bf3ac42439bf352c9d5fa4e716e8637a12e6bec0f1b0a84",
+      "inputsHash": "2a971f5459e8b54bbfed7f9c2b9b368d78d1423773b0ee8460eaa9210c522352"
+    },
+    "final/c-rx-kinds/final": {
+      "checkId": "c-rx-kinds",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "873a38e3fa37d3eafabbf6cd1a2068aa63923cca7bd060e91a0ef36d0a36b7e6",
+      "basisHash": "f95cc65dd346e849907c365e085ae386e11a99a3b0a1956effb699259b32ae6a",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 1.6654,
+      "recordedAt": "2026-10-18T10:11:00Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-9e7225726ac4.log",
+      "logSha256": "877ae4d95e2ac44b75194e96414dcbd5eee554108f859c90fc32e07b97b23117",
+      "inputsHash": "2a971f5459e8b54bbfed7f9c2b9b368d78d1423773b0ee8460eaa9210c522352"
+    },
+    "final/c-attribution/final": {
+      "checkId": "c-attribution",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "7f4a6170881106d2d60ff5ed13f35868d3f3fb10e6a61645d7b9de9ad6b273dd",
+      "basisHash": "d0daf13690941962586e974afae57a3f12d0b22a57c695a9204bd12ec9dc26f1",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 20.0108,
+      "recordedAt": "2026-10-18T10:11:20Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-d53d8e976f92.log",
+      "logSha256": "9bf7b911cbfb6e49064cbb9c86a5e5f237224434c4b863ec62dc75a82ac59e05",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-perf/final": {
+      "checkId": "c-perf",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4993bb2e16701ee213ba1987bffc1e5f345af37bb439e00d42f92197da210da1",
+      "definitionHash": "3dabbd5f9aa1a6d4fbf1d3dbdf2f50b94605c0ee9009336ce956d93e9cd65659",
+      "basisHash": "ff5776b5200ea8bfece74502d1add13c9c145bbdc8634c24c349479f85292b4a",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 110,
+      "durationSeconds": 384.685,
+      "recordedAt": "2026-10-18T10:42:06Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-679478541711.log",
+      "logSha256": "749966cf100a953bc567975019cb868c599240cd697f936bb6a1e320c58e664b",
+      "inputsHash": "aa85d58adc659d7c90e52b0f82a143b7870a27ac0ce49465bd7ecd649e315836"
+    },
+    "final/c-half-pixel/final": {
+      "checkId": "c-half-pixel",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "1501330c546db8d3b7151c75d1ec126d9ddbe62a0e380fb0b58cf1861c9f8f7f",
+      "basisHash": "8bcb8379cf2137e9cf8c0203f6a56c26a13a3f70ff365373e0f0838f8abc64d6",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 0.6054,
+      "recordedAt": "2026-10-18T10:18:14Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-1746fb1fb9bf.log",
+      "logSha256": "58800edef5156fce450e611278600254f6354a8750f8762fc9ae59d49fc8794a",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-uniform-measure/final": {
+      "checkId": "c-uniform-measure",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "c62b74d2115482c064784bc68f26a040ce89cb0d4d363f7ef27db53a82b74349",
+      "basisHash": "259a6000c879a92d0dfdc318a43a4c1ae67d9eeeab9ee02932a5d4379ff49cd1",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 8,
+      "durationSeconds": 0.2626,
+      "recordedAt": "2026-10-18T10:18:15Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-b4131507eccf.log",
+      "logSha256": "8232aaf1ae79c891665785d8ff63f3219aea0ce2c5ed9618efbb393d819b14c1",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-lane-c-layers-full/final": {
+      "checkId": "c-lane-c-layers-full",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "96758c1d3bd42fc28d4d84c2e017c0cc6cb4902105873a32f602bd03307590a8",
+      "basisHash": "4a7d21bb57d48611f0cf70b19f533d649679585727421ca553b6cca5d21c2d8c",
+      "status": "failed",
+      "exitCode": 101,
+      "testCount": 0,
+      "durationSeconds": 0.2032,
+      "recordedAt": "2026-10-18T10:18:15Z",
+      "messageMarkdown": "Unexpected exit code: 101",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-d21e429e73f3.log",
+      "logSha256": "1fba843638683f61b8945de32812e2ca1970ea48c71a1bdce9449d1a024c21f1",
+      "inputsHash": "1df4a4e70ac6bbc3777ee897e8e4c8370f18ac4b27cca4f4a3b94728900e6558"
+    },
+    "final/c-attribution-parent/final": {
+      "checkId": "c-attribution-parent",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "7176687bd78a5fe6681d8c502e17f6a621b2293063e5c6511a4e03819ef8da96",
+      "basisHash": "cc8a30eccf16e199324a715900ab2f491050dce6c7be33400555a65c9bcb193c",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 0.2602,
+      "recordedAt": "2026-10-18T10:18:15Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-b23b6e0c1c5d.log",
+      "logSha256": "6772e7b16e9ff596a97e48b5ff2beb6662c051fdcddd5117eb6fea8bc4fab86a",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-merge-gpux-groups/final": {
+      "checkId": "c-merge-gpux-groups",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "dd2273f5f7321fea4684119b2bb9884dabf592d125f467f4279580fe75ef8ee7",
+      "basisHash": "6e3e54e020bfdda26453d11b389df4f85eab6af6c43fc2321f5179aecfc6e32b",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 129,
+      "durationSeconds": 5.5038,
+      "recordedAt": "2026-10-18T10:18:21Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-818fa112b39e.log",
+      "logSha256": "eac0cb1c78f7d526e1e00396c151fe50eaeb5b1fd40c7965f278235967c25dc4",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-merge-gpux-integration/final": {
+      "checkId": "c-merge-gpux-integration",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "c6366658e95ec8b92cef9f1cb3efb42b9892d62ef37a3f3d2a37cb3b7e60efcc",
+      "basisHash": "83ab7e71ae5be0279ba92398096c987539dfcd2b6cfe7432685f38d11691f14a",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 56,
+      "durationSeconds": 5.7382,
+      "recordedAt": "2026-10-18T10:18:26Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-3da62b0394c3.log",
+      "logSha256": "8c25d79870173b28be445007f3e15f8b6b597df4f420c60662428f260933c70b",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-merge-rayx-groups/final": {
+      "checkId": "c-merge-rayx-groups",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "d67531a7f56b8950c2495a09a81b62721489d99918c6ad82fd9abfcce78946f2",
+      "basisHash": "a0b4fa82acbe9a48c67c433ee6dea1359580a4ff60a7b5e2795dc837a1915cf8",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 12,
+      "durationSeconds": 3.0823,
+      "recordedAt": "2026-10-18T10:18:29Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-dc2cf816d2f1.log",
+      "logSha256": "e0a95e4c9464fd7c15a354df89281f8a47d6b9161a028080248e149ab43a8254",
+      "inputsHash": "7d6767403eb91f8c6f2c6af13ffc0b871141a947e4e3d82f6cbfa73845aaaab2"
+    },
+    "final/c-rx-kinds-table/final": {
+      "checkId": "c-rx-kinds-table",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "2785b9c741dee74e77c93610eb84b62fd1d7b80a2188c104ecb2460dd2ca53fb",
+      "basisHash": "89227aebc5b122860b5e127c32007cf0c1cbbffd02d2414ebb95176266b96527",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 2.0174,
+      "recordedAt": "2026-10-18T10:18:31Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-2df972f2fd08.log",
+      "logSha256": "f7121038a0f92d0ca56782347b51857b0430cdbae943dc60d8d1d250e2620d9b",
+      "inputsHash": "2a971f5459e8b54bbfed7f9c2b9b368d78d1423773b0ee8460eaa9210c522352"
+    },
+    "final/c-dt-frames/final": {
+      "checkId": "c-dt-frames",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "e299f27243a19f5a93a883fd06678d131659c94a39d9c6945d593d67bbb29dc1",
+      "basisHash": "435c57a2d1a69f70bb9f9722c8bef734da8fb9df9a855dae01e7d64c3b889e30",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 1.7739,
+      "recordedAt": "2026-10-18T10:18:33Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-87046dd95a3d.log",
+      "logSha256": "2db47842c2600ea2f973d37b1465142507ee0a0cc355eaa449d20a3a5d35c532",
+      "inputsHash": "2a971f5459e8b54bbfed7f9c2b9b368d78d1423773b0ee8460eaa9210c522352"
+    },
+    "final/c-rx-renderer-changes/final": {
+      "checkId": "c-rx-renderer-changes",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4f5ea229b346e4af4df4f987efd32a48ef750d06ae586e7077c4e43abd17fd2e",
+      "definitionHash": "d3846429e515886792de354beb7afa7f9f6a56ef926409558828228addb6071f",
+      "basisHash": "69c625ead92bc42c9cff2d62db82b01a919ffa5fe6ae0f60904cfdcce0db019b",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 8,
+      "durationSeconds": 1.8271,
+      "recordedAt": "2026-10-18T10:18:35Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-d6d94d6d699e.log",
+      "logSha256": "7057477a4e408a682b1d19efdf62a6cb2d773def40f50e5393baf42fd0d63dd8",
+      "inputsHash": "2a971f5459e8b54bbfed7f9c2b9b368d78d1423773b0ee8460eaa9210c522352"
+    },
+    "final/c-rx-rerender-cost/final": {
+      "checkId": "c-rx-rerender-cost",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "97611d2ff44091cd9d905cae9911622d6d9400aed0d549a7001ea7dc20566fd2",
+      "definitionHash": "5b6533caa6d731a0c4199760da4049f33b18b1fc09d76fcc0b8abd3c3aa34182",
+      "basisHash": "f8b66611db256b9bf269eb9476920ed1b7be770604023d56af90191f72fb8234",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 12,
+      "durationSeconds": 0.8738,
+      "recordedAt": "2026-10-18T02:37:10Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04c-parent-rerender-final-26b0369be60e.log",
+      "logSha256": "23aa8d3b7d903624ebdac20758b8b7bdb323f1a0d7f377ce61bac5184c6e04d1",
+      "inputsHash": "2a971f5459e8b54bbfed7f9c2b9b368d78d1423773b0ee8460eaa9210c522352"
+    },
+    "final/c-rx-renderer-sameness/final": {
+      "checkId": "c-rx-renderer-sameness",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "97611d2ff44091cd9d905cae9911622d6d9400aed0d549a7001ea7dc20566fd2",
+      "definitionHash": "1ad224bd37a9725cf96d10a4d9e1af1c92005aa4497edba24609ed8e0708095d",
+      "basisHash": "69c625ead92bc42c9cff2d62db82b01a919ffa5fe6ae0f60904cfdcce0db019b",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 8,
+      "durationSeconds": 0.58,
+      "recordedAt": "2026-10-18T02:37:11Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04c-parent-rerender-final-0a99ecbad3d2.log",
+      "logSha256": "0a15fd00e8a2e609d0d299b254f1418f999cb5a4e67e6782f898b9f1f6a3c01a",
+      "inputsHash": "2a971f5459e8b54bbfed7f9c2b9b368d78d1423773b0ee8460eaa9210c522352"
+    },
+    "final/c-rx-test-suite-build/final": {
+      "checkId": "c-rx-test-suite-build",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "97611d2ff44091cd9d905cae9911622d6d9400aed0d549a7001ea7dc20566fd2",
+      "definitionHash": "1c9ef54c5585b86a0c12621bbcb652aa4654496aea664a1f4cf54c39c7126bf0",
+      "basisHash": "aeddf7f581d92d5583b7c14a00831bce0a2eb6685be0c02d72142673ce875525",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 11.3122,
+      "recordedAt": "2026-10-18T02:37:22Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04c-parent-rerender-final-02eacd8af308.log",
+      "logSha256": "dbe4b5b3d4be5592ab573299a70fae33b6b5d45cc3e01d55cf7e3fd6804faa09",
+      "inputsHash": "b9c1682818921efbf0b2275be29637233d9c7324827cd48918d78b3396a13eb5"
+    },
+    "final/c-layer-owner-replay/final": {
+      "checkId": "c-layer-owner-replay",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "97611d2ff44091cd9d905cae9911622d6d9400aed0d549a7001ea7dc20566fd2",
+      "definitionHash": "d83e402146483e5648944f5a74b9eb731f87a246235ad0d52ee64e331a634699",
+      "basisHash": "af0aa08e6af0f06319dcf4f55429fda077df2993bf401dd25b62d4bddc9e49f5",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 0.5419,
+      "recordedAt": "2026-10-18T02:37:23Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04c-parent-rerender-final-e8e832445270.log",
+      "logSha256": "0b6dcf57f3fc1fcb5cbd29701b98ddb439dfe8762af79fecc1793dd79ac0384f",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "final/c-layer-a11y-scroll/final": {
+      "checkId": "c-layer-a11y-scroll",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "97611d2ff44091cd9d905cae9911622d6d9400aed0d549a7001ea7dc20566fd2",
+      "definitionHash": "15ce2ef9d70fb3111e7d49b7e02380e0d4581456ba679723ee1039726f28d18d",
+      "basisHash": "31fb8f9b39b38e9315fbff7a5364e76f58106f4ca8882dd986e3010effb366de",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 0.3118,
+      "recordedAt": "2026-10-18T02:37:23Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04c-parent-rerender-final-ded9e27a2dbf.log",
+      "logSha256": "c86e7392b12e18d760dcce8f290667f8cb8f0234db113f603ab4789f9e45c62e",
+      "inputsHash": "a03e211c3f360156139ac71ca5a2192f9252ae4ea44ae27a46fcaa65f434adf7"
+    },
+    "s08-lane-c-renamed/c-lane-c-layers-renamed/final": {
+      "checkId": "c-lane-c-layers-renamed",
+      "boundaryId": "s08-lane-c-renamed",
+      "phase": "final",
+      "batchId": "cd4d3452e36c7df702bf7aaa0fd7c79e451870cfe5cf2158a617add865b14775",
+      "definitionHash": "c070e807454f7812cb7cdd02a082b2c72ffd3a70bfab14866d5e3456e6d55686",
+      "basisHash": "3bebffec5433700c8bab974c10d86c00fc2d18719055d8160506e023d671009d",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 30,
+      "durationSeconds": 33.7904,
+      "recordedAt": "2026-10-18T10:20:58Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s08-lane-c-renamed-final-d5ab5be611e2.log",
+      "logSha256": "b25f194548663040252e892482cd6626cf6074325cbbd1a71f11dfd42258fb37",
+      "inputsHash": "223bcb970b140209e1fea790f011b411d1621d88e5963dff7da6388bb45591a6"
+    },
+    "final/c-lane-c-layers-renamed/final": {
+      "checkId": "c-lane-c-layers-renamed",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "cd4d3452e36c7df702bf7aaa0fd7c79e451870cfe5cf2158a617add865b14775",
+      "definitionHash": "c070e807454f7812cb7cdd02a082b2c72ffd3a70bfab14866d5e3456e6d55686",
+      "basisHash": "3bebffec5433700c8bab974c10d86c00fc2d18719055d8160506e023d671009d",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 30,
+      "durationSeconds": 33.7904,
+      "recordedAt": "2026-10-18T10:20:58Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s08-lane-c-renamed-final-d5ab5be611e2.log",
+      "logSha256": "b25f194548663040252e892482cd6626cf6074325cbbd1a71f11dfd42258fb37",
+      "inputsHash": "223bcb970b140209e1fea790f011b411d1621d88e5963dff7da6388bb45591a6"
+    },
+    "final/final-fmt/final": {
+      "checkId": "final-fmt",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4993bb2e16701ee213ba1987bffc1e5f345af37bb439e00d42f92197da210da1",
+      "definitionHash": "19da1ae80da8cc245b20a99fab71ec288a5b44477b5250120a9792f7c71479ea",
+      "basisHash": "0721205fe548a5d62db454fef049e47848db08f800b06127a95676e232a2c537",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 2.4902,
+      "recordedAt": "2026-10-18T10:42:09Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-2b2fcc993bcc.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "final/final-clippy/final": {
+      "checkId": "final-clippy",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4993bb2e16701ee213ba1987bffc1e5f345af37bb439e00d42f92197da210da1",
+      "definitionHash": "7d28e3a46b7bd94963a5e8d17df8d05ec4d5515b03040e1588036bebb0473102",
+      "basisHash": "59bf26bb41133a47313d43fefc6e13461f531f910a005ef451553b5bb0aa1009",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.4903,
+      "recordedAt": "2026-10-18T10:42:09Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-b28180931985.log",
+      "logSha256": "1f5852af1ed7025b5728e842e3c3c2f5d2f720d25557d84c38f1ffda99719c59"
+    },
+    "final/final-wasm/final": {
+      "checkId": "final-wasm",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4993bb2e16701ee213ba1987bffc1e5f345af37bb439e00d42f92197da210da1",
+      "definitionHash": "ba2deecc40eecec7fc7d1637be7f55220770b6ea8e9b1dcce98e9760f199df5a",
+      "basisHash": "8fa94b0e195a2670f462a52eea7ad20b3050768a2c7d416e9d18ced016ad1ebb",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.2598,
+      "recordedAt": "2026-10-18T10:42:10Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-fc701c6737ca.log",
+      "logSha256": "f4403412cb20dc7d8a0a94c08c9c8853e4bac9b3e8489158834f30512311ed97"
+    },
+    "final/final-rx-fmt/final": {
+      "checkId": "final-rx-fmt",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4993bb2e16701ee213ba1987bffc1e5f345af37bb439e00d42f92197da210da1",
+      "definitionHash": "4392a0fd362482719c153b20b54d0b767507963632184ae93b45433065dce10e",
+      "basisHash": "8c556b6a3239eb068cb004c576b1bf4d89027fe1095c2d262d4cfdb961537a69",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 3.4928,
+      "recordedAt": "2026-10-18T10:42:13Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-59857711564b.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "final/final-rx-clippy/final": {
+      "checkId": "final-rx-clippy",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4993bb2e16701ee213ba1987bffc1e5f345af37bb439e00d42f92197da210da1",
+      "definitionHash": "075e5f139577c4121a22e18b2710e1dad393f9801722f4f847a6f8270ab389a0",
+      "basisHash": "7251fc725295b12e703928a1285ea3b72254e650ae4895d6044e593db1fdc40b",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.4203,
+      "recordedAt": "2026-10-18T10:42:14Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-54d4615158be.log",
+      "logSha256": "9d892c5778d0c975f64a671e66ea5a753502353da3addd1dfdf3825225e406a2"
+    },
+    "final/final-rx-check/final": {
+      "checkId": "final-rx-check",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "4993bb2e16701ee213ba1987bffc1e5f345af37bb439e00d42f92197da210da1",
+      "definitionHash": "71d204915dbf884953bea62a5974b2612a96f38b9cd375e1733a3c23f0d01aea",
+      "basisHash": "f2c7d550ab6ac21adae0598a8961d5426a0730b20cd5f981c54c0222a1266f2c",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 1.0531,
+      "recordedAt": "2026-10-18T10:42:15Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/final-final-9e9edc20aa50.log",
+      "logSha256": "d45006197a58d3591511e8220a2f4a8bd039e9a092cd6a66dbadf79d6dc77af2"
+    }
+  },
+  "reviews": {
+    "s00-measured-leaves": {
+      "reviewerId": "reviewer-lk-s00",
+      "snapshotId": "dd1439f1a1e744024a14618168bd66a161edf82baad2fef122496d27bb09a2ca",
+      "criterionIds": [
+        "ML-1",
+        "ML-2"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/taffy.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ML-1",
+            "ML-2"
+          ],
+          "sha256": "94d2a0af5e9d2e5b6a90a390fc139c3aeaa7a991858cda4cea529841440d6b84"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ML-1",
+            "ML-2"
+          ],
+          "sha256": "4a8899694a296bc30b631fe799279d92e6ac928c39b274066df4655ed2613869"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layout.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ML-1",
+            "ML-2"
+          ],
+          "sha256": "dc37f2e3109b1747cdf9aef5c45d097bb6b2e0a17b6e20de8b10212d5b49b99e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/stats.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ML-2"
+          ],
+          "sha256": "ed42a01a6441bbd05c898115adb4c136f7e8f5151204c7f47377bd2746623737"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/splice.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ML-2"
+          ],
+          "sha256": "c5ba8cf4b42df2295e33ab5b66914868074b60eeda1a4c8a6d6017b4b989797d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/retained_measured_leaves.rs",
+          "kind": "test",
+          "criterionIds": [
+            "ML-1",
+            "ML-2"
+          ],
+          "sha256": "eb0aa391516f5f2f219da5d3fff503d10eb389936f4635f10f600f7ed233bec5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/oracle_measured_leaves.rs",
+          "kind": "test",
+          "criterionIds": [
+            "ML-2"
+          ],
+          "sha256": "b35e262097f0fa972f1e05139cc0a251b661437440aff2597c7c0194c8649847"
+        }
+      ],
+      "summaryMarkdown": "Passed. The final s00 mechanism records each measured leaf requested under view retention with its owning view and whether its style fixes its size in every parent. On the next frame it builds (`mark_view_dirty`, counted once) every view holding a non-text leaf that is not fixed or that Taffy measured to size it. Splice takes those views as gaps from `dirty_views`, so their ancestors are spliced, not built, and the layer and list-row checks honour the dirtiness. Text keeps its carry and replay paths, and fixed measured leaves keep their view reusable (`views_reused > 0`, 0 builds). With view retention off nothing is counted or changed. No frame-local closure crosses frames.\n\n**Accepted cost:** every view holding a non-fixed measured leaf is built on each drawn frame. This covers `uniform_list`/`list`/`VirtualList` with `Infer` and RayX's markup `inline_flow`, and matches d-retained-measured-leaves, which defers measurement replay to a later optimization driven by `views_built_for_measured_leaves`. Defaults (`ListSizingBehavior::Auto`, img, svg, text) are unaffected. The ML-1 group (9 tests) and the ML-2 oracle cover the cases. The sprint checks are fresh at revision 13.",
+      "findingIds": [
+        "lk-s00-F1",
+        "lk-s00-F2",
+        "lk-s00-F3",
+        "lk-s00-F4"
+      ],
+      "recordedAt": "2026-10-16T21:29:21Z"
+    },
+    "s00b-layer-gaps": {
+      "reviewerId": "reviewer-lk-s00b",
+      "snapshotId": "508d5e554ec9dc72b26c34a5909ed5d711ad9db1d19d7a0bb68c2066b49de8c6",
+      "criterionIds": [
+        "HP-1",
+        "UM-1"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/util.rs",
+          "kind": "source",
+          "criterionIds": [
+            "HP-1"
+          ],
+          "sha256": "07160911e7863e78d32f55e756b6312db33612221c735eac4c6d11f91f22698e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "HP-1"
+          ],
+          "sha256": "69506541c4a80735cf5f26aaa5c12ec1339ce7eed9fc224b8a602c76d51d409d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/taffy.rs",
+          "kind": "source",
+          "criterionIds": [
+            "HP-1"
+          ],
+          "sha256": "463dfe322c6b1cff2c119730d9bc0fb2aba4b37d1c5a981c9172f2ce058e8c3b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layout.rs",
+          "kind": "source",
+          "criterionIds": [
+            "HP-1"
+          ],
+          "sha256": "d08be09f719fa7e35d0d9124baf3aec0099ca417f404741275f946363da4d621"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/half_pixel_edges.rs",
+          "kind": "test",
+          "criterionIds": [
+            "HP-1"
+          ],
+          "sha256": "0c7534bf2290c0185309f041c9ed5edccfe450c473e8c2deeb7fd01a08179f33"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/changes.rs",
+          "kind": "test",
+          "criterionIds": [
+            "HP-1"
+          ],
+          "sha256": "8c6ec9b09c81802334a40c4b0a6b5fdb703c4ab9bd83119b9c7952b3ebdd7f11"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_scroll_layers.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "HP-1"
+          ],
+          "sha256": "b541f7a4623b0c34f2495fe9227d619913df853b2ca1fdb4f15f9762977219e2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/uniform_list.rs",
+          "kind": "source",
+          "criterionIds": [
+            "UM-1"
+          ],
+          "sha256": "97bc976d2f0595e0222b065cb7929b96861220624156ba9a1aa40220bd07c71c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "UM-1"
+          ],
+          "sha256": "956ee65cf7475891e79e54c0c23be7f640f5327fd86258d7811ca04b40a38e0f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/invalidate.rs",
+          "kind": "source",
+          "criterionIds": [
+            "UM-1"
+          ],
+          "sha256": "6fb1888a322d33d82f5be1fe729ccfa168e8c440e2f5545c4adf80bd030c032b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "UM-1"
+          ],
+          "sha256": "92fb63d55b756ca751751970e82e66b0c0b3d7b1d8ac1225fa661b09269de741"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/uniform_measured_item.rs",
+          "kind": "test",
+          "criterionIds": [
+            "UM-1"
+          ],
+          "sha256": "02e1827aa1e1fed89a30f6ad933e6abf24a705b51ab63e7887b3dede38b3c659"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/dependencies.rs",
+          "kind": "source",
+          "criterionIds": [
+            "UM-1"
+          ],
+          "sha256": "b2d25c6ef4451d1ef4ec158d3836befb82d992942a1b96815b3d0fca7772d17c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs",
+          "kind": "source",
+          "criterionIds": [
+            "UM-1"
+          ],
+          "sha256": "cd7d30a6778c31ceeea4f6489847996801308e85122e7e663ee5007b1a388523"
+        }
+      ],
+      "summaryMarkdown": "Passed.\n\n**HP-1:** every edge-rounding site (Taffy layout bounds, `snap_bounds`, `pixel_snap`/`_f64`, underline and strikethrough origins, svg origins) goes through `round_edge`, which rounds ties down while snapping, set per frame from `snapping()`. Layered windows and their forced-snapping references round alike, and rounding with snapping off is today's. `half_pixel_edges` and the tie-including `virtual_list_layers` changes and oracle cover it, and lane C ran in full.\n\n**UM-1:** `uniform_list` measures once a frame in `request_layout`. The size is kept through the layer, or without a layer under view retention only while:\n- the frame is the next one;\n- scale, rem size and text style are the same;\n- nothing the measured row read changed, its reads staying the owning view's own and being replayed on kept frames;\n- the owner is unchanged, and was not notified beyond its scroll notifications.\n\n`uniform_measured_item` covers scroll-only frames in three modes, changed rows, scale changes, un-notified updates read only by the measured row, and bare notifications. The sprint checks are fresh at revision 22.",
+      "findingIds": [
+        "lk-s00b-F1",
+        "lk-s00b-F2",
+        "lk-s00b-F3"
+      ],
+      "recordedAt": "2026-10-16T22:59:42Z"
+    },
+    "s01-horizontal": {
+      "reviewerId": "reviewer-lk-s01",
+      "snapshotId": "8e17230ac87d72b497bb4a9dd64bf01a8d84a2bdf4e3ae395437af9602e77ee7",
+      "criterionIds": [
+        "HZ-1",
+        "HZ-2"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "HZ-1",
+            "HZ-2"
+          ],
+          "sha256": "605154974d3c14e6a3279c93a71c4fdd93214de1f29bd8ecc1be11e96be2b742"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/virtual_list/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "HZ-1"
+          ],
+          "sha256": "ed94f8d48c9fd58ebbc30153f3441a2609809d30199c862f15a4d41db4074541"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/scene.rs",
+          "kind": "source",
+          "criterionIds": [
+            "HZ-2"
+          ],
+          "sha256": "f64a7dc09bcabaace5f9ff6d9fcfa8aa0834be7c519cf0042f84f7efc73a0f6b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/horizontal.rs",
+          "kind": "test",
+          "criterionIds": [
+            "HZ-1"
+          ],
+          "sha256": "0a1d3ba5a7ce3f3d11e2be1cee2a992aaf2e378b73e05132d633c4cd8ce2dc71"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/ineligible.rs",
+          "kind": "test",
+          "criterionIds": [
+            "HZ-1"
+          ],
+          "sha256": "23bd7462b13e7d2db6d97d94ded1b3d9e230686b5ffd0197f0d7327fb2463ff6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/horizontal_oracle.rs",
+          "kind": "test",
+          "criterionIds": [
+            "HZ-2"
+          ],
+          "sha256": "1fd3c0f757bebc81375a8ac16f2bf62d51f18b9b3405ea505e281d8655f8cb95"
+        }
+      ],
+      "summaryMarkdown": "Passed, with no findings.\n\n**Axis-generic code.** `begin_virtual_list` takes the list's axis and works along it: content size and start, overscan reach from the viewport's extent, and placement by the list's own origins. The axis-generic parts are `row_slot` (whole viewport across the axis), `hidden_in_view`, the Extend test (cross-axis offset unchanged), `rows_region`, `rows_overflow`, and the spill test and extent in `end_paint_rows`. The remaining y-only code in lists.rs belongs to the vertical-only `list` element (`list_row_top`, `held_rows_land_alike`, `end_list`) or already handles both axes (`step`/`delta`, `drawn_alike`, painted region). The content-ordering helpers `apart_in_order`/`gather` in scene.rs already take runs along either axis. `uniform_list` and `list` pass `Axis::Vertical`. Sticky lists stay ineligible because `carried` is `sticky_items.is_empty()`.\n\n**Tests.** `horizontal` asserts composite-or-repaint each frame (repainted ≤ 1, the same tolerance as the vertical `rows` group), ineligible 0, kept > 0, closure rows equal to `list_rows_rendered` and a mean ≤ 2. It also compares a horizontal history with layers off, and covers width changes of 7.5 and 11 px plus a cross-axis wheel. `horizontal_oracle` covers fractional widths, gap and padding at scales 1 and 1.25, plus seeded `describe_rendered_frame` histories. The removed ineligible horizontal case is superseded as HZ-1 requires. The sprint checks are fresh at revision 28.",
+      "findingIds": [],
+      "recordedAt": "2026-10-16T23:09:10Z"
+    },
+    "s02-sticky": {
+      "reviewerId": "reviewer-lk-s02",
+      "snapshotId": "12a0f9283e754bf1d41fe46a8e53ab92dfd0a80780e8203db549a47c283c83e6",
+      "criterionIds": [
+        "ST-1",
+        "ST-2"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/virtual_list/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ST-1",
+            "ST-2"
+          ],
+          "sha256": "23e7af749ad2a4014fd1d49944c8729701f6f7b5746d12d356d8493eaf52e938"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ST-1"
+          ],
+          "sha256": "1fd6bb8b63c0c0f492d964fd0eedf20260e0ca798b19a9893f0e77c95141b72a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/sticky.rs",
+          "kind": "test",
+          "criterionIds": [
+            "ST-1"
+          ],
+          "sha256": "3bed9a6346151572d21609bbaab25b35ee50f5400ed9874b3b89b500d3740bbc"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/mod.rs",
+          "kind": "test",
+          "criterionIds": [
+            "ST-1",
+            "ST-2"
+          ],
+          "sha256": "a194c7f081e5e77fd2b464df4c4a8edd60fc6763c54cec61137adcd0c1d2ff5f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/sticky_oracle.rs",
+          "kind": "test",
+          "criterionIds": [
+            "ST-2"
+          ],
+          "sha256": "aa054bf8aec78b09d5f9596fca29ac17db2b277b9f3c55eeb4a45da5bbd374c1"
+        }
+      ],
+      "summaryMarkdown": "Passed. A sticky `VirtualList`'s layer holds ordinary rows only: every candidate in the layer's reach is excluded by the `outside` predicate, and a layer found holding one is repainted. The active stack and the incoming candidates in `rendered_range` are rendered and prepainted after `end_rows` (hit first) and painted after `end_paint_rows` (above the composited layer), in the list's scroll context and clip, as the rows themselves. They keep the sticky wrapper, `when_stuck` and `on_sticky_state_changed`, in `compare_sticky_render_layers` order. `sticky` (now with dense candidates in both directions and the held-row invariant) and `sticky_oracle` cover ST-1 and ST-2. The RayX consumer test is updated in a paired change. The sprint checks are fresh at revision 37.",
+      "findingIds": [
+        "lk-s02-F1",
+        "lk-s02-F2"
+      ],
+      "recordedAt": "2026-10-16T23:49:28Z"
+    },
+    "s03-synchronized": {
+      "reviewerId": "reviewer-lk-s03",
+      "snapshotId": "e30c8a1ac02a7eedf88637f3beca839ed89ea5057dcce3369d87ee8fdb6908d5",
+      "criterionIds": [
+        "SO-1"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/virtual_list/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SO-1"
+          ],
+          "sha256": "dc73caf365e28581e1685f03d5631ecfb5621c901a3cf537d3e8098763a200d4"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/invalidate.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SO-1"
+          ],
+          "sha256": "bde1c94fc4332817083ba5989fa85e0066c832a1d49d82d0bcb0f1e5175dae8b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SO-1"
+          ],
+          "sha256": "7408e01808864017210557859bef070edf6a7dd82fed5cdde18521f13781660a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/synchronized.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SO-1"
+          ],
+          "sha256": "e4cdbc0c793f9ac82eab7a1a85bcd752fbc7fd811905caaec196e5e5c74c829c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/ineligible.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SO-1"
+          ],
+          "sha256": "d0ebe61b138df26af316a429e5c716107b707932eb3f651fb4503a70f76ad8ce"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/mod.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SO-1"
+          ],
+          "sha256": "be0be96fb55f8597ffc42ec47ac3aa310e80b349db89eeb376daaac84e8abaa2"
+        }
+      ],
+      "summaryMarkdown": "Passed. A `SynchronizedOffset` list gets its own list layer keyed by its id, at the shared handle's snapped offset, with the driver's published offsets and dependent notifications counted as its scroll (`invalidate::painted_synchronized`). This holds only while what holds the list clips it within its bounds. Otherwise it is counted ineligible and drawn exactly as before. Paint is unchanged in every mode, so frames with fast mode off are today's. `synchronized` covers both axes (counters, comparisons with layers off, whole-frame histories) and the unclipped ineligible case. Consequence recorded for s05: RayX's ListView, TreeView and DataTable body in this mode get a layer only where their container clips them. The sprint checks are fresh at revision 44.",
+      "findingIds": [
+        "lk-s03-F1"
+      ],
+      "recordedAt": "2026-10-17T00:21:53Z"
+    },
+    "s05-rayx-kinds": {
+      "reviewerId": "reviewer-lk-s05",
+      "snapshotId": "28095b66a012cfeeea2115869f0aba75ab2a5edcca2d10a8dd3dd346bfa03475",
+      "criterionIds": [
+        "RXK-1"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RXK-1"
+          ],
+          "sha256": "0fa0ce585d758ccab3d4aa84daa3f2947ceb9352671f456a98d78a880cfa6bc1"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/synchronized.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RXK-1"
+          ],
+          "sha256": "42b16794d067c62d4fcb52854e675b618b0f9c28be91360984c70e09e699ef1a"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_datatable/src/state/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RXK-1"
+          ],
+          "sha256": "0474c1ac6efad81b74b1a9973e165efaa1ea3504e4985d2450f4f97919d7a52b"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_datatable/src/column/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RXK-1"
+          ],
+          "sha256": "3d213d45f1714dd1c06c75d1be63d8fcfb904f08d5ccc8e0b94ac12673758f65"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/layout/scroll/scrollable_mask.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RXK-1"
+          ],
+          "sha256": "f96f4a79b115881c5745db38dbd0b7aa24f16bd08968bbd2d90cd851ea19789d"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/virtual_list_layer_kinds.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RXK-1"
+          ],
+          "sha256": "ffa14dffaafccfb03fe90c9ba8779b77b3cd22ab44baae09a1fb7b266d0f2604"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_datatable/tests/virtual_list_layer_kinds.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RXK-1"
+          ],
+          "sha256": "4b8e10e60e1fdbca50bd03755336f4eb4c52d200499b9ecb46dfac166917c769"
+        }
+      ],
+      "summaryMarkdown": "Passed. RayX's `virtual_list_layer_kinds` groups prove the consumer on real components: a sticky ListView with two levels, a horizontal ListView, a TreeView with sticky roots, a click reaching a stuck header first on a composited frame, and a DataTable whose `SynchronizedOffset` rows composite from their layers with exactly one frame per wheel turn. The DataTable fixes match the owner's choice (a) recorded in d-consumer-proof: a `ParentViewport` leaf header row, `SynchronizedOffset` filler rows, column bounds in shared cells with the table and fixed-column bounds written only on change, and rows clipped in `overflow_hidden` containers. Also `ScrollableMask` publishing through gpux's new `ScrollHandle::publish_wheel_offset`, with the container's own clamping and edge behaviour (gpux test `a_forwarded_wheel_turn_composites_in_one_frame`). The sprint checks are fresh at revision 56 on the s05-only tree.",
+      "findingIds": [
+        "lk-s05-F1"
+      ],
+      "recordedAt": "2026-10-17T01:43:45Z"
+    },
+    "s06-bench-scenarios": {
+      "reviewerId": "reviewer-lk-s06",
+      "snapshotId": "4c50ab708e91de9f26d22a98ca60fe8c2fdde2fd0d21b3c02bd65e850c18f343",
+      "criterionIds": [
+        "TM-1"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/scenarios/scroll.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TM-1"
+          ],
+          "sha256": "cef2143f401c3a82bd3935cea5f9c9d6c8e9a7c7671409f62ef3b544b580a7cc"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/scenarios/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TM-1"
+          ],
+          "sha256": "41c0a6befb02ac8311c924d6eb3a4785ffd6aebc2a91f18e2ab5615bc5608132"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/benches/fast_mode.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TM-1"
+          ],
+          "sha256": "ed0c0de34da9694945fbb3eee5b48b699c0782756a2ae9fa7a2ddb41aaa53666"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/fast_mode_attribution.rs",
+          "kind": "test",
+          "criterionIds": [
+            "TM-1"
+          ],
+          "sha256": "c9cbaa2e37021f12920e682db15eb4a5bdf6a11b5ea02cfb5bb7177d732392d4"
+        }
+      ],
+      "summaryMarkdown": "Passed, with no findings.\n\n**Scenarios.** `scroll.rs` adds `scroll-virtual-list`, `-horizontal`, `-sticky` and `-synchronized`, built like `scroll-uniform-list`: 10,000 rows of varying extent, one wheel step a frame turning every 30. The row closure goes through `virtual_list`'s `lists::render_items` wrapper and counts rows in a shared cell exposed by `Fixture::rows_rendered`. The horizontal one uses a self-contained `column()` with x-axis wheels. The sticky one has a top-sticky row every 50. The synchronized one has an `overflow_y_scroll` driver tracking the shared handle beside the list in an `overflow_hidden` container (s03's clip rule), with the wheel over the driver. Expectations follow the existing pattern: frames shown from layers (×2 for the synchronized pair), no bypass, bounded repaints and rendered rows, kept rows, views built, and primitives drawn without layers.\n\n**Attribution and bench.** All four are in `fast_mode_attribution`'s `scenarios!` (`modes_differ_only_by_landed_mechanisms`) and the bench's list. `virtual_lists_render_fewer_rows_on_their_layers` asserts `tiles_composited > 0` and layers' rows × 3 < splice's for each.\n\n**Check coverage.** The `c-attribution` filter (`scroll_virtual_list`) selects neither `virtual_lists_render_fewer_rows_on_their_layers` nor `every_scenario_is_attributed`, so I ran both myself: 2/2 pass. Widening the check's selector would make the runtime record TM-1's row and attribution clauses too. The sprint checks are fresh at revision 61.",
+      "findingIds": [],
+      "recordedAt": "2026-10-17T01:50:11Z"
+    },
+    "s06c-datatable-frames": {
+      "reviewerId": "reviewer-lk-s06c",
+      "snapshotId": "928ffd84212b6a2416377f4c110c451a45cfb3ae1edc407677f0d470d12169d4",
+      "criterionIds": [
+        "DF-1"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/layout/scroll/scrollable_mask.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DF-1"
+          ],
+          "sha256": "f96f4a79b115881c5745db38dbd0b7aa24f16bd08968bbd2d90cd851ea19789d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DF-1"
+          ],
+          "sha256": "0fa0ce585d758ccab3d4aa84daa3f2947ceb9352671f456a98d78a880cfa6bc1"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_datatable/tests/wheel_frames.rs",
+          "kind": "test",
+          "criterionIds": [
+            "DF-1"
+          ],
+          "sha256": "d7757841ff1fc5e55c7a136ab19f15bffe51c98a5d2c8328625965e51cc62aad"
+        }
+      ],
+      "summaryMarkdown": "Passed, with no findings. The fix landed in s05, already reviewed: `ScrollableMask` publishes the turn through gpux's `ScrollHandle::publish_wheel_offset`, clamped and as a `Wheel` in its input turn, instead of `request_offset(Programmatic)` plus `cx.notify`. The new RayX group `wheel_frames.rs` names that cause in its doc comment. It turns the wheel 20 times across and 20 times down over a 40×400 DataTable, with fast mode OFF and ALL, with drawing on flush and no manual draw. Each turn must draw exactly one frame through `run_until_parked`, so a deferred frame left by a turn is drawn and counted in that turn's run. The recorded red run with the old handler fails both tests at 'across, turn 0: a wheel turn drew 2 frames' (dt-frames-red.log). The sprint check is fresh at revision 67.",
+      "findingIds": [],
+      "recordedAt": "2026-10-17T08:00:49Z"
+    },
+    "s06b-accesskit-merge": {
+      "reviewerId": "reviewer-lk-s06b",
+      "snapshotId": "465b2aba284dda10b044d73882240d70c384b3e40967c22c29d8345adc295331",
+      "criterionIds": [
+        "MG-1"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "MG-1"
+          ],
+          "sha256": "bc683245b57c8526b0929fca3ece0504e4e011655152854c5f45f1c8b5882f68"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/stats.rs",
+          "kind": "source",
+          "criterionIds": [
+            "MG-1"
+          ],
+          "sha256": "61f692dac50ed157a81eb6c9436b096fe1e7cdce6836744b7d5b0f0419fc62e5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/scenes/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "MG-1"
+          ],
+          "sha256": "ad43606c883766a2f3d4520215b49887f56210cbb95cd364999627ef703b6954"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/mod.rs",
+          "kind": "test",
+          "criterionIds": [
+            "MG-1"
+          ],
+          "sha256": "be0be96fb55f8597ffc42ec47ac3aa310e80b349db89eeb376daaac84e8abaa2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/fast_mode_attribution.rs",
+          "kind": "test",
+          "criterionIds": [
+            "MG-1"
+          ],
+          "sha256": "c9cbaa2e37021f12920e682db15eb4a5bdf6a11b5ea02cfb5bb7177d732392d4"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/virtual_list_layer_kinds.rs",
+          "kind": "test",
+          "criterionIds": [
+            "MG-1"
+          ],
+          "sha256": "ffa14dffaafccfb03fe90c9ba8779b77b3cd22ab44baae09a1fb7b266d0f2604"
+        }
+      ],
+      "summaryMarkdown": "Passed, with no findings.\n\n**The merge.** gpux 69cb322 merges main 6b9e126 with `--no-ff`, and RayX 2c14e4ed merges master df471457.\n\n**AccessKit model.** `lists.rs` follows main's model: rows tell the a11y builder `a11y.nodes.row = (layer key, row, loose)` and `hidden = !visible.contains(row)`, in `prepaint_row` and the `list` row hooks, in place of `NodeRow`, `devtools_nodes` and `hidden_hitboxes`, and none of those remain in `crates/`. This branch's later row changes sit on that model without overlap: axis-generic slots (`visible` is along the axis), sticky candidates prepainted after `end_rows` as frame content as without a layer, and `SynchronizedOffset` layers. The whole-frame oracles of horizontal, sticky and synchronized lists, which describe the a11y-bearing frame, pass in the sprint checks.\n\n**Conflicts.** `stats.rs` is main's set (accessibility bypass gone) plus `views_built_for_measured_leaves` at the end of `MECHANISM` (22), `counters`, `accumulate` and both totals. The `list-virtual` scene uses main's role- and label-annotated `row()`. The boundary moves to main's layout (`crates/gpux_tests_benchmark/results/**`, `vendor/accesskit_macos/**`, the new epic records protected). The sprint's three checks are fresh at revision 73.\n\n**Follow-on.** s00b's sealed `c-lane-c-layers-full` still names `-p gpux-conformance`, now `gpux-tests-conformance`. It must be corrected through the runtime's errata path before epic closure, or the closing proof cannot rerun it.",
+      "findingIds": [],
+      "recordedAt": "2026-10-17T23:26:58Z"
+    },
+    "s04-parent-viewport": {
+      "reviewerId": "reviewer-lk-s04",
+      "snapshotId": "f439ad5ae98ad5031b0962629c7f9faa63f50b08d14c2f02adcc6d9b6bf2be94",
+      "criterionIds": [
+        "PV-1",
+        "PV-2",
+        "PV-3",
+        "TM-3"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/virtual_list/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PV-1"
+          ],
+          "sha256": "3e2caccd3c7482276c8d808f3b2300890396fb790a1d4da59e0b2effde0b788f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PV-1"
+          ],
+          "sha256": "76edecfee124ed429d72ef6b1b054e7315c3e612a8f19478e06159d9572057b5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/reuse.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PV-1"
+          ],
+          "sha256": "5c91ede2e36d4aa95a8a0b2b8e736b9c43b48bfd276b71eced96b21cca595e9f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/paint.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PV-1"
+          ],
+          "sha256": "a92ef4ce8ad11a2eb96524151f062070c86c1d84e3436f14af38bf5c07be0bc3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PV-1"
+          ],
+          "sha256": "61de2857ceb5ec8ac0e1e49065b9c49db4995ba9bac02806870d4178d5f4798d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PV-1"
+          ],
+          "sha256": "ebf1c62b0f21c5c28ffbb3d5163e0a6d8f6d051700dbba6a96dfc4aea4b1698e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/parent_promoted.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PV-1"
+          ],
+          "sha256": "e704a5a749e680c4469876c44bcc1f82110ac26bdf6d561d4f1de780a23d157e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/scenarios/scroll.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TM-3"
+          ],
+          "sha256": "39b71d219d76cc8cbb4f258755d31eae3d635d4a8cb76269a3bf2f9a727f5c63"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/fast_mode_attribution.rs",
+          "kind": "test",
+          "criterionIds": [
+            "TM-3"
+          ],
+          "sha256": "ff7eb41a1b72ea2c7a99e0ee69cfa5031c8acc51b1c917ebada88cf867be159d"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/state.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PV-2",
+            "PV-3"
+          ],
+          "sha256": "c11270659132bcbc678cd3408effcaf9a8a1c499674c51340209d994f3520aca"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/parent_viewport_layers.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PV-2"
+          ],
+          "sha256": "e6b6b54cff4852716f4678de7f387ad8f9fe897a0fb4b8c1d623a69e823db04f"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/application_configuration_programmatic_scroll_parent_viewport.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PV-2"
+          ],
+          "sha256": "5cd17874c5459c3a683f58e19cdcf7039acf603620b8fd852f0d9e2a0683227f"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/row_renderer_changes.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PV-3"
+          ],
+          "sha256": "8da77bdfc716abcda08528abffb0d2d801f332ad4c10f1128e3372cdb6529aee"
+        }
+      ],
+      "summaryMarkdown": "Passed.\n\n**PV-1:** a promoted `ParentViewport` list renders the painted region's rows without reading the parent offset. On composited frames, its callback answers metrics and the range listener (under the holding view's lease) from the current offset and marks which of its own told rows the viewport shows. The carry then replays every row's a11y events shown or hidden as a tree, nested lists included, and hides the focus, tab stops and listeners of hidden rows. With layers off the path is inert. `parent_promoted` (6 tests) covers promotion over 60 frames, metrics and ranges, fractional rows at 1.25, whole-frame histories with clicks, and the a11y tree, flat and nested, under inspection on every step.\n\n**PV-2 and PV-3:** ListViewState skips its dependent registration only for `ParentViewport` under view retention. `parent_viewport_layers`, the existing parent-viewport programmatic-scroll tests and `row_renderer_changes` pass, with the owner's withdrawal of (B) and the TreeView fix recorded.\n\n**TM-3:** the scenario is in the bench and in attribution.\n\nThe sprint checks are fresh at revision 84, with `parent_rerender_cost.rs` out of the tree.",
+      "findingIds": [
+        "lk-s04-F1",
+        "lk-s04-F2"
+      ],
+      "recordedAt": "2026-10-18T01:53:44Z"
+    },
+    "s04c-parent-rerender": {
+      "reviewerId": "reviewer-lk-s04c",
+      "snapshotId": "97611d2ff44091cd9d905cae9911622d6d9400aed0d549a7001ea7dc20566fd2",
+      "criterionIds": [
+        "PR-1",
+        "PR-2",
+        "PR-3",
+        "PR-4",
+        "PR-5"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/renderer_identity.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PR-2"
+          ],
+          "sha256": "fd07fe991f709cc30793ad7abf829f6e79779c06d80b5a51687c239173384a0b"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/element.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PR-1",
+            "PR-2"
+          ],
+          "sha256": "36499f1420aeafc32f967c119a150597ce735c9593cc40e261dd4ab5d2c650bc"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/state.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PR-2"
+          ],
+          "sha256": "2dff42a05c87b8761be8e51368368cf33c754255f6606881d2dffd064c66a6f3"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/tree/element.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PR-1",
+            "PR-2"
+          ],
+          "sha256": "146c68b8c3a9b463664b0f64b865d208499e1353344628e0a110554efa96d22d"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/tree/state.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PR-2"
+          ],
+          "sha256": "a60f1196a154b515c74149fe25a361edb3699669b65396b388d19ca8db47da35"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/parent_rerender_cost.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PR-1"
+          ],
+          "sha256": "05f44c9064d3904d3b99fe0cc5ff61069d2bfcb605f638463d18e6a164596528"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/row_renderer_changes.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PR-2"
+          ],
+          "sha256": "2040d07d3d53855bef62f618f6c690a6be3f8783ddc5b690fd5862846c495b32"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "docs/src/virtualized-collections.md",
+          "kind": "source",
+          "criterionIds": [
+            "PR-3"
+          ],
+          "sha256": "69e9cef7745ff984478e33c103b7f2902ce273433a3ca8a501cc18156b8b40c7"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "apps/test_suite/src/pages/range_recorder.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PR-3"
+          ],
+          "sha256": "6cf2596f2afb2ceb1af485d1fc585e2efbe8b07f1456c5a0abd9530ae92a4727"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/reuse.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PR-4"
+          ],
+          "sha256": "e884fbbd30298b144cc7fab8070322ff1242bea0b695799ee48de1ec7a3b878f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/layer_owner_replay.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PR-4"
+          ],
+          "sha256": "fdcdf9c544d787515077f805ee40923d54ea5afee24befabe8b6314e187e77ff"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "apps/test_suite/src/pages/virtualization.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "PR-3"
+          ],
+          "sha256": "1d7f45f2faac58c9d847abf8f5519c8c0879b5a6e3faf625d81a5a325397a665"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window/a11y.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PR-5"
+          ],
+          "sha256": "e642e867cce39f3c7aea2633f00a40674ceda5d5428334fd7acff3976746f58a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/reuse.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PR-5"
+          ],
+          "sha256": "e884fbbd30298b144cc7fab8070322ff1242bea0b695799ee48de1ec7a3b878f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/layer_a11y_scroll_targets.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PR-5"
+          ],
+          "sha256": "5d403861c3278300a75949b84969fb7f3a76f376514fb6b4d1522234704b64f2"
+        }
+      ],
+      "summaryMarkdown": "Passed.\n\n**PR-2:** ListView's and TreeBase's elements write their state only when the scroll policy, scrollbar or renderer identity differs. The identity is the type of a zero-sized closure or an `Eq` `renderer_key`, and every renderer setter sets or clears it, so capturing renderers without a key write as before, matching the owner's (A)+(B).\n\n**PR-1 and PR-3:** `parent_rerender_cost` (12, red baseline logged) and `row_renderer_changes` (8) prove the cost and the guard, and the docs and Test Suite recorder carry the guidance.\n\n**PR-4:** a `div` layer whose content read no hover follows its owner's copy (records, told rows, paint ranges) and composites the next turn. Whole frame descriptions, a11y and clicks equal the reference on every step.\n\n**PR-5:** a non-list layer's carry replays the container's own `EnterScroll`, opened at the carry's starting depth, standing with its offset moved by the scroll, while nested containers move with the content (`begin_container_replay`/`end_container_replay`). `layer_a11y_scroll_targets` (nested scrolling divs, a11y on) is red without the fix.\n\nThe sprint checks are fresh at revision 101.",
+      "findingIds": [
+        "lk-s04c-F1"
+      ],
+      "recordedAt": "2026-10-18T02:38:07Z"
+    },
+    "s07-timings-docs": {
+      "reviewerId": "reviewer-lk-s07",
+      "snapshotId": "e4bc1e594f592ac038b5e7432539b517265d56d5d55098f38303d8cd18cbfd28",
+      "criterionIds": [
+        "TM-2",
+        "DOC-1"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md",
+          "kind": "source",
+          "criterionIds": [
+            "TM-2",
+            "DOC-1"
+          ],
+          "sha256": "55156c6603334250637d702981ffbfb520b841093f70cf922defa7ce429395ca"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/benches/fast_mode.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TM-2"
+          ],
+          "sha256": "577ba5dc97c916056b9bb399df04613c729791b66573b196c5b610dc9e327a7c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/scenarios/scroll.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TM-2"
+          ],
+          "sha256": "39b71d219d76cc8cbb4f258755d31eae3d635d4a8cb76269a3bf2f9a727f5c63"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/virtual_list/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-1"
+          ],
+          "sha256": "3e2caccd3c7482276c8d808f3b2300890396fb790a1d4da59e0b2effde0b788f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-1"
+          ],
+          "sha256": "76edecfee124ed429d72ef6b1b054e7315c3e612a8f19478e06159d9572057b5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/uniform_list.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DOC-1"
+          ],
+          "sha256": "97bc976d2f0595e0222b065cb7929b96861220624156ba9a1aa40220bd07c71c"
+        }
+      ],
+      "summaryMarkdown": "Passed.\n\n**TM-2 (as amended):** judged on the fourth, steady run recorded in `docs/fast-mode.md`. No virtual-list kind, nor `scroll-uniform-list` or `scroll-list`, is slower with `layers` than with `off` or `splice` beyond the confidence intervals, and the report's regression list is empty. The work saved is shown by the deterministic counters, and runs 1 to 3 stay recorded, run 3's out-of-interval cases named.\n\n**DOC-1 (met as before):** the 'Virtual lists' section matches the source.\n\n**Nit, no finding:** the closing sentence on the `ParentViewport` list's gains against `splice` lists runs 1–3 (-3.5%, -2.0%, -0.4%) but not run 4's -3.7%.\n\nThe checks are fresh at revision 112.",
+      "findingIds": [
+        "lk-s07-F1"
+      ],
+      "recordedAt": "2026-10-18T10:08:54Z"
+    },
+    "s08-lane-c-renamed": {
+      "reviewerId": "reviewer-lk-s08",
+      "snapshotId": "cd4d3452e36c7df702bf7aaa0fd7c79e451870cfe5cf2158a617add865b14775",
+      "criterionIds": [
+        "HP-1"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/util.rs",
+          "kind": "source",
+          "criterionIds": [
+            "HP-1"
+          ],
+          "sha256": "07160911e7863e78d32f55e756b6312db33612221c735eac4c6d11f91f22698e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/lane_c_scroll_layers.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "HP-1"
+          ],
+          "sha256": "36e8b75022b655375e3a17fdb43fb97cb25675068dd5984579fc4e65bd18de52"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/lane_c_layer_scales.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "HP-1"
+          ],
+          "sha256": "c654f05bcf0c00e745cea08b68fa77bc3a5dcd346e00838e2d99ce849d7a0aa6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/scroll_layers_support/mod.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "HP-1"
+          ],
+          "sha256": "d364a1dbfb8b1022ac3b20f00851445e58d03f33143480cb3fe1b242f216fb78"
+        }
+      ],
+      "summaryMarkdown": "Passed, with no findings. **Disposition acknowledged in text** (the runtime lists no effective disposition in this boundary, since it belongs to s00b, so it is not in `acknowledgedDispositions`): `check:c-lane-c-layers-full` is withdrawn (revision 117), matching the owner's recorded decision ('Withdraw c-lane-c-layers-full (its package no longer exists) and replace it with a corrective task running the same lane C groups on gpux-tests-conformance'). Its successor really covers it. `c-lane-c-layers-renamed` is the withdrawn definition with only the package (`gpux-tests-conformance`) and the conformance input path (`crates/gpux_tests_conformance/**`) changed. It keeps the same `lane_c_scroll_layers` and `lane_c_layer_scales` targets, `GPUX_LANE_C_FULL=1` (read by `scroll_layers_support::FULL_VARIABLE`), and the same expectations, and it passed at revision 121 with 30 tests on the current tree. t15 changes no source. HP-1's runtime proof is therefore current under the renamed package.",
+      "findingIds": [],
+      "recordedAt": "2026-10-18T10:21:53Z"
+    },
+    "s08b-attribution-all": {
+      "reviewerId": "reviewer-lk-s08b",
+      "snapshotId": "4993bb2e16701ee213ba1987bffc1e5f345af37bb439e00d42f92197da210da1",
+      "criterionIds": [],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/fast_mode_attribution.rs",
+          "kind": "test",
+          "criterionIds": [],
+          "sha256": "ff7eb41a1b72ea2c7a99e0ee69cfa5031c8acc51b1c917ebada88cf867be159d"
+        }
+      ],
+      "summaryMarkdown": "Passed, with no findings.\n\n**What t16 does.** It carries out the owner's 'Yes' to fixing `c-attribution`, with no source changes. It adds the final check `c-attribution-all`: the whole `fast_mode_attribution` group, with no filter, `minimumTests` 25, TM-1. That covers what the sealed `c-attribution`'s `scroll_virtual_list` filter left out, `virtual_lists_render_fewer_rows_on_their_layers` and `every_scenario_is_attributed`. The local run passes 25 of 25 (`attribution-all.log`).\n\n**Why both checks stay.** The runtime refuses to withdraw the sealed `c-attribution` because TM-1 would lose its last sprint check (a final check does not count), so the amendment at revision 126 keeping both is the only consistent shape. With no criterion of its own, the boundary has nothing else to prove.\n\n**Note for closure, not a finding:** (the earlier description note is fixed at revision 131, which now says the sealed check stays beside it) the check declares no `inputs`, unlike its sibling, so its freshness is not tied to `crates/gpui/**`. As a final check run at closure that does no harm.",
+      "findingIds": [],
+      "recordedAt": "2026-10-18T10:34:20Z"
+    },
+    "final": {
+      "reviewerId": "reviewer-lk-final",
+      "snapshotId": "4993bb2e16701ee213ba1987bffc1e5f345af37bb439e00d42f92197da210da1",
+      "criterionIds": [
+        "ML-1",
+        "ML-2",
+        "HP-1",
+        "UM-1",
+        "HZ-1",
+        "HZ-2",
+        "ST-1",
+        "ST-2",
+        "SO-1",
+        "PV-1",
+        "PV-2",
+        "PV-3",
+        "RXK-1",
+        "TM-1",
+        "TM-2",
+        "TM-3",
+        "DOC-1",
+        "MG-1",
+        "DF-1",
+        "PR-1",
+        "PR-2",
+        "PR-3",
+        "PR-4",
+        "PR-5"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layout.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ML-1",
+            "ML-2"
+          ],
+          "sha256": "d08be09f719fa7e35d0d9124baf3aec0099ca417f404741275f946363da4d621"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ML-1",
+            "ML-2",
+            "PV-1"
+          ],
+          "sha256": "61de2857ceb5ec8ac0e1e49065b9c49db4995ba9bac02806870d4178d5f4798d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/taffy.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ML-1",
+            "HP-1"
+          ],
+          "sha256": "463dfe322c6b1cff2c119730d9bc0fb2aba4b37d1c5a981c9172f2ce058e8c3b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/retained_measured_leaves.rs",
+          "kind": "test",
+          "criterionIds": [
+            "ML-1"
+          ],
+          "sha256": "eb0aa391516f5f2f219da5d3fff503d10eb389936f4635f10f600f7ed233bec5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/oracle_measured_leaves.rs",
+          "kind": "test",
+          "criterionIds": [
+            "ML-2"
+          ],
+          "sha256": "b35e262097f0fa972f1e05139cc0a251b661437440aff2597c7c0194c8649847"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/util.rs",
+          "kind": "source",
+          "criterionIds": [
+            "HP-1"
+          ],
+          "sha256": "07160911e7863e78d32f55e756b6312db33612221c735eac4c6d11f91f22698e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/half_pixel_edges.rs",
+          "kind": "test",
+          "criterionIds": [
+            "HP-1"
+          ],
+          "sha256": "0c7534bf2290c0185309f041c9ed5edccfe450c473e8c2deeb7fd01a08179f33"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/lane_c_scroll_layers.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "HP-1"
+          ],
+          "sha256": "36e8b75022b655375e3a17fdb43fb97cb25675068dd5984579fc4e65bd18de52"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/uniform_list.rs",
+          "kind": "source",
+          "criterionIds": [
+            "UM-1",
+            "DOC-1"
+          ],
+          "sha256": "97bc976d2f0595e0222b065cb7929b96861220624156ba9a1aa40220bd07c71c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/uniform_measured_item.rs",
+          "kind": "test",
+          "criterionIds": [
+            "UM-1"
+          ],
+          "sha256": "02e1827aa1e1fed89a30f6ad933e6abf24a705b51ab63e7887b3dede38b3c659"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "UM-1",
+            "HZ-1",
+            "HZ-2",
+            "ST-1",
+            "ST-2",
+            "PV-1",
+            "DOC-1"
+          ],
+          "sha256": "76edecfee124ed429d72ef6b1b054e7315c3e612a8f19478e06159d9572057b5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/virtual_list/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "HZ-1",
+            "ST-1",
+            "ST-2",
+            "SO-1",
+            "PV-1",
+            "DOC-1"
+          ],
+          "sha256": "3e2caccd3c7482276c8d808f3b2300890396fb790a1d4da59e0b2effde0b788f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/horizontal.rs",
+          "kind": "test",
+          "criterionIds": [
+            "HZ-1"
+          ],
+          "sha256": "0a1d3ba5a7ce3f3d11e2be1cee2a992aaf2e378b73e05132d633c4cd8ce2dc71"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/horizontal_oracle.rs",
+          "kind": "test",
+          "criterionIds": [
+            "HZ-2"
+          ],
+          "sha256": "1fd3c0f757bebc81375a8ac16f2bf62d51f18b9b3405ea505e281d8655f8cb95"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/sticky.rs",
+          "kind": "test",
+          "criterionIds": [
+            "ST-1"
+          ],
+          "sha256": "3bed9a6346151572d21609bbaab25b35ee50f5400ed9874b3b89b500d3740bbc"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/sticky_oracle.rs",
+          "kind": "test",
+          "criterionIds": [
+            "ST-2"
+          ],
+          "sha256": "aa054bf8aec78b09d5f9596fca29ac17db2b277b9f3c55eeb4a45da5bbd374c1"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/invalidate.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SO-1",
+            "UM-1"
+          ],
+          "sha256": "8b876aa4ad49fbfd7586d9bdd435b3ae1642403544acd474b7fbc6ea2ba6a9d8"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/synchronized.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SO-1"
+          ],
+          "sha256": "42b16794d067c62d4fcb52854e675b618b0f9c28be91360984c70e09e699ef1a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/reuse.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PV-1",
+            "PR-4",
+            "PR-5"
+          ],
+          "sha256": "e884fbbd30298b144cc7fab8070322ff1242bea0b695799ee48de1ec7a3b878f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/parent_promoted.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PV-1"
+          ],
+          "sha256": "e704a5a749e680c4469876c44bcc1f82110ac26bdf6d561d4f1de780a23d157e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/scenarios/scroll.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TM-1",
+            "TM-2",
+            "TM-3"
+          ],
+          "sha256": "39b71d219d76cc8cbb4f258755d31eae3d635d4a8cb76269a3bf2f9a727f5c63"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/fast_mode_attribution.rs",
+          "kind": "test",
+          "criterionIds": [
+            "TM-1",
+            "TM-3"
+          ],
+          "sha256": "ff7eb41a1b72ea2c7a99e0ee69cfa5031c8acc51b1c917ebada88cf867be159d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md",
+          "kind": "source",
+          "criterionIds": [
+            "TM-2",
+            "DOC-1"
+          ],
+          "sha256": "55156c6603334250637d702981ffbfb520b841093f70cf922defa7ce429395ca"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/stats.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ML-2",
+            "MG-1"
+          ],
+          "sha256": "61f692dac50ed157a81eb6c9436b096fe1e7cdce6836744b7d5b0f0419fc62e5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/mod.rs",
+          "kind": "test",
+          "criterionIds": [
+            "MG-1"
+          ],
+          "sha256": "24d664139e9a1212d2189310f55fbbcf73135eb38f7b90ea4747b49b96644f31"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/scenes/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "MG-1"
+          ],
+          "sha256": "ad43606c883766a2f3d4520215b49887f56210cbb95cd364999627ef703b6954"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DF-1",
+            "RXK-1"
+          ],
+          "sha256": "ebf1c62b0f21c5c28ffbb3d5163e0a6d8f6d051700dbba6a96dfc4aea4b1698e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window/a11y.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PR-5"
+          ],
+          "sha256": "e642e867cce39f3c7aea2633f00a40674ceda5d5428334fd7acff3976746f58a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/layer_owner_replay.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PR-4"
+          ],
+          "sha256": "fdcdf9c544d787515077f805ee40923d54ea5afee24befabe8b6314e187e77ff"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/layer_a11y_scroll_targets.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PR-5"
+          ],
+          "sha256": "5d403861c3278300a75949b84969fb7f3a76f376514fb6b4d1522234704b64f2"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/state.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PV-2",
+            "PR-2",
+            "PV-3"
+          ],
+          "sha256": "2dff42a05c87b8761be8e51368368cf33c754255f6606881d2dffd064c66a6f3"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/parent_viewport_layers.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PV-2"
+          ],
+          "sha256": "e6b6b54cff4852716f4678de7f387ad8f9fe897a0fb4b8c1d623a69e823db04f"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/row_renderer_changes.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PV-3",
+            "PR-2"
+          ],
+          "sha256": "2040d07d3d53855bef62f618f6c690a6be3f8783ddc5b690fd5862846c495b32"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/virtual_list_layer_kinds.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RXK-1",
+            "MG-1"
+          ],
+          "sha256": "ffa14dffaafccfb03fe90c9ba8779b77b3cd22ab44baae09a1fb7b266d0f2604"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_datatable/src/state/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "RXK-1"
+          ],
+          "sha256": "f871ec89f975fe1efc572850033134711f94557a3aab241b1c73fb905fa6cb59"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_datatable/tests/virtual_list_layer_kinds.rs",
+          "kind": "test",
+          "criterionIds": [
+            "RXK-1"
+          ],
+          "sha256": "4b8e10e60e1fdbca50bd03755336f4eb4c52d200499b9ecb46dfac166917c769"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/layout/scroll/scrollable_mask.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DF-1"
+          ],
+          "sha256": "f96f4a79b115881c5745db38dbd0b7aa24f16bd08968bbd2d90cd851ea19789d"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_datatable/tests/wheel_frames.rs",
+          "kind": "test",
+          "criterionIds": [
+            "DF-1"
+          ],
+          "sha256": "d7757841ff1fc5e55c7a136ab19f15bffe51c98a5d2c8328625965e51cc62aad"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/renderer_identity.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PR-2"
+          ],
+          "sha256": "fd07fe991f709cc30793ad7abf829f6e79779c06d80b5a51687c239173384a0b"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/element.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PR-1",
+            "PR-2",
+            "PV-3"
+          ],
+          "sha256": "36499f1420aeafc32f967c119a150597ce735c9593cc40e261dd4ab5d2c650bc"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/tree/element.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PR-1",
+            "PR-2",
+            "PV-3"
+          ],
+          "sha256": "146c68b8c3a9b463664b0f64b865d208499e1353344628e0a110554efa96d22d"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/parent_rerender_cost.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PR-1"
+          ],
+          "sha256": "05f44c9064d3904d3b99fe0cc5ff61069d2bfcb605f638463d18e6a164596528"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "docs/src/virtualized-collections.md",
+          "kind": "source",
+          "criterionIds": [
+            "PR-3"
+          ],
+          "sha256": "69e9cef7745ff984478e33c103b7f2902ce273433a3ca8a501cc18156b8b40c7"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "apps/test_suite/src/pages/range_recorder.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PR-3"
+          ],
+          "sha256": "6cf2596f2afb2ceb1af485d1fc585e2efbe8b07f1456c5a0abd9530ae92a4727"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "apps/test_suite/src/pages/virtualization.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "PR-3"
+          ],
+          "sha256": "1d7f45f2faac58c9d847abf8f5519c8c0879b5a6e3faf625d81a5a325397a665"
+        }
+      ],
+      "acknowledgedDispositions": [
+        "check:c-lane-c-layers-full"
+      ],
+      "summaryMarkdown": "Passed: the final review of the integrated epic. I reviewed every sprint independently (s00, s00b, s01, s02, s03, s04, s04c, s05, s06, s06b, s06c, s07, s08 and s08b). Every finding raised (lk-s00-F1..F4, lk-s00b-F1..F3, lk-s02-F1/F2, lk-s03-F1, lk-s04-F1/F2, lk-s04c-F1, lk-s05-F1, lk-s07-F1) is resolved with a regression test or an owner decision.\n\n**Cross-sprint interactions checked on the integrated tree:**\n- s00's measured-leaf rebuild and s04's promoted `ParentViewport` list: the promoted list keeps the spacer path, not a measured leaf, so its view stays reusable, while an `Infer` list's view is rebuilt as a notify, spliced through `dirty_views`.\n- s00b's ties-down edge rounding and s04's row-origin snapping: both run under `snapping()` and round consistently, so whole-pixel layer moves preserve edges.\n- s01's axis-generic slots under s02's sticky exclusion predicate and s03's `SynchronizedOffset` clip gate: all three feed `begin_rows`, and the s06b AccessKit row model sits under all of them.\n- s04c's hover-free `div`-layer follow and s04's told rows: told rows follow through `follow_told_prepaint`/`follow_told_paint`, and PR-5 replays the container's own scroll target in place.\n- s05/s06c's `publish_wheel_offset`: one frame per wheel turn with fast mode on and off.\n\n**Output with fast mode off is unchanged**, except where the owner decided otherwise: s03's clip was removed in favour of an eligibility gate, and DataTable's row clipping and the mask's wheel publishing are recorded in d-consumer-proof and DF-1.\n\n**Disposition and owner decisions acknowledged:**\n- `check:c-lane-c-layers-full` is withdrawn by the owner's quoted decision; `c-lane-c-layers-renamed` runs the same groups and environment on `gpux-tests-conformance`.\n- PR / d-conditional-state-writes: 'Yes, A + B together', implemented as type identity for zero-sized renderers plus `renderer_key`.\n- PR-3 / t07b: (B) and the TreeView fix were withdrawn, `row_renderer_changes` stays as regression coverage, and the subscribing-parent limit is with the owner.\n- TM-2: amended to 'not slower than off beyond the interval, with the work saved shown by the deterministic counters'; it is met on the steady fourth lane G run.\n\n`c-attribution` and `c-attribution-all` both stay, as the runtime requires. `check --epic` passed at revision 135 with no proof errors (34 checks). `c-attribution-all`, the whole `fast::` suite, lane A and lane C are left to CI, as d-proof records.",
+      "findingIds": [],
+      "recordedAt": "2026-10-18T10:43:13Z"
+    }
+  },
+  "checkpoints": {
+    "s00-measured-leaves": {
+      "snapshotId": "dd1439f1a1e744024a14618168bd66a161edf82baad2fef122496d27bb09a2ca",
+      "commits": {
+        "gpux": "dc1bb3cf15c499f0338731739e890fb201403e0d",
+        "rayx": "77733880057de4e79fe963cd1cce7e51d9b622d0"
+      },
+      "reviewHash": "bcdf3f46e4b1c78cec4d586fe5f0ec52fc634a8ad3f86849de7580b454e34336",
+      "recordedAt": "2026-10-16T21:29:53Z"
+    },
+    "s00b-layer-gaps": {
+      "snapshotId": "508d5e554ec9dc72b26c34a5909ed5d711ad9db1d19d7a0bb68c2066b49de8c6",
+      "commits": {
+        "gpux": "6db88af323fd935acdac9adf40e19d80cc11ce3a",
+        "rayx": "77733880057de4e79fe963cd1cce7e51d9b622d0"
+      },
+      "reviewHash": "8231b1687eeb79c2bb9b2e943d81b2d3eba7acdf566c730159f914f3e9ed2643",
+      "recordedAt": "2026-10-16T23:00:06Z"
+    },
+    "s01-horizontal": {
+      "snapshotId": "8e17230ac87d72b497bb4a9dd64bf01a8d84a2bdf4e3ae395437af9602e77ee7",
+      "commits": {
+        "gpux": "5333f7525f916248b8a4c393d177d63489f1f30a",
+        "rayx": "77733880057de4e79fe963cd1cce7e51d9b622d0"
+      },
+      "reviewHash": "d9185c5c73cf6f9d7668ba1d0ccb05b80f5e4bd64fc4a173eeab13043a9f976a",
+      "recordedAt": "2026-10-16T23:09:49Z"
+    },
+    "s02-sticky": {
+      "snapshotId": "12a0f9283e754bf1d41fe46a8e53ab92dfd0a80780e8203db549a47c283c83e6",
+      "commits": {
+        "gpux": "b5edcae7be488053900b9635a5498a40265b62e1",
+        "rayx": "ddaba825ef2ff9958bab1e464e52ba020ddd3239"
+      },
+      "reviewHash": "9c9dcf2105f58fd14209b26553bd10e095d079c71c7fd637a8dc7463cb35e139",
+      "recordedAt": "2026-10-16T23:49:45Z"
+    },
+    "s03-synchronized": {
+      "snapshotId": "e30c8a1ac02a7eedf88637f3beca839ed89ea5057dcce3369d87ee8fdb6908d5",
+      "commits": {
+        "gpux": "36d481ff9add951bf8f4c50300ffb3887bb2107c",
+        "rayx": "ddaba825ef2ff9958bab1e464e52ba020ddd3239"
+      },
+      "reviewHash": "153bdfd54f3780392d28e5c5308f06b043ad4c3d083517eb7b0f3080ab5a5189",
+      "recordedAt": "2026-10-17T00:22:10Z"
+    },
+    "s05-rayx-kinds": {
+      "snapshotId": "28095b66a012cfeeea2115869f0aba75ab2a5edcca2d10a8dd3dd346bfa03475",
+      "commits": {
+        "gpux": "a4131c8388a875f84f131fec6474f0727ab8730f",
+        "rayx": "5b839689e0a3af24915629bb22a50b3c7f9557fa"
+      },
+      "reviewHash": "5dee3941e2f20591b7ff76f9717c30ce4965403103254cd941c4b1d5853b79d9",
+      "recordedAt": "2026-10-17T01:44:09Z"
+    },
+    "s06-bench-scenarios": {
+      "snapshotId": "4c50ab708e91de9f26d22a98ca60fe8c2fdde2fd0d21b3c02bd65e850c18f343",
+      "commits": {
+        "gpux": "a173030ab206b9e5b1c6a60717023398f87345fa",
+        "rayx": "5b839689e0a3af24915629bb22a50b3c7f9557fa"
+      },
+      "reviewHash": "3c22eb76a0d3a85b9d5be507b9b71b030b6ea275692b61c3ef62f94684a449f1",
+      "recordedAt": "2026-10-17T01:50:28Z"
+    },
+    "s06c-datatable-frames": {
+      "snapshotId": "928ffd84212b6a2416377f4c110c451a45cfb3ae1edc407677f0d470d12169d4",
+      "commits": {
+        "gpux": "205b316144e1dfdec2ea421685b1d213cc0a11e1",
+        "rayx": "f4c29c7d5f46485f6bd7574e11fdebf9d6d017e9"
+      },
+      "reviewHash": "05813eac86dcd43149d012124c60e762a5cc7e9740fe965a0bf1ce7234338ee3",
+      "recordedAt": "2026-10-17T08:01:09Z"
+    },
+    "s06b-accesskit-merge": {
+      "snapshotId": "465b2aba284dda10b044d73882240d70c384b3e40967c22c29d8345adc295331",
+      "commits": {
+        "gpux": "69cb322896d00148e3eca2b245a12852952519cb",
+        "rayx": "2c14e4eda4b0241cf6802bcbaa2da36fe937f7f1"
+      },
+      "reviewHash": "bb94671bde67e531d0184caa809011095bcb9d15c452d769ec544712b51508d7",
+      "recordedAt": "2026-10-17T23:27:15Z"
+    },
+    "s04-parent-viewport": {
+      "snapshotId": "f439ad5ae98ad5031b0962629c7f9faa63f50b08d14c2f02adcc6d9b6bf2be94",
+      "commits": {
+        "gpux": "c8749bc104bfb220488b5e77107d4f23fd6c80aa",
+        "rayx": "6f748e70f7106616ae44bd7bab1a8ee7b405cf53"
+      },
+      "reviewHash": "40f10438b044997d459958de866a2de06071727ccdd887980573354e5479192e",
+      "recordedAt": "2026-10-18T01:54:15Z"
+    },
+    "s04c-parent-rerender": {
+      "snapshotId": "97611d2ff44091cd9d905cae9911622d6d9400aed0d549a7001ea7dc20566fd2",
+      "commits": {
+        "gpux": "1ba7bbf18ec5e698f42c56363036b15cfafeeb07",
+        "rayx": "c346720d8928ca23b1ee147603904a0acf815f53"
+      },
+      "reviewHash": "1f10483c54d8341956053011471e354b407cff9870d571582fdeb74f0e83acbd",
+      "recordedAt": "2026-10-18T02:40:09Z"
+    },
+    "s07-timings-docs": {
+      "snapshotId": "e4bc1e594f592ac038b5e7432539b517265d56d5d55098f38303d8cd18cbfd28",
+      "commits": {
+        "gpux": "f685eccbc214c17a06ac0e7f6e759ea0c79a6223",
+        "rayx": "c346720d8928ca23b1ee147603904a0acf815f53"
+      },
+      "reviewHash": "d6b9ee7e8d3cedc1f46d20f1fa8b3cd4f9ff172a79b5a042efe47b4d07bb1683",
+      "recordedAt": "2026-10-18T10:09:10Z"
+    },
+    "s08-lane-c-renamed": {
+      "snapshotId": "cd4d3452e36c7df702bf7aaa0fd7c79e451870cfe5cf2158a617add865b14775",
+      "commits": {
+        "gpux": "09b24827c02b6480e28e8c43083de70e5f756e3d",
+        "rayx": "c346720d8928ca23b1ee147603904a0acf815f53"
+      },
+      "reviewHash": "4f287e800af7e9897b9adc1b701a8424b6f1f9667f726201ab903e45920ec2c2",
+      "recordedAt": "2026-10-18T10:22:13Z"
+    },
+    "s08b-attribution-all": {
+      "snapshotId": "4993bb2e16701ee213ba1987bffc1e5f345af37bb439e00d42f92197da210da1",
+      "commits": {
+        "gpux": "6fc04c7941971ea767fe19342394cd9f8eda871c",
+        "rayx": "c346720d8928ca23b1ee147603904a0acf815f53"
+      },
+      "reviewHash": "26414b868934e5efdddabce30664e2be0bf1431bb1aa14f9417082fca93575a8",
+      "recordedAt": "2026-10-18T10:35:33Z"
+    }
+  },
+  "findings": [
+    {
+      "id": "lk-s00-F1",
+      "criterionIds": [
+        "ML-1"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/retained_measured_leaves.rs"
+        }
+      ],
+      "descriptionMarkdown": "Resolved. The style flag is replaced by recording, in the Taffy measure callback, every non-text leaf whose measurement can set its size. That is an axis of `known_dimensions.or(style size resolved against parent_size, with the aspect ratio applied)` left `None`; ContentSize mode uses `known_dimensions` alone, mirroring taffy 0.14 `compute_leaf_layout`. This catches percentages of an indefinite parent and the flex automatic-minimum probe, and keeps leaves of definite size reusable. New cases `PercentOfAutoParent` and `DefiniteFlexChild`. The transition case the new mechanism cannot see is filed as lk-s00-F4.",
+      "boundaryId": "s00-measured-leaves"
+    },
+    {
+      "id": "lk-s00-F2",
+      "criterionIds": [
+        "ML-2"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/retained_measured_leaves.rs"
+        }
+      ],
+      "descriptionMarkdown": "Resolved. The counter now counts once per view, at draw start, when `Window::draw` marks a measuring view dirty that was not already dirty. It no longer counts refusals inside `keep_retained_nodes`, so the double count through `reuse_kept_layout` and the layer-content count are gone. The tests bound the count exactly per mode (0 without view retention, 0 in the definite case with `views_reused > 0`), with stats reset after `set_fast_mode`.",
+      "boundaryId": "s00-measured-leaves"
+    },
+    {
+      "id": "lk-s00-F3",
+      "criterionIds": [
+        "ML-2"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/retained_measured_leaves.rs"
+        }
+      ],
+      "descriptionMarkdown": "Resolved. The measuring view is `mark_view_dirty`'d, which dirties its ancestors exactly as a notify does. With splice on, `splice_layout` takes dirty nested views from `dirty_views` as gaps (splice.rs:399), and the view is not in `notified`, so its ancestors are spliced, not built. Without splice, they cost what a notify of that view costs. The dirtying happens before `invalidator.set_dirty(false)`, so it schedules no extra frames.",
+      "boundaryId": "s00-measured-leaves"
+    },
+    {
+      "id": "lk-s00-F4",
+      "criterionIds": [
+        "ML-1"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved. `Window::note_measured_owner` records every measured leaf requested under view retention with `fast::layout::measured_size_is_fixed(style)`. That means an absolute width and height, plus an absolute `min_size` on both axes or overflow Hidden/Scroll on both axes. Before clear, the owners of every non-text leaf that is not fixed, or that Taffy measured to size it, are built on the next frame, so a leaf that can become indefinite is never kept. Checked against taffy 0.14: a fixed leaf's size never comes from its measurement. Its InherentSize probes resolve the style size (leaf.rs:61, 147). The flex base size takes the definite main size. The automatic minimum is skipped by an absolute min size or a non-visible overflow (flexbox.rs:1037). The intrinsic-main path (flexbox.rs:1405) and the hypothetical cross size (flexbox.rs:1819) use the preferred size, and the baseline and absolute-child ContentSize calls pass both dimensions. The stated residual (a fixed leaf probed while kept) therefore has no reachable size effect. Regression: `a_kept_leaf_keeps_its_size_when_its_parent_becomes_flex` (red on the previous source) and `a_kept_leaf_keeps_its_size_when_its_parent_loses_its_height`.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/retained_measured_leaves.rs"
+        }
+      ],
+      "boundaryId": "s00-measured-leaves"
+    },
+    {
+      "id": "lk-s00b-F1",
+      "criterionIds": [
+        "UM-1"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved. `measure_item` records with `finish_recording_dependencies_as_own`, which does not push its ranges into the parent's `nested`, so the measured row's reads stay among the owning view's own dependencies, which splice decides on. A kept no-layer frame replays them with `replay_dependencies_as_own` before carrying states and lines, so the view's record keeps them for `retained::reusable`. Regression: `an_update_only_the_measured_row_read_measures_it_again` (an entity only the measured row reads, updated without a notification, and with the Beside view notified), under view retention and splice.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/uniform_measured_item.rs"
+        }
+      ],
+      "boundaryId": "s00b-layer-gaps"
+    },
+    {
+      "id": "lk-s00b-F2",
+      "criterionIds": [
+        "UM-1"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved. `note_notify` counts every `App::notify` (at entry, before deduplication) of a watched view whenever a watch exists. `note_scroll_notify` counts the scroll-sent notifications: div's handle-less wheel branch and both `ScrollHandle::publish_offset_inner` blocks. The no-layer keep refuses when notifications since the measurement exceed scroll notifications, or when the owner is another view, and carry refreshes the baselines. Scroll notifications that are not marked (RayX's scrollbar `cx.notify(view_id)`) count as changes, which is conservative. Regression: `a_notification_of_the_lists_view_measures_it_again` (`Rc<Cell>` state plus a bare notify) under view retention and splice. The scroll-only tests still keep the size.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/uniform_measured_item.rs"
+        }
+      ],
+      "boundaryId": "s00b-layer-gaps"
+    },
+    {
+      "id": "lk-s00b-F3",
+      "criterionIds": [
+        "HP-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved. Edges round ties down while snapping (`round_half_down` = `ceil(x - 0.5) + 0.0`, with negative zero normalized). The rule is invariant under whole-pixel moves, equals `round_half_toward_zero` on non-negative values, and matches `fast::glyphs`. Default-mode output therefore changes only for negative ties. The `snap_offset` doc and docs/fast-mode.md are corrected, and the underline test expects the new rounding. Regression: `fast::tests::half_pixel_edges`.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/half_pixel_edges.rs"
+        }
+      ],
+      "boundaryId": "s00b-layer-gaps"
+    },
+    {
+      "id": "lk-s02-F1",
+      "criterionIds": [
+        "ST-1",
+        "ST-2"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved. `begin_virtual_list` and `begin_rows` take an `outside` predicate. `VirtualList` passes a binary search over its sorted candidates, so every candidate in `needed` is kept out of the plan, and Extend is refused while any held row is a candidate. The planned rows are never candidates, so the prepaint loop's peek diverts no overscan row. Only the active stack and the candidates in `rendered_range` (rendered separately when layered) are drawn above the layer. `uniform_list` passes `|_| false`. Regression: `sticky::no_candidate_in_the_layers_reach_is_held` covers `Dense` (every 4th row) on the top and left edges plus `Levels`, over down, repaint, up, repaint and down runs. It checks the held rows and primitives against the reference every frame, with at least 30 composited frames, and failed on the old in-view-only set.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/sticky.rs"
+        }
+      ],
+      "boundaryId": "s02-sticky"
+    },
+    {
+      "id": "lk-s02-F2",
+      "criterionIds": [
+        "ST-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved. A paired RayX change, uncommitted, to land with the gpux commit, replaces the ineligibility test with `a_list_view_with_a_sticky_policy_composites_its_ordinary_rows` in `rayx_components_core/tests/virtual_list_layers.rs`. Over 60 frames it asserts no ineligible bypass, one composite or repaint per frame, 1–2 sticky rows drawn, and repainted ≤ 1. d-sticky-over-layer is amended (planRevision 7) to describe the sticky rows drawn as frame content after `end_rows` and `end_paint_rows`, and why the `extra` wording changed.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/sticky.rs"
+        }
+      ],
+      "boundaryId": "s02-sticky"
+    },
+    {
+      "id": "lk-s03-F1",
+      "criterionIds": [
+        "SO-1"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved. Both clips are removed, so a `SynchronizedOffset` list paints as before in every mode, fast mode off included. Eligibility is now gated instead. The list is `carried` only when the content mask of what holds it lies within its bounds (`mask.intersect(&bounds) == mask`, read in prepaint before the list pushes its own rectangular mask). On such frames the layer's viewport clip and the prepaint hitbox clip coincide with what the frame without a layer shows. Otherwise the list is counted ineligible and drawn as today. Regression: `an_unclipped_synchronized_list_is_ineligible_and_draws_as_without_layers` (`clipped: false`, compared with layers off, ineligible ≥ 30, no rows kept, no list layer) fails with the gate forced open. The clipped page variant (an `overflow_hidden` container of the list's size, the DataTable-body pattern) keeps the four existing tests passing.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/synchronized.rs"
+        }
+      ],
+      "boundaryId": "s03-synchronized"
+    },
+    {
+      "id": "lk-s05-F1",
+      "criterionIds": [
+        "RXK-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved. The second frame came from `ScrollableMask`'s old `request_offset(Programmatic)` path, a queued offset taken in at the next prepaint with a deferred notify, which `publish_wheel_offset` replaces. The DataTable test keeps draw-on-flush on, draws every frame the table asks for (`run_until_parked`, plus a draw only if none happened), and asserts exactly one frame per wheel turn on each of the 40 measured turns. A deferred frame left behind by a turn would be drawn at the next turn's `run_until_parked` and fail that turn's count, so the one-frame assertion covers it. Composite-with-rows-kept on at least 38 of 40 turns and cells shown are asserted as before.",
+      "regressionRefs": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_datatable/tests/virtual_list_layer_kinds.rs"
+        }
+      ],
+      "boundaryId": "s05-rayx-kinds"
+    },
+    {
+      "id": "lk-s04-F1",
+      "criterionIds": [
+        "PV-1"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved. `composited_frames_tell_the_rows_the_viewport_shows` opens both windows under `begin_a11y_inspection`. On each of 40 wheel steps (≥ 20 composited) it compares the list items' labels and bounds from `a11y_tree()` and the painted primitives. It fails with every row forced shown in `show_content_rows`.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/parent_promoted.rs"
+        }
+      ],
+      "boundaryId": "s04-parent-viewport"
+    },
+    {
+      "id": "lk-s04-F2",
+      "criterionIds": [
+        "PV-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved. `begin_content_row` returns a `ContentRow` that saves `a11y.nodes.hidden`, sets it to `hidden_before || !shown`, and `end_content_row` restores it. `reuse_prepaint_with_rows` sorts the told rows by a11y event start (outer first on ties, by descending end) and replays them as a tree (`replay_a11y_rows`). Each nested row is as hidden as the row holding it, starting from the current hidden flag, with no event replayed twice. Each list keeps the told indices of its own rows for `show_content_rows`, since an outer list's told range interleaves its inner lists' rows. `nested_promoted_lists_tell_the_rows_the_viewport_shows` (inner lists in outer rows with named items around them, in the same div) fails with the reset-to-false end or with flat replay, and passes now.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/parent_promoted.rs"
+        }
+      ],
+      "boundaryId": "s04-parent-viewport"
+    },
+    {
+      "id": "lk-s04c-F1",
+      "criterionIds": [
+        "PR-4"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved. `layer_owner_replay` runs each window in its own `oracle_app` with a11y inspection and labelled, clickable rows. On all 30 steps (wheel, tick, click, wheel, click) it compares the whole `describe_rendered_frame()` and the clicked rows with the reference. The composite bound (≥ 11 composited, ≤ 1 repainted) comes from a tick-only run, since clicks into content repaint under the input policy. It stays red with the list-only rule. The comparison exposed PR-5, a real a11y defect on composited `div` layers, now fixed and proven.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/layer_owner_replay.rs"
+        }
+      ],
+      "boundaryId": "s04c-parent-rerender"
+    },
+    {
+      "id": "lk-s07-F1",
+      "criterionIds": [
+        "TM-2"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved by the owner's choice, a rerun under steadier conditions: the fourth run, revision 112, on AC power, low-power mode off, no thermal warning, nothing else building. The doc names it as the run TM-2 is judged on. I checked the raw report scenario by scenario. For `scroll-uniform-list`, `scroll-list` and all five `virtual_list` kinds, the `layers` interval overlaps both `off`'s and `splice`'s, and the report flags no regression. The widest gap is the sticky list: `layers` 9.780 ms [9.331–9.877] against `off` 9.283 ms [9.174–9.592] (+5.4%) and `splice` [9.151–9.586] (+3.6%), overlapping intervals, fewer instructions (89.89 M against 90.19 M). The deterministic counters in the doc's per-kind table show the work saved. Run 3's synchronized case and its two `splice` regressions (synchronized +4.8%, `scroll-list` +3.5%) are now named and explained as that run's drift. The amended first clause is met, and so are the second and third.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md"
+        }
+      ],
+      "boundaryId": "s07-timings-docs"
+    }
+  ],
+  "handoffMarkdown": "c-attribution-all (whole fast_mode_attribution group, 25 tests, passes locally) is a final check left to CI; the runtime refuses to withdraw sealed c-attribution since a CI-left final check does not cover TM-1, so both stay.",
+  "protectedPaths": {
+    "gpux": {
+      "gpux:.agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",
+      "gpux:.agentx/tasks/frame-effects-navigation-transitions/**": "97cc9f821c990f4d3560b1c4726ede795e7d91f4329839215674e7649efd8747",
+      "gpux:.agentx/tasks/frame-family-component-transitions/**": "3987d07e830ea8dadd35abe56c1d8ccc36b8fb2f8feb189a1d6727c14f114ab1",
+      "gpux:.agentx/tasks/gpux-cross-platform-test-lanes/**": "c2f120afd8760d4b62f6eacc957881ee595de63049c1a7a20f9a494e83eea033",
+      "gpux:.agentx/tasks/gpux-fast-mode/**": "a5303de6f43e26482d71cc35f3eb45152f5a686d06b011c0d1a5ac67a3a56b6e",
+      "gpux:.agentx/tasks/gpux-faster-test-lanes/**": "7f51d88f4757a182ef061fbe67c04e3715d90441e7421a7a16afd87719b4a121",
+      "gpux:.agentx/tasks/gpux-fixed-sticky-positioning/**": "0e971f9ad2c8147d6f56981b495a94b8f5cc7cce5eef6f391b7894b3223959b7",
+      "gpux:.agentx/tasks/gpux-text-rendering-quality-performance/**": "213eb24a25a50d0ccbc7d468e8bedc96a10bdf38f76a4e9130109b9142a0a3e5",
+      "gpux:.agentx/tasks/gpux-wgpu-platform-renderers/**": "585529d42deceb4ae2639c37596347714777579ccca3b5b5e74b007eaf7d2f81",
+      "gpux:.agentx/tasks/high-quality-wasm-text-rendering/**": "81eee19badcd190b59dae1d9fb52bcdf0f53273ab9f00df9cb617c79213a0061",
+      "gpux:.agentx/tasks/html-element-dom-overlay/**": "eb0c49ccecf4bfea51485d81c60e272f47d1cf1e582701f1791f9c5a77ee6be7",
+      "gpux:.agentx/tasks/html-island-wasm/**": "8db76e0d9f0706ea6e4b34b9f7741317d47ee734673bd83cb97352d82d6520b8",
+      "gpux:.agentx/tasks/keyed-sticky-stacking/**": "7f924a57495dfb6d3a2ca3be75e5fdb04cb012ecfc41554bdb278a84987e82ef",
+      "gpux:.agentx/tasks/macos-only-metal-port-and-ci-repair/**": "64ecc143e24a8468c3b4e5d28bbc0f65d4fbbddab867d46a44823b1725ff1e5d",
+      "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**": "f3f66695ebf53686a0437e18bf587955317994e21eac47d7908641e0281996ce",
+      "gpux:.agentx/tasks/gpux-virtual-list/*.json": "0ba06cd6a00ff5bcb0256bcf5e9854652538c5bc5f339afa58cb67fab2052c79",
+      "gpux:vendor/wgpu/**": "a4c4ab1992f6a0aeeca032fedb82b953741f6d547ac517ef15467c67dffa69e5",
+      "gpux:ToFix/**": "e72e6c15df92515c9a96c1ef2a6db675ce345e0eb600212658582f156b1beb64",
+      "gpux:crates/gpux_tests_benchmark/results/**": "4c6327a6e9b7781bd33d082c61bdb1cfd0c894c660451d890a30152a01cd513b",
+      "gpux:vendor/accesskit_macos/**": "5795a9deda5ff2ca5a2fd3dd0fae7ac7e4e89572f4da0fe9d8af66aad29437f1",
+      "gpux:.agentx/tasks/gpux-a11y-devtools/**": "762d9bf1df2816239c5527ae7b5e34efbb2abfd6b5622ede17f29ffbb88698c7",
+      "gpux:.agentx/tasks/gpux-tools-layout/**": "1f3b772faf12c40336c91f4c6a7384ac9b71b3c82eda9ffe40e3368d597706ee"
+    },
+    "rayx": {
+      "rayx:.agentx/tasks/**": "d92d223a99c82b9742398b05452477042917508f7f0ca5fa8b30f6bb8b985362",
+      "rayx:.agentx/experiments/**": "0154d9e7bb0e5b7b8d1e3616c2ffda3c26c22704ca47bda74fb368f3f13ede9b",
+      "rayx:vendor/**": "9fe6c6fe2fe5ffe4ea906930d334e93c60569f98645d453a7e0aef364add6dc5"
+    }
+  },
+  "dispositions": [
+    {
+      "type": "check",
+      "id": "c-lane-c-layers-full",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "The owner decided (2026-10-18): \"Withdraw c-lane-c-layers-full (its package no longer exists) and replace it with a corrective task running the same lane C groups on gpux-tests-conformance.\" main renamed `gpux-conformance` to `gpux-tests-conformance` (merged in s06b), so the sealed check's selector matches no package; its replacement is t15-lane-c-renamed's `c-lane-c-layers-renamed`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-18T10:20:04Z"
+    }
+  ]
+}

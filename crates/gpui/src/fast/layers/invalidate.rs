@@ -329,6 +329,31 @@ pub(crate) fn painted_list(window: &mut Window, id: &GlobalElementId, version: &
     window.fast_layers.scrolls.remember(&container, frame);
 }
 
+/// Remembers the list `id` scrolled by `handle`, a handle it shares with the
+/// container that scrolls it (a `virtual_list` in `SynchronizedOffset`
+/// mode), as a scroll container whose offset lives in the handle's state: a
+/// scroll of the driver is a scroll of the list, and the notification the
+/// handle sends the list's view on it counts as the scroll's.
+pub(crate) fn painted_synchronized(
+    window: &mut Window,
+    id: &GlobalElementId,
+    handle: &crate::ScrollHandle,
+) {
+    if !window.fast_mode.scroll_layers() {
+        return;
+    }
+    let version = handle.fast_version();
+    let container = Container {
+        id: id.clone(),
+        source: ScrollSource::of_state(&version),
+        version: Some(version),
+        view: window.current_view(),
+        hitbox: None,
+    };
+    let frame = window.fast_layers.frame;
+    window.fast_layers.scrolls.remember(&container, frame);
+}
+
 /// Whether the scroll container `id` is a `list`, which has no id of its
 /// own nor a scroll handle: its offset lives in its state (see
 /// [`painted_list`]).
@@ -864,6 +889,9 @@ pub(crate) fn note_anchored(window: &mut Window) {
 struct OwnerNotifies {
     watches: u32,
     notifies: u64,
+    /// The notifications a scroll sent: a wheel, a scrollbar or a
+    /// programmatic scroll publishing an offset (see [`note_scroll_notify`]).
+    scroll_notifies: u64,
 }
 
 thread_local! {
@@ -883,6 +911,7 @@ impl OwnerWatch {
                 .or_insert(OwnerNotifies {
                     watches: 0,
                     notifies: 0,
+                    scroll_notifies: 0,
                 })
                 .watches += 1;
         });
@@ -897,6 +926,11 @@ impl OwnerWatch {
     /// How often the view has been notified since any watch of it began.
     pub(crate) fn notifies(&self) -> u64 {
         OWNER_NOTIFIES.with_borrow(|watched| watched.get(&self.0).map_or(0, |n| n.notifies))
+    }
+
+    /// How many of those notifications a scroll sent.
+    pub(crate) fn scroll_notifies(&self) -> u64 {
+        OWNER_NOTIFIES.with_borrow(|watched| watched.get(&self.0).map_or(0, |n| n.scroll_notifies))
     }
 }
 
@@ -914,13 +948,32 @@ impl Drop for OwnerWatch {
     }
 }
 
-/// Counts a notification of `entity`, if it is a watched view. See
-/// [`crate::App::notify`].
+/// Counts that a scroll is about to notify `entity`, if it is a watched
+/// view: what a uniform list drawn without a layer tells its scrolls by
+/// from other notifications of the view holding it.
+#[inline]
+pub(crate) fn note_scroll_notify(entity: EntityId) {
+    if COMPILED {
+        OWNER_NOTIFIES.with_borrow_mut(|watched| {
+            if !watched.is_empty()
+                && let Some(notifies) = watched.get_mut(&entity)
+            {
+                notifies.scroll_notifies += 1;
+            }
+        });
+    }
+}
+
+/// Counts a notification of `entity`, if it is a watched view: a layer's
+/// owner, or the view holding a uniform list that keeps its measured item
+/// without a layer. See [`crate::App::notify`].
 #[inline]
 pub(crate) fn note_notify(entity: EntityId) {
-    if on_thread() {
+    if COMPILED {
         OWNER_NOTIFIES.with_borrow_mut(|watched| {
-            if let Some(notifies) = watched.get_mut(&entity) {
+            if !watched.is_empty()
+                && let Some(notifies) = watched.get_mut(&entity)
+            {
                 notifies.notifies += 1;
             }
         });
@@ -1088,7 +1141,7 @@ fn owner_scrolled_only(
     id: &GlobalElementId,
     source: Option<&ScrollSource>,
 ) -> bool {
-    owner_change(window, cx, id, source) == OwnerChange::Scrolled
+    owner_change(window, cx, id, source, true) == OwnerChange::Scrolled
 }
 
 /// What became of the view holding a scroll container since the last frame.
@@ -1107,14 +1160,16 @@ enum OwnerChange {
 }
 
 /// What became of the view holding the scroll container `id`, whose offset
-/// lives at `source`, and the views drawn inside the container.
+/// lives at `source`, and the views drawn inside the container; a
+/// notification of the view counts only with `notifications`.
 fn owner_change(
     window: &Window,
     cx: &App,
     id: &GlobalElementId,
     source: Option<&ScrollSource>,
+    notifications: bool,
 ) -> OwnerChange {
-    let notified = owner_notified_otherwise(window, id);
+    let notified = notifications && owner_notified_otherwise(window, id);
     let Some(owner) = owner(window) else {
         return OwnerChange::Changed;
     };
@@ -1207,7 +1262,7 @@ pub(crate) fn owner_rerendered_only(
         && !nested_container_scrolled(window, id)
         && !content_view_notified(window, id, record)
         && !content_view_rendered(window, id, record)
-        && owner_change(window, cx, id, source.as_ref()) == OwnerChange::Rerendered
+        && owner_change(window, cx, id, source.as_ref(), true) == OwnerChange::Rerendered
 }
 
 /// Whether any view drawn inside the scroll container `id` last frame, as a
@@ -1235,4 +1290,19 @@ fn any_content_view(window: &Window, id: &GlobalElementId, f: impl Fn(EntityId) 
 pub(crate) fn changed_without_layer(window: &Window, cx: &App, id: &GlobalElementId) -> bool {
     let source = window.fast_layers.scrolls.source(id);
     nested_container_scrolled(window, id) || !owner_scrolled_only(window, cx, id, source.as_ref())
+}
+
+/// Whether the view holding the list `id`, drawn without a layer, or a view
+/// drawn inside it changed since the last frame in what shapes the item the
+/// list measures its rows by: a view inside it is dirty, or what the
+/// view's render read changed, its offset read included. Notifications are
+/// counted apart (see [`OwnerWatch::scroll_notifies`]).
+pub(crate) fn measured_item_changed_without_layer(
+    window: &Window,
+    cx: &App,
+    id: &GlobalElementId,
+) -> bool {
+    let source = window.fast_layers.scrolls.source(id);
+    nested_container_scrolled(window, id)
+        || owner_change(window, cx, id, source.as_ref(), false) != OwnerChange::Scrolled
 }

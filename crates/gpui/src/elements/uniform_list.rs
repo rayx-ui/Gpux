@@ -73,6 +73,9 @@ pub struct UniformList {
 
 /// Frame state used by the [UniformList].
 pub struct UniformListFrameState {
+    /// The size of the item the rows are measured by, measured once a frame
+    /// as the list requests its layout.
+    item_size: Size<Pixels>,
     items: SmallVec<[AnyElement; 32]>,
     decorations: SmallVec<[AnyElement; 2]>,
     scroll_context: Option<ScrollContainerContext>,
@@ -353,7 +356,10 @@ impl Element for UniformList {
         cx: &mut App,
     ) -> (LayoutId, Self::RequestLayoutState) {
         let max_items = self.item_count;
-        let item_size = self.measure_item(None, window, cx);
+        let item_size =
+            crate::fast::layers::lists::measure_item(window, cx, global_id, |window, cx| {
+                self.measure_item(None, window, cx)
+            });
         let layout_id = self.interactivity.request_layout_with_style_handoff(
             global_id,
             inspector_id,
@@ -395,6 +401,7 @@ impl Element for UniformList {
         (
             layout_id,
             UniformListFrameState {
+                item_size,
                 items: SmallVec::new(),
                 decorations: SmallVec::new(),
                 scroll_context: None,
@@ -430,10 +437,7 @@ impl Element for UniformList {
             ListHorizontalSizingBehavior::Unconstrained
         );
 
-        let longest_item_size =
-            crate::fast::layers::lists::measure_item(window, cx, global_id, |window, cx| {
-                self.measure_item(None, window, cx)
-            });
+        let longest_item_size = frame_state.item_size;
         let content_width = if can_scroll_horizontally {
             padded_bounds.size.width.max(longest_item_size.width)
         } else {

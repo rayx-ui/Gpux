@@ -79,4 +79,6 @@ pub(crate) struct LayerRecord {
     /// How the container laid out its children when the content was painted, if it can be
     /// laid out again without requesting them.
     pub(crate) content_layout: Option<Rc<crate::fast::layers::reuse::KeptContent>>,
+    /// What the content asked to run on every frame that composites it.
+    pub(crate) on_composite: Rc<[crate::fast::layers::reuse::CompositeCallback]>,
 }

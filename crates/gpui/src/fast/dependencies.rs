@@ -896,6 +896,25 @@ impl App {
         &mut self,
         recording: DependencyRecording,
     ) -> RecordedDependencies {
+        self.finish_recording(recording, false)
+    }
+
+    /// Ends `recording` as [`Self::finish_recording_dependencies`] does, but
+    /// leaves what it read among what the recording around it read itself:
+    /// a part of building a subtree that is not a nested subtree, as a
+    /// list's measured item is part of building the view holding the list.
+    pub(crate) fn finish_recording_dependencies_as_own(
+        &mut self,
+        recording: DependencyRecording,
+    ) -> RecordedDependencies {
+        self.finish_recording(recording, true)
+    }
+
+    fn finish_recording(
+        &mut self,
+        recording: DependencyRecording,
+        as_own: bool,
+    ) -> RecordedDependencies {
         let dependencies = &mut self.fast_dependencies;
         let nested = dependencies.nested.pop().unwrap_or_default();
         let log = &mut self.entities.fast_access_log;
@@ -951,7 +970,7 @@ impl App {
             );
             (all, unique_states(&own))
         };
-        if let Some(parent) = dependencies.nested.last_mut() {
+        if !as_own && let Some(parent) = dependencies.nested.last_mut() {
             parent.push(ranges);
         }
         let open = log.recordings.get() - 1;
@@ -1087,6 +1106,17 @@ impl App {
     /// recording depends on them, as read through a nested subtree.
     #[allow(dead_code, reason = "read by view retention, which lands next")]
     pub(crate) fn replay_dependencies(&mut self, dependencies: &RenderDependencies) {
+        self.replay(dependencies, false);
+    }
+
+    /// Reads `dependencies` again as [`Self::replay_dependencies`] does, as
+    /// what the open recording read itself rather than through a nested
+    /// subtree (see [`Self::finish_recording_dependencies_as_own`]).
+    pub(crate) fn replay_dependencies_as_own(&mut self, dependencies: &RenderDependencies) {
+        self.replay(dependencies, true);
+    }
+
+    fn replay(&mut self, dependencies: &RenderDependencies, as_own: bool) {
         self.entities
             .accessed_entities
             .get_mut()
@@ -1121,7 +1151,7 @@ impl App {
             states: start.states.start..self.fast_dependencies.state_read_log.borrow().len(),
             offset_reads,
         };
-        if let Some(open) = self.fast_dependencies.nested.last_mut() {
+        if !as_own && let Some(open) = self.fast_dependencies.nested.last_mut() {
             open.push(ranges);
         }
     }

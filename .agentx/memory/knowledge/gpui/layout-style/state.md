@@ -37,6 +37,10 @@ Under fast mode's layout retention (`FastMode::layout_retention`, `crates/gpui/s
 
 A row a list's scroll layer holds records the keys of the layout nodes laying it out (`Row::layout_keys`); a frame that carries the row keeps them claimed through `LayoutRetention::keep_retained` only while the list shows the row. The nodes of held rows not shown, and of rows that left the layer, linger as any list row's nodes do, so a list scrolled back within the linger budget reuses them and one scrolled further lays its rows out afresh.
 
+## Open Follow-Ups
+
+- 2026-10-16 (epic `gpux-virtual-list`, s02): under layout retention a kept measured leaf other than text is sized empty in a frame that keeps its view without building it. `TaffyLayoutEngine::clear` takes every closure and dirties non-text leaves, and `fast::layout::keep_retained_nodes` gives a closure back only to text leaves. A leaf whose size depends on its measurement (no definite style size) then collapses: a `uniform_list` with `ListSizingBehavior::Infer` and an auto height in a retained child view gives its parent a scroll extent of 0 with fast mode on, 19,800 px with it off. `VirtualList`'s `ParentViewport` layout avoids it by laying itself out around a spacer of its extent. The general fix (refuse to keep, or rebuild, a view whose kept subtree holds such a leaf) needs its own proof.
+
 ## Backlinks
 
 - [Taffy integration](../../../../../crates/gpui/src/taffy.rs)

@@ -1,10 +1,7 @@
 use crate::{
     AbsoluteLength, App, Bounds, DefiniteLength, Edges, GridTemplate, Length, Pixels, Point, Size,
     Style, Window, size,
-    util::{
-        ceil_to_device_pixel, round_half_toward_zero, round_stroke_to_device_pixel,
-        round_to_device_pixel,
-    },
+    util::{ceil_to_device_pixel, round_stroke_to_device_pixel, round_to_device_pixel},
 };
 use collections::{FxHashMap, FxHashSet};
 use std::{fmt::Debug, ops::Range};
@@ -180,6 +177,9 @@ pub struct TaffyLayoutEngine {
     computed_layouts: FxHashSet<LayoutId>,
     pub(crate) layout_bounds_scratch_space: Vec<LayoutId>,
     pub(crate) retention: crate::fast::layout::LayoutRetention,
+    /// Whether layout bounds round their edges' ties down, as they do while
+    /// the window's scroll layers snap (see [`crate::util::round_edge`]).
+    pub(crate) round_ties_down: bool,
     #[cfg(feature = "diagnostics")]
     diagnostics: [u64; 31],
     #[cfg(feature = "diagnostics")]
@@ -210,6 +210,7 @@ impl TaffyLayoutEngine {
             computed_layouts: FxHashSet::default(),
             layout_bounds_scratch_space: Vec::new(),
             retention: crate::fast::layout::LayoutRetention::default(),
+            round_ties_down: false,
             #[cfg(feature = "diagnostics")]
             diagnostics: [0; 31],
             #[cfg(feature = "diagnostics")]
@@ -225,6 +226,7 @@ impl TaffyLayoutEngine {
     }
 
     pub fn clear(&mut self) {
+        self.retention.measured_leaves.clear();
         for id in self.measured_layouts.drain(..) {
             let context = self.taffy.get_node_context_mut(id.0).expect(EXPECT_MESSAGE);
             context.measure = None;
@@ -755,6 +757,21 @@ impl TaffyLayoutEngine {
                 id.into(),
                 available_space.into(),
                 |inputs, node_id, node_context, style| {
+                    // Whether the measurement can set this leaf's size: an
+                    // axis neither known nor given by the style takes it. The
+                    // last layout pass measures every leaf for its overflow
+                    // alone, which leaves its size as it is.
+                    let sized_by_measurement = retention.active && {
+                        use taffy::{CoreStyle as _, MaybeResolve as _};
+                        let node_size = match inputs.sizing_mode {
+                            taffy::SizingMode::ContentSize => inputs.known_dimensions,
+                            taffy::SizingMode::InherentSize => inputs.known_dimensions.or(style
+                                .size()
+                                .maybe_resolve(inputs.parent_size, |_, _| 0.0)
+                                .maybe_apply_aspect_ratio(style.aspect_ratio())),
+                        };
+                        node_size.width.is_none() || node_size.height.is_none()
+                    };
                     taffy::compute::compute_leaf_layout(
                         inputs,
                         style,
@@ -788,6 +805,11 @@ impl TaffyLayoutEngine {
                                 untransform(available_space.height),
                             );
 
+                            if sized_by_measurement
+                                && !crate::fast::layout::is_text_leaf(retention, node_id.into())
+                            {
+                                retention.measured_leaves.insert(node_id.into());
+                            }
                             if retention.active {
                                 crate::fast::layout::note_measured(
                                     retention,
@@ -948,10 +970,9 @@ impl TaffyLayoutEngine {
             .insert(id, absolute_outer_origin);
 
         let absolute_far = absolute_outer_origin + Point::from(Size::from(layout_size));
-        let snapped_bounds = Bounds::from_corners(
-            absolute_outer_origin.map(round_half_toward_zero),
-            absolute_far.map(round_half_toward_zero),
-        );
+        let round = |value: f32| crate::util::round_edge(value, self.round_ties_down);
+        let snapped_bounds =
+            Bounds::from_corners(absolute_outer_origin.map(round), absolute_far.map(round));
 
         let bounds = (snapped_bounds / scale_factor).map(Pixels);
         self.absolute_layout_bounds.insert(id, bounds);

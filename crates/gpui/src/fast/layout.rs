@@ -98,6 +98,13 @@ pub(crate) struct LayoutRetention {
     /// The text leaves requested this frame: their closures are taken when
     /// it is cleared, without dirtying them.
     text_leaves: FxHashSet<LayoutId>,
+    /// Measured leaves other than text that the layouts computed this frame
+    /// measured to size them, on an axis neither known nor fixed by their
+    /// style: their size came from their measurement. A frame
+    /// takes their closures when it is cleared and gives one back only to
+    /// text, so the views holding them are built on the next frame (see
+    /// `Window::fast_measuring_views`).
+    pub(crate) measured_leaves: FxHashSet<LayoutId>,
     /// Text leaves whose measurement was carried or replayed when they were
     /// requested, with the width it was last taken at when known, to be
     /// settled once the layout they belong to is computed.
@@ -670,6 +677,23 @@ fn measured_width(known: Size<Option<Pixels>>, available: Size<AvailableSpace>) 
     })
 }
 
+/// Whether a measured leaf's style sizes it in every parent without its
+/// measurement: an absolute width and height, and a minimum size that is
+/// absolute too or, with overflow hidden or scrolling on both axes, an
+/// automatic one a flex or grid parent takes as zero rather than from the
+/// content. A kept view's leaf has no measurement closure, so any other leaf
+/// could collapse once a parent of the kept view changes.
+pub(crate) fn measured_size_is_fixed(style: &crate::Style) -> bool {
+    use crate::{DefiniteLength, Length, Overflow};
+    let absolute = |length: Length| matches!(length, Length::Definite(DefiniteLength::Absolute(_)));
+    let minimum_from_content =
+        |overflow: Overflow| matches!(overflow, Overflow::Visible | Overflow::Clip);
+    absolute(style.size.width)
+        && absolute(style.size.height)
+        && ((absolute(style.min_size.width) && absolute(style.min_size.height))
+            || !(minimum_from_content(style.overflow.x) || minimum_from_content(style.overflow.y)))
+}
+
 /// Whether `id` is a text leaf requested this frame, whose closure is taken
 /// at clear without dirtying it.
 pub(crate) fn is_text_leaf(retention: &LayoutRetention, id: LayoutId) -> bool {
@@ -1213,6 +1237,7 @@ pub(crate) fn begin_frame(window: &mut Window) {
         *engine = TaffyLayoutEngine::new();
         engine.retention.active = active;
     }
+    engine.round_ties_down = window.fast_mode.snapping();
 }
 
 /// Runs `f`, laying out a list row: the nodes it claims linger.

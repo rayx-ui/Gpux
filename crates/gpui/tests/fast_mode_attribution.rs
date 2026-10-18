@@ -25,6 +25,16 @@ const FRAMES: usize = 24;
 /// Runs `scenario` in `mode`: draws its warm-up frames, then measures
 /// [`FRAMES`] frames and returns their counters with the fixture.
 fn measure(scenario: &Scenario, mode: Mode) -> (FastStats, Rc<RefCell<Box<dyn Fixture>>>) {
+    let (stats, fixture, _) = measure_rows(scenario, mode);
+    (stats, fixture)
+}
+
+/// [`measure`], with the rows the fixture's row renderers rendered over the
+/// measured frames, for a scenario that counts them.
+fn measure_rows(
+    scenario: &Scenario,
+    mode: Mode,
+) -> (FastStats, Rc<RefCell<Box<dyn Fixture>>>, Option<u64>) {
     let mut cx = TestAppContext::build_with_text_system(
         TestDispatcher::new(0),
         None,
@@ -46,11 +56,17 @@ fn measure(scenario: &Scenario, mode: Mode) -> (FastStats, Rc<RefCell<Box<dyn Fi
         frame(vcx, index);
     }
     vcx.update(|window, _| window.reset_fast_stats());
+    let rows_before = fixture.borrow().rows_rendered();
     for index in 0..FRAMES {
         frame(vcx, scenario.warm_up_frames + index);
     }
     let stats = vcx.update(|window, _| window.fast_stats());
-    (stats, fixture)
+    let rows = fixture
+        .borrow()
+        .rows_rendered()
+        .zip(rows_before)
+        .map(|(after, before)| after - before);
+    (stats, fixture, rows)
 }
 
 /// Runs `name` in every mode, checks each mode's counters against its
@@ -246,15 +262,29 @@ fn modes_differ_only_by_landed_mechanisms(name: &str) {
             0 => splice,
             _ => splice + splice / 4 + 4,
         };
+        // A list in a scrolling div's flow (`ParentViewport`) renders, on the
+        // frames that paint the div's layer, the rows of the region the layer
+        // holds, five viewports: it lays out each of those rows' text then,
+        // one line measured as often as one layout pass measures a text leaf
+        // (four times), where splice lays out only the rows a scroll uncovers.
+        // Its extra layout is bounded by the rows it rendered, which are far
+        // fewer than splice's (`virtual_lists_render_fewer_rows_on_their_layers`).
+        let region_rows = match layers.list_rows_rendered {
+            0 => {
+                let scenario = fast_scenarios::scenario(name).unwrap();
+                measure_rows(&scenario, Mode::Layers).2.unwrap_or(0)
+            }
+            _ => 0,
+        };
         for (counter, more) in [
             ("views_built", layers.views_built > splice.views_built),
             (
                 "leaves_measured",
-                layers.leaves_measured > ahead(splice.leaves_measured),
+                layers.leaves_measured > ahead(splice.leaves_measured) + 4 * region_rows,
             ),
             (
                 "lines_shaped",
-                layers.lines_shaped > ahead(splice.lines_shaped),
+                layers.lines_shaped > ahead(splice.lines_shaped) + region_rows,
             ),
             (
                 "primitives_painted",
@@ -300,10 +330,41 @@ scenarios! {
     scroll_same_view => "scroll-same-view",
     scroll_uniform_list => "scroll-uniform-list",
     scroll_list => "scroll-list",
+    scroll_virtual_list => "scroll-virtual-list",
+    scroll_virtual_list_horizontal => "scroll-virtual-list-horizontal",
+    scroll_virtual_list_sticky => "scroll-virtual-list-sticky",
+    scroll_virtual_list_synchronized => "scroll-virtual-list-synchronized",
+    scroll_virtual_list_parent_viewport => "scroll-virtual-list-parent-viewport",
     chat_scroll => "chat-scroll",
     sticky_scroll => "sticky-scroll",
     effect_scroll => "effect-scroll",
     animated_frame => "animated-frame",
+}
+
+/// A virtual list on its layer renders fewer rows than with splice, which
+/// renders the rows it shows on every scrolled frame, and composites tiles.
+#[test]
+fn virtual_lists_render_fewer_rows_on_their_layers() {
+    for name in [
+        "scroll-virtual-list",
+        "scroll-virtual-list-horizontal",
+        "scroll-virtual-list-sticky",
+        "scroll-virtual-list-synchronized",
+        "scroll-virtual-list-parent-viewport",
+    ] {
+        let scenario = fast_scenarios::scenario(name).unwrap();
+        let (_, _, splice) = measure_rows(&scenario, Mode::Splice);
+        let (layers, _, rows) = measure_rows(&scenario, Mode::Layers);
+        let (splice, rows) = (splice.unwrap(), rows.unwrap());
+        assert!(
+            layers.tiles_composited > 0,
+            "{name}: layers composited no tile: {layers:?}"
+        );
+        assert!(
+            rows * 3 < splice,
+            "{name}: layers rendered {rows} rows over {FRAMES} frames, splice {splice}"
+        );
+    }
 }
 
 #[test]
