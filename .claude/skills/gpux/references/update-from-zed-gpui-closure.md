@@ -52,15 +52,16 @@ Preserve `tools/perf` as gpux-local tooling unless the user deliberately asks to
 
 ## Manifest And Packaging Shape
 
-Every gpux crate publishes to crates.io, so imported manifests and sources must keep gpux's publishing shape. The [README crate table](../../../../README.md#crates) is the authoritative directory/package/Rust-name mapping.
+Every gpux crate stays publishable to crates.io (releases are git tags of the whole workspace, [docs/releasing.md](../../../../docs/releasing.md)), so imported manifests and sources must keep gpux's publishing shape. The [README crate table](../../../../README.md#crates) is the authoritative directory/package/Rust-name mapping.
 
 - Package names stay `gpux-*` (the main crate is `gpux`) with the GPUI Rust name in `[lib] name`, whatever package name the upstream manifest uses, so imported source keeps writing `gpui_platform::`, `collections::`, `util::`, and the other upstream crate paths.
 - Manifests keep `version.workspace`, `license.workspace`, `repository.workspace`, `homepage.workspace`, and `rust-version.workspace`, a `description`, and no `publish = false`.
-- Workspace dependency keys keep the Rust name with `package = "gpux-..."`, for example `collections = { package = "gpux-collections", path = "crates/collections", version = "0.3.0" }`.
+- Workspace dependency keys keep the Rust name with `package = "gpux-..."`, and the workspace version as their `version`, for example `collections = { package = "gpux-collections", path = "crates/collections", version = "1.0.0" }` while the workspace is at `1.0.0`.
 - Dev-dependencies on the cycle edges `gpui_macros` -> `gpux` and `gpux` -> `gpui_platform`/`gpui_web` stay path-only (no `version`), so publishing strips them.
 - Dependencies come from crates.io only: no git dependencies and no `[patch]`. Map Zed's git forks to their crates.io releases `zed-reqwest 0.12.15-zed`, `zed-scap 0.0.8-zed`, `zed-font-kit 0.14.1-zed`, and `zed-xim 0.4.0-zed` (declared with `package = "zed-..."`). `proptest 1.11`, `async-task 4.7.1`, and `calloop 0.14.5` come from crates.io. Zed's calloop fork bounds idle callbacks to about 10 ms per loop iteration; gpux gets that behavior from `ForegroundTasks` (`crates/gpui_linux/src/linux/foreground_tasks.rs`) instead, so when importing Zed's Linux platform, keep `LinuxCommon::register_sources` routing main-thread runnables through `ForegroundTasks::push` rather than Zed's per-runnable `insert_idle`.
 - Never include files from outside a crate directory. Zed's `include_bytes!` of `assets/fonts/...` become `gpux_fonts` constants (`gpux_fonts::IBM_PLEX_SANS_REGULAR`, `gpux_fonts::LILEX_REGULAR`, `gpux_fonts::ALL`, ...), with `gpux_fonts` added as a (dev-)dependency where needed. `crates/gpux_fonts/assets/` is also the asset root that holds `fonts/...` for the SVG renderer; a new upstream font file goes there with a matching constant.
 - Every gpux crate is Apache-2.0 (`gpux-fonts` is OFL-1.1). Never re-import Zed's `LICENSE-GPL` or `LICENSE-AGPL` files or GPL/AGPL license fields.
+- A crate the import adds joins the release: a `[[package]]` entry with `version_group = "gpux"` in `release-plz.toml`, its name in gpux's `changelog_include`, `version.workspace = true` and a versioned `[workspace.dependencies]` entry (`cargo test -p gpux-testkit --test release_config` fails until it does). A crate the import removes leaves `release-plz.toml` too.
 
 ## Workflow
 
@@ -75,7 +76,7 @@ Every gpux crate publishes to crates.io, so imported manifests and sources must 
    - The `gpui`, `renderer`, and `platform` state, rules, and decisions for the patch surfaces the import touches (HTML DOM, fixed/sticky, shader/frame effects, input, Windows WGPU, asset loading).
    - `docs/testing.md` for the lanes that validate the import
    - `git log --format='%h%n%B' --grep='Source Zed'`
-   - latest import commits with subjects like `chore(gpux): import zed gpui closure ...`
+   - latest import commits with subjects like `feat(gpux): import Zed GPUI closure ...` (before 1.0.0: `chore(gpux): import zed gpui closure ...`)
 
 2. Prepare upstream Zed source:
    - Fetch or shallow-clone `https://github.com/zed-industries/zed` into a temporary/cache location.
@@ -94,12 +95,16 @@ Every gpux crate publishes to crates.io, so imported manifests and sources must 
    - Reconcile gpux root metadata manually: `Cargo.toml`, `Cargo.lock`, `.cargo/config.toml`, `clippy.toml`, `rust-toolchain.toml`, repo docs (including the README crate table), and local tooling should stay reduced-workspace aware.
    - Reapply the local main-crate rename from upstream `gpui` to `gpux` in manifests, Rust imports, macro-generated paths, docs, and examples.
    - Reapply the Manifest And Packaging Shape to every imported manifest and include: `gpux-*` package names, `[lib] name`, workspace metadata, crates.io-only dependencies, path-only cycle dev-dependencies, `gpux_fonts` constants, and Apache-2.0 licensing.
-   - Commit with a subject like `chore(gpux): import zed gpui closure <short-sha>`.
+   - Commit with a subject like `feat(gpux): import Zed GPUI closure <short-sha>`: an import is a release-type commit, a minor release under the 1.x policy ([docs/releasing.md](../../../../docs/releasing.md#the-1x-policy)). Never mark it breaking (no `!`, no `BREAKING CHANGE:` footer; release-plz would propose 2.0.0): state each API break in the body and add a `Migration:` footer with what RayX must change, which the changelog prints under the entry.
    - Include commit body lines:
 
 ```text
 Source Zed commit: <zed-upstream-sha>
 Original subject: <original source subject>
+
+<what breaks for consumers, if anything>
+
+Migration: <what RayX changes, when the import breaks an API it uses>
 ```
 
 5. Preserve or replay RayX/gpux GPUI patches:

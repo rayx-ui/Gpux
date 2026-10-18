@@ -8,7 +8,7 @@ wgpu), installation, platform prerequisites, and validation routing.
 
 - Keep Zed's crate boundaries and directory names (`crates/gpui`, `crates/gpui_platform`, ...) so
   upstream imports stay reviewable. Do not merge or split upstream crates.
-- Packages publish under `gpux-*` names and keep their GPUI Rust names through `[lib] name`.
+- Packages are named `gpux-*` and keep their GPUI Rust names through `[lib] name`.
   Workspace dependency keys use the Rust name with `package = "gpux-..."`, so source code never
   changes when a package is renamed. The README crate table is the authoritative name mapping.
 - `crates/` holds the library crates consumers depend on, plus the verification crates named
@@ -22,12 +22,14 @@ wgpu), installation, platform prerequisites, and validation routing.
   `gpux-testkit` runner) and `perf` (Zed's `#[perf]` timer), `browser` (lane B's Playwright
   project) and the `android` and `ios` app shells. [tools/README.md](tools/README.md) maps each
   folder to the command that runs it. `vendor/wgpu` holds the wgpu fork (below).
-- All workspace crates share the workspace version and `Apache-2.0` license; `gpux_fonts`
-  carries the bundled fonts under `OFL-1.1`.
+- All workspace crates share the workspace version (one release for the whole workspace, see
+  Releases) and `Apache-2.0` license; `gpux_fonts` carries the bundled fonts under `OFL-1.1`.
+  The vendored forks keep their own `-gpux.N` versions.
 - Every packaged file lives inside its crate directory: no `include_bytes!`/`include_str!` that
   leaves the crate. Shared binary assets belong to `crates/gpux_fonts`.
-- Dependencies come from crates.io. Git dependencies and `[patch]` entries cannot reach
-  consumers of the published crates, so they are forbidden.
+- Every crate stays publishable to crates.io, though releases are git tags: dependencies come
+  from crates.io, and git dependencies and `[patch]` entries are forbidden (they cannot reach
+  consumers of a published crate).
 
 ## The wgpu Fork
 
@@ -80,10 +82,22 @@ Rendering, input, text, platform, or wgpu changes need the lanes that exercise t
 
 ## Consumers
 
-RayX (`../RayX`) depends on these crates by relative path (`../Gpux/crates/...`) for local
-co-development. A change to an API RayX uses needs the matching RayX change; keep the two commits
-paired and run RayX's affected checks. They prove the consumer still works, not gpux: gpux's proof
-is its own lanes.
+RayX depends on gpux by release tag (`{ git = "https://github.com/rayx-ui/Gpux", tag = "vX.Y.Z" }`), not by
+relative path. A change to an API RayX uses releases gpux first; RayX then bumps its tag by hand in
+a paired RayX commit and runs its affected checks. There is no local-override mechanism (no
+`[patch]` file, no linked checkout). RayX's checks prove the consumer still works, not gpux: gpux's
+proof is its own lanes.
+
+## Releases
+
+Conventional Commits on `main` drive the version: `fix`/`perf` patch, `feat` minor. The 1.x policy
+holds while RayX is the only consumer: never write `!` or a `BREAKING CHANGE:` footer; a breaking
+change, a Zed import that breaks the API included, is a `feat` whose body states the break, with
+RayX notes in a `Migration:` footer. The policy ends when a second consumer appears. A release is
+merging release-plz's release pull request after checking its CI, the latest nightly run on `main`
+and that the version is still 1.x. Implementation pushes straight to `main`, never through a pull
+request, with `git fetch origin && git rebase origin/main && git push --force-with-lease origin main`.
+[docs/releasing.md](docs/releasing.md) has the details.
 
 ## Commits
 
