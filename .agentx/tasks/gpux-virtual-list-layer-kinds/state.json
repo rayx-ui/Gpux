@@ -1,12 +1,12 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list-layer-kinds",
-  "revision": 75,
-  "planRevision": 11,
+  "revision": 86,
+  "planRevision": 12,
   "specHashes": {
-    "requirements": "7dd07c3bc333cb4d53c03d1f459a2f2bc63c9c39fbe2c76e94389b8b285e411c",
+    "requirements": "bc7b3abf35d8468643c2315111d7148e22835a98914084578544469d9f295665",
     "design": "212382eef99e0944f41307b820c7e7ae536103234fe17cc47920ab832f62fd68",
-    "plan": "fe67c6302815607f8cd0a4e4d208e453af4e83b5499195c99aecb078df79c8bd"
+    "plan": "072dd776f606909836261d6a46231461935f5d0bc6bd74714e3c0589c7a68e95"
   },
   "tasks": {
     "t01-axis-slots": {
@@ -40,14 +40,16 @@
       ]
     },
     "t06-parent-promoted": {
-      "status": "blocked",
+      "status": "done",
       "workerIds": [
         "virtual-list"
-      ],
-      "blockerMarkdown": "Held by the owner (2026-10-17) until the AccessKit epic merges into main: the off-screen rows' records must be hidden on main's AccessKit model (s06b). Work kept on local branch wip/s04-parent-viewport (a6d5808)."
+      ]
     },
     "t07-rayx-dependent-registration": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
     },
     "t08-rayx-kinds": {
       "status": "done",
@@ -92,9 +94,18 @@
       ]
     },
     "t09b-parent-scenario": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
     },
     "t-dt-frames": {
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
+    },
+    "t07b-renderer-regression": {
       "status": "done",
       "workerIds": [
         "virtual-list"
@@ -211,6 +222,16 @@
         }
       },
       "recordedAt": "2026-10-17T23:25:21Z"
+    },
+    "f439ad5ae98ad5031b0962629c7f9faa63f50b08d14c2f02adcc6d9b6bf2be94": {
+      "snapshot": {
+        "specHash": "c7fee145fdbd3877d5b58f1e54dcee7efa56759321e324ce2412339e26fa258f",
+        "repositories": {
+          "gpux": "2d09608adfb3332702c171fe3e1e69bb727352619d9bd2c2f29bad4a5162a3e1",
+          "rayx": "2bd5c7a9769daed3e06aac78948e88d6876c5ca47a3aef0a8c36099aea9e089c"
+        }
+      },
+      "recordedAt": "2026-10-18T01:52:48Z"
     }
   },
   "checkResults": {
@@ -553,6 +574,91 @@
       "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s06b-accesskit-merge-final-1e26a7e595b7.log",
       "logSha256": "0177535ceebc4852342a1af8d0e322736fab625e1036fc8584eaba719f985f91",
       "inputsHash": "c74d8919a8f27b755fd967a7d42c82f4eb76bdfe81b0aa2df1340ebde32f6324"
+    },
+    "s04-parent-viewport/c-parent-promoted/final": {
+      "checkId": "c-parent-promoted",
+      "boundaryId": "s04-parent-viewport",
+      "phase": "final",
+      "batchId": "f439ad5ae98ad5031b0962629c7f9faa63f50b08d14c2f02adcc6d9b6bf2be94",
+      "definitionHash": "4062a176ce6a76d792e1fa0bba63e725c8b0b2944bbd4b336326c940f76473e3",
+      "basisHash": "a71d6f55642b4e6157edc4c360f315d09a485369fec13f5eae06b8bf604534b6",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 6,
+      "durationSeconds": 0.2932,
+      "recordedAt": "2026-10-18T01:52:09Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04-parent-viewport-final-78f21c712be4.log",
+      "logSha256": "b2e2903ca87135da3f06126bda528b0745209ba01c808bb9d34deae787e03560",
+      "inputsHash": "af4a660cf3cbfda6ed434ddc938a16d18a45298dcb28d4d609a05fb90ca739eb"
+    },
+    "s04-parent-viewport/c-rx-parent-layers/final": {
+      "checkId": "c-rx-parent-layers",
+      "boundaryId": "s04-parent-viewport",
+      "phase": "final",
+      "batchId": "f439ad5ae98ad5031b0962629c7f9faa63f50b08d14c2f02adcc6d9b6bf2be94",
+      "definitionHash": "709b9ce21e36556c1f2647aa9e244119fc14f8df24c3abf486857de01fe5320f",
+      "basisHash": "18a3061b4dd4c404e9544b4438b7b6bc790b0e0a204a2a819e6b3f3c667b5e37",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 15.4703,
+      "recordedAt": "2026-10-18T01:52:24Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04-parent-viewport-final-a6e66f878e07.log",
+      "logSha256": "96d9e0cdf45bbfa4bb54fa4d5bd8f2b0ae31dcd59673603f2aefc0572c137913",
+      "inputsHash": "f7b8dffa9b752fa9c723448c7d3fcedf5b988a2be42087b1f2933c6cd8c6d372"
+    },
+    "s04-parent-viewport/c-rx-parent-existing/final": {
+      "checkId": "c-rx-parent-existing",
+      "boundaryId": "s04-parent-viewport",
+      "phase": "final",
+      "batchId": "f439ad5ae98ad5031b0962629c7f9faa63f50b08d14c2f02adcc6d9b6bf2be94",
+      "definitionHash": "edd3970c2573407343594d3f91bf49677056d4770f070c27a232bb74035af221",
+      "basisHash": "f5ca84d3cbee5de6994a249ce73d98bfbcde7b87c24a916c7f9b22d227b28ce4",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 7,
+      "durationSeconds": 1.6892,
+      "recordedAt": "2026-10-18T01:52:26Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04-parent-viewport-final-c020d3f38b96.log",
+      "logSha256": "1cad4e6b1b3117e7589890887c3b8b74af447677c0274a05a05f6887c5a4a950",
+      "inputsHash": "f7b8dffa9b752fa9c723448c7d3fcedf5b988a2be42087b1f2933c6cd8c6d372"
+    },
+    "s04-parent-viewport/c-attribution-parent/final": {
+      "checkId": "c-attribution-parent",
+      "boundaryId": "s04-parent-viewport",
+      "phase": "final",
+      "batchId": "f439ad5ae98ad5031b0962629c7f9faa63f50b08d14c2f02adcc6d9b6bf2be94",
+      "definitionHash": "7176687bd78a5fe6681d8c502e17f6a621b2293063e5c6511a4e03819ef8da96",
+      "basisHash": "c102200f98d3a486dc4aaae6eb92ee81f74a14cc831905baff19a6f242dec6f0",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 20.2846,
+      "recordedAt": "2026-10-18T01:52:46Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04-parent-viewport-final-7662aee14574.log",
+      "logSha256": "4e7bb78d36e650f54f671b1f2a420e4fb3139e61fc4c43cca695f0f2adee9c9f",
+      "inputsHash": "af4a660cf3cbfda6ed434ddc938a16d18a45298dcb28d4d609a05fb90ca739eb"
+    },
+    "s04-parent-viewport/c-rx-renderer-changes/final": {
+      "checkId": "c-rx-renderer-changes",
+      "boundaryId": "s04-parent-viewport",
+      "phase": "final",
+      "batchId": "f439ad5ae98ad5031b0962629c7f9faa63f50b08d14c2f02adcc6d9b6bf2be94",
+      "definitionHash": "d3846429e515886792de354beb7afa7f9f6a56ef926409558828228addb6071f",
+      "basisHash": "706424d43611e7658d40af8a0a7701b7640aabade6074d35cff325fdea6af816",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 1.6986,
+      "recordedAt": "2026-10-18T01:52:48Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s04-parent-viewport-final-2c24868846dc.log",
+      "logSha256": "ee4698274d9427967654db93dbf0358adf09ef2829ab5b9ebbeece29992e2a4e",
+      "inputsHash": "f7b8dffa9b752fa9c723448c7d3fcedf5b988a2be42087b1f2933c6cd8c6d372"
     }
   },
   "reviews": {
@@ -1221,6 +1327,143 @@
       "summaryMarkdown": "Passed, with no findings.\n\n**The merge.** gpux 69cb322 merges main 6b9e126 with `--no-ff`, and RayX 2c14e4ed merges master df471457.\n\n**AccessKit model.** `lists.rs` follows main's model: rows tell the a11y builder `a11y.nodes.row = (layer key, row, loose)` and `hidden = !visible.contains(row)`, in `prepaint_row` and the `list` row hooks, in place of `NodeRow`, `devtools_nodes` and `hidden_hitboxes`, and none of those remain in `crates/`. This branch's later row changes sit on that model without overlap: axis-generic slots (`visible` is along the axis), sticky candidates prepainted after `end_rows` as frame content as without a layer, and `SynchronizedOffset` layers. The whole-frame oracles of horizontal, sticky and synchronized lists, which describe the a11y-bearing frame, pass in the sprint checks.\n\n**Conflicts.** `stats.rs` is main's set (accessibility bypass gone) plus `views_built_for_measured_leaves` at the end of `MECHANISM` (22), `counters`, `accumulate` and both totals. The `list-virtual` scene uses main's role- and label-annotated `row()`. The boundary moves to main's layout (`crates/gpux_tests_benchmark/results/**`, `vendor/accesskit_macos/**`, the new epic records protected). The sprint's three checks are fresh at revision 73.\n\n**Follow-on.** s00b's sealed `c-lane-c-layers-full` still names `-p gpux-conformance`, now `gpux-tests-conformance`. It must be corrected through the runtime's errata path before epic closure, or the closing proof cannot rerun it.",
       "findingIds": [],
       "recordedAt": "2026-10-17T23:26:58Z"
+    },
+    "s04-parent-viewport": {
+      "reviewerId": "reviewer-lk-s04",
+      "snapshotId": "f439ad5ae98ad5031b0962629c7f9faa63f50b08d14c2f02adcc6d9b6bf2be94",
+      "criterionIds": [
+        "PV-1",
+        "PV-2",
+        "PV-3",
+        "TM-3"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/virtual_list/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PV-1"
+          ],
+          "sha256": "3e2caccd3c7482276c8d808f3b2300890396fb790a1d4da59e0b2effde0b788f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PV-1"
+          ],
+          "sha256": "76edecfee124ed429d72ef6b1b054e7315c3e612a8f19478e06159d9572057b5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/reuse.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PV-1"
+          ],
+          "sha256": "5c91ede2e36d4aa95a8a0b2b8e736b9c43b48bfd276b71eced96b21cca595e9f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/paint.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PV-1"
+          ],
+          "sha256": "a92ef4ce8ad11a2eb96524151f062070c86c1d84e3436f14af38bf5c07be0bc3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PV-1"
+          ],
+          "sha256": "61de2857ceb5ec8ac0e1e49065b9c49db4995ba9bac02806870d4178d5f4798d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PV-1"
+          ],
+          "sha256": "ebf1c62b0f21c5c28ffbb3d5163e0a6d8f6d051700dbba6a96dfc4aea4b1698e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/parent_promoted.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PV-1"
+          ],
+          "sha256": "e704a5a749e680c4469876c44bcc1f82110ac26bdf6d561d4f1de780a23d157e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/scenarios/scroll.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TM-3"
+          ],
+          "sha256": "39b71d219d76cc8cbb4f258755d31eae3d635d4a8cb76269a3bf2f9a727f5c63"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/fast_mode_attribution.rs",
+          "kind": "test",
+          "criterionIds": [
+            "TM-3"
+          ],
+          "sha256": "ff7eb41a1b72ea2c7a99e0ee69cfa5031c8acc51b1c917ebada88cf867be159d"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/state.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PV-2",
+            "PV-3"
+          ],
+          "sha256": "c11270659132bcbc678cd3408effcaf9a8a1c499674c51340209d994f3520aca"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/parent_viewport_layers.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PV-2"
+          ],
+          "sha256": "e6b6b54cff4852716f4678de7f387ad8f9fe897a0fb4b8c1d623a69e823db04f"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/application_configuration_programmatic_scroll_parent_viewport.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PV-2"
+          ],
+          "sha256": "5cd17874c5459c3a683f58e19cdcf7039acf603620b8fd852f0d9e2a0683227f"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_core/tests/row_renderer_changes.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PV-3"
+          ],
+          "sha256": "8da77bdfc716abcda08528abffb0d2d801f332ad4c10f1128e3372cdb6529aee"
+        }
+      ],
+      "summaryMarkdown": "Passed.\n\n**PV-1:** a promoted `ParentViewport` list renders the painted region's rows without reading the parent offset. On composited frames, its callback answers metrics and the range listener (under the holding view's lease) from the current offset and marks which of its own told rows the viewport shows. The carry then replays every row's a11y events shown or hidden as a tree, nested lists included, and hides the focus, tab stops and listeners of hidden rows. With layers off the path is inert. `parent_promoted` (6 tests) covers promotion over 60 frames, metrics and ranges, fractional rows at 1.25, whole-frame histories with clicks, and the a11y tree, flat and nested, under inspection on every step.\n\n**PV-2 and PV-3:** ListViewState skips its dependent registration only for `ParentViewport` under view retention. `parent_viewport_layers`, the existing parent-viewport programmatic-scroll tests and `row_renderer_changes` pass, with the owner's withdrawal of (B) and the TreeView fix recorded.\n\n**TM-3:** the scenario is in the bench and in attribution.\n\nThe sprint checks are fresh at revision 84, with `parent_rerender_cost.rs` out of the tree.",
+      "findingIds": [
+        "lk-s04-F1",
+        "lk-s04-F2"
+      ],
+      "recordedAt": "2026-10-18T01:53:44Z"
     }
   },
   "checkpoints": {
@@ -1304,6 +1547,15 @@
       },
       "reviewHash": "bb94671bde67e531d0184caa809011095bcb9d15c452d769ec544712b51508d7",
       "recordedAt": "2026-10-17T23:27:15Z"
+    },
+    "s04-parent-viewport": {
+      "snapshotId": "f439ad5ae98ad5031b0962629c7f9faa63f50b08d14c2f02adcc6d9b6bf2be94",
+      "commits": {
+        "gpux": "c8749bc104bfb220488b5e77107d4f23fd6c80aa",
+        "rayx": "6f748e70f7106616ae44bd7bab1a8ee7b405cf53"
+      },
+      "reviewHash": "40f10438b044997d459958de866a2de06071727ccdd887980573354e5479192e",
+      "recordedAt": "2026-10-18T01:54:15Z"
     }
   },
   "findings": [
@@ -1483,9 +1735,41 @@
         }
       ],
       "boundaryId": "s05-rayx-kinds"
+    },
+    {
+      "id": "lk-s04-F1",
+      "criterionIds": [
+        "PV-1"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved. `composited_frames_tell_the_rows_the_viewport_shows` opens both windows under `begin_a11y_inspection`. On each of 40 wheel steps (≥ 20 composited) it compares the list items' labels and bounds from `a11y_tree()` and the painted primitives. It fails with every row forced shown in `show_content_rows`.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/parent_promoted.rs"
+        }
+      ],
+      "boundaryId": "s04-parent-viewport"
+    },
+    {
+      "id": "lk-s04-F2",
+      "criterionIds": [
+        "PV-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved. `begin_content_row` returns a `ContentRow` that saves `a11y.nodes.hidden`, sets it to `hidden_before || !shown`, and `end_content_row` restores it. `reuse_prepaint_with_rows` sorts the told rows by a11y event start (outer first on ties, by descending end) and replays them as a tree (`replay_a11y_rows`). Each nested row is as hidden as the row holding it, starting from the current hidden flag, with no event replayed twice. Each list keeps the told indices of its own rows for `show_content_rows`, since an outer list's told range interleaves its inner lists' rows. `nested_promoted_lists_tell_the_rows_the_viewport_shows` (inner lists in outer rows with named items around them, in the same div) fails with the reset-to-false end or with flat replay, and passes now.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/parent_promoted.rs"
+        }
+      ],
+      "boundaryId": "s04-parent-viewport"
     }
   ],
-  "handoffMarkdown": "gpux main merged (69cb322): conflicts in fast/stats.rs (22 mechanism counters), gpux_tests_conformance scenes/lists.rs (main's AccessKit rows + list-virtual imports), positioning-scroll state memory. RayX master merged without conflicts (2c14e4ed). No NodeRow/devtools_nodes/DevtoolsSemantics/hidden_hitboxes remain in crates/. gpux full suite 1462/1462, lane A lists 3/3, lane C scroll layers full 12+18 (package now gpux-tests-conformance); RayX workspace check clean, core/datatable/base tests 800/800. Boundary amended to main's layout (rev 71).",
+  "handoffMarkdown": "scroll-virtual-list-parent-viewport scenario, listed in fast_mode_attribution and the fast_mode bench; attribution bounds a region-painting layer's layout by the rows it rendered.",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",

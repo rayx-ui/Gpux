@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list-layer-kinds",
-  "revision": 11,
+  "revision": 12,
   "title": "Measured leaves kept under view retention, and every VirtualList kind on scroll layers: horizontal, sticky, SynchronizedOffset and ParentViewport lists composite, RayX's parent-viewport invalidation narrowed, timings measured",
   "validationMode": "sprint",
   "repositories": [
@@ -924,6 +924,38 @@
         "gpux:Cargo.toml",
         "gpux:Cargo.lock"
       ]
+    },
+    {
+      "id": "c-rx-renderer-changes",
+      "repositoryId": "rayx",
+      "kind": "test",
+      "criterionIds": [
+        "PV-3"
+      ],
+      "descriptionMarkdown": "New RayX regression group: a ListView or TreeView whose row renderer really changes shows the new rows with fast mode on, in ParentViewport and scrolling itself.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "rayx_components_core",
+        "--test",
+        "row_renderer_changes"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/rayx_components/**",
+        "crates/rayx_runtime/**",
+        "crates/rayx_theme/**",
+        "crates/rayx_macros/**",
+        "gpux:crates/gpui/**",
+        "gpux:Cargo.toml",
+        "gpux:Cargo.lock"
+      ]
     }
   ],
   "finalCheckIds": [
@@ -1386,6 +1418,7 @@
         "c-parent-promoted",
         "c-rx-parent-layers",
         "c-rx-parent-existing",
+        "c-rx-renderer-changes",
         "c-attribution-parent"
       ],
       "tasks": [
@@ -1419,7 +1452,7 @@
         {
           "id": "t07-rayx-dependent-registration",
           "title": "Narrow RayX's dependent-view registration for ParentViewport",
-          "descriptionMarkdown": "Implement d-parent-viewport-promotion's RayX side in ListViewState and TreeState, plus the `parent_viewport_layers` group. The existing ParentViewport tests must keep passing.\n\nCommit in RayX paired with t06's gpux commit. The superseded RayX decision is promoted after the epic: do not edit memory now.",
+          "descriptionMarkdown": "Implement d-parent-viewport-promotion's RayX side in ListViewState and TreeState, plus the `parent_viewport_layers` group. The existing ParentViewport tests must keep passing.\n\nCommit in RayX paired with t06's gpux commit. The superseded RayX decision is promoted after the epic: do not edit memory now.\n\nOutcome (2026-10-18): ListViewState no longer registers as a dependent view of a `ParentViewport` parent handle under view retention; TreeState never registered. The group's range recorder subscribes from an entity of its own: a subscriber on the view holding the `div` is updated by every range event, a real change of that view.",
           "criterionIds": [
             "PV-2"
           ],
@@ -1441,6 +1474,33 @@
             {
               "repositoryId": "rayx",
               "path": "crates/rayx_components/rayx_components_base/src/tree/state.rs"
+            }
+          ]
+        },
+        {
+          "id": "t07b-renderer-regression",
+          "title": "Keep a row-renderer change visible under fast mode",
+          "descriptionMarkdown": "The owner decided (2026-10-18), relayed by the coordinating session, first: \"take (B), and fix the TreeView bug in the same sprint\": (B) was a gpux rule under which writes an owner makes while it renders only because a scroll notified it count as repeats; the TreeView bug was TreeBase's `set_render_item` write taken to be never stamped. Implementing them showed both rest on a misdiagnosis. ListView demoted the parent's layer because the test's own `VisibleRangeChanged` subscriber lived on the view holding the `div`, which every range event updated, a real change of that view; with the subscriber on an entity of its own and ListViewState's dependent registration narrowed, ListView keeps the layer with or without (B), as composited frames keep the div's content and never lay out its children. TreeBase's write is stamped: it never showed because those frames skip the layout that runs it, so the TreeView bug does not exist. The owner then decided: \"revert (B), keep the new regression tests, and record your decision and this outcome in the epic\". (B) and the TreeView fix are withdrawn; `row_renderer_changes` stays as regression coverage. A parent that subscribes to the list's events is still a real change on every range change, so the list's state view is built again then; that limit is with the owner.\n\nAdd the RayX regression group `row_renderer_changes`, in RayX's t07 commit's pairing, its own commit.",
+          "criterionIds": [
+            "PV-3"
+          ],
+          "designIds": [
+            "d-parent-viewport-promotion"
+          ],
+          "dependsOn": [
+            "t07-rayx-dependent-registration"
+          ],
+          "checkIds": [
+            "c-rx-renderer-changes"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_core/src/collections/list_view/element.rs"
+            },
+            {
+              "repositoryId": "rayx",
+              "path": "crates/rayx_components/rayx_components_base/src/tree/element.rs"
             }
           ]
         },
