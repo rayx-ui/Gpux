@@ -195,14 +195,28 @@ pub(crate) async fn capture(
     window: AnyWindowHandle,
     scale: f32,
 ) -> anyhow::Result<image::RgbaImage> {
+    let native_shows = |screen: &image::RgbaImage| {
+        near(
+            pixel(screen, scale, (NATIVE.0 + 8., NATIVE.1 + 8.)),
+            [255, 0, 0],
+        )
+    };
+    capture_until(cx, screens, window, Duration::from_secs(10), native_shows).await
+}
+
+/// The screen once `ready` holds of it, retried every half second for up to
+/// `limit`; the last screen taken when it never does.
+pub(crate) async fn capture_until(
+    cx: &mut AsyncApp,
+    screens: &Screens,
+    window: AnyWindowHandle,
+    limit: Duration,
+    ready: impl Fn(&image::RgbaImage) -> bool,
+) -> anyhow::Result<image::RgbaImage> {
     let start = Instant::now();
     loop {
         let screen = screens.capture(cx, window).await?;
-        if near(
-            pixel(&screen, scale, (NATIVE.0 + 8., NATIVE.1 + 8.)),
-            [255, 0, 0],
-        ) || start.elapsed() > Duration::from_secs(10)
-        {
+        if ready(&screen) || start.elapsed() > limit {
             return Ok(screen);
         }
         cx.background_executor()
@@ -220,7 +234,20 @@ pub async fn order(cx: &mut AsyncApp, screens: &Screens) -> ResultLine {
         Err(error) => return line(Outcome::Fail, ID, format!("{error:#}")),
     };
     open_menu(cx, &root);
-    let result = match capture(cx, screens, window, scale).await {
+    // The menu is drawn by a frame after the one that shows the native view,
+    // which the software renderer of an emulator takes seconds to present:
+    // wait for both.
+    let both_show = |screen: &image::RgbaImage| {
+        near(
+            pixel(screen, scale, (NATIVE.0 + 8., NATIVE.1 + 8.)),
+            [255, 0, 0],
+        ) && near(
+            pixel(screen, scale, (MENU.0 + 20., MENU.1 + 20.)),
+            [0xdd, 0xdd, 0xdd],
+        )
+    };
+    let result = match capture_until(cx, screens, window, Duration::from_secs(30), both_show).await
+    {
         Err(error) => line(Outcome::Fail, ID, format!("no screenshot: {error:#}")),
         Ok(screen) => {
             let native = pixel(&screen, scale, (NATIVE.0 + 8., NATIVE.1 + 8.));
