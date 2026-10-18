@@ -12,3 +12,8 @@ categories = ["gui"]
 
 [lints]
 workspace = true
+
+# Read by rayx from its release with the library-agnostic contract on: the fonts are a
+# rayx asset package. Kept equal to the contract by tools/testkit/tests/rayx_declarations.rs.
+[package.metadata.rayx.assets]
+manifest = "rayx.assets.toml"

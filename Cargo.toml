@@ -257,6 +257,14 @@ debug = "limited"
 lto = "thin"
 codegen-units = 1
 
+# Read by rayx (from its release with the library-agnostic contract on) for apps built in this
+# workspace: lane E's Android pins (tools/testkit/src/android.rs, lane-e.yml).
+# tools/testkit/tests/rayx_declarations.rs keeps them equal.
+[workspace.metadata.rayx]
+android-platform = "android-36"
+android-build-tools = "36.0.0"
+android-ndk = "28.0.12674087"
+
 [workspace.lints.rust]
 unexpected_cfgs = { level = "allow" }
 

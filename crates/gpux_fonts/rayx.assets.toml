@@ -1,0 +1,12 @@
+# rayx asset package (RayX.CLI docs/app-project.md): rayx delivers the bundled fonts to every app
+# target under their logical `fonts/...` paths, the paths gpux's SVG renderer loads through the
+# app's `AssetSource`. Cargo ignores this file; it is packaged with the crate.
+version = 1
+
+[asset_package]
+id = "gpux-fonts"
+kind = "fonts"
+namespace = ""
+
+[assets]
+roots = ["assets"]

@@ -15,6 +15,12 @@ readme = "README.md"
 [lints]
 workspace = true
 
+# Read by rayx from its release with the library-agnostic contract on: the Android Java
+# sources (`dev.gpux.mobile`) an app compiles beside the native library, relative to this manifest.
+# It is the directory lane E compiles (tools/testkit/tests/rayx_declarations.rs keeps them equal).
+[package.metadata.rayx]
+android_java_dirs = ["java"]
+
 [features]
 default = ["accessibility"]
 # The VoiceOver (`accesskit_ios`) and TalkBack (`accesskit_android`) adapters. Without it the window
