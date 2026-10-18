@@ -104,11 +104,7 @@ pub fn key_code_to_key_down(key_code: u32, modifier_flags: u32) -> PlatformInput
     let keystroke = Keystroke {
         modifiers,
         key: key.clone(),
-        key_char: if key.len() == 1 {
-            Some(key.clone())
-        } else {
-            None
-        },
+        key_char: if key.len() == 1 { Some(key) } else { None },
     };
 
     PlatformInput::KeyDown(KeyDownEvent {
@@ -126,11 +122,7 @@ pub fn key_code_to_key_up(key_code: u32, modifier_flags: u32) -> PlatformInput {
     let keystroke = Keystroke {
         modifiers,
         key: key.clone(),
-        key_char: if key.len() == 1 {
-            Some(key.clone())
-        } else {
-            None
-        },
+        key_char: if key.len() == 1 { Some(key) } else { None },
     };
 
     PlatformInput::KeyUp(gpui::KeyUpEvent { keystroke })

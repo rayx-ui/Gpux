@@ -13,7 +13,7 @@
 //! ```
 
 use futures::future::LocalBoxFuture;
-use gpui::{App, AppContext, Application, AsyncApp, RequestFrameOptions, WindowOptions};
+use gpui::{AppContext, Application, AsyncApp, RequestFrameOptions, WindowOptions};
 use std::ffi::c_void;
 use std::rc::Rc;
 use std::sync::OnceLock;

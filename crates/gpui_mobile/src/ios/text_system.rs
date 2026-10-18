@@ -132,8 +132,7 @@ impl PlatformTextSystem for IosTextSystem {
                 } else {
                     let font_ids =
                         lock.load_family(&font.family, &font.features, font.fallbacks.as_ref())?;
-                    lock.font_ids_by_font_key
-                        .insert(font_key.clone(), font_ids.clone());
+                    lock.font_ids_by_font_key.insert(font_key, font_ids.clone());
                     font_ids
                 };
 
