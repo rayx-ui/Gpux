@@ -33,14 +33,13 @@ const OLD_FOLDERS: [&str; 4] = [
 
 /// Tracked files that keep the paths they were written with: historical records, recorded tool
 /// output, the vendored fork, the lock file and this guard.
-const HISTORICAL: [&str; 10] = [
+const HISTORICAL: [&str; 9] = [
     ".agentx/tasks/",
     "CHANGELOG.md",
     ".agentx/experiments/",
     "docs/changelog/",
     "docs/history/",
     "docs/measurements/",
-    "ToFix/",
     "crates/gpux_tests_benchmark/results/",
     "tools/testkit/tests/fixtures/",
     "vendor/",
@@ -263,7 +262,6 @@ fn historical_records_and_fixtures_are_not_scanned() {
         "docs/changelog/2026-10.md",
         "docs/history/x.md",
         "docs/measurements/x.md",
-        "ToFix/x.md",
         "crates/gpux_tests_benchmark/RESULTS.md",
         "crates/gpux_tests_benchmark/LOOP-2026-10-16.md",
         "crates/gpux_tests_benchmark/results/run/report.md",
