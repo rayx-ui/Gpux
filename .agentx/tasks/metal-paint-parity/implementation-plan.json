@@ -1,0 +1,906 @@
+{
+ "schemaVersion": 7,
+ "epicId": "metal-paint-parity",
+ "revision": 1,
+ "title": "Metal paint parity: contract-derived conformance scenes on every renderer, Apple code linted and built in CI, records synced, ToFix retired",
+ "validationMode": "sprint",
+ "repositories": [
+  {
+   "id": "gpux",
+   "path": ".",
+   "role": "execution"
+  },
+  {
+   "id": "rayx",
+   "path": "../RayX",
+   "role": "reference"
+  }
+ ],
+ "boundaries": {
+  "repositoryIds": [
+   "gpux"
+  ],
+  "forbiddenPaths": [
+   "vendor/**",
+   "crates/gpux_tests_benchmark/**",
+   "crates/gpux_tests_conformance/tests/goldens/**",
+   "docs/history/**",
+   ".agentx/experiments/**",
+   ".agentx/tasks/frame-effects-navigation-transitions/**",
+   ".agentx/tasks/frame-family-component-transitions/**",
+   ".agentx/tasks/gpux-a11y-devtools/**",
+   ".agentx/tasks/gpux-cross-platform-test-lanes/**",
+   ".agentx/tasks/gpux-fast-mode/**",
+   ".agentx/tasks/gpux-faster-test-lanes/**",
+   ".agentx/tasks/gpux-fixed-sticky-positioning/**",
+   ".agentx/tasks/gpux-platform-text-input/**",
+   ".agentx/tasks/gpux-releases/**",
+   ".agentx/tasks/gpux-rich-editable-text/**",
+   ".agentx/tasks/gpux-text-rendering-quality-performance/**",
+   ".agentx/tasks/gpux-tools-layout/**",
+   ".agentx/tasks/gpux-virtual-list/**",
+   ".agentx/tasks/gpux-virtual-list-layer-kinds/**",
+   ".agentx/tasks/gpux-wgpu-platform-renderers/**",
+   ".agentx/tasks/high-quality-wasm-text-rendering/**",
+   ".agentx/tasks/html-element-dom-overlay/**",
+   ".agentx/tasks/html-island-wasm/**",
+   ".agentx/tasks/keyed-sticky-stacking/**",
+   ".agentx/tasks/macos-only-metal-port-and-ci-repair/**",
+   ".agentx/tasks/shader-effects-and-screen-transitions/**"
+  ]
+ },
+ "checks": [
+  {
+   "id": "check-ring-evenness",
+   "repositoryId": "gpux",
+   "kind": "test",
+   "criterionIds": [
+    "STEP-1"
+   ],
+   "descriptionMarkdown": "New group `crates/gpux_tests_conformance/tests/ring_evenness.rs`: the ring-evenness step on synthetic frames (even ring, sub-pixel phase, seeded beading, empty frame) at scales 1 and 2.",
+   "argv": [
+    "cargo",
+    "test",
+    "-p",
+    "gpux-tests-conformance",
+    "--test",
+    "ring_evenness"
+   ],
+   "cwd": ".",
+   "expected": {
+    "exitCode": 0,
+    "minimumTests": 4
+   },
+   "timeoutSeconds": 3600,
+   "inputs": [
+    "crates/gpux_tests_conformance/src/**",
+    "crates/gpux_tests_conformance/tests/catalog/**",
+    "crates/gpux_tests_conformance/Cargo.toml",
+    "crates/gpux_tests_conformance/tests/ring_evenness.rs"
+   ]
+  },
+  {
+   "id": "check-catalog-coverage",
+   "repositoryId": "gpux",
+   "kind": "test",
+   "criterionIds": [
+    "SCN-6"
+   ],
+   "descriptionMarkdown": "The existing catalog group that exercises the touched `Area::REQUIRED` list and scene metadata: every new area has a scene, ids are unique kebab-case.",
+   "argv": [
+    "cargo",
+    "test",
+    "-p",
+    "gpux-tests-conformance",
+    "--test",
+    "catalog_coverage"
+   ],
+   "cwd": ".",
+   "expected": {
+    "exitCode": 0,
+    "minimumTests": 3
+   },
+   "timeoutSeconds": 3600,
+   "inputs": [
+    "crates/gpux_tests_conformance/src/**",
+    "crates/gpux_tests_conformance/tests/catalog/**",
+    "crates/gpux_tests_conformance/Cargo.toml",
+    "crates/gpux_tests_conformance/tests/catalog_coverage.rs"
+   ]
+  },
+  {
+   "id": "check-lane-a-paint-contract",
+   "repositoryId": "gpux",
+   "kind": "test",
+   "criterionIds": [
+    "SCN-1",
+    "SCN-2",
+    "SCN-3",
+    "SCN-4",
+    "SCN-5",
+    "SCN-6"
+   ],
+   "descriptionMarkdown": "Lane A for the five `paint-contract-*` scenes: their bounds and behavior steps on `TestPlatform` (pixel steps are skipped there), plus the lane A listing test.",
+   "argv": [
+    "cargo",
+    "test",
+    "-p",
+    "gpux-tests-conformance",
+    "--test",
+    "lane_a",
+    "paint_contract"
+   ],
+   "cwd": ".",
+   "expected": {
+    "exitCode": 0,
+    "minimumTests": 5
+   },
+   "timeoutSeconds": 3600,
+   "inputs": [
+    "crates/gpux_tests_conformance/src/**",
+    "crates/gpux_tests_conformance/tests/catalog/**",
+    "crates/gpux_tests_conformance/Cargo.toml",
+    "crates/gpux_tests_conformance/tests/lane_a.rs"
+   ]
+  },
+  {
+   "id": "check-lane-c-metal-paint-contract",
+   "repositoryId": "gpux",
+   "kind": "test",
+   "criterionIds": [
+    "PAR-1",
+    "SCN-1",
+    "SCN-2",
+    "SCN-3",
+    "SCN-4",
+    "SCN-5"
+   ],
+   "descriptionMarkdown": "Lane C on this Mac's Metal renderer for the `paint-contract-*` scenes at scales 1 and 2 (`at_1x::paint_contract_*`, `at_2x::paint_contract_*`), one scene at a time, asserting the backend.",
+   "argv": [
+    "cargo",
+    "test",
+    "-p",
+    "gpux-tests-conformance",
+    "--test",
+    "lane_c",
+    "paint_contract",
+    "--",
+    "--test-threads=1"
+   ],
+   "cwd": ".",
+   "environment": {
+    "GPUX_EXPECT_BACKEND": "metal"
+   },
+   "expected": {
+    "exitCode": 0,
+    "minimumTests": 10
+   },
+   "timeoutSeconds": 3600,
+   "inputs": [
+    "crates/gpux_tests_conformance/src/**",
+    "crates/gpux_tests_conformance/tests/catalog/**",
+    "crates/gpux_tests_conformance/Cargo.toml",
+    "crates/gpui_apple/**",
+    "crates/gpui_macos/**",
+    "crates/gpui_wgpu/**",
+    "crates/gpui/src/**",
+    "crates/gpux_color/src/**",
+    "crates/gpux_tests_conformance/tests/lane_c.rs"
+   ]
+  },
+  {
+   "id": "check-lane-a-fast-parity-paint-contract",
+   "repositoryId": "gpux",
+   "kind": "test",
+   "criterionIds": [
+    "SCN-6"
+   ],
+   "descriptionMarkdown": "The existing fast-mode parity group that the lane A catalog list feeds, for the new scenes: each runs with fast mode on and off on `TestPlatform` and describes alike.",
+   "argv": [
+    "cargo",
+    "test",
+    "-p",
+    "gpux-tests-conformance",
+    "--test",
+    "lane_a_fast_parity",
+    "paint_contract"
+   ],
+   "cwd": ".",
+   "expected": {
+    "exitCode": 0,
+    "minimumTests": 5
+   },
+   "timeoutSeconds": 3600,
+   "inputs": [
+    "crates/gpux_tests_conformance/src/**",
+    "crates/gpux_tests_conformance/tests/catalog/**",
+    "crates/gpux_tests_conformance/Cargo.toml",
+    "crates/gpux_tests_conformance/tests/lane_a_fast_parity.rs",
+    "crates/gpui/src/**"
+   ]
+  },
+  {
+   "id": "check-lane-c-fast-parity-paint-contract",
+   "repositoryId": "gpux",
+   "kind": "test",
+   "criterionIds": [
+    "SCN-6",
+    "PAR-1"
+   ],
+   "descriptionMarkdown": "The existing fast-mode parity group that the lane C catalog list feeds, for the new scenes on Metal at scales 1 and 2: fast mode on and off render alike.",
+   "argv": [
+    "cargo",
+    "test",
+    "-p",
+    "gpux-tests-conformance",
+    "--test",
+    "lane_c_fast_parity",
+    "paint_contract",
+    "--",
+    "--test-threads=1"
+   ],
+   "cwd": ".",
+   "environment": {
+    "GPUX_EXPECT_BACKEND": "metal"
+   },
+   "expected": {
+    "exitCode": 0,
+    "minimumTests": 10
+   },
+   "timeoutSeconds": 3600,
+   "inputs": [
+    "crates/gpux_tests_conformance/src/**",
+    "crates/gpux_tests_conformance/tests/catalog/**",
+    "crates/gpux_tests_conformance/Cargo.toml",
+    "crates/gpui_apple/**",
+    "crates/gpui_macos/**",
+    "crates/gpui_wgpu/**",
+    "crates/gpui/src/**",
+    "crates/gpux_color/src/**",
+    "crates/gpux_tests_conformance/tests/lane_c_fast_parity.rs"
+   ]
+  },
+  {
+   "id": "check-lane-b-paint-contract",
+   "repositoryId": "gpux",
+   "kind": "runtime",
+   "criterionIds": [
+    "PAR-2"
+   ],
+   "descriptionMarkdown": "Lane B's `scenes.spec.ts` for the `paint-contract-*` scenes at DPR 1 (`@pr`) and DPR 2 (`@dpr2`) on WebGPU through the WGPU renderer's WGSL. Needs lane B's prerequisites (nightly `-Z build-std`, wasm-bindgen, Playwright Chromium). A WGSL change in PAR-4 adds a forced-WebGL2 run of the touched scenes and `dawn.spec.ts` (resolved when it happens).",
+   "argv": [
+    "cargo",
+    "run",
+    "-p",
+    "gpux-testkit",
+    "--",
+    "lane",
+    "b",
+    "--grep",
+    "paint-contract"
+   ],
+   "cwd": ".",
+   "expected": {
+    "exitCode": 0,
+    "minimumTests": 10,
+    "testCountPattern": "gpux-testkit: (\\d+) passed"
+   },
+   "reuse": false,
+   "timeoutSeconds": 3600
+  },
+  {
+   "id": "check-lane-d-paint-contract",
+   "repositoryId": "gpux",
+   "kind": "runtime",
+   "criterionIds": [
+    "PAR-3"
+   ],
+   "descriptionMarkdown": "Lane D on macOS for the `paint-contract-*` scenes in real AppKit windows. Needs an awake, unlocked, uncovered display (desktop rules).",
+   "argv": [
+    "cargo",
+    "run",
+    "-p",
+    "gpux-testkit",
+    "--",
+    "lane",
+    "d",
+    "--grep",
+    "paint-contract"
+   ],
+   "cwd": ".",
+   "expected": {
+    "exitCode": 0,
+    "minimumTests": 5,
+    "testCountPattern": "gpux-testkit: (\\d+) passed"
+   },
+   "reuse": false,
+   "timeoutSeconds": 3600
+  },
+  {
+   "id": "check-macos-workspace-clippy",
+   "repositoryId": "gpux",
+   "kind": "static",
+   "criterionIds": [
+    "CI-1"
+   ],
+   "descriptionMarkdown": "CI's exact Clippy command on macOS. A whole-workspace run, justified because the CI step this sprint enables lints the whole macOS workspace: it must be green before the step lands.",
+   "argv": [
+    "cargo",
+    "clippy",
+    "--workspace",
+    "--all-targets",
+    "--no-deps",
+    "--exclude",
+    "gpux-wgpu",
+    "--exclude",
+    "gpux-wgpu-core",
+    "--exclude",
+    "gpux-wgpu-hal",
+    "--exclude",
+    "gpux-wgpu-core-deps-apple",
+    "--exclude",
+    "gpux-wgpu-core-deps-emscripten",
+    "--exclude",
+    "gpux-wgpu-core-deps-wasm",
+    "--exclude",
+    "gpux-wgpu-core-deps-windows-linux-android",
+    "--exclude",
+    "gpux-accesskit-macos",
+    "--",
+    "-D",
+    "warnings"
+   ],
+   "cwd": ".",
+   "expected": {
+    "exitCode": 0
+   },
+   "timeoutSeconds": 5400,
+   "inputs": [
+    "crates/**",
+    "tools/**",
+    "Cargo.toml",
+    "Cargo.lock",
+    "clippy.toml"
+   ]
+  },
+  {
+   "id": "check-runtime-shaders",
+   "repositoryId": "gpux",
+   "kind": "build",
+   "criterionIds": [
+    "CI-3"
+   ],
+   "descriptionMarkdown": "The `runtime_shaders` build of `gpux-apple`, the command the new macOS CI step runs.",
+   "argv": [
+    "cargo",
+    "check",
+    "-p",
+    "gpux-apple",
+    "--features",
+    "runtime_shaders"
+   ],
+   "cwd": ".",
+   "expected": {
+    "exitCode": 0
+   },
+   "timeoutSeconds": 1800,
+   "inputs": [
+    "crates/gpui_apple/**",
+    "crates/gpui/src/**",
+    "crates/gpux_color/src/**",
+    "Cargo.lock"
+   ]
+  },
+  {
+   "id": "check-workflow-yaml",
+   "repositoryId": "gpux",
+   "kind": "static",
+   "criterionIds": [
+    "CI-2"
+   ],
+   "descriptionMarkdown": "AgentX's workflow YAML checker (syntax errors and the duplicate keys GitHub rejects) over every workflow and the plan action. The script path is the installed AgentX skill's.",
+   "argv": [
+    "ruby",
+    "/Users/dinko/.claude/skills/agentx/scripts/check_workflow_yaml.rb",
+    ".github/workflows/ci.yml",
+    ".github/workflows/lane-b.yml",
+    ".github/workflows/lane-e.yml",
+    ".github/workflows/lane-f.yml",
+    ".github/workflows/release-plz.yml",
+    ".github/actions/plan/action.yml"
+   ],
+   "cwd": ".",
+   "expected": {
+    "exitCode": 0,
+    "stdoutPattern": "workflow yaml ok"
+   },
+   "inputs": [
+    ".github/**"
+   ]
+  },
+  {
+   "id": "check-memory-audit",
+   "repositoryId": "gpux",
+   "kind": "static",
+   "criterionIds": [
+    "REC-1"
+   ],
+   "descriptionMarkdown": "AgentX's memory audit from the Gpux root (structure, frontmatter, indexes, links). The script path is the installed AgentX skill's. No `inputs`: memory is metadata, so any change reruns it (it takes seconds).",
+   "argv": [
+    "python3",
+    "/Users/dinko/.claude/skills/agentx/scripts/audit_agentx_memory.py"
+   ],
+   "cwd": ".",
+   "expected": {
+    "exitCode": 0,
+    "stdoutPattern": "memory structure looks consistent"
+   }
+  },
+  {
+   "id": "check-repository-layout",
+   "repositoryId": "gpux",
+   "kind": "test",
+   "criterionIds": [
+    "REC-3"
+   ],
+   "descriptionMarkdown": "The existing group that exercises the touched guard: `repository_layout.rs` without the `ToFix/` entry. Its stale-path scan reads every tracked live file, hence no `inputs`.",
+   "argv": [
+    "cargo",
+    "test",
+    "-p",
+    "gpux-testkit",
+    "--test",
+    "repository_layout"
+   ],
+   "cwd": ".",
+   "expected": {
+    "exitCode": 0,
+    "minimumTests": 3
+   },
+   "timeoutSeconds": 3600
+  },
+  {
+   "id": "final-fmt",
+   "repositoryId": "gpux",
+   "kind": "static",
+   "criterionIds": [
+    "STEP-1",
+    "SCN-6",
+    "CI-1",
+    "REC-3"
+   ],
+   "descriptionMarkdown": "`cargo fmt --check`.",
+   "argv": [
+    "cargo",
+    "fmt",
+    "--check"
+   ],
+   "cwd": ".",
+   "expected": {
+    "exitCode": 0
+   }
+  },
+  {
+   "id": "final-clippy-touched",
+   "repositoryId": "gpux",
+   "kind": "static",
+   "criterionIds": [
+    "STEP-1",
+    "SCN-6",
+    "CI-1",
+    "REC-3"
+   ],
+   "descriptionMarkdown": "Clippy of the packages whose code changes, as CLAUDE.md runs it, on this Mac. Add `gpux-wgpu-renderer` or `gpux-macos` if PAR-4 changed their Rust code.",
+   "argv": [
+    "cargo",
+    "clippy",
+    "-p",
+    "gpux-tests-conformance",
+    "-p",
+    "gpux-apple",
+    "-p",
+    "gpux-zed-util",
+    "-p",
+    "gpux-testkit",
+    "--all-targets",
+    "--no-deps",
+    "--",
+    "-D",
+    "warnings"
+   ],
+   "cwd": ".",
+   "expected": {
+    "exitCode": 0
+   },
+   "timeoutSeconds": 3600
+  },
+  {
+   "id": "final-ios-host-build",
+   "repositoryId": "gpux",
+   "kind": "build",
+   "criterionIds": [
+    "STEP-1"
+   ],
+   "descriptionMarkdown": "The iOS conformance host compiles with the new step (lane F runs it only nightly in CI): the features `gpux-testkit lane f` builds with, for the Simulator target.",
+   "argv": [
+    "cargo",
+    "check",
+    "-p",
+    "gpux-tests-conformance",
+    "--no-default-features",
+    "--features",
+    "app-host,diagnostics",
+    "--example",
+    "ios_host",
+    "--target",
+    "aarch64-apple-ios-sim"
+   ],
+   "cwd": ".",
+   "expected": {
+    "exitCode": 0
+   },
+   "timeoutSeconds": 3600
+  },
+  {
+   "id": "final-android-host-build",
+   "repositoryId": "gpux",
+   "kind": "build",
+   "criterionIds": [
+    "STEP-1"
+   ],
+   "descriptionMarkdown": "The Android conformance host compiles with the new step (lane E runs it only nightly in CI), through cargo-ndk as `gpux-testkit lane e` builds it. Resolve the NDK environment (`ANDROID_NDK_HOME` or the testkit's pinned NDK) before final validation.",
+   "argv": [
+    "cargo",
+    "ndk",
+    "-t",
+    "arm64-v8a",
+    "check",
+    "-p",
+    "gpux-tests-conformance",
+    "--no-default-features",
+    "--features",
+    "app-host,diagnostics",
+    "--example",
+    "android_host"
+   ],
+   "cwd": ".",
+   "expected": {
+    "exitCode": 0
+   },
+   "timeoutSeconds": 3600
+  }
+ ],
+ "finalCheckIds": [
+  "final-fmt",
+  "final-clippy-touched",
+  "final-ios-host-build",
+  "final-android-host-build"
+ ],
+ "sprints": [
+  {
+   "id": "s1-paint-contract-scenes",
+   "title": "Paint-contract scenes, the ring-evenness step, and renderer parity on Metal and WebGPU",
+   "dependsOn": [],
+   "checkIds": [
+    "check-ring-evenness",
+    "check-catalog-coverage",
+    "check-lane-a-paint-contract",
+    "check-lane-c-metal-paint-contract",
+    "check-lane-a-fast-parity-paint-contract",
+    "check-lane-c-fast-parity-paint-contract",
+    "check-lane-b-paint-contract",
+    "check-lane-d-paint-contract"
+   ],
+   "tasks": [
+    {
+     "id": "t1-even-ring-step",
+     "title": "Add the ring-evenness pixel step and its test group",
+     "descriptionMarkdown": "Implement STEP-1 per d-contract-scenes.\n\n1. Read RayX's metric in `../RayX/tools-node/test_suite/rayx-border-antialiasing.spec.ts` (reference only; nothing in RayX changes).\n2. Add the variant to `Step` in `crates/gpux_tests_conformance/src/scene.rs` with a doc comment, and include it wherever pixel steps are classified (`scene.rs`'s pixel-step test, `test_host.rs`, `app_host.rs`) and described (`host.rs`).\n3. Put the measurement in `evaluate.rs` beside the other pixel evaluations, as a function of a captured RGBA frame, the element's device-pixel bounds, the scale and the limit, so the new test group can call it without a host. Expose what the test needs through the crate's existing public surface (`probe`/`evaluate` modules).\n4. Write `tests/ring_evenness.rs`: synthesize anti-aliased rings (analytic coverage of a 1 px annulus, composited in encoded sRGB over `#0a0a0a`) at scales 1 and 2, centred on and off the pixel grid; a seeded beaded ring; an empty frame. Assert pass/fail and that the failure message carries the coefficient and the limit.\n\nKeep the metric's constants (48 bins, reach `scale / 2 + 2`, backdrop at the centre) named and documented.",
+     "criterionIds": [
+      "STEP-1"
+     ],
+     "designIds": [
+      "d-contract-scenes"
+     ],
+     "dependsOn": [],
+     "checkIds": [
+      "check-ring-evenness"
+     ],
+     "sourceRefs": [
+      {
+       "repositoryId": "gpux",
+       "path": "crates/gpux_tests_conformance/src/scene.rs",
+       "symbol": "Step"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": "crates/gpux_tests_conformance/src/evaluate.rs"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": "crates/gpux_tests_conformance/src/test_host.rs"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": "crates/gpux_tests_conformance/src/app_host.rs"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": "crates/gpux_tests_conformance/src/host.rs"
+      }
+     ]
+    },
+    {
+     "id": "t2-probe-scenes",
+     "title": "Add the inset-shadow, gradient, pattern and image-alpha scenes",
+     "descriptionMarkdown": "Implement SCN-1 to SCN-4 and the catalog shape of SCN-6 per d-contract-scenes.\n\n1. Add the encoded-sRGB `over` helper beside the scenes (`scenes/common.rs` or the new module) and use it for every composite expectation. OKLab expectations: use `gpux_color` and the renderers' stop preparation (`prepare_gradient_stop_color` in `crates/gpui/src/color.rs`, read-only here), so the scene states the contract rather than a measured value.\n2. Add `paint-contract-inset-shadows`, `paint-contract-gradients`, `paint-contract-patterns` and `paint-contract-image-alpha` with `PIXEL_LANES`, scales `[1., 2.]`, `golden: false`, `Expect::Bounds` for each probed element, and the probes the criteria list. Place probes away from anti-aliased edges and pattern boundaries at both scales; comment each with the failure-mode value it rejects.\n3. Add the new `Area` variants to `Area` and `Area::REQUIRED`, register the scenes in `CATALOG`, and list them in `tests/catalog/lane_a_scenes.rs` and `lane_c_scenes.rs`.\n4. `RenderImage` frames are BGRA; keep the image's alpha straight.\n\nRun the lane C check on Metal while writing the probes; a value that disagrees with the contract on Metal is t4's to resolve, not a reason to change the expectation.",
+     "criterionIds": [
+      "SCN-1",
+      "SCN-2",
+      "SCN-3",
+      "SCN-4",
+      "SCN-6"
+     ],
+     "designIds": [
+      "d-contract-scenes"
+     ],
+     "dependsOn": [],
+     "checkIds": [
+      "check-catalog-coverage",
+      "check-lane-a-paint-contract",
+      "check-lane-a-fast-parity-paint-contract"
+     ],
+     "sourceRefs": [
+      {
+       "repositoryId": "gpux",
+       "path": "crates/gpux_tests_conformance/src/scenes/paint.rs",
+       "symbol": "SRGB"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": "crates/gpux_tests_conformance/src/scenes/common.rs"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": "crates/gpux_tests_conformance/src/scenes/mod.rs"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": "crates/gpux_tests_conformance/src/scene.rs",
+       "symbol": "Area"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": "crates/gpux_tests_conformance/tests/catalog/lane_a_scenes.rs"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": "crates/gpux_tests_conformance/tests/catalog/lane_c_scenes.rs"
+      }
+     ]
+    },
+    {
+     "id": "t3-beading-scene",
+     "title": "Add the border-beading scene",
+     "descriptionMarkdown": "Implement SCN-5 per d-contract-scenes, using t1's step: three `rounded_full` 1 px rings (white, an accent blue, white at alpha 0.15) and a 4 px white box over `#0a0a0a`, sized like RayX's page so the ring circumference spans all 48 bins with several pixels each. Same catalog shape as t2 (prefix, lanes, scales, `golden: false`, area, both catalog lists). The limits are RayX's; do not tune them.",
+     "criterionIds": [
+      "SCN-5"
+     ],
+     "designIds": [
+      "d-contract-scenes"
+     ],
+     "dependsOn": [
+      "t1-even-ring-step"
+     ],
+     "checkIds": [
+      "check-lane-a-paint-contract"
+     ],
+     "sourceRefs": [
+      {
+       "repositoryId": "gpux",
+       "path": "crates/gpux_tests_conformance/src/scenes/paint.rs",
+       "symbol": "BORDER_STRIPS"
+      }
+     ]
+    },
+    {
+     "id": "t4-renderer-parity",
+     "title": "Run the scenes on Metal and WebGPU and fix the renderer that breaks the contract",
+     "descriptionMarkdown": "Implement PAR-1 to PAR-4 per d-renderer-parity.\n\n1. Run the lane C (Metal), lane B and lane D checks for the `paint-contract-*` scenes. Save raw output and failing frames (`artifacts-temp/testkit/c/` and Playwright reports) under `artifacts-temp/agentx/metal-paint-parity/`.\n2. For each failure, decide from the contract whether the scene or a renderer is wrong (d-renderer-parity), then fix it at its source: `crates/gpui_apple/src/shaders.metal` and `metal_renderer.rs` for Metal, `crates/gpui_wgpu/src/shaders.wgsl` and `wgpu_renderer.rs` for WGPU. Expected suspects from the port's hand-off: inset shadows (`element_bounds`, `element_corner_radii`), OKLab stop conversion, pattern scaling, polychrome premultiplication, and Metal's hard-coded border gamma in `quad_fragment`.\n3. Commit each fix separately, naming the scene that proves it; say in the body when the file is upstream-imported. A WGSL change also runs lane B's forced-WebGL2 route for the touched scenes and `dawn.spec.ts`; amend `check-lane-b-paint-contract` or add a focused check for it.\n4. Record in the handoff (`advance --handoff`) every fix, or that none was needed, and the measured beading coefficients per ring, scale and lane: REC-1 needs them.",
+     "criterionIds": [
+      "PAR-1",
+      "PAR-2",
+      "PAR-3",
+      "PAR-4"
+     ],
+     "supportingCriterionIds": [
+      "SCN-1",
+      "SCN-2",
+      "SCN-3",
+      "SCN-4",
+      "SCN-5"
+     ],
+     "designIds": [
+      "d-renderer-parity",
+      "d-contract-scenes"
+     ],
+     "dependsOn": [
+      "t2-probe-scenes",
+      "t3-beading-scene"
+     ],
+     "checkIds": [
+      "check-lane-c-metal-paint-contract",
+      "check-lane-c-fast-parity-paint-contract",
+      "check-lane-b-paint-contract",
+      "check-lane-d-paint-contract"
+     ],
+     "sourceRefs": [
+      {
+       "repositoryId": "gpux",
+       "path": "crates/gpui_apple/src/shaders.metal",
+       "symbol": "quad_fragment"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": "crates/gpui_apple/src/metal_renderer.rs"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": "crates/gpui_wgpu/src/shaders.wgsl",
+       "symbol": "fs_quad"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": "crates/gpui_wgpu/src/wgpu_renderer.rs"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "s2-apple-ci",
+   "title": "Clippy on macOS and the runtime_shaders build in CI",
+   "dependsOn": [
+    "s1-paint-contract-scenes"
+   ],
+   "memoryScopes": [
+    "repository/validation"
+   ],
+   "checkIds": [
+    "check-macos-workspace-clippy",
+    "check-runtime-shaders",
+    "check-workflow-yaml"
+   ],
+   "tasks": [
+    {
+     "id": "t5-apple-ci",
+     "title": "Fix the macOS Clippy findings and lint and build the Apple code in CI",
+     "descriptionMarkdown": "Implement CI-1 to CI-3 per d-apple-ci. This sprint follows s1 so the workspace Clippy run also lints s1's code.\n\n1. Run `check-macos-workspace-clippy`. Known finding: `crates/util/src/command/darwin/process.rs`, `tests::spawn` (`clippy::zombie_processes`, `clippy::disallowed_methods`); mark the helper `#[allow(clippy::disallowed_methods, clippy::zombie_processes)]` with a comment that `Process` reaps the pid, as `darwin.rs`'s tests do. Fix any other finding at its source, each with its own commit when it touches another crate.\n2. In `.github/workflows/ci.yml`'s `check` job: the Clippy step's `if:` becomes `runner.os != 'Linux'`; add `cargo check -p gpux-apple --features runtime_shaders` as a macOS-only step after `Check every target`, with a one-line comment.\n3. Update `docs/testing.md`'s `ci.yml` paragraph to say Clippy runs on Windows and macOS, and `docs/ci.md` if it describes the `check` job's steps.\n4. Run the three sprint checks. The hosted proof of CI-2 is the push's own CI run (`check (macos-15)` shows the Clippy and runtime_shaders steps); never dispatch an extra run.",
+     "criterionIds": [
+      "CI-1",
+      "CI-2",
+      "CI-3"
+     ],
+     "designIds": [
+      "d-apple-ci"
+     ],
+     "dependsOn": [],
+     "checkIds": [
+      "check-macos-workspace-clippy",
+      "check-runtime-shaders",
+      "check-workflow-yaml"
+     ],
+     "sourceRefs": [
+      {
+       "repositoryId": "gpux",
+       "path": "crates/util/src/command/darwin/process.rs",
+       "symbol": "tests::spawn"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": ".github/workflows/ci.yml",
+       "symbol": "check"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": "docs/testing.md"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": "docs/ci.md"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "s3-durable-records",
+   "title": "Record the proven state in memory and the import guide, and retire ToFix",
+   "dependsOn": [
+    "s1-paint-contract-scenes",
+    "s2-apple-ci"
+   ],
+   "memoryScopes": [
+    "platform/desktop",
+    "renderer",
+    "renderer/wgpu",
+    "repository/upstream-sync",
+    "repository/validation"
+   ],
+   "checkIds": [
+    "check-memory-audit",
+    "check-repository-layout"
+   ],
+   "tasks": [
+    {
+     "id": "t6-memory-sync",
+     "title": "Sync gpux memory with the proven Metal state",
+     "descriptionMarkdown": "Implement REC-1 per d-records, using t4's handoff (fixes and measured beading). Edit the narrowest records: `knowledge/platform/desktop/{state,hypotheses,rules}.md`, `knowledge/renderer/state.md` (and `knowledge.md` for the `repr(C)` item if it fits there better than platform/desktop), `knowledge/renderer/wgpu/rules.md`, and the stale parenthetical in `decisions/renderer/wgpu/2026-09-30-renderer-wgpu-srgb-compositing.md`. If s2 changed what `knowledge/repository/validation/state.md` says about CI Clippy, update it. Update `updated:` timestamps and any index entries, then run `check-memory-audit`.",
+     "criterionIds": [
+      "REC-1"
+     ],
+     "designIds": [
+      "d-records"
+     ],
+     "dependsOn": [],
+     "checkIds": [
+      "check-memory-audit"
+     ],
+     "sourceRefs": [
+      {
+       "repositoryId": "gpux",
+       "path": ".agentx/memory/knowledge/platform/desktop/state.md"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": ".agentx/memory/knowledge/platform/desktop/hypotheses.md"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": ".agentx/memory/knowledge/platform/desktop/rules.md"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": ".agentx/memory/knowledge/renderer/state.md"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": ".agentx/memory/knowledge/renderer/wgpu/rules.md"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": ".agentx/memory/decisions/renderer/wgpu/2026-09-30-renderer-wgpu-srgb-compositing.md"
+      }
+     ]
+    },
+    {
+     "id": "t7-import-guide-and-tofix",
+     "title": "Add the replay rules to the import guide and delete ToFix",
+     "descriptionMarkdown": "Implement REC-2 and REC-3 per d-records.\n\n1. Add the bullets REC-2 lists to \"Native Rendering And Windows\" in `.claude/skills/gpux/references/update-from-zed-gpui-closure.md`, matching its wording style (what to preserve, why upstream's file must not be taken whole, which test guards it).\n2. Delete `ToFix/` (`git rm -r`), remove `\"ToFix/\"` from `HISTORICAL` (fixing the array length) and `\"ToFix/x.md\"` from `historical_records_and_fixtures_are_not_scanned` in `tools/testkit/tests/repository_layout.rs`, then run `check-repository-layout`.\n3. Commit as `docs(skill): ...` and `chore: ...` (or one `docs` commit).",
+     "criterionIds": [
+      "REC-2",
+      "REC-3"
+     ],
+     "designIds": [
+      "d-records"
+     ],
+     "dependsOn": [],
+     "checkIds": [
+      "check-repository-layout"
+     ],
+     "sourceRefs": [
+      {
+       "repositoryId": "gpux",
+       "path": ".claude/skills/gpux/references/update-from-zed-gpui-closure.md"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": "tools/testkit/tests/repository_layout.rs",
+       "symbol": "HISTORICAL"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
