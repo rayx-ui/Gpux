@@ -118,7 +118,7 @@ case "$EVENT_NAME" in
       # at the first code file, and `pipefail` then reads the pull request as documentation only.
       changed=$(git diff --name-only "$BASE_SHA" "${HEAD_SHA:-HEAD}")
       if [ -z "$changed" ] \
-        || ! grep -qv -E '^(docs/|\.agentx/|\.claude/|README\.md$|CLAUDE\.md$|CHANGELOG\.md$|LINUX-WSL\.md$|LICENSE)' <<<"$changed"; then
+        || ! grep -qv -E '^(docs/|\.agentx/|\.claude/|README\.md$|CLAUDE\.md$|CHANGELOG\.md$|LICENSE)' <<<"$changed"; then
         jobs=(check)
       elif is_release_change "$changed"; then
         # A release pull request (docs/releasing.md) changes only version values and the

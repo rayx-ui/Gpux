@@ -64,9 +64,6 @@ Web crates also need `cargo check -p gpux-web --target wasm32-unknown-unknown --
 (the default multithreaded build needs nightly `-Z build-std`, which `gpux-testkit web build`
 provides). Before a release or a manifest change, run `cargo package --workspace`.
 
-Linux validation on a Windows machine runs in WSL; [LINUX-WSL.md](LINUX-WSL.md) sets it up and
-lists the gpux lane commands there.
-
 Runtime proof runs in gpux's own test lanes through `gpux-testkit`
 (`cargo run -p gpux-testkit -- lane <lane>... [--scene <id>] [--grep <pattern>]`);
 [docs/testing.md](docs/testing.md) describes each lane, its prerequisites and its CI cadence.

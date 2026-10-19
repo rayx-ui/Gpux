@@ -4,7 +4,7 @@ agentx:
   scope: decisions/repository/validation
   status: current
   created: 2026-10-14T12:00:00+02:00
-  updated: 2026-10-14T12:00:00+02:00
+  updated: 2026-10-19T14:27:00+02:00
   topics:
     - gpux
     - wsl
@@ -23,7 +23,7 @@ agentx:
 
 ### Alternatives considered: Treating WSL as a Linux GPU for lane G; skipping the Linux GPU entirely.
 
-### Reasoning: Mesa built from source with `-Dvulkan-drivers=microsoft-experimental` (selected with `VK_DRIVER_FILES`) plus [`WGPU_ALLOW_UNDERLYING_NONCOMPLIANT_ADAPTER`](../../renderer/wgpu/2026-10-14-renderer-wgpu-noncompliant-adapter-variable.md) puts the GPU in front of lane C (188 of 188) and lane D (43 of 43, 13 skipped), which proves pixels and windows on Vulkan. The adapter is Vulkan translated to D3D12 on a non-conformant driver, not a native Linux driver, so its results are not timing. Lane B and the browser timings cannot run there; the setup is in `LINUX-WSL.md`.
+### Reasoning: Mesa built from source with `-Dvulkan-drivers=microsoft-experimental` (selected with `VK_DRIVER_FILES`) plus [`WGPU_ALLOW_UNDERLYING_NONCOMPLIANT_ADAPTER`](../../renderer/wgpu/2026-10-14-renderer-wgpu-noncompliant-adapter-variable.md) puts the GPU in front of lane C (188 of 188) and lane D (43 of 43, 13 skipped), which proves pixels and windows on Vulkan. The adapter is Vulkan translated to D3D12 on a non-conformant driver, not a native Linux driver, so its results are not timing. Lane B and the browser timings cannot run there. The setup guide, `LINUX-WSL.md`, was removed from the repository on 2026-10-19.
 
 ### Trade-offs accepted: No browser timing and no `fast_mode` table exist on a Linux GPU.
 

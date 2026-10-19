@@ -65,7 +65,7 @@ command that installs a missing one. Platform setup is in
 | Host | Lanes | Needs |
 |---|---|---|
 | Windows | A, C, D | nothing extra: WARP, the DX12 software adapter, ships with Windows. Visual Studio Build Tools as for any gpux build. |
-| Linux | A, C, D | `pkg-config libfreetype6-dev libfontconfig1-dev libxkbcommon-dev libxkbcommon-x11-dev libvulkan1 mesa-vulkan-drivers`; lavapipe through `VK_DRIVER_FILES` for C and D; a display (or `xvfb-run`) and `xdotool` for D. [LINUX-WSL.md](../LINUX-WSL.md) sets up WSL. |
+| Linux | A, C, D | `pkg-config libfreetype6-dev libfontconfig1-dev libxkbcommon-dev libxkbcommon-x11-dev libvulkan1 mesa-vulkan-drivers`; lavapipe through `VK_DRIVER_FILES` for C and D; a display (or `xvfb-run`) and `xdotool` for D. |
 | macOS | A, C, D | the Xcode command-line tools; Metal is the GPU. |
 | any | B, G | a nightly toolchain with `rust-src` (`nightly-2026-06-23` unless `GPUX_WEB_TOOLCHAIN` names another); `wasm-bindgen-cli` at the version `Cargo.lock` pins; Node.js 22 or later with `pnpm`; in `tools/browser`: `pnpm install` and `pnpm exec playwright install chromium`. |
 | any | E | `ANDROID_HOME` with the pinned SDK packages, a JDK 21, `cargo-ndk`, the Android Rust targets, and a device or an emulator with hardware virtualization; see [Lane E](#lane-e-android). |
@@ -82,7 +82,7 @@ command that installs a missing one. Platform setup is in
 | `GPUX_PROBES_ONLY` | lane C | `1` skips golden comparisons and keeps the relative probes (lane G). |
 | `GPUX_ARTIFACTS_DIR` | lanes C and D | Where failure images go instead of `artifacts-temp/testkit/<lane>/`. |
 | `VK_DRIVER_FILES` | Linux | Points Vulkan at one driver, for example lavapipe: `/usr/share/vulkan/icd.d/lvp_icd.json` (`lvp_icd.x86_64.json` before Mesa 25.2). A path that does not exist leaves no Vulkan adapter, and rendering falls back to llvmpipe over GL. |
-| `WGPU_ALLOW_UNDERLYING_NONCOMPLIANT_ADAPTER` | native renderers | wgpu's own switch, honoured by gpux alone among the `WGPU_*` variables: any value but `0` exposes Vulkan adapters whose driver claims no conformance, which wgpu hides. Mesa's `dzn` (Vulkan on D3D12) is the only way a GPU shows up as Vulkan under WSL; [LINUX-WSL.md](../LINUX-WSL.md#lanes-c-and-d-on-the-gpu-through-dzn-optional) builds it. |
+| `WGPU_ALLOW_UNDERLYING_NONCOMPLIANT_ADAPTER` | native renderers | wgpu's own switch, honoured by gpux alone among the `WGPU_*` variables: any value but `0` exposes Vulkan adapters whose driver claims no conformance, which wgpu hides. Mesa's `dzn` (Vulkan on D3D12) is the only way a GPU shows up as Vulkan under WSL. |
 | `GPUX_OS_INPUT` | lane D | `optional` reports the OS-input check skipped when the session delivers no synthetic input (hosted Windows runners). |
 | `GPUX_FAST_MODE`, `GPUX_LAYOUT_RETENTION`, `GPUX_VIEW_RETENTION`, `GPUX_SCROLL_LAYERS` | every window | The fast-mode switches ([fast-mode.md](fast-mode.md#switches)), read when a window opens. Fast mode is on by default, so every lane runs with it; `GPUX_FAST_MODE=0` reproduces a failure without it. Tests that compare modes set them with `Window::set_fast_mode`. |
 | `ZED_DEVICE_ID` | windowed renderers | Pins a GPU by its PCI device id on machines with several. |

@@ -74,7 +74,7 @@ sudo pacman -S \
 
 ## Linux Test Lanes
 
-Lanes C and D render on lavapipe (`mesa-vulkan-drivers`), selected with `VK_DRIVER_FILES=/usr/share/vulkan/icd.d/lvp_icd.json` (`lvp_icd.x86_64.json` before Mesa 25.2). Lane D also needs a display, or `xvfb-run -a -s "-screen 0 1280x1024x24"` with `WAYLAND_DISPLAY` unset, plus `xdotool` for OS input. [LINUX-WSL.md](../../../../LINUX-WSL.md) runs the lanes under WSL.
+Lanes C and D render on lavapipe (`mesa-vulkan-drivers`), selected with `VK_DRIVER_FILES=/usr/share/vulkan/icd.d/lvp_icd.json` (`lvp_icd.x86_64.json` before Mesa 25.2). Lane D also needs a display, or `xvfb-run -a -s "-screen 0 1280x1024x24"` with `WAYLAND_DISPLAY` unset, plus `xdotool` for OS input.
 
 ## WASM Tooling
 
