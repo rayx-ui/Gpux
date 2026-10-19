@@ -12,7 +12,7 @@ platform. The rules, in order:
 | Pull request without `ci:` labels that changes only `docs/`, `.agentx/`, `.claude/` or the top-level markdown and licence files (`CHANGELOG.md` included) | Only `check` (format, `cargo check`). |
 | Release pull request without `ci:` labels: it changes only `CHANGELOG.md`, `Cargo.lock` and `Cargo.toml` files outside `vendor/`, and its manifests and lockfile equal the base once own version values are masked ([releasing.md](releasing.md)) | `check` on ubuntu and `package` (on its own `macos-15` runner). Lanes B, E and F skip it through the same plan; `ci:` labels still choose the jobs and `ci-os:` labels move `check`. |
 | Any other pull request | Everything, as before (lanes B, E and F keep their own path filters), except lane C on WARP (below). |
-| Nightly schedule (03:17 UTC) | Everything, on every platform, with lane C's scroll-layer suites in full mode. |
+| Nightly schedule (21:47 UTC) | Everything, on every platform, with lane C's scroll-layer suites in full mode. |
 
 Lane C on WARP (Windows' software DirectX 12) is the slowest job, so a pull request leaves it out:
 lane C runs on lavapipe (ubuntu) and Metal (macos) on every push, and on WARP only with the
@@ -74,6 +74,6 @@ sampled mode. Two things are therefore only proved later:
   scroll-offset handling should run `full` once before merging (manual run, `jobs` = `lane-c`,
   `full` ticked).
 
-The nightly run (03:17 UTC) runs everything on every platform with `full`, and a failure there
+The nightly run (21:47 UTC) runs everything on every platform with `full`, and a failure there
 names the commit range since the last green night. Measurements of what each choice costs are in
 [measurements/lane-c-timings.md](measurements/lane-c-timings.md).

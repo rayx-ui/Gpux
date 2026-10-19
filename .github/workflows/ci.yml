@@ -4,7 +4,7 @@ on:
   pull_request:
   # The nightly run covers what a pull request leaves out: every platform, lane C in full mode.
   schedule:
-    - cron: '17 3 * * *'
+    - cron: '47 21 * * *'
   workflow_dispatch:
     inputs:
       jobs:

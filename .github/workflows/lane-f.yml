@@ -15,7 +15,7 @@ on:
       - tools/testkit/**
       - .github/workflows/lane-f.yml
   schedule:
-    - cron: '7 4 * * *'
+    - cron: '37 22 * * *'
   workflow_dispatch:
     inputs:
       grep:

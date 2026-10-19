@@ -38,11 +38,11 @@ What a run executes is chosen by its `plan` job from the manual inputs, the pull
 | Lane | Workflow job | Runner | Cadence |
 |---|---|---|---|
 | A | `ci.yml` lane A | `ubuntu-24.04`, `windows-2025`, `macos-15` | every pull request |
-| B | `lane-b.yml` | `ubuntu-24.04`: headless Chromium, WebGPU on SwiftShader (profile `ci-linux-swiftshader`), 4 shards | pull requests: `@canary` and `@pr` at DPR 1; nightly at 03:17 UTC (or a dispatch with `all-specs`): every spec except `@timing`, DPR 2 included |
+| B | `lane-b.yml` | `ubuntu-24.04`: headless Chromium, WebGPU on SwiftShader (profile `ci-linux-swiftshader`), 4 shards | pull requests: `@canary` and `@pr` at DPR 1; nightly at 21:47 UTC (or a dispatch with `all-specs`): every spec except `@timing`, DPR 2 included |
 | C | `ci.yml` lane C | `ubuntu-24.04` (lavapipe), `windows-2025` (WARP), `macos-15` (Metal) | every pull request on lavapipe and Metal, sampled; WARP with `ci-os:windows` or `ci:all`; every platform, in full mode, nightly |
 | D | `ci.yml` lane D | `ubuntu-24.04` (X11 under Xvfb, lavapipe), `windows-2025` (WARP), `macos-15` | every pull request |
-| E | `lane-e.yml` | `ubuntu-24.04`: KVM-accelerated API 34 x86_64 emulator, SwiftShader GL | nightly at 03:47 UTC, and pull requests that touch `gpui_mobile`, `gpui_wgpu`, `gpux_tests_conformance`, `tools/android` or `tools/testkit` |
-| F | `lane-f.yml` | `macos-15`: an iPhone 16 Simulator on the newest installed iOS runtime | nightly at 04:07 UTC, and pull requests that touch `gpui_mobile`, `gpui_wgpu`, `gpux_tests_conformance`, `tools/ios` or `tools/testkit` |
+| E | `lane-e.yml` | `ubuntu-24.04`: KVM-accelerated API 34 x86_64 emulator, SwiftShader GL | nightly at 22:17 UTC, and pull requests that touch `gpui_mobile`, `gpui_wgpu`, `gpux_tests_conformance`, `tools/android` or `tools/testkit` |
+| F | `lane-f.yml` | `macos-15`: an iPhone 16 Simulator on the newest installed iOS runtime | nightly at 22:37 UTC, and pull requests that touch `gpui_mobile`, `gpui_wgpu`, `gpux_tests_conformance`, `tools/ios` or `tools/testkit` |
 | G | none: local only | the developer's GPU | before releases, and for renderer, platform or performance changes |
 
 `ci.yml` also runs `check` (format, `cargo check --workspace --all-targets`, Clippy, the web
