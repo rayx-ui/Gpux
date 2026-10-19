@@ -1,7 +1,7 @@
 {
-  "schemaVersion": 6,
+  "schemaVersion": 7,
   "epicId": "macos-only-metal-port-and-ci-repair",
-  "revision": 0,
+  "revision": 1,
   "planRevision": 1,
   "specHashes": {
     "requirements": "a1d9c22865c4cc43849cd6eacebc975c8c2e442605787e13fb90ce247bf8b3e3",
@@ -54,21 +54,465 @@
   "handoffMarkdown": "",
   "protectedPaths": {
     "gpux": {
-      "gpux:vendor/wgpu/**": "2fde7871db68af5a07e61281b2877fb308235a9df0b048f31f9cd3da0466c599",
-      "gpux:.agentx/experiments/**": "32805d33f7172446b7e9cec5989ba59bd78648a57efc98bd96bbcac8fcac16a6",
-      "gpux:.agentx/tasks/frame-effects-navigation-transitions/**": "b9d8d0f34d35f8efab37309cf3092cfe59934ae76b2665d09616032db699093f",
-      "gpux:.agentx/tasks/frame-family-component-transitions/**": "786cf5831d50db830d3d78fb97657cdf457ec9ea0fc9682794782bf69173a676",
-      "gpux:.agentx/tasks/gpux-fixed-sticky-positioning/**": "d7e287cbe0b1a6afb8166c063b31bfa9e09c420c651630d97ed855a6685409ba",
-      "gpux:.agentx/tasks/gpux-text-rendering-quality-performance/**": "3a93656394a1d894dfda413d47b680644cf0a8ad6094b4a4ec1ed10bffcbefc4",
-      "gpux:.agentx/tasks/gpux-wgpu-platform-renderers/**": "3efd7b2c2e35eeb71ac4a54c2a498a7e377665c1a1f59d8ca6d5bd0b13b576fa",
-      "gpux:.agentx/tasks/high-quality-wasm-text-rendering/**": "16acd26c781d2590eaa636e41209d0a2e57237decbded91279857ee8636b26eb",
-      "gpux:.agentx/tasks/html-element-dom-overlay/**": "8bc3eba1cd26e95004311080d07651348f9c19dff64d8f46521d7bc9c3cdd7f6",
-      "gpux:.agentx/tasks/html-island-wasm/**": "56a0864ccb5a02db863fa17b08cb47db9c378428c56302b46acf7b8da0cfe875",
-      "gpux:.agentx/tasks/keyed-sticky-stacking/**": "6103606d1f3d16eaaac1ae98bb24c5a1ae105ce2457a6aec0383b52489808be5",
-      "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**": "ea29584d0a17dcea6547dd0dc05de74450b58982a44883b96d1b0cca70a86b00"
-    },
-    "rayx": {
-      "rayx:apps/lab/src/**": "09dd0c80d940155bbbb0a91c627a28a3c35dedbd4f7e2f3e595c62df89f42dcf"
+      "gpux:vendor/wgpu/**": "a4c4ab1992f6a0aeeca032fedb82b953741f6d547ac517ef15467c67dffa69e5",
+      "gpux:.agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",
+      "gpux:.agentx/tasks/frame-effects-navigation-transitions/**": "97cc9f821c990f4d3560b1c4726ede795e7d91f4329839215674e7649efd8747",
+      "gpux:.agentx/tasks/frame-family-component-transitions/**": "3987d07e830ea8dadd35abe56c1d8ccc36b8fb2f8feb189a1d6727c14f114ab1",
+      "gpux:.agentx/tasks/gpux-fixed-sticky-positioning/**": "0e971f9ad2c8147d6f56981b495a94b8f5cc7cce5eef6f391b7894b3223959b7",
+      "gpux:.agentx/tasks/gpux-text-rendering-quality-performance/**": "213eb24a25a50d0ccbc7d468e8bedc96a10bdf38f76a4e9130109b9142a0a3e5",
+      "gpux:.agentx/tasks/gpux-wgpu-platform-renderers/**": "585529d42deceb4ae2639c37596347714777579ccca3b5b5e74b007eaf7d2f81",
+      "gpux:.agentx/tasks/high-quality-wasm-text-rendering/**": "81eee19badcd190b59dae1d9fb52bcdf0f53273ab9f00df9cb617c79213a0061",
+      "gpux:.agentx/tasks/html-element-dom-overlay/**": "eb0c49ccecf4bfea51485d81c60e272f47d1cf1e582701f1791f9c5a77ee6be7",
+      "gpux:.agentx/tasks/html-island-wasm/**": "8db76e0d9f0706ea6e4b34b9f7741317d47ee734673bd83cb97352d82d6520b8",
+      "gpux:.agentx/tasks/keyed-sticky-stacking/**": "7f924a57495dfb6d3a2ca3be75e5fdb04cb012ecfc41554bdb278a84987e82ef",
+      "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**": "f3f66695ebf53686a0437e18bf587955317994e21eac47d7908641e0281996ce"
     }
-  }
+  },
+  "dispositions": [
+    {
+      "type": "criterion",
+      "id": "PROC-1",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Delivered on `main` by `5599036` (gpux-owned `darwin/process.rs`) through epic gpux-cross-platform-test-lanes task t31; macOS `check` is green in CI.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "criterion",
+      "id": "PROC-2",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Delivered on `main` by `ec24941` (`command::darwin::process` tests), run by CI's `test (macos-15)`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "criterion",
+      "id": "PROC-3",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "The existing `command::darwin::tests` run in CI's `test (macos-15)` job, which is green.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "criterion",
+      "id": "BUILD-1",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "`cargo check --workspace --all-targets` is CI's green `check (macos-15)` step.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "criterion",
+      "id": "BUILD-2",
+      "disposition": "deferred",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z",
+      "followUpMarkdown": "Epic `metal-paint-parity` adds the `runtime_shaders` check of `gpux-apple` to CI's macOS check job."
+    },
+    {
+      "type": "criterion",
+      "id": "BUILD-3",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "No consumer builds `gpux-apple` for iOS (`gpui_mobile` renders through wgpu); the check passed locally on 2026-10-19 and the owner chose not to keep it in CI.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "criterion",
+      "id": "PAINT-1",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "The `paint_packing_*` tests run in CI's green `test (macos-15)` job.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "criterion",
+      "id": "PAINT-2",
+      "disposition": "deferred",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z",
+      "followUpMarkdown": "Epic `metal-paint-parity` proves the paint contract with probe-based conformance scenes on every pixel lane (Metal lane C included) instead of a `gpux-apple`-only group."
+    },
+    {
+      "type": "criterion",
+      "id": "PAINT-3",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "The owner kept only a `runtime_shaders` build check (BUILD-2's successor in `metal-paint-parity`), not a pixel run with the feature.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "criterion",
+      "id": "PAINT-4",
+      "disposition": "deferred",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z",
+      "followUpMarkdown": "Epic `metal-paint-parity` runs clippy on macOS in CI and fixes the `gpux-zed-util` darwin test helper lints."
+    },
+    {
+      "type": "criterion",
+      "id": "PAINT-5",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "gpux proves itself in its own lanes, independent of RayX (gpux-cross-platform-test-lanes owner decision 1); the RayX Test Suite proof no longer applies. Conformance scenes in `metal-paint-parity` replace it.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "criterion",
+      "id": "DASH-1",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Delivered on `main` by `b0c1c37` (whole-color dash fade) with the `paint-border-strips` scene on every pixel lane.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "criterion",
+      "id": "DASH-2",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "RayX merged `test/dashed-border-gaps` into `master` (`e49d9e2e`).",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "criterion",
+      "id": "FLAKE-1",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Delivered on `main` by `dff77b4` (30 s pid-file deadline, recorded in the import guide).",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "criterion",
+      "id": "DOCS-1",
+      "disposition": "deferred",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z",
+      "followUpMarkdown": "Epic `metal-paint-parity` syncs the stale Metal memory (desktop state and hypotheses, the 2026-09-30 sRGB decision) and adds the `repr(C)` and premultiplied-fade records."
+    },
+    {
+      "type": "criterion",
+      "id": "DOCS-2",
+      "disposition": "deferred",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z",
+      "followUpMarkdown": "Epic `metal-paint-parity` adds the Metal paint-contract and dash-gap replay rules to the import guide and deletes `ToFix/`."
+    },
+    {
+      "type": "criterion",
+      "id": "PUB-1",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Implementation pushes straight to `main` (CLAUDE.md Releases); there is no integration branch or pull request to publish.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "task",
+      "id": "t1-darwin-process-handle",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "task",
+      "id": "t2-close-macos-build",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "task",
+      "id": "t3-apple-variants",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "task",
+      "id": "t4-paint-packing-and-lint",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "task",
+      "id": "t5-metal-pixel-tests",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "task",
+      "id": "t6-native-visual-proof",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "task",
+      "id": "t7-merge-dashed-fix",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "task",
+      "id": "t8-dashed-spec-on-mac",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "task",
+      "id": "t9-raise-grandchild-deadline",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "task",
+      "id": "t10-memory-sync",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "task",
+      "id": "t11-import-guide-and-tofix",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "task",
+      "id": "t12-publish",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "check",
+      "id": "check-util-no-fork-api",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "check",
+      "id": "check-util-darwin-tests",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "check",
+      "id": "check-macos-workspace",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "check",
+      "id": "check-apple-runtime-shaders",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "check",
+      "id": "check-apple-ios",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "check",
+      "id": "check-apple-paint-packing",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "check",
+      "id": "check-apple-clippy",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "check",
+      "id": "check-apple-pixels",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "check",
+      "id": "check-apple-pixels-runtime",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "check",
+      "id": "check-wgpu-dashed",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "check",
+      "id": "check-rayx-dashed-spec",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "check",
+      "id": "check-util-fmt",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "check",
+      "id": "final-fmt",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "check",
+      "id": "final-clippy",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "check",
+      "id": "final-tests",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "check",
+      "id": "final-package",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "check",
+      "id": "final-rayx-related",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "decision",
+      "id": "d-proc-handle",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "decision",
+      "id": "d-macos-build",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "decision",
+      "id": "d-metal-contract",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "decision",
+      "id": "d-metal-proof",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "decision",
+      "id": "d-dash-land",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "decision",
+      "id": "d-flake-patch",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "decision",
+      "id": "d-records",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "decision",
+      "id": "d-publish",
+      "disposition": "withdrawn",
+      "reasonMarkdown": "Owner, 2026-10-19: \"Go with your recommendations: retire the old epic, plan a new one covering items 1-4 (all item 1 scenes except the transparent window), clippy on macOS only.\" The epic was never started; most of its work landed on `main` through other epics, and the open remainder moves to `metal-paint-parity`.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    },
+    {
+      "type": "repository",
+      "id": "rayx",
+      "disposition": "retired",
+      "reasonMarkdown": "RayX merged its dashed-border spec; gpux no longer depends on RayX for proof.",
+      "decidedBy": "owner",
+      "recordedAt": "2026-10-19T09:52:11Z"
+    }
+  ]
 }
