@@ -8,6 +8,7 @@ pub mod interaction;
 pub mod layout;
 pub mod lists;
 pub mod paint;
+pub mod paint_contract;
 pub mod scrolling;
 pub mod semantics;
 pub mod text;
@@ -57,6 +58,11 @@ pub static CATALOG: &[SceneSpec] = &[
     paint::SHADOWS_GRADIENTS,
     paint::OPACITY_CLIPPING,
     paint::SRGB,
+    paint_contract::INSET_SHADOWS,
+    paint_contract::GRADIENTS,
+    paint_contract::PATTERNS,
+    paint_contract::IMAGE_ALPHA,
+    paint_contract::BORDER_BEADING,
     effects::SHADER_EFFECTS,
     effects::ANIMATED_FRAME,
     effects::TRANSITION_FRAME,

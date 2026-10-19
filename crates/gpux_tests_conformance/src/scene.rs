@@ -103,6 +103,11 @@ pub enum Area {
     TransitionFrame,
     ShaderEffects,
     SrgbCompositing,
+    InsetShadows,
+    GradientInterpolation,
+    PatternBackgrounds,
+    ImageAlpha,
+    BorderAntialiasing,
     AccessibilityTree,
     Accessibility,
 }
@@ -162,6 +167,11 @@ impl Area {
         Area::TransitionFrame,
         Area::ShaderEffects,
         Area::SrgbCompositing,
+        Area::InsetShadows,
+        Area::GradientInterpolation,
+        Area::PatternBackgrounds,
+        Area::ImageAlpha,
+        Area::BorderAntialiasing,
         Area::AccessibilityTree,
         Area::Accessibility,
     ];
