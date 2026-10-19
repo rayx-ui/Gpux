@@ -257,6 +257,11 @@ pub enum Step {
     ProbeUniform(LogicalRect, Rgba, u8),
     /// Pixel lanes: two regions differ by more than a tolerance.
     ProbeDiffer(LogicalRect, LogicalRect, u8),
+    /// Pixel lanes: the 1 px border of a `rounded_full` element is evenly bright around its
+    /// whole circumference, with no beading. The values are the largest coefficient of variation
+    /// of its per-angle energy ([`crate::evaluate::ring_evenness`]) allowed at scale 1 and at
+    /// scale 2 and above.
+    EvenRing(Query, f32, f32),
     /// Pixel lanes: remembers the current frame under a name.
     Capture(&'static str),
     /// Pixel lanes: a region changed since a captured frame.
@@ -283,6 +288,7 @@ impl Step {
             Step::Probe(..)
                 | Step::ProbeUniform(..)
                 | Step::ProbeDiffer(..)
+                | Step::EvenRing(..)
                 | Step::Capture(_)
                 | Step::ChangedSince(..)
                 | Step::Golden

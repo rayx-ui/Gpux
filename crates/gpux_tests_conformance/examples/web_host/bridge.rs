@@ -88,7 +88,17 @@ impl Bridge {
             Ok(scale) => scale,
             Err(error) => return Some(format!("the scene window is gone: {error:#}")),
         };
-        evaluate::pixel_step(step, &frame, scale, &mut self.captures)
+        let result = match step {
+            // A ring step measures around its element, located in the window's latest frame.
+            Step::EvenRing(..) => self
+                .window
+                .update(cx, |_, window, _| evaluate::snapshot(window))
+                .map_err(anyhow::Error::from)
+                .and_then(|snapshot| snapshot)
+                .and_then(|snapshot| evaluate::even_ring_step(&snapshot, step, &frame, scale)),
+            _ => evaluate::pixel_step(step, &frame, scale, &mut self.captures),
+        };
+        result
             .err()
             .map(|error| format!("{:#}", error.context(format!("at scale {scale}"))))
     }
@@ -337,6 +347,7 @@ fn descriptor(index: usize, planned: &Planned) -> js_sys::Object {
         Step::Probe(..)
         | Step::ProbeUniform(..)
         | Step::ProbeDiffer(..)
+        | Step::EvenRing(..)
         | Step::Capture(_)
         | Step::ChangedSince(..) => "pixels",
         Step::Golden | Step::GoldenWithin(_) | Step::When(..) => "skip",

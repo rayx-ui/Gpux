@@ -460,6 +460,14 @@ impl TestHost {
                 let frame = open.frame()?.clone();
                 evaluate::pixel_step(step, &frame, open.scale, &mut open.captures)?;
             }
+            Step::EvenRing(..) => {
+                let snapshot = open
+                    .vcx()
+                    .settled_semantic_snapshot()
+                    .context("the window builds no accessibility tree")?;
+                let frame = open.frame()?.clone();
+                evaluate::even_ring_step(&snapshot, step, &frame, open.scale)?;
+            }
             Step::When(..) => bail!("`run_scene` resolves `When` steps"),
             Step::Golden | Step::GoldenWithin(_) => {
                 if !scene.golden {

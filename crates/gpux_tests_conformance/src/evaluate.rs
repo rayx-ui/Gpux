@@ -6,13 +6,16 @@ use crate::{
     probe::{self, DEFAULT_TOLERANCE, PixelRect},
     scene::{Expect, LogicalRect, Step},
 };
-use anyhow::bail;
+use anyhow::{Context as _, bail};
 use gpux::{
     A11yInspection, Pixels, Point, Window, point, px,
     semantic_query::{self, Query, SemanticNode, SemanticSnapshot},
 };
 use image::RgbaImage;
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    f64::consts::{PI, TAU},
+};
 
 /// The center of a node's bounds in window pixels.
 pub fn center(element: &SemanticNode) -> Point<Pixels> {
@@ -264,6 +267,7 @@ pub fn pixel_step_within(
         Step::Capture(name) => {
             captures.insert(name, frame.clone());
         }
+        Step::EvenRing(..) => bail!("a ring step reads its element's bounds: see `even_ring_step`"),
         Step::ChangedSince(name, rect) => {
             let Some(before) = captures.get(name) else {
                 bail!("no capture named {name:?}");
@@ -277,5 +281,137 @@ pub fn pixel_step_within(
         }
         other => bail!("{other:?} is not a pixel step"),
     }
+    Ok(())
+}
+
+/// A rectangle in device pixels: `(x, y, width, height)`.
+pub type DeviceRect = (f32, f32, f32, f32);
+
+/// The angular bins [`ring_evenness`] sums a ring's energy into.
+pub const RING_BINS: usize = 48;
+
+/// How far from a ring border's centre line [`ring_evenness`] collects pixels, in device pixels
+/// at `scale`: half the 1 px border plus two pixels of anti-aliasing on either side.
+pub fn ring_reach(scale: f32) -> f32 {
+    scale / 2. + 2.
+}
+
+/// The linear-light luminance (Rec. 709 weights) of an encoded sRGB pixel.
+fn luminance(pixel: probe::Rgba) -> f64 {
+    fn linear(value: u8) -> f64 {
+        let value = f64::from(value) / 255.;
+        if value <= 0.04045 {
+            value / 12.92
+        } else {
+            ((value + 0.055) / 1.055).powf(2.4)
+        }
+    }
+    0.2126 * linear(pixel[0]) + 0.7152 * linear(pixel[1]) + 0.0722 * linear(pixel[2])
+}
+
+/// How unevenly the 1 px border of a `rounded_full` element is drawn around its circumference
+/// (RayX's beading metric). `bounds` is the element's border box in device pixels of `frame`,
+/// rendered at `scale`.
+///
+/// Every pixel within [`ring_reach`] of the border's centre line (a circle half a logical pixel
+/// inside the element's edge) adds the linear-light luminance it shows above the backdrop, the
+/// pixel at the ring's centre, to one of [`RING_BINS`] angular bins. The result is the bins'
+/// coefficient of variation (standard deviation over mean): an evenly anti-aliased ring puts the
+/// same energy in every bin whatever its sub-pixel phase, while a beaded one (alternately bright
+/// and dark runs along the curve) spreads them. Fails when the ring adds no energy over the
+/// backdrop, since an undrawn ring is never even, or reaches outside the frame.
+pub fn ring_evenness(frame: &RgbaImage, bounds: DeviceRect, scale: f32) -> anyhow::Result<f64> {
+    let (x, y, width, height) = bounds;
+    let center = (f64::from(x + width / 2.), f64::from(y + height / 2.));
+    let radius = f64::from(width / 2. - scale / 2.);
+    let reach = f64::from(ring_reach(scale));
+    let left = (center.0 - radius - reach).floor();
+    let top = (center.1 - radius - reach).floor();
+    let right = (center.0 + radius + reach).ceil();
+    let bottom = (center.1 + radius + reach).ceil();
+    if left < 0.
+        || top < 0.
+        || right >= f64::from(frame.width())
+        || bottom >= f64::from(frame.height())
+    {
+        bail!(
+            "the ring of device bounds {bounds:?} reaches outside the {}x{} frame",
+            frame.width(),
+            frame.height()
+        );
+    }
+    let backdrop = luminance(
+        frame
+            .get_pixel(center.0.floor() as u32, center.1.floor() as u32)
+            .0,
+    );
+    let mut energy = [0f64; RING_BINS];
+    for row in top as u32..=bottom as u32 {
+        for column in left as u32..=right as u32 {
+            let dx = f64::from(column) + 0.5 - center.0;
+            let dy = f64::from(row) + 0.5 - center.1;
+            if (dx.hypot(dy) - radius).abs() > reach {
+                continue;
+            }
+            let bin = ((dy.atan2(dx) + PI) / TAU * RING_BINS as f64) as usize % RING_BINS;
+            energy[bin] += (luminance(frame.get_pixel(column, row).0) - backdrop).max(0.);
+        }
+    }
+    let mean = energy.iter().sum::<f64>() / RING_BINS as f64;
+    if mean <= 0. {
+        bail!("the ring adds no light over its backdrop: an undrawn ring is never even");
+    }
+    let variance = energy
+        .iter()
+        .map(|energy| (energy - mean).powi(2))
+        .sum::<f64>()
+        / RING_BINS as f64;
+    Ok(variance.sqrt() / mean)
+}
+
+/// The limit of a [`Step::EvenRing`] at `scale`: `at_1x` below scale 2, `at_2x` from scale 2
+/// up, where the border spans more device pixels and anti-aliases more evenly.
+pub fn ring_limit(scale: f32, at_1x: f32, at_2x: f32) -> f32 {
+    if scale < 2. { at_1x } else { at_2x }
+}
+
+/// The ring of the element with device-pixel `bounds` is even: its [`ring_evenness`] is at most
+/// `limit`. Returns the measured coefficient.
+pub fn even_ring(
+    frame: &RgbaImage,
+    bounds: DeviceRect,
+    scale: f32,
+    limit: f32,
+) -> anyhow::Result<f64> {
+    let coefficient = ring_evenness(frame, bounds, scale)?;
+    if coefficient > f64::from(limit) {
+        bail!(
+            "the ring beads: its per-angle energy varies by {coefficient:.3} (coefficient of \
+             variation), above the limit {limit} at scale {scale}"
+        );
+    }
+    Ok(coefficient)
+}
+
+/// Checks a [`Step::EvenRing`] against `frame`, rendered at `scale`, locating its element in
+/// `snapshot` as [`Expect::Bounds`] does.
+pub fn even_ring_step(
+    snapshot: &SemanticSnapshot,
+    step: &Step,
+    frame: &RgbaImage,
+    scale: f32,
+) -> anyhow::Result<()> {
+    let Step::EvenRing(query, at_1x, at_2x) = step else {
+        bail!("{step:?} is not a ring step");
+    };
+    let bounds = query.resolve(snapshot)?.bounds;
+    let device = (
+        bounds.x * scale,
+        bounds.y * scale,
+        bounds.width * scale,
+        bounds.height * scale,
+    );
+    even_ring(frame, device, scale, ring_limit(scale, *at_1x, *at_2x))
+        .with_context(|| format!("`{query}`"))?;
     Ok(())
 }

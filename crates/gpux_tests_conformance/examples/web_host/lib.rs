@@ -155,6 +155,7 @@ mod web {
                 Step::Expect(_)
                 | Step::ProbeUniform(..)
                 | Step::ProbeDiffer(..)
+                | Step::EvenRing(..)
                 | Step::Capture(_)
                 | Step::Golden
                 | Step::GoldenWithin(_) => {}

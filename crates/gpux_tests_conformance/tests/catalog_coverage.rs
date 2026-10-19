@@ -98,6 +98,7 @@ fn every_scene_declares_complete_metadata() {
                 Step::Probe(..)
                     | Step::ProbeUniform(..)
                     | Step::ProbeDiffer(..)
+                    | Step::EvenRing(..)
                     | Step::ChangedSince(..)
             )
         });

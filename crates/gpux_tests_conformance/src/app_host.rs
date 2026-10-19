@@ -577,8 +577,17 @@ impl SceneRun<'_> {
             Step::Probe(..)
             | Step::ProbeUniform(..)
             | Step::ProbeDiffer(..)
+            | Step::EvenRing(..)
             | Step::Capture(_)
             | Step::ChangedSince(..) => {
+                // A ring step measures around its element, located in the settled frame.
+                let snapshot = match step {
+                    Step::EvenRing(..) => {
+                        self.settle(cx).await?;
+                        Some(self.snapshot(cx)?)
+                    }
+                    _ => None,
+                };
                 let frame = match self.frame(cx).await {
                     Ok(frame) => frame,
                     // Platforms without readback, and windows without a renderer (a Simulator
@@ -605,13 +614,17 @@ impl SceneRun<'_> {
                 } else {
                     0
                 };
-                if let Err(error) = evaluate::pixel_step_within(
-                    step,
-                    &frame,
-                    scale,
-                    &mut self.captures,
-                    color_tolerance,
-                ) {
+                let result = match &snapshot {
+                    Some(snapshot) => evaluate::even_ring_step(snapshot, step, &frame, scale),
+                    None => evaluate::pixel_step_within(
+                        step,
+                        &frame,
+                        scale,
+                        &mut self.captures,
+                        color_tolerance,
+                    ),
+                };
+                if let Err(error) = result {
                     let mut error = error.context(format!("at scale {scale}"));
                     if let Some(dir) = &self.host.failure_frames {
                         let path = dir.join(format!("{}.actual.png", self.scene_id));

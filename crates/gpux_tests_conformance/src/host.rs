@@ -128,6 +128,9 @@ pub fn describe(step: &Step) -> String {
         Step::Probe(x, y, color, _) => format!("probe ({x}, {y}) is {color:?}"),
         Step::ProbeUniform(rect, color, _) => format!("probe {rect:?} is uniformly {color:?}"),
         Step::ProbeDiffer(a, b, _) => format!("probe {a:?} differs from {b:?}"),
+        Step::EvenRing(query, at_1x, at_2x) => {
+            format!("ring `{query}` is even within {at_1x} at 1x, {at_2x} at 2x")
+        }
         Step::Capture(name) => format!("capture {name:?}"),
         Step::ChangedSince(name, rect) => format!("{rect:?} changed since {name:?}"),
         Step::Golden => "golden".to_string(),
