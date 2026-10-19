@@ -107,8 +107,14 @@ jobs:
       - name: Check every target
         # gpux-accesskit-macos builds only on Apple platforms; gpux-macos still checks it there.
         run: cargo check --workspace --all-targets --exclude gpux-accesskit-macos
+      - name: Check the runtime_shaders build
+        # Its own invocation: feature unification would switch the precompiled metallib off for
+        # the whole workspace check.
+        if: runner.os == 'macOS'
+        run: cargo check -p gpux-apple --features runtime_shaders
       - name: Clippy
-        if: runner.os == 'Windows'
+        # Linux stays unlinted (owner); Windows and macOS lint their platform-only code.
+        if: runner.os != 'Linux'
         run: cargo clippy --workspace --all-targets --no-deps ${{ env.FORK_EXCLUDES }} -- -D warnings
         shell: bash
       - name: Check the web platform

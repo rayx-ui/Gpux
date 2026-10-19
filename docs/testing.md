@@ -45,10 +45,11 @@ What a run executes is chosen by its `plan` job from the manual inputs, the pull
 | F | `lane-f.yml` | `macos-15`: an iPhone 16 Simulator on the newest installed iOS runtime | nightly at 22:37 UTC, and pull requests that touch `gpui_mobile`, `gpui_wgpu`, `gpux_tests_conformance`, `tools/ios` or `tools/testkit` |
 | G | none: local only | the developer's GPU | before releases, and for renderer, platform or performance changes |
 
-`ci.yml` also runs `check` (format, `cargo check --workspace --all-targets`, Clippy, the web
-checks), `test` (`cargo test --workspace` without the conformance crate, one test at a time,
-because GPU-backed tests hang DX12 when they create devices concurrently) and `package`
-(`cargo package --workspace`) on every pull request.
+`ci.yml` also runs `check` (format, `cargo check --workspace --all-targets`, Clippy on Windows and
+macOS, the `runtime_shaders` build of `gpux-apple` on macOS, the web checks), `test` (`cargo test
+--workspace` without the conformance crate, one test at a time, because GPU-backed tests hang DX12
+when they create devices concurrently) and `package` (`cargo package --workspace`) on every pull
+request.
 
 Timing thresholds live only in lane G: hosted runners have no GPU, and software rasterizers make
 frame times meaningless. Scenes and specs that assert real-clock timing are skipped on the
