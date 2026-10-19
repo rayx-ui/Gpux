@@ -162,6 +162,8 @@ The RayX memories identify these gpux-owned patches as especially easy to miss d
 - Preserve Windows interactive redraw priority, mouse-move coalescing, and live-resize coalescing into scheduled frames. Pending resize frames must present and force a fresh GPUI draw so scene geometry and surface size come from the same resize sample.
 - Preserve native WGPU waiting before `Surface::configure`; browser/WASM resize remains nonblocking.
 - Preserve target-specific `WgpuRenderer::gpu_specs()` backend-label helpers so WASM does not read native-only backend policy fields.
+- Preserve the Metal paint contract (`5321a25`): `crates/gpui_apple/src/shaders.metal` consumes premultiplied, encoded-sRGB `PaintColor` and returns premultiplied color, mirroring WGSL; `crates/gpui_apple/build.rs` has cbindgen parse `gpux_color`'s `src/color/paint.rs` through `gpux_color::GPUX_COLOR_MANIFEST_DIR`; and enums exported to Metal (`MonochromeSpriteKind` and the like) stay `#[repr(C)]`, since cbindgen's sized-enum typedef (`enum X {...}; typedef uint32_t X;`) is a redefinition in Metal's C++. Upstream's `shaders.metal` still reads `Hsla` and straight alpha, so never take it whole; merge its changes into the premultiplied paths. The `paint-contract-*` scenes are the audit: run them in lanes C and D on macOS (`--grep paint-contract`) and lane B for WGSL.
+- Preserve WGSL `fs_quad`'s border fixes (`b0c1c37`): a dash gap scales the whole premultiplied border color, not its alpha alone, and an untransformed quad's antialias threshold is the constant half pixel. Upstream fades alpha alone, which tints the gaps, and derives the threshold, which uncovers strips at odd device-pixel edges. `paint-border-strips` guards both.
 
 ### Linux
 
