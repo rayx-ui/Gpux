@@ -133,8 +133,10 @@ mod tests {
     use super::*;
     use std::time::{Duration, Instant};
 
+    // The tests need a raw pid to hand to `Process`, which reaps it: `std::process::Child`
+    // never reaps on drop, so its pid becomes ours.
+    #[allow(clippy::disallowed_methods, clippy::zombie_processes)]
     fn spawn(program: &str, args: &[&str], kill_on_drop: bool) -> Process {
-        // `std::process::Child` never reaps on drop, so its pid becomes ours.
         let child = std::process::Command::new(program)
             .args(args)
             .spawn()
