@@ -1,64 +1,43 @@
 # ToFix: open work from the 2026-10-06 macOS CI session
 
-**These notes are planned as the AgentX epic `macos-only-metal-port-and-ci-repair`**
-(`.agentx/tasks/macos-only-metal-port-and-ci-repair/`). Start implementation on the Mac with
-`/agentx implement macos-only-metal-port-and-ci-repair`. The epic is the authority; these notes are
-its source material.
+These notes were the source material of the AgentX epic `macos-only-metal-port-and-ci-repair`
+(`.agentx/tasks/macos-only-metal-port-and-ci-repair/`). That epic was never started (all tasks
+pending, revision 0): most of its work landed on `main` through other epics. Retire or replan it
+before implementing what is left.
 
-These notes hand off unfinished work to an agent running on a **real macOS machine**
-(Apple Silicon or Intel, Xcode installed, so `xcrun metal` works). Everything below was done from
-Windows; anything that needs a Mac is still open. Read this index first, then the numbered files in
-order.
+## State On 2026-10-19
 
-| File | What | State |
+| Note | What | State |
 |---|---|---|
-| [01-macos-metal-renderer.md](01-macos-metal-renderer.md) | Metal renderer ported to the `PaintColor` contract (the original CI failure) | Done on branch `fix/metal-paint-contract`; real macOS now compiles the Metal shaders. Runtime proof and tests still need a Mac |
-| [02-macos-zed-util-process-reaping.md](02-macos-zed-util-process-reaping.md) | `gpux-zed-util` macOS build fails: `adopt_raw_pid` only exists in Zed's git fork of `async-process` | **Next CI blocker.** Proposed fix written and type-checked; not committed; needs running on a Mac |
-| [03-wgpu-dashed-borders.md](03-wgpu-dashed-borders.md) | WGPU dashed borders rendered solid (premultiplied color faded through alpha only) | Fixed and runtime-proven on branches; only merging is left (blocked by 01/02 for a green macOS job) |
-| [04-flaky-windows-process-test.md](04-flaky-windows-process-test.md) | `gpux-zed-util` Windows test `test_drop_terminates_grandchildren` timed out once in CI | Probably a CI timing flake; decide whether to harden it |
+| [01-macos-metal-renderer.md](01-macos-metal-renderer.md) | Metal renderer on the `PaintColor` contract | Code on `main` (`5321a25`, `3ad5fca`); macOS `check`, `test`, lane A, lane C (`metal` goldens) and lane D are green in CI. Follow-ups below are open |
+| 02 (removed) | `gpux-zed-util` macOS build: `adopt_raw_pid` | Fixed: `5599036` adds `darwin/process.rs`, `ec24941` its tests; the import guide records the replay rule |
+| 03 (removed) | WGPU dashed borders rendered solid | Fixed: `b0c1c37` fades the whole premultiplied color; scene `paint-border-strips` probes the gaps on every pixel lane; RayX merged `test/dashed-border-gaps` (`e49d9e2e`) |
+| 04 (removed) | Flaky Windows `test_drop_terminates_grandchildren` | Fixed: `dff77b4` raises the pid-file deadline to 30 s; the import guide records it |
 
-## Current Git State
+The branches, closed pull requests and RayX-Test-Suite proof described in 01 are history: gpux now
+proves itself in its own lanes (`gpux-testkit`), independent of RayX, and implementation pushes
+straight to `main`.
 
-Nothing is merged. All pull requests were **closed (not merged)** at the user's request; the
-branches are pushed and kept.
+## Still Open
 
-| Repository | Branch | Commits on top of base | Closed PR |
-|---|---|---|---|
-| Gpux (`rayx-ui/Gpux`, base `main` at `29702e4`) | `fix/metal-paint-contract` | `3ad5fca` refactor(apple): drop clone calls on Copy content masks; `5321a25` fix(apple): port the Metal renderer to the PaintColor paint contract | [#1](https://github.com/rayx-ui/Gpux/pull/1) |
-| Gpux | `fix/wgpu-dashed-border-gaps` | `c6b6512` fix(wgpu): show the backdrop through dashed border gaps; `e7149e7` docs(memory): record that premultiplied paint fades every channel | [#2](https://github.com/rayx-ui/Gpux/pull/2) |
-| RayX (`rayx-ui/RayX`, base `master` at `9f4d2a1d`) | `test/dashed-border-gaps` | `f1a9be7b` test(test-suite): prove dashed border gaps show what lies beneath | [RayX#1](https://github.com/rayx-ui/RayX/pull/1) |
-
-The local Gpux checkout (`D:\Work\projects\RayX\Gpux`) was left on `fix/metal-paint-contract` with
-the **uncommitted** proposal from file 02 reverted; its full source is in file 02. The local RayX
-checkout is on `test/dashed-border-gaps`. RayX builds against whatever branch the sibling `../Gpux`
-checkout has, so the dashed-border spec fails if Gpux is on `main`.
-
-## Recommended Order On The Mac
-
-1. Check out Gpux `fix/metal-paint-contract`.
-2. Apply the `adopt_raw_pid` replacement from file 02 (or a better one), then run
-   `cargo check --workspace --all-targets`. That is exactly CI's failing step. Fix whatever it
-   reports next. The Windows cross-checks could not reach the crates that need a C toolchain, so
-   more macOS-only compile errors may still be hiding.
-3. Run the macOS tests listed in files 01 and 02, then the runtime proof in file 01.
-4. Commit (Conventional Commits, no Claude co-author lines), push, and reopen or recreate the PR.
-   When it is green, merge it, then merge `main` into `fix/wgpu-dashed-border-gaps`. That should turn
-   its macOS job green too. Then merge that branch and RayX `test/dashed-border-gaps` together.
-5. Do the memory and import-guide updates listed in file 01.
-
-## Repository Rules That Matter Here
-
-- Gpux `CLAUDE.md` and `.claude/skills/gpux/SKILL.md`. **Dependencies come from crates.io only**: no
-  git dependencies and no `[patch]` sections, because consumers of the published `gpux-*` crates
-  cannot see them. This rule is the root cause of file 02.
-- Test only what you changed. Focused checks are `cargo fmt --check`,
-  `cargo check -p <pkg> --all-targets`, `cargo test -p <pkg> <filter>`, and
-  `cargo clippy -p <pkg> --all-targets --no-deps -- -D warnings`. Run `cargo package --workspace`
-  after manifest changes.
-- Runtime proof for rendering changes happens in RayX's Test Suite (`../RayX`, `apps/test_suite`,
-  never `apps/lab`). On macOS that means a native run with DevKit/MCP; see RayX
-  `.claude/skills/rayx/references/diagnostics.md`.
-- Raw logs go to ignored `artifacts-temp/`, never into `.agentx/` or commits.
-- CI (`.github/workflows/ci.yml`): `check` runs on Ubuntu, Windows and macOS
-  (`cargo check --workspace --all-targets`); clippy and tests run on Windows only; `package` runs on
-  Ubuntu. Workflows run on pull requests and pushes to `main` only.
+1. **Memory is stale.** `knowledge/platform/desktop/state.md` still says the Metal border-coverage
+   port "has not been compiled or run", next to the lane C proof; `hypotheses.md` keeps it
+   unverified; the 2026-09-30 sRGB-compositing decision says the Metal port is "not yet compiled or
+   proven". Missing: a knowledge item that Metal-exported enums must be `#[repr(C)]` (cbindgen's
+   sized-enum typedef is a C++ redefinition) and a WGPU rule that fading or masking premultiplied
+   paint scales all four channels.
+2. **Import guide.** `update-from-zed-gpui-closure.md` "Native Rendering" has no Metal bullet:
+   upstream `shaders.metal` still uses `Hsla`, cbindgen must parse `gpux_color`'s `paint.rs`,
+   Metal-exported enums stay `repr(C)`, and upstream's WGSL dash gap fades alpha only.
+3. **Pixel coverage of what the port changed.** No conformance scene covers inset shadows,
+   translucent or OKLab gradient stops, `pattern_slash`/`checkerboard` backgrounds, translucent
+   image or emoji edges, 1 px rounded-border beading (Metal hard-codes `BORDER_GAMMA_RATIOS`), or a
+   transparent window. The `metal` goldens lock in what Metal renders; they do not prove it matches
+   WGPU.
+4. **Apple code is not linted in CI.** CI runs clippy on Windows only. On macOS,
+   `cargo clippy -p gpux-zed-util --all-targets --no-deps -- -D warnings` fails in the gpux-owned
+   `darwin/process.rs` test helper (`clippy::zombie_processes`, `clippy::disallowed_methods`);
+   `gpux-apple` and `gpux-macos` are clean.
+5. **Build variants outside CI.** `cargo check -p gpux-apple --features runtime_shaders` and
+   `--target aarch64-apple-ios` pass (2026-10-19, local), but nothing keeps them passing. No
+   consumer builds `gpux-apple` for iOS (`gpui_mobile` renders through wgpu).

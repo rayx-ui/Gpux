@@ -1,5 +1,10 @@
 # 01: Metal renderer on the `PaintColor` paint contract
 
+> **Status 2026-10-19.** The port is on `main` (`5321a25`, `3ad5fca`) and macOS CI is green
+> (check, workspace tests including `paint_packing_*`, lanes A, C and D). The emoji atlas question
+> is settled by code: `gpui_macos` un-premultiplies emoji before upload, as the shader assumes.
+> The sections below are the original hand-off; [README.md](README.md) lists what is still open.
+
 Branch: Gpux `fix/metal-paint-contract` (commits `3ad5fca`, `5321a25`), closed PR
 [rayx-ui/Gpux#1](https://github.com/rayx-ui/Gpux/pull/1).
 
