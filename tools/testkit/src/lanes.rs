@@ -186,9 +186,10 @@ pub fn test_name(scene: &SceneSpec) -> String {
     scene.id.replace('-', "_")
 }
 
-/// The lane-A groups besides the scenes: the catalog, image comparison, the host contract and
-/// the hosts on the accessibility tree, none of which needs a renderer.
-const LANE_A_GROUPS: [&str; 9] = [
+/// The lane-A groups besides the scenes: the catalog, image comparison, the host contract, the
+/// ring-evenness measurement on synthetic frames and the hosts on the accessibility tree, none of
+/// which needs a renderer.
+const LANE_A_GROUPS: [&str; 10] = [
     "catalog_coverage",
     "image_compare",
     "golden_policy",
@@ -196,6 +197,7 @@ const LANE_A_GROUPS: [&str; 9] = [
     "host_capabilities",
     "rgb565_tolerance",
     "screen_shows",
+    "ring_evenness",
     "lane_a_fast_parity",
     "conformance_accessibility",
 ];
@@ -204,9 +206,9 @@ const LANE_A_GROUPS: [&str; 9] = [
 /// fast-mode parity, and scroll layers drawn from the renderer's tiles (at whole scale
 /// factors, at fractional ones, and under a pointer that hovers a list's rows), the checks
 /// that the test build keeps debug assertions and overflow checks on, the frame comparison
-/// the scroll-layer groups share, the sampled and full modes of those groups, and scroll layers
-/// with the accessibility tree built.
-const LANE_C_GROUPS: [&str; 9] = [
+/// the scroll-layer groups share, the sampled and full modes of those groups, scroll layers
+/// with the accessibility tree built, and the paint-contract scenes at the mobile hosts' scales.
+const LANE_C_GROUPS: [&str; 10] = [
     "lane_g",
     "lane_c_fast_parity",
     "lane_c_scroll_layers",
@@ -216,6 +218,7 @@ const LANE_C_GROUPS: [&str; 9] = [
     "lane_c_compare",
     "lane_c_sampling",
     "lane_c_a11y_layers",
+    "lane_c_paint_contract_scales",
 ];
 
 /// The variable that makes lane C's scroll-layer suites run frame for frame.
@@ -377,7 +380,7 @@ fn plan_a(selection: &Selection) -> Result<LanePlan, PlanError> {
 /// `lane_c` and each group of [`LANE_C_GROUPS`]. Measured on an Apple M5 on Metal, in the sampled
 /// mode, from the `timings.md` of `gpux-testkit lane c`; only the ratios matter, and a unit
 /// missing here makes `lane_jobs` fail. Refresh them by hand from a new `timings.md`.
-const LANE_C_WEIGHTS: [(&str, u64); 10] = [
+const LANE_C_WEIGHTS: [(&str, u64); 11] = [
     ("lane_c", 880),
     ("lane_g", 580),
     ("lane_c_fast_parity", 1_980),
@@ -388,6 +391,7 @@ const LANE_C_WEIGHTS: [(&str, u64); 10] = [
     ("lane_c_compare", 10),
     ("lane_c_sampling", 2_020),
     ("lane_c_a11y_layers", 290),
+    ("lane_c_paint_contract_scales", 140),
 ];
 
 /// The weight of lane C unit `unit`.

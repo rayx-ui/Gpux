@@ -259,7 +259,7 @@ and `lane_c_sampling` the two modes, including seeded differences. The lane prin
 ran, before it starts and beside its summary. A sampled run compares fewer frames inside a long
 run of one-pixel scrolls (the steps `lane_c_sampling` lists as uncovered), so a defect that shows
 only at one of those offsets passes it and fails the full run: [what CI proves when](ci.md#what-a-pull-request-leaves-out-of-lane-c). `lane_c_a11y_layers` scrolls divs and lists from tiles with the accessibility tree built and
-compares it, frame for frame, with the tree of a window without scroll layers. `lane_c_profile` checks that the optimized test build keeps debug assertions and
+compares it, frame for frame, with the tree of a window without scroll layers. `lane_c_paint_contract_scales` runs the `paint-contract-*` scenes' probes at 3x and 2.625x, the scales mobile hosts render at. `lane_c_profile` checks that the optimized test build keeps debug assertions and
 overflow checks on (`cargo test` builds at `opt-level = 1`, see
 [docs/measurements/lane-c-timings.md](measurements/lane-c-timings.md)). Without a Vulkan adapter, Linux falls back to llvmpipe over GL, where the
 renderer's effects pipeline does not validate yet, so lane C fails there: select lavapipe with

@@ -149,7 +149,7 @@ fn a_selection_that_fits_in_fewer_processes_uses_fewer() {
     assert!(plan.prebuild.is_none());
     assert_eq!(plan, self::plan(LaneId::C, &narrowed).unwrap());
     let many = plan_with_jobs(LaneId::C, &Selection::default(), 64).unwrap();
-    assert!(many.invocations.len() <= 10);
+    assert!(many.invocations.len() <= 11);
     assert!(many.invocations.len() > 3);
 }
 
@@ -413,7 +413,7 @@ fn jobs_one_through_the_lane_command_runs_one_process_and_no_build() {
         "cargo test -p gpux-tests-conformance --test lane_c --test lane_g --test lane_c_fast_parity \
          --test lane_c_scroll_layers --test lane_c_layer_scales --test lane_c_list_hover \
          --test lane_c_profile --test lane_c_compare --test lane_c_sampling --test lane_c_a11y_layers \
-         --no-fail-fast -- \
+         --test lane_c_paint_contract_scales --no-fail-fast -- \
          --test-threads=1"
     );
     assert!(
