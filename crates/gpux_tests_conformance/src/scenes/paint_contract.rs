@@ -15,9 +15,9 @@ use crate::{
 };
 use gpux::prelude::*;
 use gpux::{
-    AnyElement, BoxShadow, Color, ColorSpace, IntoElement, RenderImage, checkerboard, div, hsla,
-    img, linear_color_stop, linear_gradient, pattern_slash, point, prepare_gradient_stop_color, px,
-    rgb,
+    AnyElement, BoxShadow, Color, ColorSpace, Context, IntoElement, Render, RenderImage, Window,
+    checkerboard, div, hsla, img, linear_color_stop, linear_gradient, pattern_slash, point,
+    prepare_gradient_stop_color, px, rgb,
 };
 use std::sync::{Arc, LazyLock};
 
@@ -316,16 +316,27 @@ pub const GRADIENTS: SceneSpec = SceneSpec {
 /// What the patterns paint: blue at half alpha, over a red backdrop.
 const PATTERN_PAINT: Straight = [0., 0., 1., 0.5];
 const PATTERN_BACKDROP: Rgba = RED;
-/// The checkerboard's cell and the slash pattern's stripe and gap, in device pixels: pattern
-/// geometry does not scale with the window. The probes below sit in the same cells and stripes
-/// at scales 1 and 2, at least three device pixels from any stripe edge.
+/// The checkerboard's cell and the slash pattern's stripe and gap, in logical pixels. Pattern
+/// geometry is in device pixels and does not scale with the window, so the scene multiplies it
+/// by the window's scale factor: the cells and stripes then sit at the same logical places on
+/// every host, whose scale may be 3 or fractional (2.625) on mobile devices. The probes below
+/// stay at least two logical pixels inside one cell or stripe at every such scale.
 const CHECKER_CELL: f32 = 16.;
 const STRIPE: f32 = 10.;
 const STRIPE_GAP: f32 = 16.;
 const CHECKERBOARD: (f32, f32) = (20., 20.);
 const SLASHES: (f32, f32) = (72., 20.);
 
-fn patterns() -> AnyElement {
+/// The patterns, rebuilt at the window's current scale factor.
+struct Patterns;
+
+impl Render for Patterns {
+    fn render(&mut self, window: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        patterns(window.scale_factor())
+    }
+}
+
+fn patterns(scale: f32) -> AnyElement {
     let swatch = |name: &'static str, (left, top): (f32, f32), width: f32| {
         div()
             .id(name)
@@ -339,12 +350,12 @@ fn patterns() -> AnyElement {
         .bg(rgb(RED_HEX))
         .child(
             swatch("checkerboard", CHECKERBOARD, 32.)
-                .bg(checkerboard(paint(PATTERN_PAINT), CHECKER_CELL)),
+                .bg(checkerboard(paint(PATTERN_PAINT), CHECKER_CELL * scale)),
         )
         .child(swatch("slashes", SLASHES, 64.).bg(pattern_slash(
             paint(PATTERN_PAINT),
-            STRIPE,
-            STRIPE_GAP,
+            STRIPE * scale,
+            STRIPE_GAP * scale,
         )))
         .into_any_element()
 }
@@ -356,7 +367,7 @@ pub const PATTERNS: SceneSpec = SceneSpec {
     scales: &[1., 2.],
     lanes: PIXEL_LANES,
     golden: false,
-    build: |_, cx| static_view(cx, patterns),
+    build: |_, cx| cx.new(|_| Patterns).into(),
     script: || {
         let painted = over(PATTERN_PAINT, PATTERN_BACKDROP);
         let mut steps = vec![
@@ -389,10 +400,12 @@ pub const PATTERNS: SceneSpec = SceneSpec {
         }
         let (left, top) = SLASHES;
         for (x, y, expected, tolerance) in [
-            (44., 7.5, painted, COMPOSITE),
-            (40., 11.5, painted, COMPOSITE),
-            (40., 20., PATTERN_BACKDROP, EXACT),
-            (44., 16., PATTERN_BACKDROP, EXACT),
+            // Stripe centres lie where x + y is a multiple of the 26 px period, gap centres
+            // half a period further.
+            (13., 13., painted, COMPOSITE),
+            (40., 12., painted, COMPOSITE),
+            (6., 7., PATTERN_BACKDROP, EXACT),
+            (25., 14., PATTERN_BACKDROP, EXACT),
         ] {
             steps.push(Step::Probe(left + x, top + y, expected, tolerance));
         }
