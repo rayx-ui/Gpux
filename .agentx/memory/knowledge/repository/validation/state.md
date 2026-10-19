@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/repository/validation
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-19T10:00:00+02:00
+  updated: 2026-10-19T12:58:00+02:00
   topics:
     - validation
     - focused-checks
@@ -56,6 +56,7 @@ Lane G on macOS needs the display awake: with it asleep every lane D window repo
 - [Playwright specs](../../../../../tools/browser/specs)
 - [CI workflow](../../../../../.github/workflows/ci.yml), [lane B workflow](../../../../../.github/workflows/lane-b.yml), [lane E workflow](../../../../../.github/workflows/lane-e.yml), [lane F workflow](../../../../../.github/workflows/lane-f.yml)
 - 2026-10-05 current [RayX consumer validation memory](../../../../../../RayX/.agentx/memory/knowledge/tooling/validation/state.md)
+- 2026-10-19 current [Clippy on Windows and macOS](../../../decisions/repository/validation/2026-10-19-repository-validation-clippy-on-windows-and-macos.md)
 - 2026-10-16 current [Test tooling layout](../../../decisions/repository/validation/2026-10-16-repository-validation-test-tooling-layout.md)
 - 2026-10-07 current [Seven test lanes](../../../decisions/repository/validation/2026-10-07-repository-validation-test-lanes.md)
 - 2026-10-07 current [gpux owns its runtime proof](../../../decisions/repository/validation/2026-10-07-repository-validation-gpux-owns-runtime-proof.md)

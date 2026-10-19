@@ -1,42 +1,1977 @@
 {
   "schemaVersion": 7,
   "epicId": "metal-paint-parity",
-  "revision": 0,
-  "planRevision": 1,
+  "revision": 39,
+  "planRevision": 3,
   "specHashes": {
-    "requirements": "21711a80d8ec204e0007db38136dcf5ebfaa0830df68145fe84198047ec9d676",
-    "design": "e5c1c128bf04505ccc4df2048598901310931004b7aebe23853a170df8018b39",
-    "plan": "d74df5279cf3116c4409e4b19d12588120c34c73baf926cacdd73a96f24e5ded"
+    "requirements": "060d7577f787ec2daf3494f6704e2421703d7189ec88e26d2451be57b2919e9b",
+    "design": "eabb655ff1a628c9422fe5df58004dde70c7bccefbcf91d4a1e97b5e8e7f64d3",
+    "plan": "f4f666e07bc7c405ce3ca15a6e6cf9660727a27e4ab84369e13a7af4319d39af"
   },
   "tasks": {
     "t1-even-ring-step": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "dd9b7980-fcc6-495b-98a9-d541eb466fc8"
+      ]
     },
     "t2-probe-scenes": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "dd9b7980-fcc6-495b-98a9-d541eb466fc8"
+      ]
     },
     "t3-beading-scene": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "dd9b7980-fcc6-495b-98a9-d541eb466fc8"
+      ]
     },
     "t4-renderer-parity": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "dd9b7980-fcc6-495b-98a9-d541eb466fc8"
+      ]
     },
     "t5-apple-ci": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "dd9b7980-fcc6-495b-98a9-d541eb466fc8"
+      ]
     },
     "t6-memory-sync": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "dd9b7980-fcc6-495b-98a9-d541eb466fc8"
+      ]
     },
     "t7-import-guide-and-tofix": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "dd9b7980-fcc6-495b-98a9-d541eb466fc8"
+      ]
+    },
+    "t8-pattern-host-scales": {
+      "status": "done",
+      "workerIds": [
+        "dd9b7980-fcc6-495b-98a9-d541eb466fc8"
+      ]
     }
   },
-  "validationBatches": {},
-  "checkResults": {},
-  "reviews": {},
-  "checkpoints": {},
-  "findings": [],
-  "handoffMarkdown": "",
+  "validationBatches": {
+    "d6de3ee83b085e0c8b5a34553d841ebf855dfad3086b490504fbbe1fee34c7ac": {
+      "snapshot": {
+        "specHash": "71961cfda70a985a8f4647b9852847c8e0f0f3a0a62ffffbddee77bdaee8d8ca",
+        "repositories": {
+          "gpux": "ddafdd0731dd50b303c6a1a0195ffed79cdb2fe0e21b1c3fbcd3bf434fbc5df2"
+        }
+      },
+      "recordedAt": "2026-10-19T10:33:56Z"
+    },
+    "77d497e09b4d31ef477be3e23ee3b60569f39960bfd52f75f10e9e7c648cf8d7": {
+      "snapshot": {
+        "specHash": "71961cfda70a985a8f4647b9852847c8e0f0f3a0a62ffffbddee77bdaee8d8ca",
+        "repositories": {
+          "gpux": "08b14ab12663bcc1377987b0bed82f64ec7db994656c0a1a55ae59615915eab3"
+        }
+      },
+      "recordedAt": "2026-10-19T10:35:58Z"
+    },
+    "19b6e595cf80eae06fdae48b95a392e549301877e4d9d623aff1d7b01cd74b5f": {
+      "snapshot": {
+        "specHash": "71961cfda70a985a8f4647b9852847c8e0f0f3a0a62ffffbddee77bdaee8d8ca",
+        "repositories": {
+          "gpux": "5c16c8fb3ee34b3ae4a59217634b573de0ca0e7e1fb557db74484eebb4e424fa"
+        }
+      },
+      "recordedAt": "2026-10-19T10:44:16Z"
+    },
+    "c4a1d8adc266219784bb44393b318438df848aecd8312a5f93968e24fd45f58a": {
+      "snapshot": {
+        "specHash": "02a1c2baf53bb662bb169a6e70602639fb40539fc322556a908df1b40e39cd9a",
+        "repositories": {
+          "gpux": "1613ef381d0e3ed6c9cdb1be7902ce73caa7f0e627bb09094917dd970707b0a7"
+        }
+      },
+      "recordedAt": "2026-10-19T10:52:57Z"
+    },
+    "26c53851363562b55dfc7a990fb07b82d6b7fa7b09c1a49504a5a584587f634d": {
+      "snapshot": {
+        "specHash": "d41b259bb28008938aaf1f92daea777c546b50c1e889e7bac1aefedb6f150181",
+        "repositories": {
+          "gpux": "49cd1073d618c9456251900c40856b90937b67bd2c10b5553110d02934aa6d1c"
+        }
+      },
+      "recordedAt": "2026-10-19T10:57:24Z"
+    }
+  },
+  "checkResults": {
+    "s1-paint-contract-scenes/check-ring-evenness/final": {
+      "checkId": "check-ring-evenness",
+      "boundaryId": "s1-paint-contract-scenes",
+      "phase": "final",
+      "batchId": "d6de3ee83b085e0c8b5a34553d841ebf855dfad3086b490504fbbe1fee34c7ac",
+      "definitionHash": "dc2efa7768b0bb1ebad5d25bd2c2117cddcc95c751d0f4e16e6827423c96b223",
+      "basisHash": "a557dcef7aa919e9253a44934d85fe79668539fc6c7e2e4d7cb797fdd895b18b",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 6,
+      "durationSeconds": 3.4034,
+      "recordedAt": "2026-10-19T10:32:45Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/s1-paint-contract-scenes-final-9acd125787e0.log",
+      "logSha256": "467dc29a118dd213e02cfa12349f811041b9e65ad0942870d6553c676e4f9bd1",
+      "inputsHash": "76179fa77bd59fdd9687bf391b58b2c27ebef6db070c3efafe6edc2784627ac1"
+    },
+    "s1-paint-contract-scenes/check-catalog-coverage/final": {
+      "checkId": "check-catalog-coverage",
+      "boundaryId": "s1-paint-contract-scenes",
+      "phase": "final",
+      "batchId": "d6de3ee83b085e0c8b5a34553d841ebf855dfad3086b490504fbbe1fee34c7ac",
+      "definitionHash": "4df3ec8c579f77280d77ab1b0042a772a7486c2433e01c318363d0f34684f135",
+      "basisHash": "83d0f8df877c29438a0deef6ab3d9436c83fa56e86241e4bf0dd28a751ea6e91",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 0.94,
+      "recordedAt": "2026-10-19T10:32:46Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/s1-paint-contract-scenes-final-949060116c4f.log",
+      "logSha256": "60062f08d5b79814a401e1c9ccb8d3157d5472e1909aa29e1ba4e98839c4573d",
+      "inputsHash": "f7117c35da0023a81035ccbb0eb749674b7f3ebe43579ade8ca15174cedd79a4"
+    },
+    "s1-paint-contract-scenes/check-lane-a-paint-contract/final": {
+      "checkId": "check-lane-a-paint-contract",
+      "boundaryId": "s1-paint-contract-scenes",
+      "phase": "final",
+      "batchId": "d6de3ee83b085e0c8b5a34553d841ebf855dfad3086b490504fbbe1fee34c7ac",
+      "definitionHash": "a13213efc500598361a490b81ff5d2ee59a9a74d6de1b936c7de17c3be5073a7",
+      "basisHash": "2a4941fb46a52a64008e3c89b9954ccb3c72919338010ad54d8784efd49ba62b",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 1.0445,
+      "recordedAt": "2026-10-19T10:32:47Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/s1-paint-contract-scenes-final-4d55bc1e3125.log",
+      "logSha256": "465037b68f8d655290abd09e7ef28408d93bedeb36d0a8ae67f61bdfce7df818",
+      "inputsHash": "f4be7cd718218918b665f3c985a0365d0f7570b1e8d967e60b884c6706a49935"
+    },
+    "s1-paint-contract-scenes/check-lane-c-metal-paint-contract/final": {
+      "checkId": "check-lane-c-metal-paint-contract",
+      "boundaryId": "s1-paint-contract-scenes",
+      "phase": "final",
+      "batchId": "d6de3ee83b085e0c8b5a34553d841ebf855dfad3086b490504fbbe1fee34c7ac",
+      "definitionHash": "95fba23d9ee301c03c8b86363f71edd6334871829ba3913a16934b98cb4d57ff",
+      "basisHash": "451c823e46a8a084123ee97bf2c9d168f661d358b9cd84f9f6502fd7eab7482f",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 10,
+      "durationSeconds": 1.0993,
+      "recordedAt": "2026-10-19T10:32:49Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/s1-paint-contract-scenes-final-1e02d42e2d44.log",
+      "logSha256": "92d6a668e225d0141e29250cc1a93f3b9111e5016e628ffeaa1ee3e3f968b065",
+      "inputsHash": "a15b9a0225597c796e26613d7a147c24d2a223b6ed15719e29973e606924cea0"
+    },
+    "s1-paint-contract-scenes/check-lane-a-fast-parity-paint-contract/final": {
+      "checkId": "check-lane-a-fast-parity-paint-contract",
+      "boundaryId": "s1-paint-contract-scenes",
+      "phase": "final",
+      "batchId": "d6de3ee83b085e0c8b5a34553d841ebf855dfad3086b490504fbbe1fee34c7ac",
+      "definitionHash": "5149e8dad4790fca0dfda91a3cfe75858968c1466dcc752d2d18c2634f73a4df",
+      "basisHash": "909cd833f15e3ecf488a74181f42476b7621b6b5367df21b47ad3cc2f0d426f6",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 0.9962,
+      "recordedAt": "2026-10-19T10:32:50Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/s1-paint-contract-scenes-final-8f4b6ee8621a.log",
+      "logSha256": "7698c5fd17a78fb6936b541defc7bb1bb991c4d1e12a63a0cef1f58ddda0d777",
+      "inputsHash": "74657ef8314e42634c790886696a17f02f1df7fa79ef3767fbd7d3c58dc6daa8"
+    },
+    "s1-paint-contract-scenes/check-lane-c-fast-parity-paint-contract/final": {
+      "checkId": "check-lane-c-fast-parity-paint-contract",
+      "boundaryId": "s1-paint-contract-scenes",
+      "phase": "final",
+      "batchId": "d6de3ee83b085e0c8b5a34553d841ebf855dfad3086b490504fbbe1fee34c7ac",
+      "definitionHash": "04f37223d9211256afd399b577a27c29f04ec22ec94c3158487f640c63760874",
+      "basisHash": "e5700008e3c152decfbcefc9db96f1e68cb722ea54357fc68f349a18b7cf5d10",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 10,
+      "durationSeconds": 1.2051,
+      "recordedAt": "2026-10-19T10:32:51Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/s1-paint-contract-scenes-final-7abf21e8cab1.log",
+      "logSha256": "119645cf0bb5f60b85c4b36635027dee30f758964aa82f01fb32245f6d101489",
+      "inputsHash": "198951789c114541065dfaf938c35908f24e4b492a8ca4456878cfea35914035"
+    },
+    "s1-paint-contract-scenes/check-lane-b-paint-contract/final": {
+      "checkId": "check-lane-b-paint-contract",
+      "boundaryId": "s1-paint-contract-scenes",
+      "phase": "final",
+      "batchId": "d6de3ee83b085e0c8b5a34553d841ebf855dfad3086b490504fbbe1fee34c7ac",
+      "definitionHash": "1b78d8b4ebd2667baba0882234e1fed3b77a7a2b6bb8a9ef77411303a37cd5ac",
+      "basisHash": "8660c3710baa96af257e9af37fe77d6535980662e5af92c2d45cac7e1c9acaa4",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 15,
+      "durationSeconds": 58.9816,
+      "recordedAt": "2026-10-19T10:33:50Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/s1-paint-contract-scenes-final-6b2c8f0ef9de.log",
+      "logSha256": "d9ac456347a956033b0dc700de271095f0985c9ae550c650f90e5321fa90ff62"
+    },
+    "s1-paint-contract-scenes/check-lane-d-paint-contract/final": {
+      "checkId": "check-lane-d-paint-contract",
+      "boundaryId": "s1-paint-contract-scenes",
+      "phase": "final",
+      "batchId": "d6de3ee83b085e0c8b5a34553d841ebf855dfad3086b490504fbbe1fee34c7ac",
+      "definitionHash": "9049a559f42427f53c3d713ed8c963c66814f0537113fd018104574486171108",
+      "basisHash": "e88c0f46ab745d724dc29d97fe297ca68cc88b1d371b525ac57693f39ee89e19",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 6.1657,
+      "recordedAt": "2026-10-19T10:33:56Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/s1-paint-contract-scenes-final-cac60b278a34.log",
+      "logSha256": "a23423f4c02a3336c472ce83fc17d465b32f76c0ef9479d2b8c5a508d2cedbdf"
+    },
+    "s2-apple-ci/check-macos-workspace-clippy/final": {
+      "checkId": "check-macos-workspace-clippy",
+      "boundaryId": "s2-apple-ci",
+      "phase": "final",
+      "batchId": "77d497e09b4d31ef477be3e23ee3b60569f39960bfd52f75f10e9e7c648cf8d7",
+      "definitionHash": "62952acfa34d86e83f08d49e3f85223d0fcb23331cb5f7495da83c9ae064ac2c",
+      "basisHash": "c7d5fc6b3a4239615583173c95f3573feca36f06a245c39a3698bf4b5d12f095",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.9283,
+      "recordedAt": "2026-10-19T10:35:48Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/s2-apple-ci-final-cf5ad4a2fdbc.log",
+      "logSha256": "3bb679965f0a12982e07be2b1c71ba457c15ceb768859fabb10911106022ba16",
+      "inputsHash": "b42e44f5db43312ce3f70fd6233442ce2153fd9a9b5ff1fa84521430feabdf45"
+    },
+    "s2-apple-ci/check-runtime-shaders/final": {
+      "checkId": "check-runtime-shaders",
+      "boundaryId": "s2-apple-ci",
+      "phase": "final",
+      "batchId": "77d497e09b4d31ef477be3e23ee3b60569f39960bfd52f75f10e9e7c648cf8d7",
+      "definitionHash": "cd9980e3c53179f8f356cbb5be97a7b8f3e0caeee29027ad98f5bf15ca46888b",
+      "basisHash": "f5ab89a7a8946b8c319a15f04f117ef29f46816d9987ae96296d105d3eaaf64e",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 9.561,
+      "recordedAt": "2026-10-19T10:35:58Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/s2-apple-ci-final-d281d4b78171.log",
+      "logSha256": "32ecd51a63ae710067618ab4181d0baf4c4b3e5c5afb5c18142cc69f85e4f54b",
+      "inputsHash": "350f8283f2b8357ba5c9050805f30218867a7c502806f8b017d0ef602eb206af"
+    },
+    "s2-apple-ci/check-workflow-yaml/final": {
+      "checkId": "check-workflow-yaml",
+      "boundaryId": "s2-apple-ci",
+      "phase": "final",
+      "batchId": "77d497e09b4d31ef477be3e23ee3b60569f39960bfd52f75f10e9e7c648cf8d7",
+      "definitionHash": "4abba3ac69dcfe125b7dbaa74127fb552c816ba1de243a74a718c68f4949f2ab",
+      "basisHash": "fd98df654f9a8beb8bc229f2b79e89000610b963cd23c9b14d808bd34bdeecea",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.1333,
+      "recordedAt": "2026-10-19T10:35:58Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/s2-apple-ci-final-9011a47417ae.log",
+      "logSha256": "b5ef34948d119b8c9a2a83ea3fa7be28686336c326ed4fa8cbd531bc51a84a27",
+      "inputsHash": "5400cd435b6fd0c72102248ecb43129ef3fbb57a4184f5203b9b748e00a35bd7"
+    },
+    "s3-durable-records/check-memory-audit/final": {
+      "checkId": "check-memory-audit",
+      "boundaryId": "s3-durable-records",
+      "phase": "final",
+      "batchId": "19b6e595cf80eae06fdae48b95a392e549301877e4d9d623aff1d7b01cd74b5f",
+      "definitionHash": "04e58ec050bd9885c5339310bab654684ea3d1ba663717ef117eaa3616b4dc3c",
+      "basisHash": "ec9ba9cdb23e5bc414fa6903b35c2f9585ddb83cd5136d471521495e83134b42",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.0765,
+      "recordedAt": "2026-10-19T10:41:56Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/s3-durable-records-final-c542d883eca7.log",
+      "logSha256": "163073f6c31cfe3415e6c8ca4971853a7d1fcde92009e02e10b5645dfa815ffd"
+    },
+    "s3-durable-records/check-repository-layout/final": {
+      "checkId": "check-repository-layout",
+      "boundaryId": "s3-durable-records",
+      "phase": "final",
+      "batchId": "19b6e595cf80eae06fdae48b95a392e549301877e4d9d623aff1d7b01cd74b5f",
+      "definitionHash": "7db8486483ae6ccc73c8a0956ac1e2051359e29e62b1267e5c20b91b67472db5",
+      "basisHash": "b543be583d8072c380b498611c037c61b5c523c01e279127933ecb596cec9856",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 11,
+      "durationSeconds": 0.5516,
+      "recordedAt": "2026-10-19T10:41:57Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/s3-durable-records-final-580c7cbf40e7.log",
+      "logSha256": "28a1af9722655e9a97570da3a7a03e02af519b7e647d45161066f03edf175375"
+    },
+    "final/check-ring-evenness/final": {
+      "checkId": "check-ring-evenness",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "26c53851363562b55dfc7a990fb07b82d6b7fa7b09c1a49504a5a584587f634d",
+      "definitionHash": "dc2efa7768b0bb1ebad5d25bd2c2117cddcc95c751d0f4e16e6827423c96b223",
+      "basisHash": "df6d7f766cc9e68d103f1b51db12e5480dab8b774898d3ba2e5195ea378b9d4d",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 6,
+      "durationSeconds": 1.5415,
+      "recordedAt": "2026-10-19T10:56:59Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/final-final-94ccb0e07892.log",
+      "logSha256": "8ca802d0aa61608b519d00bf605c07c8e79ebb066e4270fad1d0fc8abc6ea627",
+      "inputsHash": "0df66e6892422ead2e9b0ceca67d411c9326d1edfba630977a73b353b9692308"
+    },
+    "final/check-catalog-coverage/final": {
+      "checkId": "check-catalog-coverage",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "26c53851363562b55dfc7a990fb07b82d6b7fa7b09c1a49504a5a584587f634d",
+      "definitionHash": "4df3ec8c579f77280d77ab1b0042a772a7486c2433e01c318363d0f34684f135",
+      "basisHash": "f24e03dbe7916433ea226cb8a55226ccf9a114189947e91985f57916e89ee03b",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 0.9748,
+      "recordedAt": "2026-10-19T10:57:00Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/final-final-fe13b7a51d6d.log",
+      "logSha256": "cea48df645fcd128c37ab6990f11acabfcc6d132985b0b2832dcf6776c891e90",
+      "inputsHash": "a1359577635f67349fefa88ae970302063ec4afc34e7684e9cd27b72f52927f3"
+    },
+    "final/check-lane-a-paint-contract/final": {
+      "checkId": "check-lane-a-paint-contract",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "26c53851363562b55dfc7a990fb07b82d6b7fa7b09c1a49504a5a584587f634d",
+      "definitionHash": "a13213efc500598361a490b81ff5d2ee59a9a74d6de1b936c7de17c3be5073a7",
+      "basisHash": "0d9e6c9cb338d8de894c9f5d7069105806fabda9f0c2b179a4e2d4ba0e48b63f",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 0.2957,
+      "recordedAt": "2026-10-19T10:57:01Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/final-final-cb8cfa36b0f2.log",
+      "logSha256": "8ab2eadb08225442083c6945085eedbacfc35db751477689655bb9072f2a3d2b",
+      "inputsHash": "01f64eedd53d493258814f508c278d4eb32058f927aafbbdfc4f7160d9e337aa"
+    },
+    "final/check-lane-c-metal-paint-contract/final": {
+      "checkId": "check-lane-c-metal-paint-contract",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "26c53851363562b55dfc7a990fb07b82d6b7fa7b09c1a49504a5a584587f634d",
+      "definitionHash": "95fba23d9ee301c03c8b86363f71edd6334871829ba3913a16934b98cb4d57ff",
+      "basisHash": "846a7b69f4c2f0dfb420a0711a7f78bbea8bdb962b9809a1eef850d1efda4dce",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 10,
+      "durationSeconds": 0.3478,
+      "recordedAt": "2026-10-19T10:57:01Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/final-final-d9e3050ba298.log",
+      "logSha256": "349929795fc09650de92777797252daba50311ae363f9ee554629b4fcac0ba26",
+      "inputsHash": "32b26d7e08ebb408c0935ca13abd0b63b42bf7975e2f9cbe6cedfcbb65c9b3c5"
+    },
+    "final/check-lane-a-fast-parity-paint-contract/final": {
+      "checkId": "check-lane-a-fast-parity-paint-contract",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "26c53851363562b55dfc7a990fb07b82d6b7fa7b09c1a49504a5a584587f634d",
+      "definitionHash": "5149e8dad4790fca0dfda91a3cfe75858968c1466dcc752d2d18c2634f73a4df",
+      "basisHash": "0bdf062d98bf069814ac8c13ec5fa19a11c1e3772ce68e61ed67524608d005b1",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 0.2945,
+      "recordedAt": "2026-10-19T10:57:01Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/final-final-c45f077352ca.log",
+      "logSha256": "db7131429cc50ce22d4b984283eef792f23ce0c0b0be946db710195d74142395",
+      "inputsHash": "772c3aeecb44d12bb1fed2e31bec0a33b0052fb089681ea5f467ef4df49a1820"
+    },
+    "final/check-lane-c-fast-parity-paint-contract/final": {
+      "checkId": "check-lane-c-fast-parity-paint-contract",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "26c53851363562b55dfc7a990fb07b82d6b7fa7b09c1a49504a5a584587f634d",
+      "definitionHash": "04f37223d9211256afd399b577a27c29f04ec22ec94c3158487f640c63760874",
+      "basisHash": "06a610742463c4358b8af472c2a9d66910a4762126df7238f8b4100e90b2f593",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 10,
+      "durationSeconds": 0.4018,
+      "recordedAt": "2026-10-19T10:57:02Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/final-final-3ddb2a4054d5.log",
+      "logSha256": "650fff6e742c9748a8e74223bcb947cdb2fa6db0bf73f373feabf80ff6b3f465",
+      "inputsHash": "89ab9828ed3904ddc82fd8e21414c60776f86abf17f39a2d8f067ab93d3b8da5"
+    },
+    "final/check-lane-b-paint-contract/final": {
+      "checkId": "check-lane-b-paint-contract",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "26c53851363562b55dfc7a990fb07b82d6b7fa7b09c1a49504a5a584587f634d",
+      "definitionHash": "1b78d8b4ebd2667baba0882234e1fed3b77a7a2b6bb8a9ef77411303a37cd5ac",
+      "basisHash": "bd49aa7e6750b1e0381c4437a24694eb02b30d7c3e81da61f839f02a71a80299",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 15,
+      "durationSeconds": 8.0172,
+      "recordedAt": "2026-10-19T10:57:10Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/final-final-708ecb03d37a.log",
+      "logSha256": "84f072bfa7524d1a76d8ff20b6c2e2156da6b006bb33d0f611e27bcb183a5b68"
+    },
+    "final/check-lane-d-paint-contract/final": {
+      "checkId": "check-lane-d-paint-contract",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "26c53851363562b55dfc7a990fb07b82d6b7fa7b09c1a49504a5a584587f634d",
+      "definitionHash": "9049a559f42427f53c3d713ed8c963c66814f0537113fd018104574486171108",
+      "basisHash": "511354392f045f1b2acbffe4ffa49ae64fba652d91090c0a2d215d17ffe08a49",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 2.8623,
+      "recordedAt": "2026-10-19T10:57:13Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/final-final-f520a59a0ad8.log",
+      "logSha256": "d194e6b2868f9a2a6a89a1708217ab7a998532f348f58eaaeec4693fb8006599"
+    },
+    "final/check-macos-workspace-clippy/final": {
+      "checkId": "check-macos-workspace-clippy",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "26c53851363562b55dfc7a990fb07b82d6b7fa7b09c1a49504a5a584587f634d",
+      "definitionHash": "62952acfa34d86e83f08d49e3f85223d0fcb23331cb5f7495da83c9ae064ac2c",
+      "basisHash": "bac9d7d85cd773d0c032094816ef3d8053145296bc13a6c7fafbc50c06b323eb",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 2.7623,
+      "recordedAt": "2026-10-19T10:57:16Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/final-final-18f8e4be8cd1.log",
+      "logSha256": "93ae49b579fed6789516fbb9fe9456b3f87b5b4b0c2b71561a39fe0456c0579e",
+      "inputsHash": "123039442025a23304cbeadc8d7118bbded47b1fad82149ff72ac5be13dd6cb1"
+    },
+    "final/check-runtime-shaders/final": {
+      "checkId": "check-runtime-shaders",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "19b6e595cf80eae06fdae48b95a392e549301877e4d9d623aff1d7b01cd74b5f",
+      "definitionHash": "cd9980e3c53179f8f356cbb5be97a7b8f3e0caeee29027ad98f5bf15ca46888b",
+      "basisHash": "e0461eaa52776d87d3171b6fd0a4629931dc79e3ffbbe92e32be37c1558e7b0e",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.2401,
+      "recordedAt": "2026-10-19T10:43:14Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/final-final-633c1b88f458.log",
+      "logSha256": "d7dae192715495fa89ccbe279af3efb9792c1dae1768228e369035e68a1df673",
+      "inputsHash": "350f8283f2b8357ba5c9050805f30218867a7c502806f8b017d0ef602eb206af"
+    },
+    "final/check-workflow-yaml/final": {
+      "checkId": "check-workflow-yaml",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "19b6e595cf80eae06fdae48b95a392e549301877e4d9d623aff1d7b01cd74b5f",
+      "definitionHash": "4abba3ac69dcfe125b7dbaa74127fb552c816ba1de243a74a718c68f4949f2ab",
+      "basisHash": "fdb18ee7751a3d2d5da94ed829c18ab80878bac38d868c6d975c5ada54709b51",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.0745,
+      "recordedAt": "2026-10-19T10:43:14Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/final-final-fa7921fb71af.log",
+      "logSha256": "b5ef34948d119b8c9a2a83ea3fa7be28686336c326ed4fa8cbd531bc51a84a27",
+      "inputsHash": "5400cd435b6fd0c72102248ecb43129ef3fbb57a4184f5203b9b748e00a35bd7"
+    },
+    "final/check-memory-audit/final": {
+      "checkId": "check-memory-audit",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "26c53851363562b55dfc7a990fb07b82d6b7fa7b09c1a49504a5a584587f634d",
+      "definitionHash": "04e58ec050bd9885c5339310bab654684ea3d1ba663717ef117eaa3616b4dc3c",
+      "basisHash": "7f5147d9f50a81d8fb467dd7068697ee44e5105189f20dd5310d4ebb0c10bf67",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.0749,
+      "recordedAt": "2026-10-19T10:57:16Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/final-final-9ca01e0d31b9.log",
+      "logSha256": "163073f6c31cfe3415e6c8ca4971853a7d1fcde92009e02e10b5645dfa815ffd"
+    },
+    "final/check-repository-layout/final": {
+      "checkId": "check-repository-layout",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "26c53851363562b55dfc7a990fb07b82d6b7fa7b09c1a49504a5a584587f634d",
+      "definitionHash": "7db8486483ae6ccc73c8a0956ac1e2051359e29e62b1267e5c20b91b67472db5",
+      "basisHash": "4ae85567fcedf3aa4a28e0b0d8e666582c873d82de64a6c7c31a7e6ae35b048b",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 11,
+      "durationSeconds": 0.8748,
+      "recordedAt": "2026-10-19T10:57:16Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/final-final-fb599b0e5147.log",
+      "logSha256": "e1f611aff6a0699b6206de548383cf92bdedc8a8ae81302b50c594c4e78b2030"
+    },
+    "final/final-fmt/final": {
+      "checkId": "final-fmt",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "26c53851363562b55dfc7a990fb07b82d6b7fa7b09c1a49504a5a584587f634d",
+      "definitionHash": "79cb0c2e2cb2868d737c3bf239339e4464a0d71d9d7fcecfc7e5ba0486d5cbb5",
+      "basisHash": "7d47da5dd8991f3afac425eb0eb226bbfd6d1ff5d84417c9cb206a44eba5a88f",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 2.7336,
+      "recordedAt": "2026-10-19T10:57:20Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/final-final-5def88d05ca6.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "final/final-clippy-touched/final": {
+      "checkId": "final-clippy-touched",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "26c53851363562b55dfc7a990fb07b82d6b7fa7b09c1a49504a5a584587f634d",
+      "definitionHash": "5c204a5ed8dbbb36b2d388344203d5ad02744ea1b4e5901b1f301c87af65be62",
+      "basisHash": "c4194026c4b774389f18dafe5ac45a3c1b8b4a185a7424c6e1b9c768aedb13e1",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 2.1273,
+      "recordedAt": "2026-10-19T10:57:22Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/final-final-ed4e19caf93c.log",
+      "logSha256": "cb30f7817d62b150bae5e43fe0f65068e5ebc1f817dcd2cb2721bff38688f574"
+    },
+    "final/final-ios-host-build/final": {
+      "checkId": "final-ios-host-build",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "26c53851363562b55dfc7a990fb07b82d6b7fa7b09c1a49504a5a584587f634d",
+      "definitionHash": "178ec88389b95693a7a730356ec73c6f9d79407cf82739b9f10f31c5c659810e",
+      "basisHash": "746d34f2edf0fc8cb9b15ce19f2ec9ce5b6c702c86ff7d6eaeb8895ae3312445",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 1.0482,
+      "recordedAt": "2026-10-19T10:57:23Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/final-final-6e77d852a889.log",
+      "logSha256": "dbddc37ecaa769a7300e737c72d869afa30b158ded9f0a688577b07259545e81"
+    },
+    "final/final-android-host-build/final": {
+      "checkId": "final-android-host-build",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "26c53851363562b55dfc7a990fb07b82d6b7fa7b09c1a49504a5a584587f634d",
+      "definitionHash": "5c1758f79038aa8942762aae784be4701248982c45f255bb312970e459b63e7f",
+      "basisHash": "d13219207310f1345a1ca7632db0835ce69641fdbb142183c535e04123f75fa2",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 1.0864,
+      "recordedAt": "2026-10-19T10:57:24Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/final-final-ec1779c4d605.log",
+      "logSha256": "0d18279fd53e3df0f46e4812b1dc6de4b926dc04f4f512edfb47b638c7ae0d81"
+    },
+    "s4-pattern-host-scales/check-lane-a-paint-contract/final": {
+      "checkId": "check-lane-a-paint-contract",
+      "boundaryId": "s4-pattern-host-scales",
+      "phase": "final",
+      "batchId": "c4a1d8adc266219784bb44393b318438df848aecd8312a5f93968e24fd45f58a",
+      "definitionHash": "a13213efc500598361a490b81ff5d2ee59a9a74d6de1b936c7de17c3be5073a7",
+      "basisHash": "c39a4b01bb77e41e8cc050aea6dd5c98a5d323ef6a790690eae090b8c2abe456",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 2.1923,
+      "recordedAt": "2026-10-19T10:51:58Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/s4-pattern-host-scales-final-fa0823fb6f92.log",
+      "logSha256": "bc69aa5e791c3614a866a2f6bf8dafb862925f2f306d45acf03fb5d9d08569d9",
+      "inputsHash": "01f64eedd53d493258814f508c278d4eb32058f927aafbbdfc4f7160d9e337aa"
+    },
+    "s4-pattern-host-scales/check-lane-c-metal-paint-contract/final": {
+      "checkId": "check-lane-c-metal-paint-contract",
+      "boundaryId": "s4-pattern-host-scales",
+      "phase": "final",
+      "batchId": "c4a1d8adc266219784bb44393b318438df848aecd8312a5f93968e24fd45f58a",
+      "definitionHash": "95fba23d9ee301c03c8b86363f71edd6334871829ba3913a16934b98cb4d57ff",
+      "basisHash": "9f974464d367f6975909ebf78833032de9ab40cbbb3debf363a6b952210a9d44",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 10,
+      "durationSeconds": 1.1587,
+      "recordedAt": "2026-10-19T10:52:00Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/s4-pattern-host-scales-final-431579fe0acf.log",
+      "logSha256": "620ebcb8e6b0fa2a899bfcc30fa67310bb8ee35fd841e0116dc000e4901bafc4",
+      "inputsHash": "32b26d7e08ebb408c0935ca13abd0b63b42bf7975e2f9cbe6cedfcbb65c9b3c5"
+    },
+    "s4-pattern-host-scales/check-lane-a-fast-parity-paint-contract/final": {
+      "checkId": "check-lane-a-fast-parity-paint-contract",
+      "boundaryId": "s4-pattern-host-scales",
+      "phase": "final",
+      "batchId": "c4a1d8adc266219784bb44393b318438df848aecd8312a5f93968e24fd45f58a",
+      "definitionHash": "5149e8dad4790fca0dfda91a3cfe75858968c1466dcc752d2d18c2634f73a4df",
+      "basisHash": "76201dbdf06ee73f210a2d61aca74e229c289fe9505a8c0ca9b1d0bf5a28ec9f",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 1.0474,
+      "recordedAt": "2026-10-19T10:52:01Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/s4-pattern-host-scales-final-96f379692dd8.log",
+      "logSha256": "94a387253c63dcc9af8a8a7bad4f96f74d5ab5cc619d564976defff59888bf92",
+      "inputsHash": "772c3aeecb44d12bb1fed2e31bec0a33b0052fb089681ea5f467ef4df49a1820"
+    },
+    "s4-pattern-host-scales/check-lane-c-fast-parity-paint-contract/final": {
+      "checkId": "check-lane-c-fast-parity-paint-contract",
+      "boundaryId": "s4-pattern-host-scales",
+      "phase": "final",
+      "batchId": "c4a1d8adc266219784bb44393b318438df848aecd8312a5f93968e24fd45f58a",
+      "definitionHash": "04f37223d9211256afd399b577a27c29f04ec22ec94c3158487f640c63760874",
+      "basisHash": "6d0c3ce6a7c2cbcf76f4757423a655449e1e2249d65776cd0219a299e2feb425",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 10,
+      "durationSeconds": 1.267,
+      "recordedAt": "2026-10-19T10:52:02Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/s4-pattern-host-scales-final-48b02928fa7d.log",
+      "logSha256": "c7bc263db7a3b53bd4297144819bcb80b40f7dfa0c8ee04a7197b26d6808546a",
+      "inputsHash": "89ab9828ed3904ddc82fd8e21414c60776f86abf17f39a2d8f067ab93d3b8da5"
+    },
+    "s4-pattern-host-scales/check-lane-b-paint-contract/final": {
+      "checkId": "check-lane-b-paint-contract",
+      "boundaryId": "s4-pattern-host-scales",
+      "phase": "final",
+      "batchId": "26c53851363562b55dfc7a990fb07b82d6b7fa7b09c1a49504a5a584587f634d",
+      "definitionHash": "1b78d8b4ebd2667baba0882234e1fed3b77a7a2b6bb8a9ef77411303a37cd5ac",
+      "basisHash": "e7914af8adb89798dd67700f375fe39a38b4af66bd31ef9894156ffd22066a47",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 15,
+      "durationSeconds": 8.712,
+      "recordedAt": "2026-10-19T10:56:00Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/s4-pattern-host-scales-final-a71861477e4d.log",
+      "logSha256": "612cc8abec763d350e7d1590c9de4b3457507509ba2b6da0aabb6c46ca8c5bba"
+    },
+    "s4-pattern-host-scales/check-lane-d-paint-contract/final": {
+      "checkId": "check-lane-d-paint-contract",
+      "boundaryId": "s4-pattern-host-scales",
+      "phase": "final",
+      "batchId": "26c53851363562b55dfc7a990fb07b82d6b7fa7b09c1a49504a5a584587f634d",
+      "definitionHash": "9049a559f42427f53c3d713ed8c963c66814f0537113fd018104574486171108",
+      "basisHash": "fb71481bb4b255fbdb7554393d453de03cb06f545be936f6295080bfefd13f71",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 2.8593,
+      "recordedAt": "2026-10-19T10:56:03Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/s4-pattern-host-scales-final-365792d04d2f.log",
+      "logSha256": "b2ec69eb68d5ad079aace23b97028a7a9735155f8e0c95d420fddabfc01acdff"
+    },
+    "s4-pattern-host-scales/check-paint-contract-host-scales/final": {
+      "checkId": "check-paint-contract-host-scales",
+      "boundaryId": "s4-pattern-host-scales",
+      "phase": "final",
+      "batchId": "c4a1d8adc266219784bb44393b318438df848aecd8312a5f93968e24fd45f58a",
+      "definitionHash": "cb099d1f80c86d6d8b8802f0eda9adbb1ee2ed46231644f7991e83850dff1bb8",
+      "basisHash": "e1774bf62ddf469c54c9763ed480cc9798aa78224f203f7617a7f95ad9204f6f",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 1.5818,
+      "recordedAt": "2026-10-19T10:52:57Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/s4-pattern-host-scales-final-570e88eb1773.log",
+      "logSha256": "6f5776de94ac3a8f62bda4d395caa85a4dc6e8c81ca74a25adc058c8f1408c70",
+      "inputsHash": "887636fae6f392bb791a34936a7c1fad79e33c4cb5f0f0e641472a330a9f82a0"
+    },
+    "s4-pattern-host-scales/check-testkit-lane-groups/final": {
+      "checkId": "check-testkit-lane-groups",
+      "boundaryId": "s4-pattern-host-scales",
+      "phase": "final",
+      "batchId": "26c53851363562b55dfc7a990fb07b82d6b7fa7b09c1a49504a5a584587f634d",
+      "definitionHash": "6ade5517041b782a252db4dbf231d545afb6a0332c9c6b04bb5b55a653016679",
+      "basisHash": "ecb1fed14f2d6e4fd71196c87693727b02cdbdd2fe1ddd6dee79b40791c23c5a",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 27,
+      "durationSeconds": 0.2868,
+      "recordedAt": "2026-10-19T10:56:04Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/s4-pattern-host-scales-final-11540d9f8672.log",
+      "logSha256": "22c34adca5622911b70cd231c9ef5003c027e4fd107cf8703d0f680d866225d2",
+      "inputsHash": "2c8120a6bc5e23f5831f060a966c041c99e9cf0ed71a8cb0faf2a350b859655e"
+    },
+    "final/check-paint-contract-host-scales/final": {
+      "checkId": "check-paint-contract-host-scales",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "26c53851363562b55dfc7a990fb07b82d6b7fa7b09c1a49504a5a584587f634d",
+      "definitionHash": "cb099d1f80c86d6d8b8802f0eda9adbb1ee2ed46231644f7991e83850dff1bb8",
+      "basisHash": "5d9f2dc21e0885468783fc57b76955d65e83312c6ae4434c934aa93b884f75fe",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 0.3994,
+      "recordedAt": "2026-10-19T10:57:17Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/final-final-5d83fd5358cb.log",
+      "logSha256": "3c1eec3988c7e3cb45311505e39650365a62376decce90f3458f1ce56593b1dd",
+      "inputsHash": "887636fae6f392bb791a34936a7c1fad79e33c4cb5f0f0e641472a330a9f82a0"
+    },
+    "final/check-testkit-lane-groups/final": {
+      "checkId": "check-testkit-lane-groups",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "26c53851363562b55dfc7a990fb07b82d6b7fa7b09c1a49504a5a584587f634d",
+      "definitionHash": "6ade5517041b782a252db4dbf231d545afb6a0332c9c6b04bb5b55a653016679",
+      "basisHash": "c9be663d648481ca0f3e73478a2bc422fd279fe8287ac0b7daaefbb7f953faff",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 27,
+      "durationSeconds": 0.2321,
+      "recordedAt": "2026-10-19T10:57:17Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/metal-paint-parity/final-final-a561dc1daa6a.log",
+      "logSha256": "7035c66b015790e7a29e6ced7e1973661274e05609a6907d55ebb51b35dbf0ba",
+      "inputsHash": "2c8120a6bc5e23f5831f060a966c041c99e9cf0ed71a8cb0faf2a350b859655e"
+    }
+  },
+  "reviews": {
+    "s1-paint-contract-scenes": {
+      "reviewerId": "reviewer-s1-7f3k9q",
+      "snapshotId": "d6de3ee83b085e0c8b5a34553d841ebf855dfad3086b490504fbbe1fee34c7ac",
+      "criterionIds": [
+        "STEP-1",
+        "SCN-1",
+        "SCN-2",
+        "SCN-3",
+        "SCN-4",
+        "SCN-5",
+        "SCN-6",
+        "PAR-1",
+        "PAR-2",
+        "PAR-3",
+        "PAR-4"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/evaluate.rs",
+          "kind": "source",
+          "criterionIds": [
+            "STEP-1",
+            "SCN-5"
+          ],
+          "sha256": "ce773b851814996346c4ff461281339a932eb1461a8fae474292a074315b5605"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/scene.rs",
+          "kind": "source",
+          "criterionIds": [
+            "STEP-1",
+            "SCN-6"
+          ],
+          "sha256": "f73c4d366ac8bd3668d16b3c550a9b88a54fcb7c00a46b72c0804d1925081e52"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/test_host.rs",
+          "kind": "source",
+          "criterionIds": [
+            "STEP-1",
+            "PAR-1"
+          ],
+          "sha256": "07d1b144046bb468dfd726f27530da3a6d1e8de040048d400300980695a72ecd"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/app_host.rs",
+          "kind": "source",
+          "criterionIds": [
+            "STEP-1",
+            "PAR-3"
+          ],
+          "sha256": "76b15c4e68095d28926ecc17ebe39281c7dbe4e5c3ec07ec53815bca8885ee43"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/host.rs",
+          "kind": "source",
+          "criterionIds": [
+            "STEP-1"
+          ],
+          "sha256": "c5ae9c49dd62744293295c8fb4e60896f234ed0ca434ab2c6dcf2ed3b231a13e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/examples/web_host/bridge.rs",
+          "kind": "source",
+          "criterionIds": [
+            "STEP-1",
+            "PAR-2"
+          ],
+          "sha256": "8dac7abc971c2f6dceb03e2236820ccb2cb8a9b25f27141b2af7fa9c390fb7a5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/examples/web_host/lib.rs",
+          "kind": "source",
+          "criterionIds": [
+            "STEP-1",
+            "PAR-2"
+          ],
+          "sha256": "88a02daf1714020b57abd452a29fb424af421e9986ad10c85218234c5f8481b4"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/scenes/paint_contract.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SCN-1",
+            "SCN-2",
+            "SCN-3",
+            "SCN-4",
+            "SCN-5",
+            "SCN-6",
+            "PAR-1",
+            "PAR-2",
+            "PAR-3"
+          ],
+          "sha256": "5416686add85ace1ce2ad7f5154533b9e612f41134d2b9bec100aa54ccd0a379"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/scenes/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SCN-6"
+          ],
+          "sha256": "b68b7635acf5d60e7292fa48e28026027a5981ad5e09c7be75c0c0b61bd9d5d6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/color.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SCN-2"
+          ],
+          "sha256": "ad6c4be0dac5c5a6ae7779666e2f407f7051651c1a7edcba4a443c4a3ae9c41f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/src/shaders.metal",
+          "kind": "source",
+          "criterionIds": [
+            "PAR-1",
+            "PAR-3",
+            "PAR-4"
+          ],
+          "sha256": "57d453ab724e2782c4083552560a11c6779249a0e552e912ee2680bd710fc3c2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/shaders.wgsl",
+          "kind": "source",
+          "criterionIds": [
+            "PAR-2",
+            "PAR-4"
+          ],
+          "sha256": "7b63aa36ccede5504f11f34b0e4e7c7b9ee506a8d108a1404ed932045fee98eb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/ring_evenness.rs",
+          "kind": "test",
+          "criterionIds": [
+            "STEP-1"
+          ],
+          "sha256": "343f0268c446b26ea71fc22f0e741aa64ea350afffc27c6e11c04508dfa184a2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/catalog_coverage.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SCN-6"
+          ],
+          "sha256": "53a1c6ff8abe5fc8521b6115ba361d5f3b8da0f5e56323bcdb2539e0d6c91d3e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/catalog/lane_a_scenes.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SCN-1",
+            "SCN-2",
+            "SCN-3",
+            "SCN-4",
+            "SCN-5",
+            "SCN-6"
+          ],
+          "sha256": "6fac209f4c0836e17f2ac01902a3aa92380556151b183f2931f6fbc87299e4ab"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/catalog/lane_c_scenes.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SCN-1",
+            "SCN-2",
+            "SCN-3",
+            "SCN-4",
+            "SCN-5",
+            "SCN-6",
+            "PAR-1"
+          ],
+          "sha256": "2212d3cb1031102c846a07acdfec2612bc75d7c57514ee547c2607ca0dc8b51a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/lane_c.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SCN-1",
+            "SCN-2",
+            "SCN-3",
+            "SCN-4",
+            "SCN-5",
+            "PAR-1"
+          ],
+          "sha256": "537df62ff7713872150996e1f7306f4f136be72cd61866e438f718d2223ca7db"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/lane_c_fast_parity.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SCN-6",
+            "PAR-1"
+          ],
+          "sha256": "8abc049d36fcd3d5391ec4125977b24dc000c10b352760c8477609e51b92be23"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/lane_a_fast_parity.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SCN-6"
+          ],
+          "sha256": "aa0f21d5803bfcf23ead794c4da932f45144a4d63cf6b6dfaf543602cf1aeba0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/browser/specs/scenes.spec.ts",
+          "kind": "runtime",
+          "criterionIds": [
+            "PAR-2"
+          ],
+          "sha256": "4ff414db05c294dc77b7af536c471188055bd9a5a6ce593a156d7727b2780c1d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/examples/desktop_host/main.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "PAR-3"
+          ],
+          "sha256": "64e79ee84441dcead97be0f3a0eb5174836cda1f6137608d817aafa921f6f267"
+        }
+      ],
+      "deltaSummaryMarkdown": "Inspected `crates/gpux_tests_conformance/src/scenes/paint_contract.rs`. S1-F1: the inset centre probe now names an unholed inset shadow darkening the card to about 26 (128 x 0.2, outside EXACT); the 4 px border probe names the #0a0a0a backdrop showing through, down to (10, 10, 10) (outside EXACT against white). S1-F2: the image-alpha scene now asserts `Expect::Bounds(id(\"translucent-image\"), (IMAGE_ORIGIN, IMAGE_ORIGIN, IMAGE_SIZE, IMAGE_SIZE), 0.01)`; no `Expect::Size` remains. No expectation, tolerance or limit changed. `check --sprint` reran all 8 checks and passed at this snapshot (check-s1b.json).",
+      "reattestedFrom": "7b8914f93999c62797c05b6ee7d3deb1c5981738c11aae3a648dec73425e8641",
+      "summaryMarkdown": "**STEP-1 is met.** `ring_evenness` matches RayX's metric line by line:\n\n- **Radius:** the border box's `width/2 - scale/2` equals RayX's content box plus half a border.\n- **Measurement:** reach `scale/2 + 2`, the backdrop pixel at the centre, 48 `atan2` bins and the population CV are all the same.\n- **Failures:** a zero mean fails, and the failure message names the coefficient, the limit and the scale.\n- **Hosts:** the step is wired into the test host, the app host, the web bridge and descriptor, `describe`, `is_pixel` and `catalog_coverage`.\n- **Tests:** `ring_evenness.rs` covers an even ring, sub-pixel phase, seeded beading of at least 0.3 and an empty frame at scales 1 and 2.\n\nOne difference: `ring_limit` uses the 1x limit for any scale below 2, where RayX uses it only at exactly 1. This matters only at fractional OS scales in (1, 2), which no lane declares. It is acceptable, and the doc comment records it.\n\n**SCN-1 to SCN-5: expectations derive from the contract.** `gradient_at` uses `prepare_gradient_stop_color` and gpux_color's OKLab conversion, the same steps as WGSL `premultiplied_oklab_to_srgb`. `over` is the encoded-sRGB composite. I recomputed the OKLab midpoint (140.4, 83.0, 162.3) and the straight-OKLab fade (177).\n\n**Probe placement holds at both scales.** I checked it against the WGSL pattern math, which works in device pixels: slash probes sit at the same rotated phase at 1x and 2x, and checker cells keep their parity. The gradient sample is t = 0.5 at 1x and 0.5016 at 2x.\n\n**Tolerances** are 1, 2 and 4 (dither) and are not per-backend. The lane C seeded faults failed at the commented values.\n\n**PAR-1 to PAR-3 pass** on current evidence: lane C Metal 10/10, lane C fast parity 10/10, lane B 15 passed with zero-limit seeding proving the ring steps evaluate, lane D 5/5. The lane C check does not set `GPUX_EXPECT_BACKEND`; the `[metal]` tags and the seeded Metal shader faults show Metal ran.\n\n**PAR-4:** no renderer fix was needed. Metal's hard-coded border gamma measures the same coefficients as WGSL.\n\n**Verdict: failed, on two minor findings.** Two probes lack the failure-value comment SCN-6 requires (S1-F1), and the image scene checks size, not bounds (S1-F2).",
+      "findingIds": [
+        "S1-F1",
+        "S1-F2"
+      ],
+      "recordedAt": "2026-10-19T10:34:24Z"
+    },
+    "s2-apple-ci": {
+      "reviewerId": "reviewer-s2-apple-ci-opus-independent-20261019",
+      "snapshotId": "8cf7f5fba36aebd911eddc5e8b8b7f06ca70020ff136ab6f2db63fe9e0b07196",
+      "criterionIds": [
+        "CI-1",
+        "CI-2",
+        "CI-3"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/util/src/command/darwin/process.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CI-1"
+          ],
+          "sha256": "261d9f7cafcb6591b225c47c9003ea29e38dbd86c345f8a1b55694dbf1ade769"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/metal-paint-parity/s2-apple-ci-final-cf5ad4a2fdbc.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "CI-1"
+          ],
+          "sha256": "3bb679965f0a12982e07be2b1c71ba457c15ceb768859fabb10911106022ba16"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/ci.yml",
+          "kind": "source",
+          "criterionIds": [
+            "CI-2",
+            "CI-3"
+          ],
+          "sha256": "754c55eff3a527106b57f404c9dfc6b53942a41e97b2d5225f3f7a4aee7b2925"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/testing.md",
+          "kind": "source",
+          "criterionIds": [
+            "CI-2"
+          ],
+          "sha256": "5338486be89ee98f0ace86b7e3d33c34197613859860205d3575cb983e083c05"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/metal-paint-parity/s2-apple-ci-final-9011a47417ae.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "CI-2"
+          ],
+          "sha256": "b5ef34948d119b8c9a2a83ea3fa7be28686336c326ed4fa8cbd531bc51a84a27"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/metal-paint-parity/s2-apple-ci-final-d281d4b78171.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "CI-3"
+          ],
+          "sha256": "32ecd51a63ae710067618ab4181d0baf4c4b3e5c5afb5c18142cc69f85e4f54b"
+        }
+      ],
+      "deltaSummaryMarkdown": "Inspected the only delta: docs/testing.md lines 48-52, the `ci.yml` paragraph rewrapped to <=98 columns (matching surrounding prose) with identical wording; it still says Clippy runs on Windows and macOS and that macOS checks the `runtime_shaders` build of `gpux-apple` (CI-2). The line break inside the `cargo test --workspace` code span renders as a space in Markdown, so the rendered text is unchanged. No other non-.agentx file changed; ci.yml and process.rs are as previously reviewed.",
+      "reattestedFrom": "77d497e09b4d31ef477be3e23ee3b60569f39960bfd52f75f10e9e7c648cf8d7",
+      "summaryMarkdown": "CI-1: the pre-fix macOS workspace clippy log shows exactly two errors, both in `darwin/process.rs` `tests::spawn` (zombie_processes, disallowed_methods); the helper now carries a function-local `#[allow(clippy::disallowed_methods, clippy::zombie_processes)]` with a reason comment (Process reaps the pid), matching `darwin.rs`'s local-allow idiom; no crate/module allow added; the CI-exact command (FORK_EXCLUDES incl. gpux-accesskit-macos) now exits 0. CI-2/CI-3: `check` job Clippy is `runner.os != 'Linux'` with the command unchanged; a separate macOS-only `cargo check -p gpux-apple --features runtime_shaders` step follows `Check every target` with the feature-unification comment; no job, input or trigger added; workflow YAML checker passes; docs/testing.md states Clippy on Windows and macOS and the runtime_shaders build; docs/ci.md does not list check steps, so needs no edit. CI-2's hosted proof (Clippy step on `check (macos-15)`) is left to the push's own CI run. Nit, non-blocking: the edited docs/testing.md paragraph line 49 runs to 165 chars where the surrounding prose wraps near 100.",
+      "findingIds": [],
+      "recordedAt": "2026-10-19T10:37:24Z"
+    },
+    "s3-durable-records": {
+      "reviewerId": "claude-opus-5-5-sprint-reviewer-s3-20261019",
+      "snapshotId": "19b6e595cf80eae06fdae48b95a392e549301877e4d9d623aff1d7b01cd74b5f",
+      "criterionIds": [
+        "REC-1",
+        "REC-2",
+        "REC-3"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/platform/desktop/state.md",
+          "kind": "source",
+          "criterionIds": [
+            "REC-1"
+          ],
+          "sha256": "4e942c736a5c2858b64c44e44353f6ea8c758b108927a2ab4cbe4ebaac5b5b56"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/platform/desktop/hypotheses.md",
+          "kind": "source",
+          "criterionIds": [
+            "REC-1"
+          ],
+          "sha256": "b266534a522d65b843c67c872638b94ffcd50b7648e17e3d5933c413bf9668db"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/platform/desktop/rules.md",
+          "kind": "source",
+          "criterionIds": [
+            "REC-1"
+          ],
+          "sha256": "e57a9466320ace932517d069025b39f0b354157b7571ba6dd829c06d57ca7349"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/platform/desktop/knowledge.md",
+          "kind": "source",
+          "criterionIds": [
+            "REC-1"
+          ],
+          "sha256": "918b9e235f65fb7899f739ee98fadb26d2de0421f1512e8c2842f09e6e53f4e3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/renderer/state.md",
+          "kind": "source",
+          "criterionIds": [
+            "REC-1"
+          ],
+          "sha256": "aa8845974cb6497d0e6c0384a486b02bc7b44f6353f39a68df878360cdf4fa76"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/renderer/wgpu/rules.md",
+          "kind": "source",
+          "criterionIds": [
+            "REC-1"
+          ],
+          "sha256": "47116d774f1328d47f1c60b82cc49428b613824be7b94a76a81654951ccbcc69"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-09-30-renderer-wgpu-srgb-compositing.md",
+          "kind": "source",
+          "criterionIds": [
+            "REC-1"
+          ],
+          "sha256": "9bc16d071d1156e397642f629a4074b15ccf6345a188cccaae03331041e4742d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/scenes/paint_contract.rs",
+          "kind": "source",
+          "criterionIds": [
+            "REC-1",
+            "REC-2"
+          ],
+          "sha256": "5416686add85ace1ce2ad7f5154533b9e612f41134d2b9bec100aa54ccd0a379"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/references/update-from-zed-gpui-closure.md",
+          "kind": "source",
+          "criterionIds": [
+            "REC-2"
+          ],
+          "sha256": "ab7c86ab4f7ad9a4ec949a4378b9e5334bf6f5c5ef42df7948e0d3312702776c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/build.rs",
+          "kind": "source",
+          "criterionIds": [
+            "REC-2"
+          ],
+          "sha256": "f62ca3fe3f04453f46dd822e852c9c7da01d7809b72c84f6f29f71ef93cf6ac2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/scene.rs",
+          "kind": "source",
+          "criterionIds": [
+            "REC-1",
+            "REC-2"
+          ],
+          "sha256": "6e4fab7ec316917f009322a5ffc9de6df6349fc2be73098391bc2086ce3927c1"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/shaders.wgsl",
+          "kind": "source",
+          "criterionIds": [
+            "REC-1",
+            "REC-2"
+          ],
+          "sha256": "7b63aa36ccede5504f11f34b0e4e7c7b9ee506a8d108a1404ed932045fee98eb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/src/shaders.metal",
+          "kind": "source",
+          "criterionIds": [
+            "REC-1",
+            "REC-2"
+          ],
+          "sha256": "57d453ab724e2782c4083552560a11c6779249a0e552e912ee2680bd710fc3c2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/repository_layout.rs",
+          "kind": "source",
+          "criterionIds": [
+            "REC-3"
+          ],
+          "sha256": "9762211fadc0d2f73e2bda62d6088f5e643e6699a49e0a740abdee591b56410c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/repository_layout.rs",
+          "kind": "test",
+          "criterionIds": [
+            "REC-3"
+          ],
+          "sha256": "9762211fadc0d2f73e2bda62d6088f5e643e6699a49e0a740abdee591b56410c"
+        }
+      ],
+      "deltaSummaryMarkdown": "Inspected the two repaired lines and the memory diff stat (still 7 files, 15+/12-, no other changes). renderer/state.md:25 now scopes the 2026-10-19 proof to Metal in lanes C and D and WGPU on WebGPU in lane B. platform/desktop/hypotheses.md:15 now states lane C at 1x and 2x, lane D at 2x, and drops the epic id. Both match the t4 handoff. The rest of REC-1, REC-2 and REC-3 is unchanged from the original review.",
+      "reattestedFrom": "19b6e595cf80eae06fdae48b95a392e549301877e4d9d623aff1d7b01cd74b5f",
+      "summaryMarkdown": "REC-2 and REC-3 pass: the import-guide bullets match source (5321a25 and b0c1c37 exist and say what the guide says; build.rs parses `src/color/paint.rs` via `gpux_color::GPUX_COLOR_MANIFEST_DIR`; `MonochromeSpriteKind` is `#[repr(C)]` in crates/gpui/src/scene.rs; WGSL `fs_quad` scales the whole premultiplied color in both dash branches and uses the constant 0.5 threshold for unit transforms; the pre-port Metal shader read `Hsla`). `ToFix/` is removed, the HISTORICAL array and the not-scanned test entry drop it, no live tracked file references it, and the check passed. REC-1 is met bullet by bullet (state/hypotheses/rules, repr(C) knowledge item, wgpu four-channel rule verified against both shaders' dash and pattern code, renderer state, decision parenthetical, timestamps; validation memory states no CI Clippy policy, so nothing to update), but two statements overstate the proof: WGPU's pass is claimed beyond lane B, and lane D is implied at 1x. Both are one-line wording fixes.",
+      "findingIds": [
+        "s3-rec1-wgpu-overclaim",
+        "s3-rec1-hypothesis-lanes"
+      ],
+      "recordedAt": "2026-10-19T10:42:19Z"
+    },
+    "s4-pattern-host-scales": {
+      "reviewerId": "claude-opus-5-5-s4-reviewer-metal-paint-parity-20261019",
+      "snapshotId": "26c53851363562b55dfc7a990fb07b82d6b7fa7b09c1a49504a5a584587f634d",
+      "criterionIds": [
+        "SCN-3",
+        "SCN-6",
+        "SCN-7"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/scenes/paint_contract.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SCN-3",
+            "SCN-6",
+            "SCN-7"
+          ],
+          "sha256": "b2bce7289acf00567f9368cc86db20738973a53e39bf407281a733ed564c2484"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/lane_c_paint_contract_scales.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SCN-7"
+          ],
+          "sha256": "19c59ba920886efe62c48cf98065cc3b1dfa3958869ebad8fc257e4e252d7bd9"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/lane_c.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SCN-3",
+            "SCN-7"
+          ],
+          "sha256": "537df62ff7713872150996e1f7306f4f136be72cd61866e438f718d2223ca7db"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/lane_a.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SCN-3",
+            "SCN-6"
+          ],
+          "sha256": "0b445bc775a0bf5db1ceff7f49d874f08efec420258a80b898eaa04db66190c6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/lane_a_fast_parity.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SCN-6"
+          ],
+          "sha256": "aa0f21d5803bfcf23ead794c4da932f45144a4d63cf6b6dfaf543602cf1aeba0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/lane_c_fast_parity.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SCN-6"
+          ],
+          "sha256": "8abc049d36fcd3d5391ec4125977b24dc000c10b352760c8477609e51b92be23"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/catalog_coverage.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SCN-6"
+          ],
+          "sha256": "53a1c6ff8abe5fc8521b6115ba361d5f3b8da0f5e56323bcdb2539e0d6c91d3e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/browser/specs/scenes.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "SCN-7"
+          ],
+          "sha256": "4ff414db05c294dc77b7af536c471188055bd9a5a6ce593a156d7727b2780c1d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/examples/desktop_host/main.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "SCN-7"
+          ],
+          "sha256": "64e79ee84441dcead97be0f3a0eb5174836cda1f6137608d817aafa921f6f267"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/src/lanes.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SCN-7"
+          ],
+          "sha256": "010f5bb5c4ab2a23eb1740350519ea9305a4429660e96867c75978951a6f860b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/lane_coverage.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SCN-7"
+          ],
+          "sha256": "b3be3974f992abfc2b03add8dc104eb75c28dda129fe9f273db4ed126462502c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/cli.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SCN-7"
+          ],
+          "sha256": "91c6602641f891a81876676b7b8b3849bb43224ed380ef7bbbadbfd46ca721fe"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/lane_jobs.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SCN-7"
+          ],
+          "sha256": "480b6b78fd5d12620ea691fcaab7d5d40a1f797dee78d9ddcbcf4fc68070bef9"
+        }
+      ],
+      "summaryMarkdown": "**The scene repair is correct.**\n- `Patterns` scales the checkerboard cell and the slash stripe and gap by `window.scale_factor()`.\n- Probes keep at least 2 logical px of margin. The slash probes sit at x+y ≡ 0 and 13 (mod 26), about 3.5 px from the stripe edges.\n- The catalog scales stay `[1., 2.]`.\n- `lane_c_paint_contract_scales` runs every scene at 3x and the pixel steps at 2.625x.\n\n**S4-F1 is resolved.**\n- The group is planned in lane C (`LANE_C_GROUPS`, plus a weight in `LANE_C_WEIGHTS`), and `ring_evenness` is planned in lane A.\n- `lane_coverage`, `lane_jobs` and `cli` pass (I reran them: 1 + 8 + 18 tests).\n- `check --sprint` passed 8/8 at this snapshot.",
+      "findingIds": [
+        "S4-F1"
+      ],
+      "recordedAt": "2026-10-19T10:56:41Z"
+    },
+    "final": {
+      "reviewerId": "claude-opus-5-5-final-reviewer-metal-paint-parity-20261019b",
+      "snapshotId": "26c53851363562b55dfc7a990fb07b82d6b7fa7b09c1a49504a5a584587f634d",
+      "criterionIds": [
+        "STEP-1",
+        "SCN-1",
+        "SCN-2",
+        "SCN-3",
+        "SCN-4",
+        "SCN-5",
+        "SCN-6",
+        "SCN-7",
+        "PAR-1",
+        "PAR-2",
+        "PAR-3",
+        "PAR-4",
+        "CI-1",
+        "CI-2",
+        "CI-3",
+        "REC-1",
+        "REC-2",
+        "REC-3"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/evaluate.rs",
+          "kind": "source",
+          "criterionIds": [
+            "STEP-1"
+          ],
+          "sha256": "ce773b851814996346c4ff461281339a932eb1461a8fae474292a074315b5605"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/scene.rs",
+          "kind": "source",
+          "criterionIds": [
+            "STEP-1",
+            "SCN-6"
+          ],
+          "sha256": "f73c4d366ac8bd3668d16b3c550a9b88a54fcb7c00a46b72c0804d1925081e52"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/test_host.rs",
+          "kind": "source",
+          "criterionIds": [
+            "STEP-1",
+            "PAR-1"
+          ],
+          "sha256": "07d1b144046bb468dfd726f27530da3a6d1e8de040048d400300980695a72ecd"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/app_host.rs",
+          "kind": "source",
+          "criterionIds": [
+            "STEP-1",
+            "PAR-3"
+          ],
+          "sha256": "76b15c4e68095d28926ecc17ebe39281c7dbe4e5c3ec07ec53815bca8885ee43"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/host.rs",
+          "kind": "source",
+          "criterionIds": [
+            "STEP-1"
+          ],
+          "sha256": "c5ae9c49dd62744293295c8fb4e60896f234ed0ca434ab2c6dcf2ed3b231a13e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/examples/web_host/bridge.rs",
+          "kind": "source",
+          "criterionIds": [
+            "STEP-1",
+            "PAR-2"
+          ],
+          "sha256": "8dac7abc971c2f6dceb03e2236820ccb2cb8a9b25f27141b2af7fa9c390fb7a5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/ring_evenness.rs",
+          "kind": "test",
+          "criterionIds": [
+            "STEP-1"
+          ],
+          "sha256": "343f0268c446b26ea71fc22f0e741aa64ea350afffc27c6e11c04508dfa184a2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/scenes/paint_contract.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SCN-1",
+            "SCN-2",
+            "SCN-3",
+            "SCN-4",
+            "SCN-5",
+            "SCN-6",
+            "PAR-1",
+            "PAR-2",
+            "PAR-3",
+            "SCN-7"
+          ],
+          "sha256": "b2bce7289acf00567f9368cc86db20738973a53e39bf407281a733ed564c2484"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/scenes/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SCN-6"
+          ],
+          "sha256": "b68b7635acf5d60e7292fa48e28026027a5981ad5e09c7be75c0c0b61bd9d5d6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/catalog/lane_a_scenes.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SCN-6"
+          ],
+          "sha256": "6fac209f4c0836e17f2ac01902a3aa92380556151b183f2931f6fbc87299e4ab"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/catalog/lane_c_scenes.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SCN-6",
+            "PAR-1"
+          ],
+          "sha256": "2212d3cb1031102c846a07acdfec2612bc75d7c57514ee547c2607ca0dc8b51a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/catalog_coverage.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SCN-6"
+          ],
+          "sha256": "53a1c6ff8abe5fc8521b6115ba361d5f3b8da0f5e56323bcdb2539e0d6c91d3e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/lane_a.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SCN-1",
+            "SCN-2",
+            "SCN-3",
+            "SCN-4",
+            "SCN-5",
+            "SCN-6"
+          ],
+          "sha256": "0b445bc775a0bf5db1ceff7f49d874f08efec420258a80b898eaa04db66190c6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/lane_a_fast_parity.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SCN-6"
+          ],
+          "sha256": "aa0f21d5803bfcf23ead794c4da932f45144a4d63cf6b6dfaf543602cf1aeba0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/lane_c_fast_parity.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SCN-6",
+            "PAR-1"
+          ],
+          "sha256": "8abc049d36fcd3d5391ec4125977b24dc000c10b352760c8477609e51b92be23"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/lane_c.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SCN-1",
+            "SCN-2",
+            "SCN-3",
+            "SCN-4",
+            "SCN-5",
+            "PAR-1"
+          ],
+          "sha256": "537df62ff7713872150996e1f7306f4f136be72cd61866e438f718d2223ca7db"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/browser/specs/scenes.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "PAR-2"
+          ],
+          "sha256": "4ff414db05c294dc77b7af536c471188055bd9a5a6ce593a156d7727b2780c1d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/browser/specs/dawn.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "PAR-2"
+          ],
+          "sha256": "010584d783fbb669599b41a92fb70aeb9528e385a819f1b0a755bbf861308a5c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/examples/desktop_host/main.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "PAR-3"
+          ],
+          "sha256": "64e79ee84441dcead97be0f3a0eb5174836cda1f6137608d817aafa921f6f267"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/src/shaders.metal",
+          "kind": "source",
+          "criterionIds": [
+            "PAR-4"
+          ],
+          "sha256": "57d453ab724e2782c4083552560a11c6779249a0e552e912ee2680bd710fc3c2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/shaders.wgsl",
+          "kind": "source",
+          "criterionIds": [
+            "PAR-4"
+          ],
+          "sha256": "7b63aa36ccede5504f11f34b0e4e7c7b9ee506a8d108a1404ed932045fee98eb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/util/src/command/darwin/process.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CI-1"
+          ],
+          "sha256": "261d9f7cafcb6591b225c47c9003ea29e38dbd86c345f8a1b55694dbf1ade769"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/util/src/command/darwin/process.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CI-1"
+          ],
+          "sha256": "261d9f7cafcb6591b225c47c9003ea29e38dbd86c345f8a1b55694dbf1ade769"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/ci.yml",
+          "kind": "source",
+          "criterionIds": [
+            "CI-1",
+            "CI-2",
+            "CI-3"
+          ],
+          "sha256": "754c55eff3a527106b57f404c9dfc6b53942a41e97b2d5225f3f7a4aee7b2925"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/ci.yml",
+          "kind": "runtime",
+          "criterionIds": [
+            "CI-1",
+            "CI-3"
+          ],
+          "sha256": "754c55eff3a527106b57f404c9dfc6b53942a41e97b2d5225f3f7a4aee7b2925"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/build.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CI-3"
+          ],
+          "sha256": "f62ca3fe3f04453f46dd822e852c9c7da01d7809b72c84f6f29f71ef93cf6ac2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/testing.md",
+          "kind": "source",
+          "criterionIds": [
+            "CI-2"
+          ],
+          "sha256": "bc31b123b022fcefd09a992473f04aec4a8af9f272aea2a13058409c36c811cd"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/platform/desktop/state.md",
+          "kind": "source",
+          "criterionIds": [
+            "REC-1"
+          ],
+          "sha256": "4e942c736a5c2858b64c44e44353f6ea8c758b108927a2ab4cbe4ebaac5b5b56"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/platform/desktop/hypotheses.md",
+          "kind": "source",
+          "criterionIds": [
+            "REC-1"
+          ],
+          "sha256": "b266534a522d65b843c67c872638b94ffcd50b7648e17e3d5933c413bf9668db"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/platform/desktop/rules.md",
+          "kind": "source",
+          "criterionIds": [
+            "REC-1"
+          ],
+          "sha256": "e57a9466320ace932517d069025b39f0b354157b7571ba6dd829c06d57ca7349"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/platform/desktop/knowledge.md",
+          "kind": "source",
+          "criterionIds": [
+            "REC-1"
+          ],
+          "sha256": "918b9e235f65fb7899f739ee98fadb26d2de0421f1512e8c2842f09e6e53f4e3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/renderer/state.md",
+          "kind": "source",
+          "criterionIds": [
+            "REC-1"
+          ],
+          "sha256": "aa8845974cb6497d0e6c0384a486b02bc7b44f6353f39a68df878360cdf4fa76"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/renderer/wgpu/rules.md",
+          "kind": "source",
+          "criterionIds": [
+            "REC-1"
+          ],
+          "sha256": "47116d774f1328d47f1c60b82cc49428b613824be7b94a76a81654951ccbcc69"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-09-30-renderer-wgpu-srgb-compositing.md",
+          "kind": "source",
+          "criterionIds": [
+            "REC-1"
+          ],
+          "sha256": "9bc16d071d1156e397642f629a4074b15ccf6345a188cccaae03331041e4742d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/references/update-from-zed-gpui-closure.md",
+          "kind": "source",
+          "criterionIds": [
+            "REC-2"
+          ],
+          "sha256": "ab7c86ab4f7ad9a4ec949a4378b9e5334bf6f5c5ef42df7948e0d3312702776c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/repository_layout.rs",
+          "kind": "source",
+          "criterionIds": [
+            "REC-3"
+          ],
+          "sha256": "9762211fadc0d2f73e2bda62d6088f5e643e6699a49e0a740abdee591b56410c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/repository_layout.rs",
+          "kind": "test",
+          "criterionIds": [
+            "REC-3"
+          ],
+          "sha256": "9762211fadc0d2f73e2bda62d6088f5e643e6699a49e0a740abdee591b56410c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/lane_c_paint_contract_scales.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SCN-3",
+            "SCN-7"
+          ],
+          "sha256": "19c59ba920886efe62c48cf98065cc3b1dfa3958869ebad8fc257e4e252d7bd9"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/src/lanes.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SCN-7",
+            "STEP-1"
+          ],
+          "sha256": "010f5bb5c4ab2a23eb1740350519ea9305a4429660e96867c75978951a6f860b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/lane_coverage.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SCN-7",
+            "STEP-1"
+          ],
+          "sha256": "b3be3974f992abfc2b03add8dc104eb75c28dda129fe9f273db4ed126462502c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/cli.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SCN-7"
+          ],
+          "sha256": "91c6602641f891a81876676b7b8b3849bb43224ed380ef7bbbadbfd46ca721fe"
+        }
+      ],
+      "summaryMarkdown": "Integrated epic at d96abbc9, inspected against the sources and `check --epic` (19 checks: 17 executed, 2 reused, all passed).\n\n- **STEP-1:** `even_ring`/`even_ring_step` is shared by the lane C, B and D hosts and skipped in lane A. `ring_evenness` covers the metric and now runs in lane A (`LANE_A_GROUPS`).\n- **SCN-1..7:** values derive from the contract, and the failure-mode comments hold. The pattern scene sizes its geometry from the host's scale. `lane_c_paint_contract_scales`, planned in lane C, proves 3x and 2.625x.\n- **PAR-1..3:** pass on Metal (lanes C and D) and WebGPU (lane B), with identical beading.\n- **PAR-4:** no renderer fix was needed.\n- **CI-1..3:** macOS Clippy and the `runtime_shaders` step are in place, and Linux stays unlinted.\n- **REC-1..3:** memory, the import guide and the `ToFix` removal are accurate.\n- **FINAL-F1:** resolved.\n\nLeft to CI by design: lane C on lavapipe and WARP, lanes E and F, and the first hosted `check (macos-15)` Clippy run.",
+      "findingIds": [
+        "FINAL-F1"
+      ],
+      "recordedAt": "2026-10-19T10:57:53Z"
+    }
+  },
+  "checkpoints": {
+    "s1-paint-contract-scenes": {
+      "snapshotId": "d6de3ee83b085e0c8b5a34553d841ebf855dfad3086b490504fbbe1fee34c7ac",
+      "commits": {
+        "gpux": "12d95c78427a03217c8ec8e052115f2854a2fe6f"
+      },
+      "reviewHash": "d4cabc0e8dc4e48387c2c3fb29aef81624a57b175971a84385040738867d10ef",
+      "recordedAt": "2026-10-19T10:34:52Z"
+    },
+    "s2-apple-ci": {
+      "snapshotId": "8cf7f5fba36aebd911eddc5e8b8b7f06ca70020ff136ab6f2db63fe9e0b07196",
+      "commits": {
+        "gpux": "2f210901ad5c5f37f3a1fc2bf302922f0f0949bd"
+      },
+      "reviewHash": "7d810f6d9bd68581d059fef1c9882c289773802355597e08e639c722551e47a7",
+      "recordedAt": "2026-10-19T10:37:40Z"
+    },
+    "s3-durable-records": {
+      "snapshotId": "19b6e595cf80eae06fdae48b95a392e549301877e4d9d623aff1d7b01cd74b5f",
+      "commits": {
+        "gpux": "5e2d9d23360386fd4d1f9724dceeea84c3e89ec3"
+      },
+      "reviewHash": "387803e8858e0828efc3a200271c8d57c8eddd2f64bb53889d81fae22fc6eda9",
+      "recordedAt": "2026-10-19T10:42:43Z"
+    },
+    "s4-pattern-host-scales": {
+      "snapshotId": "26c53851363562b55dfc7a990fb07b82d6b7fa7b09c1a49504a5a584587f634d",
+      "commits": {
+        "gpux": "d96abbc964f15e6baf53ae06b16dbe37a4bc9878"
+      },
+      "reviewHash": "e0a4e6d439ce2bf6c8c9981ee2eed81b45d39b0d9bfcdb3bcee12723b7410dd8",
+      "recordedAt": "2026-10-19T10:56:57Z"
+    }
+  },
+  "findings": [
+    {
+      "id": "S1-F1",
+      "boundaryId": "s1-paint-contract-scenes",
+      "criterionIds": [
+        "SCN-6",
+        "SCN-1",
+        "SCN-5"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "The inset centre probe and the 4 px border probe now name their failure values (about 26; down to (10, 10, 10)), both outside EXACT.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/scenes/paint_contract.rs"
+        }
+      ]
+    },
+    {
+      "id": "S1-F2",
+      "boundaryId": "s1-paint-contract-scenes",
+      "criterionIds": [
+        "SCN-4"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "The image-alpha scene asserts the image's full bounds at (10, 10, 96, 96) instead of its size only.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/scenes/paint_contract.rs"
+        }
+      ]
+    },
+    {
+      "id": "s3-rec1-wgpu-overclaim",
+      "criterionIds": [
+        "REC-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "renderer/state.md now limits the WGPU pass to WebGPU in lane B, and the Metal pass to lanes C and D.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/renderer/state.md"
+        }
+      ],
+      "boundaryId": "s3-durable-records"
+    },
+    {
+      "id": "s3-rec1-hypothesis-lanes",
+      "criterionIds": [
+        "REC-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "hypotheses.md now names lane C (1x, 2x) and lane D (2x) and no longer names the epic.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/platform/desktop/hypotheses.md"
+        }
+      ],
+      "boundaryId": "s3-durable-records"
+    },
+    {
+      "id": "FINAL-F1",
+      "boundaryId": "final",
+      "criterionIds": [
+        "SCN-3",
+        "SCN-6"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved in 98150319 and d96abbc9. `paint-contract-patterns` multiplies its checkerboard cell and slash stripe and gap by `window.scale_factor()`; the slash probes now sit at stripe and gap centres, with at least 2 logical px of margin. `lane_c_paint_contract_scales` runs every paint-contract scene at 3x and the pixel steps at 2.625x on lane C's renderer, and lane C plans it. Seeding the old geometry failed the group. Lanes C, B and D pass the scene again (SCN-7).",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/lane_c_paint_contract_scales.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/lane_coverage.rs"
+        }
+      ]
+    },
+    {
+      "id": "S4-F1",
+      "boundaryId": "s4-pattern-host-scales",
+      "criterionIds": [
+        "SCN-7"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved. `lane_c_paint_contract_scales` is planned in lane C (`LANE_C_GROUPS`, `LANE_C_WEIGHTS`) and `ring_evenness` in lane A (`LANE_A_GROUPS`). The lane-coverage guard passes, so both groups run in `gpux-testkit` lanes and in CI.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/lane_coverage.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/src/lanes.rs",
+          "symbol": "LANE_C_GROUPS"
+        }
+      ]
+    }
+  ],
+  "handoffMarkdown": "No renderer fix needed: all five paint-contract scenes pass unchanged on Metal (lane C scales 1,2; lane D AppKit at scale 2) and WebGPU (lane B DPR 1,2 + dawn.spec.ts). Measured beading (CV, limit): white 0.109@1x (0.15) 0.036@2x; accent 0.147@1x (0.17) 0.040@2x; white15% 0.095@1x (0.12) 0.040@2x - identical on lane C Metal, lane B WebGPU, and lane D Metal (2x only). Metal's hard-coded BORDER_GAMMA_RATIOS/BORDER_ENHANCED_CONTRAST pass unchanged. Seeded Metal faults (inset ignoring element_corner_radii, sprite treating straight alpha as premultiplied, alpha-only checkerboard) failed the probes at the commented values (~95, (255,0,0), (255,0,128)); reverted. Lane B needs Node >=18 on PATH (default shell node is 17.2; /opt/homebrew/opt/node@22/bin works) and pnpm install in tools/browser.",
   "protectedPaths": {
     "gpux": {
       "vendor/**": "c4081a3160e3bd0770bb61241497fc1577079f9a42fc0113092bff872b9377f1",

@@ -1,331 +1,348 @@
 {
- "schemaVersion": 7,
- "epicId": "metal-paint-parity",
- "decisions": [
-  {
-   "id": "d-contract-scenes",
-   "requirementIds": [
-    "REQ-STEP",
-    "REQ-SCN"
-   ],
-   "descriptionMarkdown": "The paint contract is proved by probe-only conformance scenes whose expected values are computed from the contract, not by goldens.\n\n- **Where.** The scenes live with the other paint scenes (`crates/gpux_tests_conformance/src/scenes/paint.rs`, or a `paint_contract.rs` sibling registered in `scenes/mod.rs` if `paint.rs` grows unwieldy) and join `CATALOG`; their ids share the `paint-contract-` prefix so one selector picks them in every lane.\n- **Expected values.** One helper beside the scenes composites a straight-alpha source over an opaque backdrop in encoded sRGB, the contract the renderers implement: `out = src.rgb * a + dst.rgb * (1 - a)` on 8-bit encoded values, rounded. OKLab expectations come from `gpux_color` and the renderers' stop preparation. Probe tolerances cover rounding and the gradient dither only.\n- **Failure modes.** Each probe is placed and valued so the known failure mode (alpha-only fading, straight-alpha interpolation, an ignored inset, a straight sample treated as premultiplied) lands outside its tolerance; its comment names that value. This is how the scenes satisfy the rule that a check must be able to fail, without a red run against old code.\n- **Ring evenness.** A new pixel step ports RayX's beading metric (48 angular bins of linear-light energy above the backdrop, coefficient of variation) and its limits. It reads the element's bounds through the host's query resolution, as `Expect::Bounds` does, and the captured frame through the same path as `ProbeUniform`; `evaluate.rs` holds the measurement so every host shares it, and hosts that already classify pixel steps (`scene.rs`, `test_host.rs`, `app_host.rs`, `host.rs` descriptions) add it to that set. Mobile hosts' `known_pixel` lookups keep their `_` fallbacks.\n- **No goldens.** `golden: false` on every new scene.\n- **Fast mode.** The lane A and lane C catalog lists also drive `lane_a_fast_parity` and `lane_c_fast_parity`, so every new scene is drawn with fast mode on and off and must describe and render alike, per the fast-mode oracle.",
-   "invariantsMarkdown": "- The same expected values and limits for every backend and lane.\n- A pixel step is skipped in lane A, never evaluated on a frame that was not captured.\n- No golden file is added or changed.",
-   "rationaleMarkdown": "Goldens lock in what each backend draws: the `metal` goldens were regenerated from Metal's own output, so a Metal bug that predates them passes forever, and goldens need per-backend regeneration with a review of every diff (and must never come from a hardware GPU). Contract-derived probes compare every backend with the same numbers, run on lanes that keep no goldens (B, D, E, F, G) and need no regeneration. RayX's metric and limits were measured on WebGPU for the same encoded-sRGB coverage correction gpux's WGSL applies, so they are the WGPU baseline Metal is held to.",
-   "memoryDecisionRefs": [
+  "schemaVersion": 7,
+  "epicId": "metal-paint-parity",
+  "decisions": [
     {
-     "repositoryId": "gpux",
-     "path": ".agentx/memory/decisions/renderer/wgpu/2026-09-30-renderer-wgpu-srgb-compositing.md"
+      "id": "d-contract-scenes",
+      "requirementIds": [
+        "REQ-STEP",
+        "REQ-SCN"
+      ],
+      "descriptionMarkdown": "The paint contract is proved by probe-only conformance scenes whose expected values are computed from the contract, not by goldens.\n\n- **Where.** The scenes live with the other paint scenes (`crates/gpux_tests_conformance/src/scenes/paint.rs`, or a `paint_contract.rs` sibling registered in `scenes/mod.rs` if `paint.rs` grows unwieldy) and join `CATALOG`; their ids share the `paint-contract-` prefix so one selector picks them in every lane.\n- **Expected values.** One helper beside the scenes composites a straight-alpha source over an opaque backdrop in encoded sRGB, the contract the renderers implement: `out = src.rgb * a + dst.rgb * (1 - a)` on 8-bit encoded values, rounded. OKLab expectations come from `gpux_color` and the renderers' stop preparation. Probe tolerances cover rounding and the gradient dither only.\n- **Failure modes.** Each probe is placed and valued so the known failure mode (alpha-only fading, straight-alpha interpolation, an ignored inset, a straight sample treated as premultiplied) lands outside its tolerance; its comment names that value. This is how the scenes satisfy the rule that a check must be able to fail, without a red run against old code.\n- **Ring evenness.** A new pixel step ports RayX's beading metric (48 angular bins of linear-light energy above the backdrop, coefficient of variation) and its limits. It reads the element's bounds through the host's query resolution, as `Expect::Bounds` does, and the captured frame through the same path as `ProbeUniform`; `evaluate.rs` holds the measurement so every host shares it, and hosts that already classify pixel steps (`scene.rs`, `test_host.rs`, `app_host.rs`, `host.rs` descriptions) add it to that set. Mobile hosts' `known_pixel` lookups keep their `_` fallbacks.\n- **No goldens.** `golden: false` on every new scene.\n- **Fast mode.** The lane A and lane C catalog lists also drive `lane_a_fast_parity` and `lane_c_fast_parity`, so every new scene is drawn with fast mode on and off and must describe and render alike, per the fast-mode oracle.",
+      "invariantsMarkdown": "- The same expected values and limits for every backend and lane.\n- A pixel step is skipped in lane A, never evaluated on a frame that was not captured.\n- No golden file is added or changed.",
+      "rationaleMarkdown": "Goldens lock in what each backend draws: the `metal` goldens were regenerated from Metal's own output, so a Metal bug that predates them passes forever, and goldens need per-backend regeneration with a review of every diff (and must never come from a hardware GPU). Contract-derived probes compare every backend with the same numbers, run on lanes that keep no goldens (B, D, E, F, G) and need no regeneration. RayX's metric and limits were measured on WebGPU for the same encoded-sRGB coverage correction gpux's WGSL applies, so they are the WGPU baseline Metal is held to.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-09-30-renderer-wgpu-srgb-compositing.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-gpux-owns-runtime-proof.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-test-lanes.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-gpux-testkit.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-16-repository-validation-test-tooling-layout.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-oracle.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/scenes/paint.rs",
+          "symbol": "SRGB"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/scene.rs",
+          "symbol": "Step"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/evaluate.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/catalog_coverage.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/tests/catalog/lane_c_scenes.rs"
+        }
+      ]
     },
     {
-     "repositoryId": "gpux",
-     "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-gpux-owns-runtime-proof.md"
+      "id": "d-renderer-parity",
+      "requirementIds": [
+        "REQ-PAR"
+      ],
+      "descriptionMarkdown": "WGSL (`crates/gpui_wgpu/src/shaders.wgsl`) is the reference implementation of the paint contract; `shaders.metal` mirrors it.\n\n- A scene failing on one renderer and passing on the other is that renderer's bug unless the scene's expected value contradicts the contract; then the scene is fixed (with the contract reasoning in its comment), and both renderers are rerun.\n- A scene failing on both renderers is diagnosed against the contract first: fix the scene or both shaders, never one renderer's expectation.\n- Metal fixes keep the packed Rust records (`metal_renderer.rs` packing, the cbindgen `scene.h`) unchanged unless WGPU's records change identically, and follow the shared shader rules (shade untransformed primitives from the fragment position).\n- Border beading: if Metal exceeds a limit WGPU meets, Metal's `border_edge_coverage` inputs are brought to what WGSL computes for the same border (WGPU reads its gamma ratios and contrast from a uniform; Metal hard-codes WGPU's defaults), not tuned to pass.",
+      "invariantsMarkdown": "- No per-backend expectation, tolerance or limit.\n- Packed record layouts change only together with every shader and transport that reads them.",
+      "rationaleMarkdown": "The sRGB-compositing decision made WGPU match Figma, CSS and the then-Metal renderer; the Metal port (`5321a25`) then translated WGSL's premultiplied paths into Metal. WGSL has had RayX's pixel specs and lane B behind it the longest, so it is the reference when the two disagree.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-09-30-renderer-wgpu-srgb-compositing.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-10-13-renderer-wgpu-transformed-sprites-filtered-by-hand.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/src/metal_renderer.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/src/shaders.metal",
+          "symbol": "quad_fragment"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/shaders.wgsl",
+          "symbol": "fs_quad"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/wgpu_renderer.rs"
+        }
+      ]
     },
     {
-     "repositoryId": "gpux",
-     "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-test-lanes.md"
+      "id": "d-apple-ci",
+      "requirementIds": [
+        "REQ-CI"
+      ],
+      "descriptionMarkdown": "`ci.yml`'s `check` job lints on Windows and macOS and builds the `runtime_shaders` variant on macOS.\n\n- The Clippy step's condition becomes `runner.os != 'Linux'`; its command (`--workspace --all-targets --no-deps ${{ env.FORK_EXCLUDES }} -- -D warnings`) is unchanged, so `gpux-accesskit-macos` and the wgpu forks stay unlinted.\n- A new step `if: runner.os == 'macOS'` runs `cargo check -p gpux-apple --features runtime_shaders` after the workspace check. It is a separate invocation because feature unification would otherwise switch the precompiled-metallib path off for the whole workspace check.\n- The darwin process test helper keeps spawning through `std::process::Command` (the pid it hands to `Process` is the point of the test) under a local `#[allow(...)]` with a reason comment, the idiom `darwin.rs`'s own tests use for `clippy::disallowed_methods`.",
+      "invariantsMarkdown": "- Linux keeps no Clippy step (owner).\n- No workflow gains a job, dispatch input or trigger.",
+      "rationaleMarkdown": "Apple-only code is compiled out on Windows, so the Windows Clippy step never sees it: the Metal port needed a `clone_on_copy` fix found by hand (`3ad5fca`), and `darwin/process.rs`'s helper has failed macOS Clippy since it landed. Linting in the existing macOS `check` job reuses its build cache; the `runtime_shaders` check measured 16 s incremental on 2026-10-19.",
+      "memoryDecisionRefs": [],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/ci.yml",
+          "symbol": "check"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/util/src/command/darwin/process.rs",
+          "symbol": "tests::spawn"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/build.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/testing.md"
+        }
+      ]
     },
     {
-     "repositoryId": "gpux",
-     "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-gpux-testkit.md"
+      "id": "d-records",
+      "requirementIds": [
+        "REQ-REC"
+      ],
+      "descriptionMarkdown": "The proven state goes into the records that already own it; nothing new is created to hold it.\n\n- Memory: the touched domains' `state.md`, `knowledge.md`, `hypotheses.md` and `rules.md` (platform/desktop, renderer, renderer/wgpu), plus a one-clause correction of the 2026-09-30 sRGB-compositing decision's stale parenthetical (the decision itself stands).\n- Replay rules: the Zed import guide's \"Native Rendering And Windows\" section, which upstream imports audit as their checklist.\n- `ToFix/` is deleted once its last open item is recorded; the layout guard's `HISTORICAL` entry for it goes too, since nothing tracked lives there.",
+      "invariantsMarkdown": "- Memory records behavior and decisions, not this epic's narrative.\n- The import guide stays the single replay authority for upstream imports.",
+      "rationaleMarkdown": "The memory and guide edits were planned in the retired epic (DOCS-1, DOCS-2) and deferred here; they wait for the scenes because the beading result decides what the desktop hypothesis and rule say.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/upstream-sync/2026-08-07-repository-upstream-sync-self-contained-upstream-provenance.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/references/update-from-zed-gpui-closure.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/platform/desktop/state.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-09-30-renderer-wgpu-srgb-compositing.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools/testkit/tests/repository_layout.rs",
+          "symbol": "HISTORICAL"
+        }
+      ]
     },
     {
-     "repositoryId": "gpux",
-     "path": ".agentx/memory/decisions/repository/validation/2026-10-16-repository-validation-test-tooling-layout.md"
-    },
-    {
-     "repositoryId": "gpux",
-     "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-oracle.md"
+      "id": "d-pattern-host-scales",
+      "requirementIds": [
+        "REQ-SCN"
+      ],
+      "descriptionMarkdown": "The patterns scene builds its view with the window's scale factor and multiplies the pattern geometry by it (`checkerboard(paint, CELL * scale)`, `pattern_slash(paint, STRIPE * scale, GAP * scale)`), so pattern cells are logical-pixel sized on every host; probe positions are chosen in logical pixels with at least two logical pixels of margin. The renderers' device-pixel pattern contract is unchanged. A focused lane C group renders the paint-contract scenes at the mobile scales (3 and 2.625) with probes only, since `catalog_coverage` keeps catalog scales to 1 and 2.",
+      "invariantsMarkdown": "- No renderer change and no per-backend or per-scale expectation.\n- Catalog scales stay `[1., 2.]`.",
+      "rationaleMarkdown": "Final review FINAL-F1: at 3x the device-pixel cells straddled the 4×4 checkerboard probes and moved stripes onto the gap probes (reproduced on Metal); lane F on a Mac and Android devices at fractional densities run pixel steps at their own scale. Scaling the geometry with the window keeps one script valid at every scale without a per-scale expectation.",
+      "memoryDecisionRefs": [],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_tests_conformance/src/scenes/paint_contract.rs",
+          "symbol": "PATTERNS"
+        }
+      ]
     }
-   ],
-   "sourceRefs": [
+  ],
+  "memoryDecisionsConsidered": [
     {
-     "repositoryId": "gpux",
-     "path": "crates/gpux_tests_conformance/src/scenes/paint.rs",
-     "symbol": "SRGB"
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/renderer/wgpu/2026-07-04-renderer-wgpu-shader-effects-backend-capabilities.md"
     },
     {
-     "repositoryId": "gpux",
-     "path": "crates/gpux_tests_conformance/src/scene.rs",
-     "symbol": "Step"
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/renderer/wgpu/2026-08-07-renderer-wgpu-browser-backend-fallback.md"
     },
     {
-     "repositoryId": "gpux",
-     "path": "crates/gpux_tests_conformance/src/evaluate.rs"
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/renderer/wgpu/2026-10-14-renderer-wgpu-noncompliant-adapter-variable.md"
     },
     {
-     "repositoryId": "gpux",
-     "path": "crates/gpux_tests_conformance/tests/catalog_coverage.rs"
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/desktop/2026-07-08-platform-desktop-windows-wgpu-dx12-policy.md"
     },
     {
-     "repositoryId": "gpux",
-     "path": "crates/gpux_tests_conformance/tests/catalog/lane_c_scenes.rs"
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/desktop/2026-07-08-platform-desktop-windows-wgpu-dxgi-scaling.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-local-gpu-lane-g.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-13-repository-validation-fast-mode-proof-and-timing.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-14-repository-validation-wsl-gpu-lanes-c-d.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-14-repository-validation-wgpu-desktop-perf-4.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/accessibility/2026-10-17-gpui-accessibility-accesskit-one-tree.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-effects/2026-07-06-gpui-frame-effects-frame-effects-elements.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-effects/2026-07-07-gpui-frame-effects-frame-family-naming.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-06-29-gpui-frame-pipeline-unclipped-deferred-overlays.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-07-24-gpui-frame-pipeline-cached-thermal-frame-throttling.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-05-gpui-frame-pipeline-frame-demand-follow-up.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-switches.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-scroll-layers.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-window-composition.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-16-gpui-frame-pipeline-range-listener-lease.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/input/2026-10-05-gpui-input-upstream-input-model.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-30-gpui-layout-style-registry-taffy-0-14.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-conditional-prepaint-style-recompute.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-disable-taffy-content-size.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-frame-bounded-prepaint-style-handoff.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-measured-layout-invalidation.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-request-style-handoff.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-text-measurement-scope.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-fixed-sticky-positioned-scene-order.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-fixed-sticky-positioning.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-nested-scroll-wheel-propagation.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-06-gpui-positioning-scroll-fixed-containing-block.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-opaque-scroll-capture-owner.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-sticky-hierarchy-traversal-order.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-universal-sticky-push-out.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-08-21-gpui-positioning-scroll-immediate-scrollbar-publication.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/text/2026-10-17-gpui-text-editable-state-owns-formatting.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/agentx-memory/2026-10-05-repository-agentx-memory-taxonomy-transplant.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-drop-z-crates.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-gpux-wgpu-fork.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/packaging/2026-10-18-repository-packaging-git-tag-releases.md"
     }
-   ]
-  },
-  {
-   "id": "d-renderer-parity",
-   "requirementIds": [
-    "REQ-PAR"
-   ],
-   "descriptionMarkdown": "WGSL (`crates/gpui_wgpu/src/shaders.wgsl`) is the reference implementation of the paint contract; `shaders.metal` mirrors it.\n\n- A scene failing on one renderer and passing on the other is that renderer's bug unless the scene's expected value contradicts the contract; then the scene is fixed (with the contract reasoning in its comment), and both renderers are rerun.\n- A scene failing on both renderers is diagnosed against the contract first: fix the scene or both shaders, never one renderer's expectation.\n- Metal fixes keep the packed Rust records (`metal_renderer.rs` packing, the cbindgen `scene.h`) unchanged unless WGPU's records change identically, and follow the shared shader rules (shade untransformed primitives from the fragment position).\n- Border beading: if Metal exceeds a limit WGPU meets, Metal's `border_edge_coverage` inputs are brought to what WGSL computes for the same border (WGPU reads its gamma ratios and contrast from a uniform; Metal hard-codes WGPU's defaults), not tuned to pass.",
-   "invariantsMarkdown": "- No per-backend expectation, tolerance or limit.\n- Packed record layouts change only together with every shader and transport that reads them.",
-   "rationaleMarkdown": "The sRGB-compositing decision made WGPU match Figma, CSS and the then-Metal renderer; the Metal port (`5321a25`) then translated WGSL's premultiplied paths into Metal. WGSL has had RayX's pixel specs and lane B behind it the longest, so it is the reference when the two disagree.",
-   "memoryDecisionRefs": [
-    {
-     "repositoryId": "gpux",
-     "path": ".agentx/memory/decisions/renderer/wgpu/2026-09-30-renderer-wgpu-srgb-compositing.md"
-    },
-    {
-     "repositoryId": "gpux",
-     "path": ".agentx/memory/decisions/renderer/wgpu/2026-10-13-renderer-wgpu-transformed-sprites-filtered-by-hand.md"
-    }
-   ],
-   "sourceRefs": [
-    {
-     "repositoryId": "gpux",
-     "path": "crates/gpui_apple/src/metal_renderer.rs"
-    },
-    {
-     "repositoryId": "gpux",
-     "path": "crates/gpui_apple/src/shaders.metal",
-     "symbol": "quad_fragment"
-    },
-    {
-     "repositoryId": "gpux",
-     "path": "crates/gpui_wgpu/src/shaders.wgsl",
-     "symbol": "fs_quad"
-    },
-    {
-     "repositoryId": "gpux",
-     "path": "crates/gpui_wgpu/src/wgpu_renderer.rs"
-    }
-   ]
-  },
-  {
-   "id": "d-apple-ci",
-   "requirementIds": [
-    "REQ-CI"
-   ],
-   "descriptionMarkdown": "`ci.yml`'s `check` job lints on Windows and macOS and builds the `runtime_shaders` variant on macOS.\n\n- The Clippy step's condition becomes `runner.os != 'Linux'`; its command (`--workspace --all-targets --no-deps ${{ env.FORK_EXCLUDES }} -- -D warnings`) is unchanged, so `gpux-accesskit-macos` and the wgpu forks stay unlinted.\n- A new step `if: runner.os == 'macOS'` runs `cargo check -p gpux-apple --features runtime_shaders` after the workspace check. It is a separate invocation because feature unification would otherwise switch the precompiled-metallib path off for the whole workspace check.\n- The darwin process test helper keeps spawning through `std::process::Command` (the pid it hands to `Process` is the point of the test) under a local `#[allow(...)]` with a reason comment, the idiom `darwin.rs`'s own tests use for `clippy::disallowed_methods`.",
-   "invariantsMarkdown": "- Linux keeps no Clippy step (owner).\n- No workflow gains a job, dispatch input or trigger.",
-   "rationaleMarkdown": "Apple-only code is compiled out on Windows, so the Windows Clippy step never sees it: the Metal port needed a `clone_on_copy` fix found by hand (`3ad5fca`), and `darwin/process.rs`'s helper has failed macOS Clippy since it landed. Linting in the existing macOS `check` job reuses its build cache; the `runtime_shaders` check measured 16 s incremental on 2026-10-19.",
-   "memoryDecisionRefs": [],
-   "sourceRefs": [
-    {
-     "repositoryId": "gpux",
-     "path": ".github/workflows/ci.yml",
-     "symbol": "check"
-    },
-    {
-     "repositoryId": "gpux",
-     "path": "crates/util/src/command/darwin/process.rs",
-     "symbol": "tests::spawn"
-    },
-    {
-     "repositoryId": "gpux",
-     "path": "crates/gpui_apple/build.rs"
-    },
-    {
-     "repositoryId": "gpux",
-     "path": "docs/testing.md"
-    }
-   ]
-  },
-  {
-   "id": "d-records",
-   "requirementIds": [
-    "REQ-REC"
-   ],
-   "descriptionMarkdown": "The proven state goes into the records that already own it; nothing new is created to hold it.\n\n- Memory: the touched domains' `state.md`, `knowledge.md`, `hypotheses.md` and `rules.md` (platform/desktop, renderer, renderer/wgpu), plus a one-clause correction of the 2026-09-30 sRGB-compositing decision's stale parenthetical (the decision itself stands).\n- Replay rules: the Zed import guide's \"Native Rendering And Windows\" section, which upstream imports audit as their checklist.\n- `ToFix/` is deleted once its last open item is recorded; the layout guard's `HISTORICAL` entry for it goes too, since nothing tracked lives there.",
-   "invariantsMarkdown": "- Memory records behavior and decisions, not this epic's narrative.\n- The import guide stays the single replay authority for upstream imports.",
-   "rationaleMarkdown": "The memory and guide edits were planned in the retired epic (DOCS-1, DOCS-2) and deferred here; they wait for the scenes because the beading result decides what the desktop hypothesis and rule say.",
-   "memoryDecisionRefs": [
-    {
-     "repositoryId": "gpux",
-     "path": ".agentx/memory/decisions/repository/upstream-sync/2026-08-07-repository-upstream-sync-self-contained-upstream-provenance.md"
-    }
-   ],
-   "sourceRefs": [
-    {
-     "repositoryId": "gpux",
-     "path": ".claude/skills/gpux/references/update-from-zed-gpui-closure.md"
-    },
-    {
-     "repositoryId": "gpux",
-     "path": ".agentx/memory/knowledge/platform/desktop/state.md"
-    },
-    {
-     "repositoryId": "gpux",
-     "path": ".agentx/memory/decisions/renderer/wgpu/2026-09-30-renderer-wgpu-srgb-compositing.md"
-    },
-    {
-     "repositoryId": "gpux",
-     "path": "tools/testkit/tests/repository_layout.rs",
-     "symbol": "HISTORICAL"
-    }
-   ]
-  }
- ],
- "memoryDecisionsConsidered": [
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/renderer/wgpu/2026-07-04-renderer-wgpu-shader-effects-backend-capabilities.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/renderer/wgpu/2026-08-07-renderer-wgpu-browser-backend-fallback.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/renderer/wgpu/2026-10-14-renderer-wgpu-noncompliant-adapter-variable.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/platform/desktop/2026-07-08-platform-desktop-windows-wgpu-dx12-policy.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/platform/desktop/2026-07-08-platform-desktop-windows-wgpu-dxgi-scaling.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-local-gpu-lane-g.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/repository/validation/2026-10-13-repository-validation-fast-mode-proof-and-timing.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/repository/validation/2026-10-14-repository-validation-wsl-gpu-lanes-c-d.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/repository/validation/2026-10-14-repository-validation-wgpu-desktop-perf-4.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/gpui/accessibility/2026-10-17-gpui-accessibility-accesskit-one-tree.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/gpui/frame-effects/2026-07-06-gpui-frame-effects-frame-effects-elements.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/gpui/frame-effects/2026-07-07-gpui-frame-effects-frame-family-naming.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-06-29-gpui-frame-pipeline-unclipped-deferred-overlays.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-07-24-gpui-frame-pipeline-cached-thermal-frame-throttling.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-05-gpui-frame-pipeline-frame-demand-follow-up.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-switches.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-scroll-layers.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-window-composition.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-16-gpui-frame-pipeline-range-listener-lease.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/gpui/input/2026-10-05-gpui-input-upstream-input-model.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-30-gpui-layout-style-registry-taffy-0-14.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-conditional-prepaint-style-recompute.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-disable-taffy-content-size.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-frame-bounded-prepaint-style-handoff.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-measured-layout-invalidation.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-request-style-handoff.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-text-measurement-scope.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-fixed-sticky-positioned-scene-order.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-fixed-sticky-positioning.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-nested-scroll-wheel-propagation.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-06-gpui-positioning-scroll-fixed-containing-block.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-opaque-scroll-capture-owner.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-sticky-hierarchy-traversal-order.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-universal-sticky-push-out.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-08-21-gpui-positioning-scroll-immediate-scrollbar-publication.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/gpui/text/2026-10-17-gpui-text-editable-state-owns-formatting.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/repository/agentx-memory/2026-10-05-repository-agentx-memory-taxonomy-transplant.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-drop-z-crates.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-gpux-wgpu-fork.md"
-  },
-  {
-   "repositoryId": "gpux",
-   "path": ".agentx/memory/decisions/repository/packaging/2026-10-18-repository-packaging-git-tag-releases.md"
-  }
- ]
+  ]
 }

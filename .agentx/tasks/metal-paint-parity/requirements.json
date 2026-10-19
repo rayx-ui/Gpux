@@ -1,128 +1,133 @@
 {
- "schemaVersion": 7,
- "epicId": "metal-paint-parity",
- "scopeMarkdown": "Prove that gpux's two renderers, the native Metal renderer (`gpui_apple`, hosted by `gpui_macos`) and the WGPU renderer (`gpui_wgpu`: WebGPU, WebGL2, Vulkan, DX12), draw the paint contract alike, and close what the 2026-10-06 macOS CI hand-off (`ToFix/`) left open.\n\n## Background\n\n`ToFix/` held four hand-off notes. Three (the `adopt_raw_pid` build break, WGPU dashed borders, the Windows grandchild-test deadline) were fixed on `main` by other epics. The fourth, the Metal port to the `PaintColor` contract (`5321a25`), is on `main` and green in macOS CI (check, workspace tests, lanes A, C on the `metal` goldens, D). Its open remainder is this epic. The planned epic `macos-only-metal-port-and-ci-repair` was never started; the owner retired it on 2026-10-19 (its state records the dispositions), deferring BUILD-2, PAINT-2, PAINT-4, DOCS-1 and DOCS-2 to this epic.\n\nThe `metal` goldens freeze what Metal renders; they do not prove it matches WGPU. Several contract features the port changed have no scene on any lane: inset shadows (Metal ignored them before the port), translucent and OKLab gradient stops, pattern backgrounds, translucent image edges, and 1 px rounded-border beading (Metal hard-codes WGPU's default border gamma). Lane C on macOS runs the Metal renderer; lane B on this Mac runs the WGPU renderer's WGSL through WebGPU; lane D runs Metal in real windows.\n\n## In scope (owner, 2026-10-19)\n\n1. Five probe-based conformance scenes, `paint-contract-*`, on every pixel lane, plus a ring-evenness step for border beading, and renderer fixes wherever a renderer breaks the contract.\n2. Clippy on macOS in CI (Linux stays unlinted: owner decision), after fixing the macOS-only lints it reports.\n3. The `runtime_shaders` build of `gpux-apple` in CI's macOS check job.\n4. Memory and import-guide records of the proven state; `ToFix/` deleted and dropped from the layout guard.\n\n## Out of scope\n\n- A transparent-window scene (owner, 2026-10-19).\n- Clippy on Linux in CI (owner, 2026-10-19).\n- `gpux-apple` for iOS: no consumer builds it (`gpui_mobile` renders through wgpu); it passed locally on 2026-10-19 and the owner withdrew the check.\n- Goldens for the new scenes: they are probe-only (`golden: false`).\n- A color-emoji scene: no bundled color-emoji font. Code review settles the emoji atlas question: `gpui_macos` un-premultiplies emoji before upload (`text_system.rs`), as the Metal shader assumes.\n- Runs this Mac cannot make: lane C on lavapipe and WARP, lanes E and F. CI runs them (lane C on every push, E and F nightly); a failure there goes through the repair loop after the epic.\n\n## Assumptions\n\n- Implementation runs on this Mac (Apple Silicon, Xcode, the `aarch64-apple-ios` target and cargo-ndk installed), with lane B's prerequisites (nightly `-Z build-std`, wasm-bindgen, Playwright Chromium) and an awake, unlocked display for lane D.\n- Implementation commits go straight to `main` (CLAUDE.md Releases); the push's CI run is the hosted proof, never an extra dispatch.\n",
- "constraintsMarkdown": "- Dependencies stay on crates.io: no git dependencies, no `[patch]`.\n- Scene probes compare every backend with the same expected values, derived from the contract (premultiplied, gamma-encoded sRGB, composited in encoded sRGB). No per-backend expectation, tolerance or limit; a limit changes only with the owner's agreement, recorded beside it.\n- No goldens are added or regenerated (`crates/gpux_tests_conformance/tests/goldens/**` is forbidden).\n- A renderer that breaks the contract is fixed at its source (`shaders.metal`/`metal_renderer.rs` or `shaders.wgsl`/`wgpu_renderer.rs`), never by weakening a probe. WGSL is the reference implementation of the contract; a Metal fix mirrors it.\n- Packed record layouts change only with every shader and transport that reads them (renderer rules); a WGSL change is proved in lane B on WebGPU and forced WebGL2, plus lane C.\n- Test only what changed (CLAUDE.md, validation rules). The single whole-workspace run is the macOS workspace clippy of CI-1, because the CI step it enables lints the whole macOS workspace.\n- Raw logs and screenshots go to ignored `artifacts-temp/agentx/metal-paint-parity/`.\n- Conventional Commits with meaningful scopes and no co-author lines; a fix to an upstream-imported file says so in its body.\n",
- "requirements": [
-  {
-   "id": "REQ-STEP",
-   "title": "A ring-evenness step measures 1 px border beading on every pixel lane",
-   "descriptionMarkdown": "Beading (1 px rounded borders alternating bright and dark along the curve) is invisible to point probes. RayX measured it in `tools-node/test_suite/rayx-border-antialiasing.spec.ts`; gpux gets the same metric as a scene step.",
-   "criteria": [
+  "schemaVersion": 7,
+  "epicId": "metal-paint-parity",
+  "scopeMarkdown": "Prove that gpux's two renderers, the native Metal renderer (`gpui_apple`, hosted by `gpui_macos`) and the WGPU renderer (`gpui_wgpu`: WebGPU, WebGL2, Vulkan, DX12), draw the paint contract alike, and close what the 2026-10-06 macOS CI hand-off (`ToFix/`) left open.\n\n## Background\n\n`ToFix/` held four hand-off notes. Three (the `adopt_raw_pid` build break, WGPU dashed borders, the Windows grandchild-test deadline) were fixed on `main` by other epics. The fourth, the Metal port to the `PaintColor` contract (`5321a25`), is on `main` and green in macOS CI (check, workspace tests, lanes A, C on the `metal` goldens, D). Its open remainder is this epic. The planned epic `macos-only-metal-port-and-ci-repair` was never started; the owner retired it on 2026-10-19 (its state records the dispositions), deferring BUILD-2, PAINT-2, PAINT-4, DOCS-1 and DOCS-2 to this epic.\n\nThe `metal` goldens freeze what Metal renders; they do not prove it matches WGPU. Several contract features the port changed have no scene on any lane: inset shadows (Metal ignored them before the port), translucent and OKLab gradient stops, pattern backgrounds, translucent image edges, and 1 px rounded-border beading (Metal hard-codes WGPU's default border gamma). Lane C on macOS runs the Metal renderer; lane B on this Mac runs the WGPU renderer's WGSL through WebGPU; lane D runs Metal in real windows.\n\n## In scope (owner, 2026-10-19)\n\n1. Five probe-based conformance scenes, `paint-contract-*`, on every pixel lane, plus a ring-evenness step for border beading, and renderer fixes wherever a renderer breaks the contract.\n2. Clippy on macOS in CI (Linux stays unlinted: owner decision), after fixing the macOS-only lints it reports.\n3. The `runtime_shaders` build of `gpux-apple` in CI's macOS check job.\n4. Memory and import-guide records of the proven state; `ToFix/` deleted and dropped from the layout guard.\n\n## Out of scope\n\n- A transparent-window scene (owner, 2026-10-19).\n- Clippy on Linux in CI (owner, 2026-10-19).\n- `gpux-apple` for iOS: no consumer builds it (`gpui_mobile` renders through wgpu); it passed locally on 2026-10-19 and the owner withdrew the check.\n- Goldens for the new scenes: they are probe-only (`golden: false`).\n- A color-emoji scene: no bundled color-emoji font. Code review settles the emoji atlas question: `gpui_macos` un-premultiplies emoji before upload (`text_system.rs`), as the Metal shader assumes.\n- Runs this Mac cannot make: lane C on lavapipe and WARP, lanes E and F. CI runs them (lane C on every push, E and F nightly); a failure there goes through the repair loop after the epic.\n\n## Assumptions\n\n- Implementation runs on this Mac (Apple Silicon, Xcode, the `aarch64-apple-ios` target and cargo-ndk installed), with lane B's prerequisites (nightly `-Z build-std`, wasm-bindgen, Playwright Chromium) and an awake, unlocked display for lane D.\n- Implementation commits go straight to `main` (CLAUDE.md Releases); the push's CI run is the hosted proof, never an extra dispatch.\n",
+  "constraintsMarkdown": "- Dependencies stay on crates.io: no git dependencies, no `[patch]`.\n- Scene probes compare every backend with the same expected values, derived from the contract (premultiplied, gamma-encoded sRGB, composited in encoded sRGB). No per-backend expectation, tolerance or limit; a limit changes only with the owner's agreement, recorded beside it.\n- No goldens are added or regenerated (`crates/gpux_tests_conformance/tests/goldens/**` is forbidden).\n- A renderer that breaks the contract is fixed at its source (`shaders.metal`/`metal_renderer.rs` or `shaders.wgsl`/`wgpu_renderer.rs`), never by weakening a probe. WGSL is the reference implementation of the contract; a Metal fix mirrors it.\n- Packed record layouts change only with every shader and transport that reads them (renderer rules); a WGSL change is proved in lane B on WebGPU and forced WebGL2, plus lane C.\n- Test only what changed (CLAUDE.md, validation rules). The single whole-workspace run is the macOS workspace clippy of CI-1, because the CI step it enables lints the whole macOS workspace.\n- Raw logs and screenshots go to ignored `artifacts-temp/agentx/metal-paint-parity/`.\n- Conventional Commits with meaningful scopes and no co-author lines; a fix to an upstream-imported file says so in its body.\n",
+  "requirements": [
     {
-     "id": "STEP-1",
-     "verification": "automated",
-     "descriptionMarkdown": "A new pixel `Step` variant (for example `Step::EvenRing(Query, f32, f32)`: the element, the limit at scale 1, the limit at scale 2) measures the evenness of the 1 px border of a `rounded_full` element:\n\n- **Metric (RayX's).** Linear-light luminance each pixel adds over the backdrop (the pixel at the ring's centre), summed into 48 angular bins over pixels within `scale / 2 + 2` device pixels of the border's centre line (radius: half the element's width minus half a logical pixel, in device pixels). The result is the coefficient of variation (standard deviation over mean) of the bins.\n- **Verdict.** It passes when the coefficient is at most the active scale's limit; a ring whose mean energy is zero fails (an undrawn ring is never even); the failure message names the measured coefficient and the limit.\n- **Hosts.** It is a pixel step: skipped in lane A like every pixel step, evaluated by every host that captures frames (the test host of lane C, the app host of lanes B, D, E and F), and described in reports like the other steps.\n\nA new test group `crates/gpux_tests_conformance/tests/ring_evenness.rs` drives the evaluator on synthetic frames at scales 1 and 2: an analytically anti-aliased even ring passes; the same ring at a sub-pixel offset still passes (the metric does not depend on phase); a seeded beaded ring (alternate bins dimmed so the coefficient is at least 0.3) fails; an empty frame fails."
+      "id": "REQ-STEP",
+      "title": "A ring-evenness step measures 1 px border beading on every pixel lane",
+      "descriptionMarkdown": "Beading (1 px rounded borders alternating bright and dark along the curve) is invisible to point probes. RayX measured it in `tools-node/test_suite/rayx-border-antialiasing.spec.ts`; gpux gets the same metric as a scene step.",
+      "criteria": [
+        {
+          "id": "STEP-1",
+          "verification": "automated",
+          "descriptionMarkdown": "A new pixel `Step` variant (for example `Step::EvenRing(Query, f32, f32)`: the element, the limit at scale 1, the limit at scale 2) measures the evenness of the 1 px border of a `rounded_full` element:\n\n- **Metric (RayX's).** Linear-light luminance each pixel adds over the backdrop (the pixel at the ring's centre), summed into 48 angular bins over pixels within `scale / 2 + 2` device pixels of the border's centre line (radius: half the element's width minus half a logical pixel, in device pixels). The result is the coefficient of variation (standard deviation over mean) of the bins.\n- **Verdict.** It passes when the coefficient is at most the active scale's limit; a ring whose mean energy is zero fails (an undrawn ring is never even); the failure message names the measured coefficient and the limit.\n- **Hosts.** It is a pixel step: skipped in lane A like every pixel step, evaluated by every host that captures frames (the test host of lane C, the app host of lanes B, D, E and F), and described in reports like the other steps.\n\nA new test group `crates/gpux_tests_conformance/tests/ring_evenness.rs` drives the evaluator on synthetic frames at scales 1 and 2: an analytically anti-aliased even ring passes; the same ring at a sub-pixel offset still passes (the metric does not depend on phase); a seeded beaded ring (alternate bins dimmed so the coefficient is at least 0.3) fails; an empty frame fails."
+        }
+      ]
+    },
+    {
+      "id": "REQ-SCN",
+      "title": "Paint-contract scenes check every renderer against the contract's own values",
+      "descriptionMarkdown": "Five scenes in `crates/gpux_tests_conformance/src/scenes/paint.rs` (or a sibling module) cover what the Metal port changed. Each probe's expected value follows from the contract, so the same numbers judge Metal, WGPU and every backend.",
+      "criteria": [
+        {
+          "id": "SCN-1",
+          "verification": "automated",
+          "descriptionMarkdown": "**`paint-contract-inset-shadows`.** Over a white backdrop, a square and a rounded (corner radius at least 12) mid-grey card, each with one inset shadow (black, alpha 0.8, blur 8, no offset or spread). Probes: each card's centre is exactly the card color (the shadow does not reach it); just inside each edge differs from the centre by more than the tolerance (an ignored inset shadow fails this); just outside each edge, and inside the rounded card's bounding box but outside its corner curve, is exactly the backdrop (an inset shadow drawn outside, or one ignoring `element_corner_radii`, fails this)."
+        },
+        {
+          "id": "SCN-2",
+          "verification": "automated",
+          "descriptionMarkdown": "**`paint-contract-gradients`.** Left-to-right gradients over a white backdrop, each probed at the middle of its gradient line:\n\n1. sRGB, opaque red to fully transparent black: red at alpha 0.5 composited over white in encoded sRGB (about `(255, 128, 128)`), the premultiplied interpolation CSS specifies. Straight-alpha interpolation gives about `(191, 128, 128)` and fails.\n2. OKLab, opaque red to opaque blue: the OKLab midpoint converted to encoded sRGB, which differs from the sRGB midpoint `(128, 0, 128)` by more than the tolerance.\n3. OKLab, opaque red to fully transparent black: premultiplied OKLab interpolation (unpremultiply, convert, clamp, premultiply) composited over white.\n\nExpected values come from `gpux_color`'s conversions and the gradient stop preparation the renderers use (`prepare_gradient_stop_color`), not from hand-copied constants. Tolerances allow the gradient dither (at most 4) and nothing more."
+        },
+        {
+          "id": "SCN-3",
+          "verification": "automated",
+          "descriptionMarkdown": "**`paint-contract-patterns`.** A `checkerboard` and a `pattern_slash` background painted with a translucent color (alpha 0.5) over an opaque backdrop of another color. Probes, at cell and stripe centres away from anti-aliased edges: a painted cell or stripe is the translucent color composited over the backdrop in encoded sRGB; an unpainted cell or gap is exactly the backdrop. A pattern that fades alpha alone tints the gaps and fails."
+        },
+        {
+          "id": "SCN-4",
+          "verification": "automated",
+          "descriptionMarkdown": "**`paint-contract-image-alpha`.** A `RenderImage` (BGRA frames, straight alpha, as the image path delivers) with large quadrants of opaque red, red at alpha 128, white at alpha 64, and green at alpha 0, scaled up over a black backdrop. Probes at quadrant centres: opaque red is red; red at alpha 128 is about `(128, 0, 0)`; white at alpha 64 is about `(64, 64, 64)`; the transparent green quadrant is exactly the backdrop. A sprite that treats the straight sample as premultiplied gives `(255, 0, 0)` and visible green, and fails."
+        },
+        {
+          "id": "SCN-5",
+          "verification": "automated",
+          "descriptionMarkdown": "**`paint-contract-border-beading`.** RayX's border-antialiasing page as a gpux scene: over `#0a0a0a`, three `rounded_full` rings with 1 px borders (white, an accent blue, white at alpha 0.15) and one box with a 4 px white border. Steps: `EvenRing` on each ring with RayX's limits (white 0.15, accent 0.17, white 15% 0.12 at scale 1; 0.06 at scale 2), and a probe in the middle of the 4 px border that is exactly white."
+        },
+        {
+          "id": "SCN-6",
+          "verification": "automated",
+          "descriptionMarkdown": "**Catalog shape.** The five scene ids start with `paint-contract-` (one selector picks them in every lane: `paint_contract` for libtest, `paint-contract` for the lane B and D runners). Each runs on all six pixel lanes (`PIXEL_LANES`) at scales 1 and 2 with `golden: false`. New `Area` variants (for example `InsetShadows`, `GradientInterpolation`, `PatternBackgrounds`, `ImageAlpha`, `BorderAntialiasing`) join `Area::REQUIRED`. The scenes are listed in `tests/catalog/lane_a_scenes.rs` and `lane_c_scenes.rs`. Expected colors come from one encoded-sRGB compositing helper beside the scenes (`over(source, backdrop)` on straight-alpha inputs), and every probe's comment names the value its failure mode would produce, which lies outside the probe's tolerance. `catalog_coverage` and lane A (the scenes' bounds and behavior steps) pass. Because the catalog lists also feed the fast-mode parity groups, `lane_a_fast_parity` and `lane_c_fast_parity` (on Metal) pass for the new scenes: fast mode on and off draw them alike."
+        },
+        {
+          "id": "SCN-7",
+          "verification": "automated",
+          "descriptionMarkdown": "**Pattern probes hold at every host scale.** Pattern geometry (`checkerboard` cell, `pattern_slash` stripe and gap) is in device pixels, while the mobile app hosts render at the device's own scale (3x on the iOS Simulator, fractional densities such as 2.625x on Android). `paint-contract-patterns` sizes its patterns from the window's scale factor so their cells and stripes sit at the same logical places on every host, and each probe stays at least two logical pixels inside one cell or stripe of the expected kind. A new test group `crates/gpux_tests_conformance/tests/lane_c_paint_contract_scales.rs` runs every `paint-contract-*` scene's probes on lane C's renderer at scales 3 and 2.625 (probes only; the catalog's scales stay 1 and 2), and lanes C, B and D still pass the scene."
+        }
+      ]
+    },
+    {
+      "id": "REQ-PAR",
+      "title": "Metal and WGPU render the paint contract alike",
+      "descriptionMarkdown": "The scenes pass on both renderers this Mac can run: Metal (lanes C and D) and WGPU through WebGPU (lane B).",
+      "criteria": [
+        {
+          "id": "PAR-1",
+          "verification": "automated",
+          "descriptionMarkdown": "Lane C on the Metal renderer (`GPUX_EXPECT_BACKEND=metal`) passes every `paint-contract-*` scene at scales 1 and 2."
+        },
+        {
+          "id": "PAR-2",
+          "verification": "automated",
+          "descriptionMarkdown": "Lane B (`gpux-testkit lane b --grep paint-contract`) passes every `paint-contract-*` scene at DPR 1 and DPR 2 on WebGPU, with the run asserting its backend."
+        },
+        {
+          "id": "PAR-3",
+          "verification": "automated",
+          "descriptionMarkdown": "Lane D on macOS passes every `paint-contract-*` scene in real AppKit windows (Metal through `CAMetalLayer`)."
+        },
+        {
+          "id": "PAR-4",
+          "verification": "manual",
+          "descriptionMarkdown": "Every mismatch the scenes find is fixed at its source in the renderer that breaks the contract (see the constraints), in its own Conventional Commit that names the scene proving it. A WGSL fix also passes lane B's forced-WebGL2 route for the touched scenes and `dawn.spec.ts`; a Metal fix keeps the packed Rust ABI and the shader rules Metal shares with WGSL (fragment-position shading). The beading result settles Metal's hard-coded border gamma (`BORDER_GAMMA_RATIOS`, `BORDER_ENHANCED_CONTRAST` in `quad_fragment`): it passes unchanged, or Metal is changed to compute what WGSL computes. The review lists each fix, or states that none was needed."
+        }
+      ]
+    },
+    {
+      "id": "REQ-CI",
+      "title": "CI lints and builds the Apple-only code",
+      "descriptionMarkdown": "CI lints on Windows only, so Apple-only code (`gpux-apple`, `gpux-macos`, `gpux-zed-util`'s darwin command) has never been linted there, and the `runtime_shaders` feature is never built.",
+      "criteria": [
+        {
+          "id": "CI-1",
+          "verification": "automated",
+          "descriptionMarkdown": "On macOS, CI's clippy command passes: `cargo clippy --workspace --all-targets --no-deps` with CI's `FORK_EXCLUDES` and `-D warnings`. The test helper in `crates/util/src/command/darwin/process.rs` that spawns through `std::process::Command` and hands the pid to `Process` (which reaps it) carries `#[allow(clippy::disallowed_methods, clippy::zombie_processes)]` with a comment saying why, as `darwin.rs`'s tests do. Any other macOS finding is fixed at its source; no crate- or module-level allow is added."
+        },
+        {
+          "id": "CI-2",
+          "verification": "manual",
+          "descriptionMarkdown": "`.github/workflows/ci.yml`'s `check` job runs its Clippy step on Windows and macOS, and still not on Linux. `docs/testing.md` says where Clippy runs. Every workflow file still passes AgentX's workflow YAML checker. The first CI run after the push shows the Clippy step on `check (macos-15)`."
+        },
+        {
+          "id": "CI-3",
+          "verification": "automated",
+          "descriptionMarkdown": "`cargo check -p gpux-apple --features runtime_shaders` passes on macOS, and `ci.yml`'s `check` job runs exactly that command on macOS only, as its own step after the workspace check."
+        }
+      ]
+    },
+    {
+      "id": "REQ-REC",
+      "title": "Durable records match the proven state, and ToFix is gone",
+      "descriptionMarkdown": "Memory and the Zed import guide still describe the Metal port as unproven and lack its replay rules.",
+      "criteria": [
+        {
+          "id": "REC-1",
+          "verification": "manual",
+          "descriptionMarkdown": "Memory states only what this epic and `main` proved:\n\n- `knowledge/platform/desktop`: `state.md` drops \"that port has not been compiled or run\" and names the paint-contract scenes; `hypotheses.md` settles the Metal border-coverage hypothesis with the measured beading; `rules.md` replaces \"do not call the Metal border-antialiasing port done until...\" with the rule that 1 px border evenness stays within the scene's limits on every pixel lane.\n- A knowledge item (renderer or platform/desktop): enums in Metal-exported records are `#[repr(C)]`, because cbindgen's sized-enum typedef (`enum X {...}; typedef uint32_t X;`) is a redefinition in Metal's C++.\n- `knowledge/renderer/wgpu/rules.md`: fading or masking premultiplied paint scales all four channels (dash gaps, patterns, coverage), in both renderers.\n- `knowledge/renderer/state.md`: the paint-contract scenes prove Metal and WGPU against the same values.\n- The 2026-09-30 sRGB-compositing decision loses its stale \"the Metal port is not yet compiled or proven on macOS\".\n- Any renderer fix from PAR-4 is recorded where its domain's state describes that code.\n\nTimestamps are updated, and AgentX's memory audit passes."
+        },
+        {
+          "id": "REC-2",
+          "verification": "manual",
+          "descriptionMarkdown": "`.claude/skills/gpux/references/update-from-zed-gpui-closure.md`, \"Native Rendering And Windows\", records the replay rules with why upstream's files must not be taken whole:\n\n- the Metal paint contract: `shaders.metal` consumes premultiplied encoded-sRGB `PaintColor` and returns premultiplied color, `build.rs` has cbindgen parse `gpux_color`'s `src/color/paint.rs` through `GPUX_COLOR_MANIFEST_DIR`, and Metal-exported enums such as `MonochromeSpriteKind` stay `#[repr(C)]`. Upstream's `shaders.metal` still uses `Hsla`; the `paint-contract-*` scenes are the audit.\n- WGSL `fs_quad`: dash gaps scale the whole premultiplied border color, and an untransformed quad's antialias threshold is the constant half pixel (`b0c1c37`); upstream fades alpha alone and derives the threshold. `paint-border-strips` guards both.\n- Any PAR-4 fix to an upstream-imported file."
+        },
+        {
+          "id": "REC-3",
+          "verification": "automated",
+          "descriptionMarkdown": "`ToFix/` is deleted. `tools/testkit/tests/repository_layout.rs` no longer lists `ToFix/` in `HISTORICAL` or in `historical_records_and_fixtures_are_not_scanned`, and its group passes."
+        }
+      ]
     }
-   ]
-  },
-  {
-   "id": "REQ-SCN",
-   "title": "Paint-contract scenes check every renderer against the contract's own values",
-   "descriptionMarkdown": "Five scenes in `crates/gpux_tests_conformance/src/scenes/paint.rs` (or a sibling module) cover what the Metal port changed. Each probe's expected value follows from the contract, so the same numbers judge Metal, WGPU and every backend.",
-   "criteria": [
-    {
-     "id": "SCN-1",
-     "verification": "automated",
-     "descriptionMarkdown": "**`paint-contract-inset-shadows`.** Over a white backdrop, a square and a rounded (corner radius at least 12) mid-grey card, each with one inset shadow (black, alpha 0.8, blur 8, no offset or spread). Probes: each card's centre is exactly the card color (the shadow does not reach it); just inside each edge differs from the centre by more than the tolerance (an ignored inset shadow fails this); just outside each edge, and inside the rounded card's bounding box but outside its corner curve, is exactly the backdrop (an inset shadow drawn outside, or one ignoring `element_corner_radii`, fails this)."
-    },
-    {
-     "id": "SCN-2",
-     "verification": "automated",
-     "descriptionMarkdown": "**`paint-contract-gradients`.** Left-to-right gradients over a white backdrop, each probed at the middle of its gradient line:\n\n1. sRGB, opaque red to fully transparent black: red at alpha 0.5 composited over white in encoded sRGB (about `(255, 128, 128)`), the premultiplied interpolation CSS specifies. Straight-alpha interpolation gives about `(191, 128, 128)` and fails.\n2. OKLab, opaque red to opaque blue: the OKLab midpoint converted to encoded sRGB, which differs from the sRGB midpoint `(128, 0, 128)` by more than the tolerance.\n3. OKLab, opaque red to fully transparent black: premultiplied OKLab interpolation (unpremultiply, convert, clamp, premultiply) composited over white.\n\nExpected values come from `gpux_color`'s conversions and the gradient stop preparation the renderers use (`prepare_gradient_stop_color`), not from hand-copied constants. Tolerances allow the gradient dither (at most 4) and nothing more."
-    },
-    {
-     "id": "SCN-3",
-     "verification": "automated",
-     "descriptionMarkdown": "**`paint-contract-patterns`.** A `checkerboard` and a `pattern_slash` background painted with a translucent color (alpha 0.5) over an opaque backdrop of another color. Probes, at cell and stripe centres away from anti-aliased edges: a painted cell or stripe is the translucent color composited over the backdrop in encoded sRGB; an unpainted cell or gap is exactly the backdrop. A pattern that fades alpha alone tints the gaps and fails."
-    },
-    {
-     "id": "SCN-4",
-     "verification": "automated",
-     "descriptionMarkdown": "**`paint-contract-image-alpha`.** A `RenderImage` (BGRA frames, straight alpha, as the image path delivers) with large quadrants of opaque red, red at alpha 128, white at alpha 64, and green at alpha 0, scaled up over a black backdrop. Probes at quadrant centres: opaque red is red; red at alpha 128 is about `(128, 0, 0)`; white at alpha 64 is about `(64, 64, 64)`; the transparent green quadrant is exactly the backdrop. A sprite that treats the straight sample as premultiplied gives `(255, 0, 0)` and visible green, and fails."
-    },
-    {
-     "id": "SCN-5",
-     "verification": "automated",
-     "descriptionMarkdown": "**`paint-contract-border-beading`.** RayX's border-antialiasing page as a gpux scene: over `#0a0a0a`, three `rounded_full` rings with 1 px borders (white, an accent blue, white at alpha 0.15) and one box with a 4 px white border. Steps: `EvenRing` on each ring with RayX's limits (white 0.15, accent 0.17, white 15% 0.12 at scale 1; 0.06 at scale 2), and a probe in the middle of the 4 px border that is exactly white."
-    },
-    {
-     "id": "SCN-6",
-     "verification": "automated",
-     "descriptionMarkdown": "**Catalog shape.** The five scene ids start with `paint-contract-` (one selector picks them in every lane: `paint_contract` for libtest, `paint-contract` for the lane B and D runners). Each runs on all six pixel lanes (`PIXEL_LANES`) at scales 1 and 2 with `golden: false`. New `Area` variants (for example `InsetShadows`, `GradientInterpolation`, `PatternBackgrounds`, `ImageAlpha`, `BorderAntialiasing`) join `Area::REQUIRED`. The scenes are listed in `tests/catalog/lane_a_scenes.rs` and `lane_c_scenes.rs`. Expected colors come from one encoded-sRGB compositing helper beside the scenes (`over(source, backdrop)` on straight-alpha inputs), and every probe's comment names the value its failure mode would produce, which lies outside the probe's tolerance. `catalog_coverage` and lane A (the scenes' bounds and behavior steps) pass. Because the catalog lists also feed the fast-mode parity groups, `lane_a_fast_parity` and `lane_c_fast_parity` (on Metal) pass for the new scenes: fast mode on and off draw them alike."
-    }
-   ]
-  },
-  {
-   "id": "REQ-PAR",
-   "title": "Metal and WGPU render the paint contract alike",
-   "descriptionMarkdown": "The scenes pass on both renderers this Mac can run: Metal (lanes C and D) and WGPU through WebGPU (lane B).",
-   "criteria": [
-    {
-     "id": "PAR-1",
-     "verification": "automated",
-     "descriptionMarkdown": "Lane C on the Metal renderer (`GPUX_EXPECT_BACKEND=metal`) passes every `paint-contract-*` scene at scales 1 and 2."
-    },
-    {
-     "id": "PAR-2",
-     "verification": "automated",
-     "descriptionMarkdown": "Lane B (`gpux-testkit lane b --grep paint-contract`) passes every `paint-contract-*` scene at DPR 1 and DPR 2 on WebGPU, with the run asserting its backend."
-    },
-    {
-     "id": "PAR-3",
-     "verification": "automated",
-     "descriptionMarkdown": "Lane D on macOS passes every `paint-contract-*` scene in real AppKit windows (Metal through `CAMetalLayer`)."
-    },
-    {
-     "id": "PAR-4",
-     "verification": "manual",
-     "descriptionMarkdown": "Every mismatch the scenes find is fixed at its source in the renderer that breaks the contract (see the constraints), in its own Conventional Commit that names the scene proving it. A WGSL fix also passes lane B's forced-WebGL2 route for the touched scenes and `dawn.spec.ts`; a Metal fix keeps the packed Rust ABI and the shader rules Metal shares with WGSL (fragment-position shading). The beading result settles Metal's hard-coded border gamma (`BORDER_GAMMA_RATIOS`, `BORDER_ENHANCED_CONTRAST` in `quad_fragment`): it passes unchanged, or Metal is changed to compute what WGSL computes. The review lists each fix, or states that none was needed."
-    }
-   ]
-  },
-  {
-   "id": "REQ-CI",
-   "title": "CI lints and builds the Apple-only code",
-   "descriptionMarkdown": "CI lints on Windows only, so Apple-only code (`gpux-apple`, `gpux-macos`, `gpux-zed-util`'s darwin command) has never been linted there, and the `runtime_shaders` feature is never built.",
-   "criteria": [
-    {
-     "id": "CI-1",
-     "verification": "automated",
-     "descriptionMarkdown": "On macOS, CI's clippy command passes: `cargo clippy --workspace --all-targets --no-deps` with CI's `FORK_EXCLUDES` and `-D warnings`. The test helper in `crates/util/src/command/darwin/process.rs` that spawns through `std::process::Command` and hands the pid to `Process` (which reaps it) carries `#[allow(clippy::disallowed_methods, clippy::zombie_processes)]` with a comment saying why, as `darwin.rs`'s tests do. Any other macOS finding is fixed at its source; no crate- or module-level allow is added."
-    },
-    {
-     "id": "CI-2",
-     "verification": "manual",
-     "descriptionMarkdown": "`.github/workflows/ci.yml`'s `check` job runs its Clippy step on Windows and macOS, and still not on Linux. `docs/testing.md` says where Clippy runs. Every workflow file still passes AgentX's workflow YAML checker. The first CI run after the push shows the Clippy step on `check (macos-15)`."
-    },
-    {
-     "id": "CI-3",
-     "verification": "automated",
-     "descriptionMarkdown": "`cargo check -p gpux-apple --features runtime_shaders` passes on macOS, and `ci.yml`'s `check` job runs exactly that command on macOS only, as its own step after the workspace check."
-    }
-   ]
-  },
-  {
-   "id": "REQ-REC",
-   "title": "Durable records match the proven state, and ToFix is gone",
-   "descriptionMarkdown": "Memory and the Zed import guide still describe the Metal port as unproven and lack its replay rules.",
-   "criteria": [
-    {
-     "id": "REC-1",
-     "verification": "manual",
-     "descriptionMarkdown": "Memory states only what this epic and `main` proved:\n\n- `knowledge/platform/desktop`: `state.md` drops \"that port has not been compiled or run\" and names the paint-contract scenes; `hypotheses.md` settles the Metal border-coverage hypothesis with the measured beading; `rules.md` replaces \"do not call the Metal border-antialiasing port done until...\" with the rule that 1 px border evenness stays within the scene's limits on every pixel lane.\n- A knowledge item (renderer or platform/desktop): enums in Metal-exported records are `#[repr(C)]`, because cbindgen's sized-enum typedef (`enum X {...}; typedef uint32_t X;`) is a redefinition in Metal's C++.\n- `knowledge/renderer/wgpu/rules.md`: fading or masking premultiplied paint scales all four channels (dash gaps, patterns, coverage), in both renderers.\n- `knowledge/renderer/state.md`: the paint-contract scenes prove Metal and WGPU against the same values.\n- The 2026-09-30 sRGB-compositing decision loses its stale \"the Metal port is not yet compiled or proven on macOS\".\n- Any renderer fix from PAR-4 is recorded where its domain's state describes that code.\n\nTimestamps are updated, and AgentX's memory audit passes."
-    },
-    {
-     "id": "REC-2",
-     "verification": "manual",
-     "descriptionMarkdown": "`.claude/skills/gpux/references/update-from-zed-gpui-closure.md`, \"Native Rendering And Windows\", records the replay rules with why upstream's files must not be taken whole:\n\n- the Metal paint contract: `shaders.metal` consumes premultiplied encoded-sRGB `PaintColor` and returns premultiplied color, `build.rs` has cbindgen parse `gpux_color`'s `src/color/paint.rs` through `GPUX_COLOR_MANIFEST_DIR`, and Metal-exported enums such as `MonochromeSpriteKind` stay `#[repr(C)]`. Upstream's `shaders.metal` still uses `Hsla`; the `paint-contract-*` scenes are the audit.\n- WGSL `fs_quad`: dash gaps scale the whole premultiplied border color, and an untransformed quad's antialias threshold is the constant half pixel (`b0c1c37`); upstream fades alpha alone and derives the threshold. `paint-border-strips` guards both.\n- Any PAR-4 fix to an upstream-imported file."
-    },
-    {
-     "id": "REC-3",
-     "verification": "automated",
-     "descriptionMarkdown": "`ToFix/` is deleted. `tools/testkit/tests/repository_layout.rs` no longer lists `ToFix/` in `HISTORICAL` or in `historical_records_and_fixtures_are_not_scanned`, and its group passes."
-    }
-   ]
-  }
- ]
+  ]
 }

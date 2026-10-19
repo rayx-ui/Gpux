@@ -4,7 +4,7 @@ agentx:
   scope: decisions
   status: current
   created: 2026-10-05T23:00:00+02:00
-  updated: 2026-10-17T12:00:00+02:00
+  updated: 2026-10-19T12:58:00+02:00
   topics:
     - decisions
     - gpux
@@ -92,3 +92,4 @@ Durable architecture choices for gpux. Current source remains the first evidence
   - [Under WSL only lanes C and D use the GPU, through a locally built Mesa dzn, and prove no timing](repository/validation/2026-10-14-repository-validation-wsl-gpu-lanes-c-d.md)
   - [PERF-4's wgpu-desktop half is closed with stated limits](repository/validation/2026-10-14-repository-validation-wgpu-desktop-perf-4.md)
   - [Test tooling lives in `crates/gpux_tests_*` and `tools/`](repository/validation/2026-10-16-repository-validation-test-tooling-layout.md)
+  - [CI lints with Clippy on Windows and macOS, and builds `runtime_shaders` on macOS](repository/validation/2026-10-19-repository-validation-clippy-on-windows-and-macos.md)
