@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/platform/desktop
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-17T02:30:00+02:00
+  updated: 2026-10-19T12:38:00+02:00
   topics:
     - windows
     - dx12
@@ -31,7 +31,7 @@ Read before changing a native desktop platform crate, its renderer hookup, Acces
 
 Windows renders through `gpui_wgpu::WgpuRenderer` on DX12 only; the old DirectX renderer and device path is gone. The platform owns a shared `GpuContext`, creates WGPU surfaces from a raw HWND wrapper, and uses `gpui_wgpu::CosmicTextSystem::new("Segoe UI")` for non-headless text. HWND swap chains use `DXGI_SCALING_NONE`, which needs the `gpux-wgpu` fork. `WindowsWindowState` snapshots `supports_dual_source_blending()` when the renderer is created and answers `is_subpixel_rendering_supported` from that snapshot, so an adapter without the feature uses grayscale text. `WM_SIZE` drawable changes are coalesced into scheduled frames.
 
-macOS keeps GPUI's Metal renderer. `quad_fragment` applies the same border edge coverage correction as WGPU through hard-coded `BORDER_GAMMA_RATIOS`/`BORDER_ENHANCED_CONTRAST` (Metal has no gamma uniform); that port has not been compiled or run. Metal skips visual-effect batches and reports effects unsupported.
+macOS keeps GPUI's Metal renderer. `quad_fragment` applies the same border edge coverage correction as WGPU through hard-coded `BORDER_GAMMA_RATIOS`/`BORDER_ENHANCED_CONTRAST` (Metal has no gamma uniform). The `paint-contract-*` scenes (inset shadows, gradient interpolation, pattern backgrounds, image alpha, 1 px border beading) hold Metal to the paint contract's own values in lanes C and D, the same values lane B holds WGPU to; on 2026-10-19 both passed unchanged, and the rings beaded alike on both (white 0.109 at 1x, 0.036 at 2x). Metal skips visual-effect batches and reports effects unsupported.
 
 Linux (`gpui_linux`) renders Wayland and X11 through `gpui_wgpu`. Wayland implements `WindowKind::AnchoredPopup` with explicit parent lookup, xdg/layer-shell parent attachment, positioner anchor/gravity/constraint/offset mapping, optional input-serial grabs, configure/ack, reposition tokens, non-blocking popup children, `popup_done` closure, and protocol-order teardown. The Wayland `client.rs`/`window.rs` and X11 `window.rs` were re-imported from Zed `c24358d` on 2026-10-05 (restoring default-feature builds, X11 `request_attention` urgency, AccessKit focus updates, and window-relative `mouse_position`). Wayland omits Zed's app-initiated external drag source because gpux has no drag-to-platform handoff or `FileDropEvent::Ended`. Without Zed's calloop fork, `gpui_linux` bounds idle work with its own budgeted `ForegroundTasks` queue.
 

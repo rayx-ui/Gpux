@@ -4,7 +4,7 @@ agentx:
   scope: decisions/renderer/wgpu
   status: current
   created: 2026-09-30T00:00:00+02:00
-  updated: 2026-09-30T00:00:00+02:00
+  updated: 2026-10-19T12:38:00+02:00
   topics:
     - gpux
     - wgpu
@@ -24,6 +24,6 @@ agentx:
 
 ### Reasoning: Design tools, browsers and CSS blend modes all composite encoded sRGB values, so RayX must as well for designs to match. `PaintColor` is now premultiplied encoded sRGB (`PaintGamutPolicy::ClipSrgb`), every adapter renders to a non-sRGB surface format with no alternate views, images/HTML islands/video are composited as sampled, OKLab gradients re-encode, and blur taps decode to linear, average and re-encode. Future Photoshop-style blend modes follow the W3C formulas on encoded values; a linear variant can decode per mode.
 
-### Trade-offs accepted: Anti-aliased edges and text coverage blend in sRGB (thinner, as in Zed and browsers); text and quad border edges (`border_edge_coverage` in WGPU `fs_quad` and Metal `quad_fragment`; the Metal port is not yet compiled or proven on macOS) apply the DirectWrite gamma/contrast correction so 1 px rounded borders do not bead (Test Suite `rayx-border-antialiasing.spec.ts`), while fill edges stay uncorrected; a surface that advertises only sRGB formats encodes paint twice and renders too light, which logs a warning.
+### Trade-offs accepted: Anti-aliased edges and text coverage blend in sRGB (thinner, as in Zed and browsers); text and quad border edges (`border_edge_coverage` in WGPU `fs_quad` and Metal `quad_fragment`) apply the DirectWrite gamma/contrast correction so 1 px rounded borders do not bead (Test Suite `rayx-border-antialiasing.spec.ts`), while fill edges stay uncorrected; a surface that advertises only sRGB formats encodes paint twice and renders too light, which logs a warning.
 
 ### Supersedes: `2026-07-16-runtime-gpux-foundation-downlevel-surface-formats.md` (every adapter now renders directly to a non-sRGB surface format).
