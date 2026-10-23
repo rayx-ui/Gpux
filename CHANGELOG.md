@@ -6,6 +6,22 @@ version under one `vX.Y.Z` tag. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). It is generated from
 Conventional Commits by release-plz.
 
+## [1.1.0] - 2026-10-23
+
+### Features
+- *(conformance)* measure 1 px border beading with a ring-evenness step
+- *(conformance)* add paint-contract scenes that hold every renderer to the contract
+
+### Fixes
+- *(conformance)* keep the pattern probes in their cells at every host scale
+
+### Maintenance
+- delete ToFix and drop it from the layout guard
+
+### Tests
+- *(util)* allow the darwin process test helper's raw spawn
+- *(testkit)* run the ring-evenness and paint-contract scale groups in lanes A and C
+
 ## [1.0.0] - 2026-10-18
 
 The first release of gpux under one workspace version: every own crate is 1.0.0 and the whole
